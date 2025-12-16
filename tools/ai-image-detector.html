@@ -1,0 +1,1060 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Image Detector | Tools Hub</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/shared.css">
+    <style>
+        /* =========================================
+           1. THEME VARIABLES (Dark & Light)
+           ========================================= */
+        :root {
+            /* Dark Theme (Default) */
+            --bg-body: #09090b;
+            --bg-card: #18181b;
+            --bg-secondary: #000000;
+            --border-color: #27272a;
+            --text-primary: #f4f4f5;
+            --text-secondary: #a1a1aa;
+            --text-muted: #52525b;
+            --accent-engineering: #fbbf24;
+            --accent-dim: rgba(251, 191, 36, 0.1);
+        }
+
+        /* Light Theme Overrides */
+        [data-theme="light"] {
+            --bg-body: #ffffff;
+            --bg-card: #ffffff;
+            --bg-secondary: #f4f4f5;
+            --border-color: #e4e4e7;
+            --text-primary: #09090b;
+            --text-secondary: #52525b;
+            --text-muted: #a1a1aa;
+            /* Keep accent roughly the same or slightly darker for contrast */
+            --accent-engineering: #d97706; 
+            --accent-dim: rgba(217, 119, 6, 0.1);
+        }
+        
+        body { background-color: var(--bg-body); color: var(--text-primary); font-family: 'Space Grotesk', sans-serif; margin: 0; transition: background-color 0.3s, color 0.3s; }
+        .container { max-width: 1600px; margin: 0 auto; padding: 20px; }
+
+        /* =========================================
+           2. LAYOUT & PANELS
+           ========================================= */
+        .calculator-layout {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 20px;
+            height: calc(100vh - 120px);
+            min-height: 800px;
+        }
+
+        .panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            transition: background 0.3s, border-color 0.3s;
+        }
+
+        .panel-header {
+            margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--border-color); flex-shrink: 0;
+        }
+        .panel-header h2 { font-size: 1.1rem; margin: 0 0 4px 0; font-weight: 700; color: var(--text-primary); }
+        .panel-header p { color: var(--text-secondary); font-size: 0.8rem; margin: 0; }
+
+        /* =========================================
+           3. SIDEBAR CONTROLS
+           ========================================= */
+        .upload-zone {
+            border: 2px dashed var(--border-color); border-radius: 8px; padding: 24px;
+            text-align: center; cursor: pointer; transition: all 0.2s; background: var(--bg-secondary);
+            margin-bottom: 16px; flex-shrink: 0;
+        }
+        .upload-zone:hover { border-color: var(--accent-engineering); background: var(--bg-card); }
+        .upload-icon { width: 32px; height: 32px; color: var(--text-muted); margin-bottom: 8px; }
+        .upload-text { font-size: 0.8rem; font-weight: 600; color: var(--text-primary); }
+
+        .control-group { margin-bottom: 12px; flex-shrink: 0; }
+        .control-label { font-size: 0.7rem; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 6px; font-weight: 600; letter-spacing: 0.05em; }
+        .control-select { width: 100%; padding: 8px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary); font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; outline: none; }
+
+        .checkbox-label { display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.8rem; color: var(--text-primary); margin-bottom: 6px; }
+        .checkbox-input { width: 14px; height: 14px; accent-color: var(--accent-engineering); }
+
+        .template-section { margin-top: 12px; flex-shrink: 0; }
+        .template-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
+        .template-btn {
+            background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 6px;
+            padding: 8px; text-align: left; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 6px;
+        }
+        .template-btn:hover { border-color: var(--accent-engineering); background: var(--bg-card); }
+        .template-btn span { font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: var(--text-secondary); }
+        .template-status { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+        .status-real { background: #10b981; }
+        .status-ai { background: #ef4444; }
+
+        /* =========================================
+           4. VISUALIZATION GRID
+           ========================================= */
+        .analysis-grid { 
+            display: grid; 
+            grid-template-columns: 1fr 1fr; 
+            grid-template-rows: 1fr 1fr;
+            gap: 16px; 
+            flex: 1; min-height: 0;
+        }
+        
+        .viewport-card {
+            background: var(--bg-secondary); border: 1px solid var(--border-color);
+            border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; position: relative;
+            min-height: 0;
+        }
+        
+        .viewport-header {
+            padding: 8px 12px; border-bottom: 1px solid var(--border-color);
+            font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: var(--text-secondary);
+            display: flex; justify-content: space-between; align-items: center; background: var(--bg-card);
+            flex-shrink: 0; height: 36px;
+        }
+
+        .viewport-content {
+            flex: 1; min-height: 0; position: relative; background-color: #000;
+            background-image: radial-gradient(#222 1px, transparent 1px); background-size: 20px 20px;
+            overflow: hidden; cursor: grab; display: flex; align-items: center; justify-content: center;
+        }
+        
+        canvas { display: block; max-width: 100%; max-height: 100%; }
+        #polarCanvas { width: 100%; height: 100%; image-rendering: pixelated; }
+        
+        /* Graphs Container */
+        .graphs-container {
+            display: flex; flex-direction: column; height: 100%; background: var(--bg-secondary);
+        }
+        .graph-row {
+            flex: 1; border-bottom: 1px solid var(--border-color); position: relative;
+            display: flex; flex-direction: column;
+        }
+        .graph-row:last-child { border-bottom: none; }
+        .graph-label {
+            position: absolute; top: 4px; left: 4px; z-index: 5;
+            font-family: 'JetBrains Mono', monospace; font-size: 0.65rem; color: var(--text-secondary);
+            background: rgba(0,0,0,0.5); padding: 2px 4px; border-radius: 4px; pointer-events: none;
+        }
+        .mini-graph { flex: 1; width: 100%; height: 100%; }
+
+        /* =========================================
+           5. HEADER & THEME TOGGLE
+           ========================================= */
+        .back-link {
+            display: flex; align-items: center; gap: 8px; color: var(--text-secondary);
+            text-decoration: none; font-size: 0.9rem; transition: color 0.2s;
+        }
+        .back-link:hover { color: var(--accent-engineering); }
+        .back-link svg { width: 18px; height: 18px; }
+
+        .theme-toggle {
+            display: flex; background: var(--bg-secondary); border: 1px solid var(--border-color);
+            border-radius: 20px; padding: 2px;
+        }
+        .theme-toggle button {
+            background: transparent; border: none; padding: 6px; border-radius: 50%;
+            cursor: pointer; color: var(--text-secondary); display: flex;
+        }
+        .theme-toggle button:hover { color: var(--text-primary); }
+        .theme-toggle button svg { width: 16px; height: 16px; }
+        /* Active state for theme buttons handled by JS or simple CSS if classes added */
+        [data-theme="light"] button[data-theme-toggle="light"] { color: var(--accent-engineering); background: var(--bg-card); box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        [data-theme="dark"] button[data-theme-toggle="dark"] { color: var(--accent-engineering); background: var(--bg-card); }
+
+
+        /* =========================================
+           6. GUIDE & TECH SPECS
+           ========================================= */
+        .guide-box {
+            margin-top: 20px; padding: 16px; background: var(--bg-secondary);
+            border-left: 3px solid var(--accent-engineering); border-radius: 0 6px 6px 0; flex-shrink: 0;
+        }
+        .guide-title { 
+            font-weight: 700; margin-bottom: 8px; font-size: 0.9rem;
+            color: var(--text-primary); display: flex; align-items: center; gap: 8px;
+        }
+        .guide-content { font-size: 0.8rem; color: var(--text-secondary); line-height: 1.5; }
+        .guide-content ul { margin: 8px 0; padding-left: 16px; }
+        .guide-content li { margin-bottom: 4px; }
+        .guide-content strong { color: var(--text-primary); font-weight: 600; }
+
+        .tech-foldable {
+            margin-top: 16px; border: 1px solid var(--border-color); border-radius: 6px;
+            background: var(--bg-card); flex-shrink: 0;
+        }
+        .tech-foldable summary {
+            padding: 12px; cursor: pointer; font-family: 'JetBrains Mono', monospace; 
+            font-size: 0.8rem; color: var(--text-muted); list-style: none;
+            display: flex; align-items: center; gap: 8px; transition: color 0.2s;
+        }
+        .tech-foldable summary:hover { color: var(--accent-engineering); }
+        .tech-foldable summary::-webkit-details-marker { display: none; }
+        .tech-foldable summary::before { content: '+'; font-weight: bold; width: 10px; display: inline-block; }
+        .tech-foldable[open] summary::before { content: '-'; }
+        
+        .tech-content {
+            padding: 16px; border-top: 1px solid var(--border-color);
+            font-size: 0.85rem; line-height: 1.6; color: var(--text-secondary);
+        }
+        .tech-content h3 { font-size: 0.9rem; color: var(--text-primary); margin: 0 0 8px 0; font-family: 'JetBrains Mono'; }
+        .tech-content p { margin-bottom: 12px; }
+
+        /* =========================================
+           7. LOADERS & UTILS
+           ========================================= */
+        .processing-overlay {
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.85); display: none; flex-direction: column;
+            align-items: center; justify-content: center; z-index: 20; backdrop-filter: blur(2px);
+        }
+        .loader-spinner {
+            width: 32px; height: 32px; border: 3px solid var(--text-muted);
+            border-top-color: var(--accent-engineering); border-radius: 50%;
+            animation: spin 1s linear infinite; margin-bottom: 16px;
+        }
+        .processing-text { font-family: 'JetBrains Mono', monospace; color: var(--accent-engineering); font-size: 0.75rem; margin-bottom: 8px; }
+        progress { width: 180px; height: 4px; border-radius: 2px; border: none; background: var(--bg-secondary); }
+        progress::-webkit-progress-bar { background: var(--bg-secondary); border-radius: 2px; }
+        progress::-webkit-progress-value { background: var(--accent-engineering); border-radius: 2px; }
+        
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+
+        @media (max-width: 1024px) {
+            .calculator-layout { grid-template-columns: 1fr; height: auto; }
+            .analysis-grid { grid-template-columns: 1fr; height: auto; grid-template-rows: repeat(4, 300px); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content" style="display:flex; justify-content:space-between; align-items:center;">
+                <div class="header-left">
+                    <a href="../tools.html" class="back-link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="19" y1="12" x2="5" y2="12"/>
+                            <polyline points="12 19 5 12 12 5"/>
+                        </svg>
+                        Back to Tools
+                    </a>
+                </div>
+                <div class="header-right">
+                    <div class="theme-toggle">
+                        <button data-theme-toggle="light" title="Light mode">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="5"/>
+                                <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+                            </svg>
+                        </button>
+                        <button data-theme-toggle="dark" title="Dark mode">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div style="margin-top: 24px; margin-bottom:24px; display: flex; align-items: center; gap: 16px;">
+                <div class="tool-icon-header engineering" style="font-size: 2rem;">👁️</div>
+                <div>
+                    <h1 style="margin:0; font-size:1.5rem; font-weight:700;">AI Image Detector</h1>
+                    <p class="tagline" style="margin:0; color:var(--text-muted); font-family:'JetBrains Mono'; font-size:0.8rem;">// DECOUPLED METRICS • LINEAR SCORING</p>
+                </div>
+            </div>
+        </header>
+
+        <main>
+            <div class="calculator-layout">
+                <aside class="panel">
+                    <div class="panel-header">
+                        <h2>Parameters</h2>
+                        <p>Forensic Configuration</p>
+                    </div>
+
+                    <input type="file" id="fileInput" accept="image/*" hidden>
+                    <div class="upload-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+                        <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <polyline points="17 8 12 3 7 8"/>
+                            <line x1="12" y1="3" x2="12" y2="15"/>
+                        </svg>
+                        <div class="upload-text">Upload Image</div>
+                    </div>
+
+                    <div class="control-group">
+                        <div class="control-label">Signal Filter</div>
+                        <select id="signalSelect" class="control-select">
+                            <option value="laplacian" selected>Laplacian (High-Pass Edge)</option>
+                            <option value="raw">Raw Intensity (Unfiltered)</option>
+                        </select>
+                    </div>
+
+                    <div class="control-group">
+                        <div class="control-label">Channel</div>
+                        <select id="channelSelect" class="control-select">
+                            <option value="blue" selected>Blue Channel (Best for AI)</option>
+                            <option value="green">Green Channel</option>
+                            <option value="red">Red Channel</option>
+                            <option value="luma">Luminance (Gray)</option>
+                        </select>
+                    </div>
+
+                    <div class="control-group">
+                        <div class="control-label">FFT Size</div>
+                        <select id="fftSizeSelect" class="control-select">
+                            <option value="native" selected>Native (Best Quality)</option>
+                            <option value="1024">1024px</option>
+                            <option value="2048">2048px</option>
+                            <option value="4096">4096px</option>
+                        </select>
+                    </div>
+
+                    <div class="control-group">
+                        <div class="control-label">Toggles</div>
+                        <label class="checkbox-label" title="Applies smoothing window. Turn OFF to see edge artifacts more clearly.">
+                            <input type="checkbox" id="windowCheck" class="checkbox-input">
+                            Hanning Window
+                        </label>
+                        <label class="checkbox-label" title="Only affects visualization. Scoring is always Linear.">
+                            <input type="checkbox" id="logScaleCheck" class="checkbox-input">
+                            Visual Log Scale
+                        </label>
+                    </div>
+
+                    <div class="template-section">
+                        <div class="control-label">Templates</div>
+                        <div class="template-grid">
+                            <button class="template-btn" onclick="loadTemplate('../img/tree.jpg')"><div class="template-status status-real"></div><span>Real</span></button>
+                            <button class="template-btn" onclick="loadTemplate('../img/tree_scan.jpg')"><div class="template-status status-real"></div><span>Scan</span></button>
+                            <button class="template-btn" onclick="loadTemplate('../img/tree-midjourney.png')"><div class="template-status status-ai"></div><span>MidJ</span></button>
+                            <button class="template-btn" onclick="loadTemplate('../img/tree-nano-banana.png')"><div class="template-status status-ai"></div><span>Nano</span></button>
+                        </div>
+                    </div>
+                </aside>
+
+                <div class="panel">
+                    <div class="panel-header">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <div>
+                                <h2>Forensic Dashboard</h2>
+                                <p id="imgInfo">No Image Loaded</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="analysis-grid">
+                        
+                        <div class="viewport-card">
+                            <div class="viewport-header">
+                                <span>Source</span>
+                                <span style="font-size:0.7rem; color:var(--text-muted)">Pan & Zoom Enabled</span>
+                            </div>
+                            <div class="viewport-content" id="sourceContainer">
+                                <canvas id="sourceCanvas"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="viewport-card">
+                            <div class="viewport-header">
+                                <span>Power Spectrum (FFT)</span>
+                                <span style="font-size:0.7rem; color:var(--accent-engineering)">Magma</span>
+                            </div>
+                            <div class="viewport-content" id="fftContainer">
+                                <canvas id="fftCanvas"></canvas>
+                                <div class="processing-overlay" id="fftLoader">
+                                    <div class="loader-spinner"></div>
+                                    <div class="processing-text" id="statusText">READY</div>
+                                    <progress id="progressBar" value="0" max="100"></progress>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="viewport-card">
+                            <div class="viewport-header">
+                                <span>Polar Spectrum (Unwrapped)</span>
+                                <span style="font-size:0.7rem; color:var(--text-muted)">X: Angle | Y: Freq</span>
+                            </div>
+                            <div class="viewport-content" style="background:#111;">
+                                <canvas id="polarCanvas"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="viewport-card">
+                            <div class="viewport-header">
+                                <span>1D Metrics</span>
+                            </div>
+                            <div class="graphs-container">
+                                <div class="graph-row">
+                                    <div class="graph-label">Azimuthal Sum (Grid Check)</div>
+                                    <canvas id="azimuthalCanvas" class="mini-graph"></canvas>
+                                </div>
+                                <div class="graph-row">
+                                    <div class="graph-label">Radial Falloff</div>
+                                    <canvas id="radialCanvas" class="mini-graph"></canvas>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <div class="guide-box">
+                        <div class="guide-title">
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"/>
+                                <line x1="12" y1="16" x2="12" y2="12"/>
+                                <line x1="12" y1="8" x2="12.01" y2="8"/>
+                            </svg>
+                            Analysis Quick Guide
+                        </div>
+                        <div class="guide-content">
+                            <p><strong>1. Log Visuals vs. Linear Truth:</strong> The images use Log scaling so you can see them. Internally, we score using Linear power to catch "invisible" grid spikes that are mathematically massive.</p>
+                            
+                            <p><strong>2. Why Laplacian?</strong> We run a High-Pass filter to strip image content. We are looking for the manufacturing defects of the Generator, not the picture itself.</p>
+
+                            <p><strong>3. Artifact Identification:</strong>
+                                <ul>
+                                    <li><strong>Star Field / Grid:</strong> Indicates upsampling artifacts (Checkerboard effect) common in GANs and older Diffusion.</li>
+                                    <li><strong>Solid Halo:</strong> Indicates heavy post-processing or compression.</li>
+                                    <li><strong>Natural Falloff:</strong> Real photos usually look like a chaotic cloud with no distinct geometric patterns.</li>
+                                </ul>
+                            </p>
+                        </div>
+                    </div>
+
+                    <details class="tech-foldable">
+                        <summary>Technical Methodology & Signal Processing</summary>
+                        <div class="tech-content">
+                            <h3>1. The Pipeline</h3>
+                            <p>
+                                Unlike simple metadata checkers, this tool performs frequency domain analysis. The image is processed in four stages:
+                                <br>
+                                <code>Input Image -> Blue Channel Extraction -> Laplacian High-Pass -> Windowing -> FFT</code>
+                            </p>
+                            
+                            <h3>2. Channel Selection</h3>
+                            
+                            <p>
+                                We default to the <strong>Blue Channel</strong>. In digital sensors (Bayer Filter), the Blue channel is the least dense (25% of pixels) and usually has the lowest signal-to-noise ratio. It is the "trash can" of the image where compression artifacts and generation errors are most prominent.
+                            </p>
+
+                            <h3>3. Edge Detection (Laplacian)</h3>
+                            
+                            <p>
+                                A Laplacian kernel (3x3) acts as a second-order derivative filter. It removes the "DC Component" (the average brightness and color) and leaves only the rate of change. This effectively removes the "picture" (the face, the tree) and leaves the "texture" (the pixel relationships).
+                            </p>
+
+                            <h3>4. Frequency Domain (FFT)</h3>
+                            
+                            <p>
+                                We use a Fast Fourier Transform to convert the spatial data (pixels) into frequency data (sine waves). 
+                                <br><br>
+                                <strong>The Center:</strong> Low frequencies (gradual gradients).
+                                <br>
+                                <strong>The Edges:</strong> High frequencies (sharp noise/edges).
+                                <br><br>
+                                Generative AI, specifically Convolutional Neural Networks (CNNs), often utilize "Transposed Convolutions" to upscale images. This creates a "Checkerboard Artifact" which, while invisible to the naked eye, manifests as a distinct periodic grid in the frequency domain.
+                            </p>
+                        </div>
+                    </details>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="../js/shared.js"></script>
+    <script>
+        // ============================================
+        // Theme Manager (Inline Fallback)
+        // ============================================
+        function initTheme() {
+            const btns = document.querySelectorAll('[data-theme-toggle]');
+            const html = document.documentElement;
+            
+            // Check stored preference
+            const stored = localStorage.getItem('theme') || 'dark';
+            html.setAttribute('data-theme', stored);
+
+            btns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const mode = btn.dataset.themeToggle;
+                    html.setAttribute('data-theme', mode);
+                    localStorage.setItem('theme', mode);
+                    
+                    // Trigger redraw of canvases if needed (colors might change)
+                    if(typeof runAnalysis === 'function' && window.currentImage) {
+                    }
+                });
+            });
+        }
+
+        // ============================================
+        // AI Image Detector v28
+        // ============================================
+
+        const UI = {
+            dropZone: document.getElementById('dropZone'),
+            fileInput: document.getElementById('fileInput'),
+            fftLoader: document.getElementById('fftLoader'),
+            progressBar: document.getElementById('progressBar'),
+            statusText: document.getElementById('statusText'),
+            imgInfo: document.getElementById('imgInfo'),
+            sourceCanvas: document.getElementById('sourceCanvas'),
+            fftCanvas: document.getElementById('fftCanvas'),
+            polarCanvas: document.getElementById('polarCanvas'),
+            azimuthalCanvas: document.getElementById('azimuthalCanvas'),
+            radialCanvas: document.getElementById('radialCanvas'),
+            signalSelect: document.getElementById('signalSelect'),
+            channelSelect: document.getElementById('channelSelect'),
+            fftSizeSelect: document.getElementById('fftSizeSelect'),
+            windowCheck: document.getElementById('windowCheck'),
+            logScaleCheck: document.getElementById('logScaleCheck'),
+            sourceContainer: document.getElementById('sourceContainer'),
+            fftContainer: document.getElementById('fftContainer')
+        };
+
+        const CTX = {
+            src: UI.sourceCanvas.getContext('2d'),
+            fft: UI.fftCanvas.getContext('2d'),
+            polar: UI.polarCanvas.getContext('2d'),
+            azimuthal: UI.azimuthalCanvas.getContext('2d'),
+            radial: UI.radialCanvas.getContext('2d')
+        };
+
+        let currentImage = null;
+        // Window FALSE, Log FALSE
+        let config = {
+            fftSize: 0, // 0=Native
+            signal: 'laplacian',
+            channel: 'blue',
+            window: false, 
+            log: false
+        };
+        const LIMIT_BYTES = 5 * 1024 * 1024;
+
+        // ================= Init =================
+
+        function init() {
+            initTheme(); // Initialize theme logic
+            bindEvents();
+            setupViewport(UI.sourceContainer, UI.sourceCanvas);
+            resizeGraphs();
+            window.addEventListener('resize', resizeGraphs);
+        }
+
+        function bindEvents() {
+            UI.dropZone.addEventListener('click', () => UI.fileInput.click());
+            UI.fileInput.addEventListener('change', (e) => handleFile(e.target.files[0]));
+            
+            UI.dropZone.addEventListener('dragover', (e) => { e.preventDefault(); UI.dropZone.classList.add('dragover'); });
+            
+            UI.dropZone.addEventListener('dragleave', () => UI.dropZone.classList.remove('dragover'));
+            
+            UI.dropZone.addEventListener('drop', (e) => {
+                e.preventDefault(); UI.dropZone.classList.remove('dragover');
+                if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+            });
+
+            const refresh = () => { if(currentImage) runAnalysis(); };
+            
+            UI.signalSelect.addEventListener('change', (e) => { config.signal = e.target.value; refresh(); });
+            UI.channelSelect.addEventListener('change', (e) => { config.channel = e.target.value; refresh(); });
+            UI.fftSizeSelect.addEventListener('change', (e) => { 
+                config.fftSize = e.target.value === 'native' ? 0 : parseInt(e.target.value); 
+                refresh(); 
+            });
+            UI.windowCheck.addEventListener('change', (e) => { config.window = e.target.checked; refresh(); });
+            UI.logScaleCheck.addEventListener('change', (e) => { config.log = e.target.checked; refresh(); });
+        }
+
+        function resizeGraphs() {
+            [UI.polarCanvas, UI.azimuthalCanvas, UI.radialCanvas].forEach(c => {
+                if(c.parentElement) {
+                    c.width = c.parentElement.clientWidth;
+                    c.height = c.parentElement.clientHeight;
+                }
+            });
+        }
+
+        // ================= File Handling =================
+
+        function handleFile(file) {
+            if (!file) return;
+            const reader = new FileReader();
+            UI.fftLoader.style.display = 'flex';
+            UI.statusText.textContent = "LOADING...";
+            reader.onload = (e) => processImage(e.target.result, file.name);
+            reader.readAsDataURL(file);
+        }
+
+        function loadTemplate(path) {
+            const name = path.split('/').pop();
+            UI.fftLoader.style.display = 'flex';
+            UI.statusText.textContent = "DOWNLOADING...";
+            processImage(path, name);
+        }
+
+        function processImage(src, name) {
+            const img = new Image();
+            img.crossOrigin = "Anonymous";
+            img.onload = () => {
+                currentImage = img;
+                UI.imgInfo.textContent = `${name} (${img.width}x${img.height})`;
+                fitImageToCanvas(img, UI.sourceCanvas, CTX.src);
+                runAnalysis();
+            };
+            img.onerror = () => {
+                UI.fftLoader.style.display = 'none';
+                alert("Failed to load image");
+            };
+            img.src = src;
+        }
+
+        function fitImageToCanvas(img, canvas, ctx) {
+            canvas.width = canvas.parentElement.clientWidth;
+            canvas.height = canvas.parentElement.clientHeight;
+            const scale = Math.min(canvas.width/img.width, canvas.height/img.height);
+            const w = img.width * scale;
+            const h = img.height * scale;
+            const x = (canvas.width - w)/2;
+            const y = (canvas.height - h)/2;
+            ctx.clearRect(0,0,canvas.width, canvas.height);
+            ctx.drawImage(img, x, y, w, h);
+        }
+
+        // ================= Analysis Logic =================
+
+        function runAnalysis() {
+            if (!currentImage) return;
+            
+            let w, h;
+            if (config.fftSize === 0) {
+                const maxDim = Math.max(currentImage.width, currentImage.height);
+                let p2 = 512;
+                while (p2 < maxDim && p2 < 8192) p2 *= 2;
+                w = h = p2;
+            } else { w = h = config.fftSize; }
+
+            UI.statusText.textContent = `PROCESSING (${w}x${h})...`;
+            UI.progressBar.value = 20;
+            UI.fftLoader.style.display = 'flex';
+
+            setTimeout(() => {
+                try {
+                    const data = extractData(w, h);
+                    UI.progressBar.value = 50;
+                    
+                    // 1. Compute Linear Power
+                    const magLinear = computeFFT(data, w, h);
+                    UI.progressBar.value = 70;
+
+                    // 2. Prepare Visualization Data
+                    const magVis = new Float32Array(magLinear.length);
+                    for(let i=0; i<magLinear.length; i++) {
+                        // Apply Log only if config.log is true (now false by default)
+                        magVis[i] = config.log ? Math.log(1 + magLinear[i]) : magLinear[i];
+                    }
+
+                    // 3. Draw Visuals
+                    drawSpectrogram(magVis, w, h);
+                    drawPolarPlot(magVis, w, h);
+                    
+                    // 4. Calculate Score (Internal logic)
+                    const azDataLinear = computeAzimuthal(magLinear, w, h, false);
+                    calculateScore(azDataLinear);
+
+                    // 5. Draw Graphs
+                    const azDataVis = computeAzimuthal(magVis, w, h, true);
+                    computeRadial(magVis, w, h);
+                    
+                    UI.progressBar.value = 100;
+                } catch (e) {
+                    console.error(e);
+                    alert("Analysis failed. Check console.");
+                } finally {
+                    setTimeout(() => UI.fftLoader.style.display = 'none', 100);
+                }
+            }, 50);
+        }
+
+        function extractData(w, h) {
+            const canvas = document.createElement('canvas');
+            canvas.width = w; canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(currentImage, 0, 0, w, h);
+            const imgData = ctx.getImageData(0, 0, w, h);
+            const d = imgData.data;
+            const len = w * h;
+            const input = new Float32Array(len);
+
+            let cIdx = 2; // Blue
+            if(config.channel === 'red') cIdx = 0;
+            if(config.channel === 'green') cIdx = 1;
+            const useLuma = config.channel === 'luma';
+
+            const winX = new Float32Array(w);
+            const winY = new Float32Array(h);
+            if (config.window) {
+                for(let i=0; i<w; i++) winX[i] = 0.5 * (1 - Math.cos((2*Math.PI*i)/(w-1)));
+                for(let i=0; i<h; i++) winY[i] = 0.5 * (1 - Math.cos((2*Math.PI*i)/(h-1)));
+            }
+
+            for(let y=0; y<h; y++) {
+                for(let x=0; x<w; x++) {
+                    const i = (y*w + x) * 4;
+                    let val = useLuma ? (d[i]*0.299 + d[i+1]*0.587 + d[i+2]*0.114) : d[i+cIdx];
+                    input[y*w + x] = val;
+                }
+            }
+
+            if (config.signal === 'laplacian') {
+                const temp = new Float32Array(input);
+                for(let y=1; y<h-1; y++) {
+                    for(let x=1; x<w-1; x++) {
+                        const idx = y*w+x;
+                        const center = temp[idx] * 8;
+                        const surround = temp[idx-1] + temp[idx+1] + temp[idx-w] + temp[idx+w] +
+                                         temp[idx-w-1] + temp[idx-w+1] + temp[idx+w-1] + temp[idx+w+1];
+                        input[idx] = center - surround;
+                    }
+                }
+            }
+
+            if (config.window) {
+                for(let y=0; y<h; y++) {
+                    for(let x=0; x<w; x++) {
+                        input[y*w+x] *= (winX[x] * winY[y]);
+                    }
+                }
+            }
+            return input;
+        }
+
+        function computeFFT(input, w, h) {
+            const len = w * h;
+            const real = new Float32Array(input);
+            const imag = new Float32Array(len).fill(0);
+
+            fft2D(real, imag, w, h);
+
+            const magnitude = new Float32Array(len);
+            const centerSkip = 2; 
+
+            for(let y=0; y<h; y++) {
+                for(let x=0; x<w; x++) {
+                    const i = y*w + x;
+                    // LINEAR POWER: Real^2 + Imag^2
+                    let mag = real[i]*real[i] + imag[i]*imag[i];
+                    
+                    const sy = (y + h/2) % h;
+                    const sx = (x + w/2) % w;
+                    
+                    if (Math.abs(sx - w/2) < centerSkip && Math.abs(sy - h/2) < centerSkip) mag = 0;
+                    magnitude[sy*w + sx] = mag;
+                }
+            }
+            return magnitude;
+        }
+
+        function drawSpectrogram(mag, w, h) {
+            let sorted = mag.slice().sort();
+            let p99 = sorted[Math.floor(sorted.length * 0.99)] || 1;
+            let min = sorted[0];
+
+            UI.fftCanvas.width = w; UI.fftCanvas.height = h;
+            const imgData = CTX.fft.createImageData(w, h);
+            const d = imgData.data;
+
+            for(let i=0; i<mag.length; i++) {
+                let t = (mag[i] - min) / (p99 - min);
+                if(t>1) t=1; if(t<0) t=0;
+                
+                const c = getMagmaColor(t);
+                d[i*4] = c.r; d[i*4+1] = c.g; d[i*4+2] = c.b; d[i*4+3] = 255;
+            }
+            CTX.fft.putImageData(imgData, 0, 0);
+
+            // Light Grey Outline
+            CTX.fft.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+            CTX.fft.lineWidth = 1;
+            CTX.fft.strokeRect(0, 0, w, h);
+        }
+
+        function drawPolarPlot(mag, w, h) {
+            const cx = w/2; const cy = h/2;
+            const maxR = Math.min(w, h)/2;
+            const outputW = UI.polarCanvas.width; 
+            const outputH = UI.polarCanvas.height;
+            
+            const imgData = CTX.polar.createImageData(outputW, outputH);
+            const d = imgData.data;
+
+            let maxVal = 0;
+            for(let i=0; i<1000; i++) {
+                const v = mag[Math.floor(Math.random()*mag.length)];
+                if(v > maxVal) maxVal = v;
+            }
+            if(maxVal === 0) maxVal = 1;
+
+            for(let y=0; y<outputH; y++) {
+                const r = (y/outputH) * maxR;
+                for(let x=0; x<outputW; x++) {
+                    const theta = (x/outputW) * Math.PI*2;
+                    const px = Math.floor(cx + r * Math.cos(theta));
+                    const py = Math.floor(cy + r * Math.sin(theta));
+                    
+                    let val = 0;
+                    if(px>=0 && px<w && py>=0 && py<h) val = mag[py*w+px];
+                    
+                    let t = val / maxVal;
+                    t = Math.pow(t, 0.8);
+                    const c = getMagmaColor(t);
+                    
+                    const idx = ((outputH - 1 - y) * outputW + x) * 4;
+                    d[idx] = c.r; d[idx+1] = c.g; d[idx+2] = c.b; d[idx+3] = 255;
+                }
+            }
+            CTX.polar.putImageData(imgData, 0, 0);
+        }
+
+        function computeAzimuthal(mag, w, h, draw) {
+            const bins = 360;
+            const sums = new Float32Array(bins);
+            const counts = new Uint32Array(bins);
+            const cx = w/2; const cy = h/2;
+            
+            const minR = Math.min(w,h)*0.25;
+            const maxR = Math.min(w,h)*0.45;
+
+            for(let y=0; y<h; y++) {
+                for(let x=0; x<w; x++) {
+                    const dx = x-cx; const dy = y-cy;
+                    const r = Math.sqrt(dx*dx + dy*dy);
+                    if (r > minR && r < maxR) {
+                        let angle = Math.atan2(dy, dx) * (180/Math.PI);
+                        if(angle<0) angle+=360;
+                        const b = Math.floor(angle)%360;
+                        sums[b] += mag[y*w+x];
+                        counts[b]++;
+                    }
+                }
+            }
+            
+            const data = [];
+            for(let i=0; i<bins; i++) data.push(counts[i] ? sums[i]/counts[i] : 0);
+            
+            if(draw) {
+                const smoothed = [];
+                for(let i=0; i<360; i++) {
+                    let s=0; for(let j=-2; j<=2; j++) s+=data[(i+j+360)%360];
+                    smoothed.push(s/5);
+                }
+                drawAzimuthalGraph(smoothed);
+            }
+            
+            return data;
+        }
+
+        function drawAzimuthalGraph(data) {
+            const ctx = CTX.azimuthal;
+            const w = ctx.canvas.width; const h = ctx.canvas.height;
+            ctx.clearRect(0,0,w,h);
+            
+            const min = Math.min(...data); const max = Math.max(...data);
+            const range = max - min || 1;
+
+            ctx.strokeStyle = '#333'; ctx.lineWidth = 1;
+            ctx.fillStyle = '#888'; ctx.font = '10px JetBrains Mono';
+            [0,90,180,270].forEach(d => {
+                const x = (d/360)*w;
+                ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,h); ctx.stroke();
+                ctx.fillText(d+'°', x+2, 10);
+            });
+
+            ctx.beginPath(); ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 2;
+            for(let i=0; i<360; i++) {
+                const x = (i/360)*w;
+                const y = h - ((data[i]-min)/range)*h*0.8 - h*0.1;
+                if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+            }
+            ctx.stroke();
+        }
+
+        function computeRadial(mag, w, h) {
+            const cx = w/2; const cy = h/2;
+            const maxR = Math.ceil(Math.sqrt(cx*cx + cy*cy));
+            const sums = new Float32Array(maxR);
+            const counts = new Uint32Array(maxR);
+
+            for(let y=0; y<h; y++) {
+                for(let x=0; x<w; x++) {
+                    const dx = x-cx; const dy = y-cy;
+                    const r = Math.floor(Math.sqrt(dx*dx+dy*dy));
+                    if(r<maxR) { sums[r]+=mag[y*w+x]; counts[r]++; }
+                }
+            }
+            const profile = [];
+            for(let r=1; r<maxR; r++) { if(counts[r]) profile.push(sums[r]/counts[r]); }
+
+            drawRadialGraph(profile);
+            return profile;
+        }
+
+        function drawRadialGraph(data) {
+            const ctx = CTX.radial;
+            const w = ctx.canvas.width; const h = ctx.canvas.height;
+            ctx.clearRect(0,0,w,h);
+
+            const minLogR = Math.log(1); const maxLogR = Math.log(data.length);
+            const minV = Math.min(...data); const maxV = Math.max(...data);
+            const range = maxV - minV || 1;
+
+            ctx.beginPath(); ctx.strokeStyle = '#10b981'; ctx.lineWidth = 1; ctx.setLineDash([5,5]);
+            ctx.moveTo(0, 20); ctx.lineTo(w, h-10);
+            ctx.stroke(); ctx.setLineDash([]);
+
+            ctx.beginPath(); ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 2;
+            for(let i=0; i<data.length; i++) {
+                const logR = Math.log(i+1);
+                const x = ((logR - minLogR)/(maxLogR - minLogR)) * w;
+                const y = h - ((data[i]-minV)/range)*h*0.8 - h*0.1;
+                if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+            }
+            ctx.stroke();
+        }
+
+        function calculateScore(data) {
+            // Logic retained for internal use
+            const sorted = [...data].sort((a,b)=>a-b);
+            const median = sorted[Math.floor(sorted.length/2)];
+            
+            const getPeak = (deg) => {
+                let p = 0;
+                for(let i=-2; i<=2; i++) {
+                    const idx = (deg+i+360)%360;
+                    if(data[idx]>p) p=data[idx];
+                }
+                return p;
+            };
+
+            const getLocalAvg = (deg) => {
+                let sum = 0; let c = 0;
+                for(let i=-15; i<=15; i++) {
+                    if(Math.abs(i)<4) continue;
+                    const idx = (deg+i+360)%360;
+                    sum += data[idx]; c++;
+                }
+                return sum/c;
+            };
+
+            const p0=getPeak(0); const b0=getLocalAvg(0);
+            const p90=getPeak(90); const b90=getLocalAvg(90);
+            const p180=getPeak(180); const b180=getLocalAvg(180);
+            const p270=getPeak(270); const b270=getLocalAvg(270);
+
+            const ratio = Math.max(p0/b0, p90/b90, p180/b180, p270/b270);
+            console.log("Grid Prominence Score: " + ratio.toFixed(2) + "x");
+        }
+
+        // ================= Helpers =================
+        function setupViewport(container, canvas) {
+            let zoom = 1.0; let panX = 0; let panY = 0;
+            let isDrag = false; let lx=0; let ly=0;
+            const redraw = () => {
+                const ctx = canvas.getContext('2d');
+                canvas.width = container.clientWidth;
+                canvas.height = container.clientHeight;
+                ctx.clearRect(0,0,canvas.width,canvas.height);
+                if(!currentImage) return;
+                const scale = Math.min(canvas.width/currentImage.width, canvas.height/currentImage.height);
+                const w = currentImage.width * scale * zoom;
+                const h = currentImage.height * scale * zoom;
+                const x = (canvas.width - w)/2 + panX;
+                const y = (canvas.height - h)/2 + panY;
+                ctx.drawImage(currentImage, x, y, w, h);
+            };
+            container.addEventListener('mousedown', e => { isDrag=true; lx=e.clientX; ly=e.clientY; });
+            window.addEventListener('mouseup', () => isDrag=false);
+            window.addEventListener('mousemove', e => {
+                if(!isDrag) return;
+                panX += e.clientX - lx; panY += e.clientY - ly;
+                lx = e.clientX; ly = e.clientY;
+                redraw();
+            });
+            container.addEventListener('wheel', e => {
+                e.preventDefault();
+                zoom += e.deltaY > 0 ? -0.1 : 0.1;
+                if(zoom < 0.1) zoom = 0.1;
+                redraw();
+            });
+            const oldFit = fitImageToCanvas;
+            fitImageToCanvas = (img, c, ctx) => { zoom = 1.0; panX = 0; panY = 0; redraw(); };
+        }
+
+        function getMagmaColor(t) {
+            if (t<0) t=0; if(t>1) t=1;
+            let r, g, b;
+            if (t < 0.33) { const lt = t/0.33; r=lerp(0,63,lt); g=lerp(0,15,lt); b=lerp(0,114,lt); }
+            else if (t < 0.66) { const lt = (t-0.33)/0.33; r=lerp(63,252,lt); g=lerp(15,103,lt); b=lerp(114,93,lt); }
+            else { const lt = (t-0.66)/0.34; r=lerp(252,252,lt); g=lerp(103,253,lt); b=lerp(93,191,lt); }
+            return {r,g,b};
+        }
+        function lerp(a,b,t){ return a+(b-a)*t; }
+
+        function fft2D(re, im, w, h) {
+            for (let y=0; y<h; y++) {
+                const rowR=new Float32Array(w), rowI=new Float32Array(w);
+                for(let x=0; x<w; x++) { rowR[x]=re[y*w+x]; rowI[x]=im[y*w+x]; }
+                fft1D(rowR, rowI, w);
+                for(let x=0; x<w; x++) { re[y*w+x]=rowR[x]; im[y*w+x]=rowI[x]; }
+            }
+            for (let x=0; x<w; x++) {
+                const colR=new Float32Array(h), colI=new Float32Array(h);
+                for(let y=0; y<h; y++) { colR[y]=re[y*w+x]; colI[y]=im[y*w+x]; }
+                fft1D(colR, colI, h);
+                for(let y=0; y<h; y++) { re[y*w+x]=colR[y]; im[y*w+x]=colI[y]; }
+            }
+        }
+        function fft1D(re, im, n) {
+            let j=0;
+            for(let i=0; i<n-1; i++){
+                if(i<j){ let t=re[i]; re[i]=re[j]; re[j]=t; t=im[i]; im[i]=im[j]; im[j]=t; }
+                let k=n/2; while(k<=j){ j-=k; k/=2; } j+=k;
+            }
+            let step=1;
+            while(step<n){
+                const jump=step*2;
+                const dt = -Math.PI/step;
+                let wr=1, wi=0;
+                const wsr=Math.cos(dt), wsi=Math.sin(dt);
+                for(let s=0; s<step; s++){
+                    for(let i=s; i<n; i+=jump){
+                        const j=i+step;
+                        const tr=wr*re[j]-wi*im[j];
+                        const ti=wr*im[j]+wi*re[j];
+                        re[j]=re[i]-tr; im[j]=im[i]-ti;
+                        re[i]+=tr; im[i]+=ti;
+                    }
+                    const twr=wr*wsr-wi*wsi;
+                    wi=wr*wsi+wi*wsr; wr=twr;
+                }
+                step=jump;
+            }
+        }
+
+        init();
+    </script>
+</body>
+</html>

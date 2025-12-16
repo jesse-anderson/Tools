@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HED Calculator | Tools Hub</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/shared.css">
+    <style>
+        /* Shared Layout */
+        .calculator-layout {
+            display: grid;
+            grid-template-columns: 1fr 360px;
+            gap: 24px;
+            min-height: calc(100vh - 300px);
+        }
+
+        .calculator-panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel-header {
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .panel-header h2 { font-size: 1.5rem; margin-bottom: 4px; }
+        .panel-header p { color: var(--text-secondary); font-size: 0.9375rem; }
+
+        /* Method Alert */
+        .method-alert {
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 0.8125rem;
+            margin-bottom: 20px;
+            display: none;
+            align-items: flex-start;
+            gap: 10px;
+            line-height: 1.5;
+        }
+        .alert-auto { background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); color: #f59e0b; }
+        .alert-forced { background: rgba(234, 179, 8, 0.1); border: 1px solid rgba(234, 179, 8, 0.3); color: #eab308; }
+        .alert-manual { background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); color: #3b82f6; }
+        
+        .method-alert svg { flex-shrink: 0; margin-top: 2px; }
+        .method-link { color: inherit; text-decoration: underline; font-weight: 600; cursor: pointer; }
+
+        /* Input Grid */
+        .input-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .input-group label {
+            display: block;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 0.8125rem;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .main-input, .main-select {
+            width: 100%;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px 16px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1rem;
+            color: var(--text-primary);
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        
+        a, 
+        .method-link, /* For your specific calculator tooltips */
+        .back-link {  /* For the header navigation */
+            color: var(--link-color);
+            text-decoration: none;
+            transition: color 0.2s ease, opacity 0.2s ease;
+            cursor: pointer;
+        }
+
+        a:hover,
+        .method-link:hover,
+        .back-link:hover {
+            color: var(--link-hover);
+            text-decoration: underline;
+        }
+
+        /* Optional: Ensure header icon links (like Back to Tools) align properly */
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 500;
+        }
+
+        .main-input:focus, .main-select:focus { border-color: var(--accent-engineering); }
+        .main-input:read-only { opacity: 0.7; background: var(--bg-card); cursor: not-allowed; color: var(--text-muted); }
+
+        /* Input with Suffix (for Theoretical BSA) */
+        .input-with-suffix { position: relative; }
+        .input-suffix {
+            position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+            font-family: 'JetBrains Mono'; font-size: 0.75rem; color: var(--text-muted);
+            pointer-events: none;
+        }
+
+        /* Km Input Wrapper */
+        .km-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+        .km-input { padding-right: 40px; }
+        .lock-btn {
+            position: absolute; right: 8px; background: none; border: none; cursor: pointer;
+            color: var(--text-secondary); padding: 4px; display: flex; align-items: center;
+            justify-content: center; transition: color 0.2s;
+        }
+        .lock-btn:hover { color: var(--text-primary); }
+        .lock-btn.unlocked { color: var(--accent-engineering); }
+
+        .calc-km-btn {
+            font-size: 0.7rem; color: var(--accent-engineering); background: none; border: none;
+            cursor: pointer; margin-top: 4px; display: none; align-items: center; gap: 4px;
+        }
+        .calc-km-btn:hover { text-decoration: underline; }
+
+        /* Unit Group */
+        .unit-group { display: flex; gap: 8px; }
+        .unit-select {
+            width: 110px; background: var(--bg-card); border: 1px solid var(--border-color);
+            border-radius: 8px; padding: 0 8px; font-family: 'JetBrains Mono', monospace;
+            font-size: 0.875rem; color: var(--text-primary); outline: none;
+        }
+
+        /* Results Box */
+        .result-box {
+            background: var(--bg-secondary); border: 1px solid var(--border-color);
+            border-radius: 8px; padding: 20px; margin-top: auto;
+        }
+
+        .result-row {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--border-color);
+        }
+        .result-row:last-child { border: none; margin: 0; padding: 0; }
+
+        .res-label { font-family: 'Space Grotesk', sans-serif; color: var(--text-secondary); font-size: 0.9rem; }
+        .res-value { font-family: 'JetBrains Mono', monospace; font-size: 1.25rem; font-weight: 700; color: var(--accent-engineering); }
+        .res-sub { font-size: 0.8rem; color: var(--text-muted); font-weight: 400; margin-left: 4px; }
+
+        /* Calculation Ledger */
+        .calc-ledger {
+            margin-top: 16px; padding: 12px; background: var(--bg-card); border: 1px dashed var(--border-color);
+            border-radius: 6px; font-family: 'JetBrains Mono', monospace; font-size: 0.75rem;
+            color: var(--text-secondary); line-height: 1.6;
+        }
+        .ledger-title {
+            font-size: 0.7rem; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px; font-weight: 600;
+        }
+        .ledger-row { margin-bottom: 4px; }
+        .ledger-row:last-child { margin-bottom: 0; }
+
+        /* Options */
+        .options-container { display: flex; flex-direction: column; gap: 12px; margin-bottom: 24px; }
+
+        .safety-wrapper {
+            display: flex; align-items: center; gap: 10px; padding: 12px; background: var(--bg-secondary);
+            border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; transition: background 0.2s;
+        }
+        .safety-wrapper:hover { background: var(--bg-card); }
+        .safety-wrapper input { accent-color: #f59e0b; width: 16px; height: 16px; }
+        .safety-text { font-size: 0.8125rem; color: var(--text-secondary); font-weight: 500; }
+
+        /* Precision Select */
+        .precision-bar {
+            display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin-bottom: 12px;
+            font-size: 0.75rem; color: var(--text-secondary);
+        }
+        .precision-select {
+            background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-primary);
+            border-radius: 4px; padding: 2px 6px; font-family: 'JetBrains Mono'; font-size: 0.75rem;
+        }
+
+        /* Disclaimer */
+        .critical-warning {
+            background: var(--bg-card); border: 1px solid rgba(239, 68, 68, 0.4);
+            border-left: 4px solid rgba(239, 68, 68, 0.8); border-radius: 8px; padding: 16px; margin-top: 24px;
+        }
+        .warning-title {
+            color: #ef4444; font-size: 0.8rem; text-transform:uppercase; margin-bottom: 10px; font-weight: 700;
+            display: flex; align-items: center; gap: 8px; letter-spacing: 0.05em;
+        }
+        .warning-text p { font-size: 0.7rem; color: var(--text-secondary); line-height: 1.5; margin-bottom: 8px; }
+        .warning-text p strong { color: var(--text-primary); }
+        .warning-text p:last-child { margin-bottom: 0; }
+
+        /* Sidebar Table */
+        .km-table { width: 100%; border-collapse: collapse; font-size: 0.75rem; font-family: 'JetBrains Mono', monospace; }
+        .km-table th { text-align: left; color: var(--text-secondary); padding: 6px 4px; border-bottom: 1px solid var(--border-color); }
+        .km-table td { padding: 6px 4px; color: var(--text-primary); border-bottom: 1px solid var(--border-color); }
+        .km-table tr:last-child td { border: none; }
+
+        /* Dropdowns */
+        .dropdown-container {
+            margin-top: 24px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-card); overflow: hidden;
+        }
+        .dropdown-header {
+            padding: 16px; background: var(--bg-secondary); cursor: pointer; display: flex;
+            justify-content: space-between; align-items: center; font-weight: 600; font-family: 'Space Grotesk';
+        }
+        .dropdown-content {
+            padding: 20px; display: none; font-size: 0.875rem; line-height: 1.6; color: var(--text-secondary); border-top: 1px solid var(--border-color);
+        }
+        .dropdown-content.open { display: block; }
+        .dropdown-content h4 { color: var(--text-primary); margin: 16px 0 8px 0; font-size: 0.95rem; }
+        .dropdown-content ul { padding-left: 20px; margin-bottom: 12px; }
+        .dropdown-content li { margin-bottom: 6px; }
+
+        /* Ref Table */
+        .ref-table { width: 100%; border-collapse: collapse; font-family: 'JetBrains Mono'; font-size: 0.75rem; margin-top: 12px; }
+        .ref-table th { background: var(--bg-secondary); padding: 8px; text-align: left; color: var(--text-primary); border: 1px solid var(--border-color); }
+        .ref-table td { padding: 8px; border: 1px solid var(--border-color); }
+
+        /* Km Calc Styles */
+        .km-calc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+        .ack-box { 
+            display: flex; align-items: flex-start; gap: 10px; margin-bottom: 16px; padding: 12px; 
+            background: rgba(239, 68, 68, 0.05); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 6px; 
+        }
+        .ack-text { font-size: 0.75rem; color: #ef4444; line-height: 1.4; }
+        .calc-btn { 
+            width: 100%; padding: 10px; background: var(--bg-secondary); border: 1px solid var(--border-color); 
+            border-radius: 6px; color: var(--text-primary); cursor: pointer; font-weight: 600; 
+        }
+        .calc-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .calc-btn:not(:disabled):hover { border-color: var(--accent-engineering); }
+        
+        .km-result { 
+            margin-top: 16px; padding: 12px; background: var(--bg-secondary); border-radius: 6px; 
+            display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+        }
+        .km-res-item { text-align: center; }
+        .km-res-label { font-size: 0.7rem; color: var(--text-secondary); margin-bottom: 4px; }
+        .km-res-val { font-size: 1.1rem; font-family: 'JetBrains Mono'; font-weight: 700; color: var(--accent-engineering); }
+        .km-res-sub { font-size: 0.7rem; color: var(--text-muted); margin-top: 2px; }
+
+        .hidden { display: none; }
+
+        @media (max-width: 1024px) {
+            .calculator-layout { grid-template-columns: 1fr; }
+            .input-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <div class="header-left">
+                    <a href="../tools.html" class="back-link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="19" y1="12" x2="5" y2="12"/>
+                            <polyline points="12 19 5 12 12 5"/>
+                        </svg>
+                        Back to Tools
+                    </a>
+                </div>
+                <div class="header-right">
+                    <div class="theme-toggle">
+                        <button data-theme-toggle="light" title="Light mode">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="5"/>
+                                <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+                            </svg>
+                        </button>
+                        <button data-theme-toggle="dark" title="Dark mode">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div style="margin-top: 24px; display: flex; align-items: center; gap: 16px;">
+                <div class="tool-icon-header biology">
+                    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/>
+                    </svg>
+                </div>
+                <div>
+                    <h1>HED Calculator</h1>
+                    <p class="tagline">// NOAEL • BSA SCALING  </p>
+                </div>
+            </div>
+        </header>
+
+        <main>
+            <div class="calculator-layout">
+                <div class="calculator-panel">
+                    <div class="panel-header">
+                        <h2>Dose Translation</h2>
+                        <p>Calculate Human Equivalent Dose (HED) from Animal NOAEL.</p>
+                    </div>
+
+                    <div id="methodAlert" class="method-alert alert-auto">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                            <line x1="12" y1="9" x2="12" y2="13"/>
+                            <line x1="12" y1="17" x2="12.01" y2="17"/>
+                        </svg>
+                        <div id="alertText"></div>
+                    </div>
+
+                    <div class="input-grid">
+                        <div class="input-group">
+                            <label>Source Species</label>
+                            <select id="srcSpecies" class="main-select" onchange="handleSpeciesChange('src')"></select>
+                        </div>
+                        <div class="input-group">
+                            <label>Source Weight (kg)</label>
+                            <input type="number" id="srcWeight" class="main-input" step="0.001" oninput="calculate()">
+                        </div>
+                    </div>
+
+                    <div class="input-grid">
+                        <div class="input-group">
+                            <label>Target Species</label>
+                            <select id="tgtSpecies" class="main-select" onchange="handleSpeciesChange('tgt')"></select>
+                        </div>
+                        <div class="input-group">
+                            <label>Target Weight (kg)</label>
+                            <input type="number" id="tgtWeight" class="main-input" step="0.001" oninput="calculate()">
+                        </div>
+                    </div>
+
+                    <div class="input-grid">
+                        <div class="input-group">
+                            <label>Source K<sub>m</sub> Factor</label>
+                            <div class="km-wrapper">
+                                <input type="number" id="srcKm" class="main-input km-input" readonly oninput="calculate()">
+                                <button class="lock-btn" onclick="toggleLock('srcKm', this)" title="Unlock to edit">
+                                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                                </button>
+                            </div>
+                            <button id="srcCalcBtn" class="calc-km-btn" onclick="autoCalcKm('src')">
+                                <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+                                Calculate custom K<sub>m</sub>
+                            </button>
+                        </div>
+                        <div class="input-group">
+                            <label>Target K<sub>m</sub> Factor</label>
+                            <div class="km-wrapper">
+                                <input type="number" id="tgtKm" class="main-input km-input" readonly oninput="calculate()">
+                                <button class="lock-btn" onclick="toggleLock('tgtKm', this)" title="Unlock to edit">
+                                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                                </button>
+                            </div>
+                            <button id="tgtCalcBtn" class="calc-km-btn" onclick="autoCalcKm('tgt')">
+                                <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+                                Calculate custom K<sub>m</sub>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="input-grid">
+                        <div class="input-group">
+                            <label>Source Dose / NOAEL</label>
+                            <div class="unit-group">
+                                <input type="number" id="inputDose" class="main-input" placeholder="e.g. 50" oninput="calculate()">
+                                <select id="doseUnit" class="unit-select" onchange="handleUnitChange()">
+                                    <optgroup label="Relative Mass">
+                                        <option value="mg_kg" selected>mg/kg</option>
+                                        <option value="ug_kg">µg/kg</option>
+                                        <option value="g_kg">g/kg</option>
+                                    </optgroup>
+                                    <optgroup label="Relative Molar">
+                                        <option value="mmol_kg">mmol/kg</option>
+                                        <option value="umol_kg">µmol/kg</option>
+                                    </optgroup>
+                                    <optgroup label="Absolute Mass">
+                                        <option value="mg_abs">mg (total)</option>
+                                        <option value="ug_abs">µg (total)</option>
+                                    </optgroup>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="input-group hidden" id="mwGroup">
+                            <label>Molecular Weight (g/mol)</label>
+                            <input type="number" id="mw" class="main-input" placeholder="Req. for Molar" oninput="calculate()">
+                        </div>
+                    </div>
+
+                    <div class="options-container">
+                        <label class="safety-wrapper">
+                            <input type="checkbox" id="safetyFactor" onchange="calculate()">
+                            <div class="safety-text">Calculate MRSD (Apply 10x Safety Factor)</div>
+                        </label>
+                        
+                        <label class="safety-wrapper" id="forceStdWrapper">
+                            <input type="checkbox" id="forceStd" onchange="calculate()">
+                            <div class="safety-text">Force Standard K<sub>m</sub> (Ignore Weight Deviation)</div>
+                        </label>
+                    </div>
+
+                    <div class="precision-bar">
+                        <span>Decimals:</span>
+                        <select id="precision" class="precision-select" onchange="calculate()">
+                            <option value="0">0</option>
+                            <option value="1">1</option>
+                            <option value="2" selected>2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                            <option value="5">5</option>
+                            <option value="6">6</option>
+                        </select>
+                    </div>
+
+                    <div class="result-box">
+                        <div class="result-row" style="opacity: 0.7;">
+                            <span class="res-label">Normalized Input (Source)</span>
+                            <div>
+                                <span class="res-value" id="resNorm" style="font-size: 1rem; color: var(--text-primary);">0</span>
+                                <span class="res-sub">mg/kg</span>
+                            </div>
+                        </div>
+                        <div class="result-row">
+                            <span class="res-label">Target Equivalent Dose</span>
+                            <div>
+                                <span class="res-value" id="resHED">0</span>
+                                <span class="res-sub">mg/kg</span>
+                            </div>
+                        </div>
+                        <div class="result-row">
+                            <span class="res-label">Total Target Dose</span>
+                            <div>
+                                <span class="res-value" id="resTotal">0</span>
+                                <span class="res-sub">mg</span>
+                            </div>
+                        </div>
+                        
+                        <div class="calc-ledger">
+                            <div class="ledger-title">Math Breakdown</div>
+                            <div id="ledgerText">Enter values to see calculation...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <aside class="sidebar">
+                    <div class="sidebar-card">
+                        <h3>Engineering & Scientific Notes</h3>
+                        <div class="disclaimer-content" style="font-size: 0.75rem; color: var(--text-secondary); line-height: 1.5;">
+                            <p style="margin-bottom: 10px;"><strong>Source:</strong> Calculations follow the FDA's <em>"Guidance for Industry: Estimating the Maximum Safe Starting Dose in Initial Clinical Trials..."</em> (July 2005) <a href="https://www.fda.gov/regulatory-information/search-fda-guidance-documents/estimating-maximum-safe-starting-dose-initial-clinical-trials-therapeutics-adult-healthy-volunteers">Link</a>.</p>
+                            
+                            <strong style="display:block; margin-bottom:4px; color:var(--text-primary);">Definitions:</strong>
+                            <ul style="padding-left: 16px; margin: 0 0 10px 0;">
+                                <li style="margin-bottom:4px;"><strong>NOAEL:</strong> No Observed Adverse Effect Level. Highest dose with no significant adverse effect.</li>
+                                <li style="margin-bottom:4px;"><strong>HED:</strong> Human Equivalent Dose. Scaled via BSA (mg/m<sup>2</sup>).</li>
+                                <li style="margin-bottom:4px;"><strong>MRSD:</strong> Max Recommended Starting Dose. Typically HED / 10.</li>
+                                <li style="margin-bottom:4px;"><strong>K<sub>m</sub>:</strong> Factor for converting mg/kg to mg/m<sup>2</sup>. Equation: K<sub>m</sub> = Weight (kg) / BSA (m<sup>2</sup>).</li>
+                            </ul>
+                            
+                            <p style="margin-top:10px;">
+                                <strong>Note on Power Law:</strong> The formula W<sup>0.33</sup> is derived from the BSA relationship. Mathematically, 100/K &times; W<sup>0.33</sup> approximates the K<sub>m</sub> factor when direct BSA data is missing.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="sidebar-card">
+                        <h3>FDA Reference Data</h3>
+                        <table class="km-table" id="refTable">
+                            <thead><tr><th>Species</th><th>Wt (kg)</th><th>Km</th></tr></thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+
+                    <div class="critical-warning">
+                        <div class="warning-title">
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                            Liability Waiver
+                        </div>
+                        <div class="warning-text">
+                            <p><strong>FOR RESEARCH USE ONLY.</strong> This tool is intended strictly for theoretical dose estimation in preclinical research contexts. It is NOT for clinical use.</p>
+                            <p><strong>PERSONAL USE PROHIBITED.</strong> Do not use this tool to calculate doses for self-medication, "biohacking," or personal supplementation. Metabolism varies significantly between individuals and species. Ingesting substances based on these calculations can lead to severe injury or death.</p>
+                            <p><strong>LIMITATION OF LIABILITY.</strong> The creators assume NO LIABILITY for errors or outcomes. Users must validate all calculations against primary literature.</p>
+                            <p><strong>CONSULT A PROFESSIONAL.</strong> Always consult a licensed physician before taking any medication. This tool does not account for half-life, receptor affinity, or toxicity.</p>
+                        </div>
+                    </div>
+                </aside>
+            </div>
+
+            <div class="dropdown-container">
+                <div class="dropdown-header" onclick="toggleDropdown('eduContent', this)">
+                    <span>Methodology: How Calculations Work</span>
+                    <svg class="dropdown-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                </div>
+                <div class="edu-content dropdown-content" id="eduContent">
+                    <h4>1. Standard Conversion (Appendix B)</h4>
+                    <p>When animal weights are within the standard FDA "working range", the conversion uses fixed K<sub>m</sub> factors:</p>
+                    <div style="background:var(--bg-secondary); padding:10px; border-radius:6px; font-family:'JetBrains Mono'; margin-bottom:12px;">
+                        HED (mg/kg) = Animal Dose (mg/kg) &times; (Animal K<sub>m</sub> / Human K<sub>m</sub>)
+                    </div>
+
+                    <h4>2. K<sub>m</sub> Factor Derivation</h4>
+                    <p>The K<sub>m</sub> factor represents the ratio of body weight to body surface area. It is calculated as:</p>
+                    <div style="background:var(--bg-secondary); padding:10px; border-radius:6px; font-family:'JetBrains Mono'; margin-bottom:12px;">
+                        K<sub>m</sub> = Weight (kg) / BSA (m<sup>2</sup>)
+                    </div>
+                    
+                    <h4>3. Reference Values (Table 3)</h4>
+                    <table class="ref-table">
+                        <thead><tr><th>Species</th><th>Ref Weight</th><th>Range (kg)</th><th>BSA (m<sup>2</sup>)</th><th>K<sub>m</sub></th></tr></thead>
+                        <tbody id="eduRefTable"></tbody>
+                    </table>
+
+                    <h4>4. Dynamic Conversion (Power Formula)</h4>
+                    <p>If an animal's weight falls outside the standard range, the calculator auto-switches to the Power Formula to maintain accuracy:</p>
+                    <div style="background:var(--bg-secondary); padding:10px; border-radius:6px; font-family:'JetBrains Mono'; margin-bottom:12px;">
+                        HED = Animal Dose &times; (W<sub>animal</sub> / W<sub>human</sub>)<sup>0.33</sup>
+                    </div>
+                    
+                    <h4>5. BSA Estimation Logic</h4>
+                    <p>The tool estimates Body Surface Area (BSA) using the inverse of the K<sub>m</sub> definition: <strong>BSA = Weight / K<sub>m</sub></strong>. By calculating the theoretical K<sub>m</sub> first (using allometry), we derive a BSA that accurately reflects the animal's geometry (BSA &propto; Weight<sup>0.67</sup>), rather than assuming a fixed ratio.</p>
+                </div>
+            </div>
+
+            <div class="dropdown-container">
+                <div class="dropdown-header" onclick="toggleDropdown('kmCalcContent', this)">
+                    <span>Theoretical K<sub>m</sub> Calculator</span>
+                    <svg class="dropdown-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                </div>
+                <div class="dropdown-content" id="kmCalcContent">
+                    <p style="margin-bottom:16px;">Compare how K<sub>m</sub> shifts when you assume Body Surface Area (BSA) is fixed vs. when it scales allometrically.</p>
+                    
+                    <div class="km-calc-grid">
+                        <div class="input-group" style="grid-column: span 2;">
+                            <label>Base Species</label>
+                            <select id="calcSpecies" class="main-select"></select>
+                        </div>
+                        <div class="input-group">
+                            <label>Input Weight (kg)</label>
+                            <input type="number" id="calcWeight" class="main-input" placeholder="e.g. 0.35" oninput="updateTheoreticalBSA()">
+                        </div>
+                        <div class="input-group">
+                            <label>Est. BSA (m²) <span title="Estimated via Power Law W^0.67" onclick="toggleDropdown('eduContent', document.querySelector('.dropdown-header'))" style="cursor:pointer; color:var(--accent-engineering);">(?)</span></label>
+                            <input type="text" id="calcBsaInput" class="main-input" readonly placeholder="-">
+                        </div>
+                    </div>
+
+                    <label class="ack-box">
+                        <input type="checkbox" id="calcAck" onchange="toggleCalcBtn()">
+                        <span class="ack-text">I acknowledge that calculating theoretical K<sub>m</sub> values deviates from standard FDA guidance tables and is for novelty/research exploration only.</span>
+                    </label>
+
+                    <button id="doCalcBtn" class="calc-btn" onclick="runKmCalc()" disabled>Calculate K<sub>m</sub></button>
+
+                    <div id="calcResult" class="km-result hidden">
+                        <div class="km-res-item">
+                            <div class="km-res-label">Allometric K<sub>m</sub> (W<sup>0.33</sup>)</div>
+                            <div id="calcValPower" class="km-res-val">0.00</div>
+                            <div class="km-res-sub">Standard / Correct</div>
+                        </div>
+                        <div class="km-res-item">
+                            <div class="km-res-label">Linear K<sub>m</sub> (Fixed BSA)</div>
+                            <div id="calcValLinear" class="km-res-val">0.00</div>
+                            <div class="km-res-sub">Theoretical / Wrong</div>
+                        </div>
+                    </div>
+                    
+                    <div class="calc-ledger hidden" id="kmCalcLedger">
+                        </div>
+
+                    <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border-color);">
+                        <h4 style="color:var(--text-primary); margin-bottom: 8px;">Why Linear Scaling Fails (The Square-Cube Law)</h4>
+                        <div style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.6;">
+                            <p style="margin-bottom: 8px;">
+                                In biology, scaling an animal's weight linearly does not scale its surface area linearly. This is known as the <strong>Square-Cube Law</strong>:
+                            </p>
+                            <ul style="padding-left: 20px; margin-bottom: 12px;">
+                                <li><strong>Volume (Weight)</strong> increases by the <strong>cube</strong> of length (L<sup>3</sup>).</li>
+                                <li><strong>Surface Area</strong> increases by the <strong>square</strong> of length (L<sup>2</sup>).</li>
+                            </ul>
+                            <p style="margin-bottom: 8px;">
+                                Therefore, Surface Area is proportional to Weight raised to the power of 2/3 (or 0.67).
+                            </p>
+                            <p>
+                                <strong>The Error:</strong> The "Linear K<sub>m</sub>" calculation assumes Surface Area grows 1:1 with Weight. This underestimates the K<sub>m</sub> factor for larger animals, leading to potentially dangerous overdoses when scaling from small to large species.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <div class="footer-content">
+                <p class="footer-text">© 2025 Tools Hub — Built for engineers</p>
+                <nav class="footer-links">
+                    <a href="../tools.html">All Tools</a>
+                    <a href="#">Report Issue</a>
+                </nav>
+            </div>
+        </footer>
+    </div>
+
+    <script src="../js/shared.js"></script>
+    <script>
+        const SPECIES_DB = [
+            { id: 'human', name: 'Human', weight: 60, km: 37, range: [40, 80], bsa: 1.62 }, 
+            { id: 'child', name: 'Child', weight: 20, km: 25, range: [10, 30], bsa: 0.80 },
+            { id: 'mouse', name: 'Mouse', weight: 0.02, km: 3, range: [0.011, 0.034], bsa: 0.007 },
+            { id: 'hamster', name: 'Hamster', weight: 0.08, km: 5, range: [0.047, 0.157], bsa: 0.016 },
+            { id: 'rat', name: 'Rat', weight: 0.15, km: 6, range: [0.080, 0.270], bsa: 0.025 },
+            { id: 'ferret', name: 'Ferret', weight: 0.3, km: 7, range: [0.160, 0.540], bsa: 0.043 },
+            { id: 'guinea', name: 'Guinea Pig', weight: 0.4, km: 8, range: [0.208, 0.700], bsa: 0.05 },
+            { id: 'rabbit', name: 'Rabbit', weight: 1.8, km: 12, range: [0.9, 3.0], bsa: 0.15 },
+            { id: 'dog', name: 'Dog', weight: 10, km: 20, range: [5, 17], bsa: 0.50 },
+            { id: 'monkey', name: 'Monkey', weight: 3, km: 12, range: [1.4, 4.9], bsa: 0.25 },
+            { id: 'marmoset', name: 'Marmoset', weight: 0.35, km: 6, range: [0.140, 0.720], bsa: 0.06 },
+            { id: 'squirrel', name: 'Squirrel Monkey', weight: 0.6, km: 7, range: [0.290, 0.970], bsa: 0.09 },
+            { id: 'baboon', name: 'Baboon', weight: 12, km: 20, range: [7, 23], bsa: 0.60 },
+            { id: 'micropig', name: 'Micro-pig', weight: 20, km: 27, range: [10, 33], bsa: 0.74 },
+            { id: 'minipig', name: 'Mini-pig', weight: 40, km: 35, range: [25, 64], bsa: 1.14 }
+        ];
+
+        let manualKm = { src: false, tgt: false };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            populateSelects();
+            populateRefTable();
+            populateEduTable();
+            document.getElementById('srcSpecies').value = 'rat';
+            document.getElementById('tgtSpecies').value = 'human';
+            handleSpeciesChange('src');
+            handleSpeciesChange('tgt');
+        });
+
+        function populateSelects() {
+            const opts = SPECIES_DB.map(s => `<option value="${s.id}">${s.name} (${s.weight}kg)</option>`).join('');
+            document.getElementById('srcSpecies').innerHTML = opts;
+            document.getElementById('tgtSpecies').innerHTML = opts;
+            document.getElementById('calcSpecies').innerHTML = opts;
+        }
+
+        function populateRefTable() {
+            const table = document.getElementById('refTable').querySelector('tbody');
+            const common = ['human','mouse','rat','rabbit','dog','monkey','minipig'];
+            const rows = SPECIES_DB.filter(s => common.includes(s.id)).map(s => 
+                `<tr><td>${s.name}</td><td>${s.weight} kg</td><td>${s.km}</td></tr>`
+            ).join('');
+            table.innerHTML = rows;
+        }
+
+        function populateEduTable() {
+            const table = document.getElementById('eduRefTable');
+            const rows = SPECIES_DB.map(s => 
+                `<tr><td>${s.name}</td><td>${s.weight}</td><td>${s.range[0]}-${s.range[1]}</td><td>${s.bsa || '-'}</td><td>${s.km}</td></tr>`
+            ).join('');
+            table.innerHTML = rows;
+        }
+
+        function handleSpeciesChange(type) {
+            const id = document.getElementById(type === 'src' ? 'srcSpecies' : 'tgtSpecies').value;
+            const data = SPECIES_DB.find(s => s.id === id);
+            
+            if (!manualKm[type]) {
+                document.getElementById(type + 'Weight').value = data.weight;
+                document.getElementById(type + 'Km').value = data.km;
+            }
+            calculate();
+        }
+
+        function handleUnitChange() {
+            const u = document.getElementById('doseUnit').value;
+            document.getElementById('mwGroup').classList.toggle('hidden', !u.includes('mol'));
+            calculate();
+        }
+
+        function toggleLock(fieldId, btn) {
+            const input = document.getElementById(fieldId);
+            const isLocked = input.readOnly;
+            const type = fieldId.replace('Km', ''); 
+            const calcBtn = document.getElementById(type + 'CalcBtn');
+
+            if (isLocked) {
+                input.readOnly = false;
+                btn.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>'; 
+                btn.classList.add('unlocked');
+                manualKm[type] = true;
+                calcBtn.style.display = 'flex';
+            } else {
+                input.readOnly = true;
+                btn.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>';
+                btn.classList.remove('unlocked');
+                manualKm[type] = false;
+                calcBtn.style.display = 'none';
+                
+                const id = document.getElementById(type + 'Species').value;
+                document.getElementById(type + 'Km').value = SPECIES_DB.find(s => s.id === id).km;
+            }
+            calculate();
+        }
+
+        function autoCalcKm(type) {
+            const id = document.getElementById(type + 'Species').value;
+            const ref = SPECIES_DB.find(s => s.id === id);
+            const currentWt = parseFloat(document.getElementById(type + 'Weight').value);
+            
+            if (!currentWt || !ref) return;
+
+            const newKm = ref.km * Math.pow((currentWt / ref.weight), 0.33);
+            document.getElementById(type + 'Km').value = newKm.toFixed(2);
+            calculate();
+        }
+
+        function calculate() {
+            const srcId = document.getElementById('srcSpecies').value;
+            const tgtId = document.getElementById('tgtSpecies').value;
+            const srcData = SPECIES_DB.find(s => s.id === srcId);
+            const tgtData = SPECIES_DB.find(s => s.id === tgtId);
+
+            const srcWeight = parseFloat(document.getElementById('srcWeight').value);
+            const tgtWeight = parseFloat(document.getElementById('tgtWeight').value);
+            const inputVal = parseFloat(document.getElementById('inputDose').value);
+            const unit = document.getElementById('doseUnit').value;
+            const mw = parseFloat(document.getElementById('mw').value);
+            
+            const useSafety = document.getElementById('safetyFactor').checked;
+            const forceStd = document.getElementById('forceStd').checked;
+            const precision = parseInt(document.getElementById('precision').value);
+
+            let srcKm = parseFloat(document.getElementById('srcKm').value);
+            let tgtKm = parseFloat(document.getElementById('tgtKm').value);
+
+            if (!srcWeight || !tgtWeight || isNaN(inputVal)) {
+                renderResults('-', '-', '-', precision);
+                document.getElementById('ledgerText').textContent = "Enter valid inputs...";
+                return;
+            }
+
+            const srcInRange = srcWeight >= srcData.range[0] && srcWeight <= srcData.range[1];
+            const tgtInRange = tgtWeight >= tgtData.range[0] && tgtWeight <= tgtData.range[1];
+            const hasDeviation = !srcInRange || !tgtInRange;
+            const isManual = manualKm.src || manualKm.tgt;
+
+            const alertBox = document.getElementById('methodAlert');
+            const alertText = document.getElementById('alertText');
+            const forceWrapper = document.getElementById('forceStdWrapper');
+
+            if (isManual) {
+                alertBox.className = "method-alert alert-manual";
+                alertText.innerHTML = "<strong>Manual K<sub>m</sub> Active.</strong> Standard logic bypassed.";
+                alertBox.style.display = 'flex';
+                forceWrapper.style.display = 'none';
+            } 
+            else if (hasDeviation) {
+                let devMsg = "Weight deviation detected: ";
+                const devs = [];
+                if (!srcInRange) devs.push(`Source`);
+                if (!tgtInRange) devs.push(`Target`);
+                devMsg += devs.join(", ") + ". ";
+
+                if (forceStd) {
+                    alertBox.className = "method-alert alert-forced";
+                    alertText.innerHTML = devMsg + "<strong>Forcing Standard K<sub>m</sub> (Caution).</strong>";
+                } else {
+                    alertBox.className = "method-alert alert-auto";
+                    alertText.innerHTML = devMsg + "Using Power Formula.";
+                }
+                alertBox.style.display = 'flex';
+                forceWrapper.style.display = 'flex';
+            } else {
+                alertBox.style.display = 'none';
+                forceWrapper.style.display = 'flex';
+            }
+
+            let mgKg = 0;
+            if (unit === 'mg_kg') mgKg = inputVal;
+            else if (unit === 'ug_kg') mgKg = inputVal / 1000;
+            else if (unit === 'g_kg') mgKg = inputVal * 1000;
+            else if (unit === 'mg_abs') mgKg = inputVal / srcWeight;
+            else if (unit === 'ug_abs') mgKg = (inputVal / 1000) / srcWeight;
+            else {
+                if (!mw) { renderResults("Enter MW", "-", "-", 0); return; }
+                if (unit === 'mmol_kg') mgKg = inputVal * mw;
+                else if (unit === 'umol_kg') mgKg = (inputVal * mw) / 1000;
+            }
+
+            let finalDose = 0;
+            let ledger = "";
+
+            if (isManual) {
+                finalDose = mgKg * (srcKm / tgtKm);
+                ledger = `${mgKg.toFixed(2)} * (${srcKm} / ${tgtKm})`;
+            } 
+            else if (forceStd || !hasDeviation) {
+                finalDose = mgKg * (srcKm / tgtKm);
+                ledger = `${mgKg.toFixed(2)} * (${srcKm} / ${tgtKm})`;
+            } 
+            else {
+                const ratio = Math.pow((srcWeight / tgtWeight), 0.33);
+                finalDose = mgKg * ratio;
+                ledger = `${mgKg.toFixed(2)} * (${srcWeight} / ${tgtWeight})^0.33`;
+            }
+
+            if (useSafety) {
+                finalDose = finalDose / 10;
+                ledger += " / 10 (Safety)";
+            }
+
+            const totalDose = finalDose * tgtWeight;
+            
+            document.getElementById('ledgerText').textContent = ledger + " = " + finalDose.toFixed(precision);
+            renderResults(mgKg, finalDose, totalDose, precision);
+        }
+
+        function renderResults(norm, hed, total, precision) {
+            const fmt = (n) => {
+                if (typeof n === 'string') return n;
+                return n.toLocaleString('en-US', { 
+                    minimumFractionDigits: precision,
+                    maximumFractionDigits: precision 
+                });
+            };
+
+            document.getElementById('resNorm').textContent = fmt(norm);
+            document.getElementById('resHED').textContent = fmt(hed);
+            document.getElementById('resTotal').textContent = fmt(total);
+        }
+
+        function toggleDropdown(id, header) {
+            const content = document.getElementById(id);
+            const icon = header.querySelector('.dropdown-icon');
+            content.classList.toggle('open');
+            icon.style.transform = content.classList.contains('open') ? 'rotate(180deg)' : 'rotate(0deg)';
+        }
+
+        function toggleCalcBtn() {
+            document.getElementById('doCalcBtn').disabled = !document.getElementById('calcAck').checked;
+        }
+
+        function updateTheoreticalBSA() {
+            const id = document.getElementById('calcSpecies').value;
+            const ref = SPECIES_DB.find(s => s.id === id);
+            const wt = parseFloat(document.getElementById('calcWeight').value);
+            
+            if (!wt) {
+                document.getElementById('calcBsaInput').value = "";
+                return;
+            }
+            
+            const kmPower = ref.km * Math.pow((wt / ref.weight), 0.33);
+            const impliedBsa = wt / kmPower;
+            
+            document.getElementById('calcBsaInput').value = impliedBsa.toFixed(4);
+        }
+
+        function runKmCalc() {
+            const id = document.getElementById('calcSpecies').value;
+            const ref = SPECIES_DB.find(s => s.id === id);
+            const wt = parseFloat(document.getElementById('calcWeight').value);
+            
+            if (!wt) return;
+            
+            // 1. Allometric (Power Law)
+            const kmPower = ref.km * Math.pow((wt / ref.weight), 0.33);
+            
+            // 2. Linear (Fixed BSA)
+            const kmLinear = wt / ref.bsa;
+            
+            document.getElementById('calcValPower').textContent = kmPower.toFixed(2);
+            document.getElementById('calcValLinear').textContent = kmLinear.toFixed(2);
+            
+            // Ledger
+            const ledger = document.getElementById('kmCalcLedger');
+            ledger.innerHTML = `
+                <div class="ledger-row"><strong>Allometric:</strong> ${ref.km} * (${wt} / ${ref.weight})<sup>0.33</sup> = ${kmPower.toFixed(2)}</div>
+                <div class="ledger-row"><strong>Linear:</strong> ${wt} / ${ref.bsa} = ${kmLinear.toFixed(2)}</div>
+            `;
+            ledger.classList.remove('hidden');
+            
+            document.getElementById('calcResult').classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>

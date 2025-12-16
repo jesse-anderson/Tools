@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Linear Thermal Expansion | Tools Hub</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/shared.css">
+    <style>
+        .calculator-layout {
+            display: grid;
+            grid-template-columns: 1fr 380px;
+            gap: 24px;
+        }
+
+        .calc-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 32px;
+            height: fit-content;
+        }
+
+        /* Input Sections */
+        .section-title {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .input-group {
+            margin-bottom: 24px;
+        }
+
+        .input-row {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 12px;
+            align-items: end;
+        }
+
+        .input-wrapper label {
+            display: block;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8125rem;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .input-wrapper input, .input-wrapper select {
+            width: 100%;
+            font-family: 'JetBrains Mono', monospace;
+            padding: 12px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-size: 1rem;
+        }
+
+        .input-wrapper input:focus, .input-wrapper select:focus {
+            border-color: var(--accent-engineering);
+            outline: none;
+        }
+
+        /* Material Selection */
+        .material-select-group {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 12px;
+        }
+
+        /* Results Panel */
+        .results-panel {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 24px;
+            margin-top: 32px;
+        }
+
+        .result-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px dashed var(--border-color);
+        }
+
+        .result-item:last-child {
+            border-bottom: none;
+        }
+
+        .result-label {
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        .result-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--accent-engineering);
+        }
+
+        .result-value.percent {
+            color: var(--text-primary);
+        }
+
+        .result-sub {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-left: 8px;
+        }
+
+        /* Visualization Bar */
+        .expansion-viz {
+            margin-top: 24px;
+            padding: 40px 20px 20px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            position: relative;
+        }
+
+        .viz-track {
+            height: 44px;
+            background: transparent;
+            position: relative;
+            overflow: visible;
+            display: flex;
+            align-items: center;
+        }
+
+        .viz-bar {
+            height: 100%;
+            background: var(--text-secondary); /* Grey base */
+            width: 80%; /* Base width */
+            border-radius: 4px 0 0 4px;
+            transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--bg-primary);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .viz-expansion {
+            height: 100%;
+            background: var(--accent-engineering);
+            position: absolute;
+            top: 0;
+            width: 0;
+            border-radius: 0 4px 4px 0;
+            transition: all 0.5s ease;
+            opacity: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        
+        .viz-expansion span {
+            color: var(--bg-primary);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            font-weight: 700;
+            white-space: nowrap;
+            padding: 0 4px;
+        }
+
+        .viz-label, .viz-label-base, .viz-label-start, .viz-label-end, .viz-label-delta {
+            position: absolute;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+        }
+
+        .viz-label-start { top: -28px; left: 0; color: var(--text-secondary); }
+        .viz-label-end { top: -28px; right: 20%; color: var(--text-secondary); }
+        .viz-label-delta { top: 100%; margin-top: 8px; left: 80%; transform: translateX(-50%); color: var(--accent-engineering); white-space: nowrap; }
+
+        /* Sidebar */
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            height: fit-content;
+        }
+
+        .sidebar-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .sidebar-card.table-card {
+            height: calc(100vh - 420px);
+            min-height: 350px;
+        }
+
+        .table-wrapper {
+            overflow-y: auto;
+            margin-top: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            flex-grow: 1;
+        }
+
+        .cte-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+        }
+
+        .cte-table thead {
+            position: sticky;
+            top: 0;
+            background: var(--bg-card);
+            z-index: 2;
+        }
+
+        .cte-table th {
+            text-align: left;
+            color: var(--text-muted);
+            padding: 10px 8px;
+            border-bottom: 2px solid var(--border-color);
+            font-weight: 600;
+        }
+
+        .cte-table td {
+            padding: 8px;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            border-right: 1px solid var(--border-color);
+        }
+        
+        .cte-table td:last-child { border-right: none; }
+
+        .cte-table tr:hover td {
+            color: var(--text-primary);
+            background: var(--bg-secondary);
+            cursor: pointer;
+        }
+        
+        /* Disclaimer Card */
+        .disclaimer-card {
+            border: 1px solid #f59e0b;
+            background: rgba(245, 158, 11, 0.05);
+        }
+        
+        .disclaimer-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #d97706;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+            font-family: 'JetBrains Mono', monospace;
+            border-bottom: 1px solid rgba(217, 119, 6, 0.2);
+            padding-bottom: 8px;
+        }
+        
+        .disclaimer-content {
+            font-size: 0.6875rem;
+            line-height: 1.4;
+            color: var(--text-secondary);
+            font-family: sans-serif;
+        }
+
+        .disclaimer-list { margin: 8px 0; padding-left: 16px; }
+        .disclaimer-list li { margin-bottom: 6px; }
+        .disclaimer-list strong { color: var(--text-primary); font-weight: 600; }
+        .disclaimer-footer { margin-top: 12px; font-style: italic; opacity: 0.8; border-top: 1px solid rgba(217, 119, 6, 0.2); padding-top: 8px; }
+
+        /* Explanation Section */
+        .explanation-section {
+            margin-top: 48px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 40px;
+        }
+
+        .explanation-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            align-items: start;
+        }
+
+        .exp-col h3 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.25rem;
+            color: var(--text-primary);
+            margin-bottom: 16px;
+        }
+
+        .exp-col p {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            line-height: 1.6;
+            margin-bottom: 16px;
+        }
+
+        /* Atomic Animation */
+        .atomic-demo {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .atomic-state {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .temp-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            font-weight: 700;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            text-transform: uppercase;
+        }
+
+        .temp-label.cold { color: #3b82f6; }
+        .temp-label.hot { color: #ef4444; }
+
+        .lattice {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            transition: all 0.5s ease;
+        }
+
+        .lattice.cold { gap: 4px; }
+        .lattice.hot { gap: 10px; }
+
+        .atom {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            position: relative;
+        }
+
+        .lattice.cold .atom {
+            background-color: #60a5fa;
+            animation: shiver 0.1s infinite alternate;
+        }
+
+        .lattice.hot .atom {
+            background-color: #f87171;
+            box-shadow: 0 0 6px rgba(248, 113, 113, 0.6);
+            animation: vibrate-hard 0.15s infinite linear;
+        }
+
+        @keyframes shiver {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(0.5px, 0.5px); }
+        }
+
+        @keyframes vibrate-hard {
+            0% { transform: translate(0, 0); }
+            25% { transform: translate(2px, 2px); }
+            50% { transform: translate(-1px, -2px); }
+            75% { transform: translate(-2px, 1px); }
+            100% { transform: translate(0, 0); }
+        }
+
+        .highlight-box {
+            background: var(--bg-secondary);
+            border-left: 4px solid var(--accent-engineering);
+            padding: 16px;
+            border-radius: 0 8px 8px 0;
+            margin: 20px 0;
+        }
+
+        .highlight-box code {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 700;
+            color: var(--accent-engineering);
+            font-size: 1.1em;
+        }
+
+        @media (max-width: 900px) {
+            .calculator-layout { grid-template-columns: 1fr; }
+            .sidebar-card.table-card { height: 400px; }
+            .explanation-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <div class="header-left">
+                    <a href="../tools.html" class="back-link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="19" y1="12" x2="5" y2="12"/>
+                            <polyline points="12 19 5 12 12 5"/>
+                        </svg>
+                        Back to Tools
+                    </a>
+                </div>
+                <div class="header-right">
+                    <div class="theme-toggle">
+                        <button data-theme-toggle="light" title="Light mode">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="5"/>
+                                <line x1="12" y1="1" x2="12" y2="3"/>
+                                <line x1="12" y1="21" x2="12" y2="23"/>
+                                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+                                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+                                <line x1="1" y1="12" x2="3" y2="12"/>
+                                <line x1="21" y1="12" x2="23" y2="12"/>
+                                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+                                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+                            </svg>
+                        </button>
+                        <button data-theme-toggle="dark" title="Dark mode">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div style="margin-top: 24px; display: flex; align-items: center; gap: 16px;">
+                <div class="tool-icon-header engineering">🌡️</div>
+                <div>
+                    <h1>Linear Thermal Expansion</h1>
+                    <p class="tagline">// CALCULATE STRAIN & LENGTH CHANGE</p>
+                </div>
+            </div>
+        </header>
+
+        <main>
+            <div class="calculator-layout">
+                <div class="calc-card">
+                    <div class="input-group">
+                        <div class="section-title">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                            </svg>
+                            Material Properties
+                        </div>
+                        <div class="material-select-group">
+                            <div class="input-wrapper">
+                                <label>Material</label>
+                                <select id="materialSelect">
+                                    <option value="custom">Custom CTE...</option>
+                                    </select>
+                            </div>
+                            <div class="input-wrapper">
+                                <label>CTE (α)</label>
+                                <div style="position: relative;">
+                                    <input type="number" id="cteInput" value="11.7" step="0.1">
+                                    <span style="position: absolute; right: 10px; top: 12px; font-size: 0.75rem; color: var(--text-muted);">µm/m·°C</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="input-group">
+                        <div class="section-title">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M2 12h20M2 12l4-4m-4 4 4 4M22 12l-4-4m4 4-4 4"/>
+                            </svg>
+                            Initial Dimensions
+                        </div>
+                        <div class="input-row">
+                            <div class="input-wrapper">
+                                <label>Initial Length (L₀)</label>
+                                <input type="number" id="lengthInput" value="100" placeholder="e.g. 100">
+                            </div>
+                            <div class="input-wrapper" style="width: 100px;">
+                                <label>Unit</label>
+                                <select id="lengthUnit">
+                                    <option value="m">m</option>
+                                    <option value="cm">cm</option>
+                                    <option value="mm">mm</option>
+                                    <option value="ft">ft</option>
+                                    <option value="in">in</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="input-group">
+                        <div class="section-title">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/>
+                            </svg>
+                            Temperatures
+                        </div>
+                        <div class="input-row">
+                            <div class="input-wrapper">
+                                <label>Initial Temp (T₁)</label>
+                                <input type="number" id="tempInitial" value="20">
+                            </div>
+                            <div class="input-wrapper">
+                                <label>Final Temp (T₂)</label>
+                                <input type="number" id="tempFinal" value="120">
+                            </div>
+                            <div class="input-wrapper" style="width: 80px;">
+                                <label>Unit</label>
+                                <select id="tempUnit">
+                                    <option value="C">°C</option>
+                                    <option value="F">°F</option>
+                                    <option value="K">K</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="results-panel">
+                        <div class="result-item">
+                            <div class="result-label">Temperature Change (ΔT)</div>
+                            <div class="result-value" id="resDeltaT">100 °C</div>
+                        </div>
+                        <div class="result-item">
+                            <div class="result-label">Change in Length (ΔL)</div>
+                            <div class="result-value">
+                                <span id="resDeltaL">0.117</span> <span class="result-sub" id="resDeltaLUnit">m</span>
+                            </div>
+                        </div>
+                        <div class="result-item">
+                            <div class="result-label">Final Length (L)</div>
+                            <div class="result-value" id="resFinalL">100.117 m</div>
+                        </div>
+                        <div class="result-item">
+                            <div class="result-label">Percentage Increase</div>
+                            <div class="result-value percent" id="resPercent">0.117%</div>
+                        </div>
+                    </div>
+
+                    <div class="expansion-viz">
+                        <div class="viz-track">
+                            <div class="viz-bar" id="vizBarBase">
+                                L₀
+                                <div class="viz-expansion" id="vizExpansion"></div>
+                            </div>
+                            <div class="viz-label-start">Start</div>
+                            <div class="viz-label-end">L₀</div>
+                            <div class="viz-label-delta" id="vizLabel">ΔL</div>
+                        </div>
+                        <div style="margin-top: 16px; font-size: 0.75rem; color: var(--text-muted); text-align: center;">
+                            Visual is true-to-scale. (Expansion may be too small to see).
+                        </div>
+                    </div>
+                </div>
+
+                <aside class="sidebar">
+                    <div class="sidebar-card table-card">
+                        <h3 style="margin-bottom: 8px; font-size: 0.875rem; color: var(--text-primary);">CTE Reference Table</h3>
+                        <p style="font-size: 0.7rem; color: var(--text-muted); margin-bottom: 12px;">
+                            Click row to load. Values are nominal/average.<br>
+                            (Metric: 10⁻⁶/°C, Imp: 10⁻⁶/°F)
+                        </p>
+                        <div class="table-wrapper">
+                            <table class="cte-table">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 45%">Material</th>
+                                        <th style="width: 25%">µm/m°C</th>
+                                        <th style="width: 30%">µin/in°F</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="cteTableBody">
+                                    </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <div class="sidebar-card disclaimer-card">
+                        <div class="disclaimer-title">
+                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="3">
+                                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                                <line x1="12" y1="9" x2="12" y2="13"/>
+                                <line x1="12" y1="17" x2="12.01" y2="17"/>
+                            </svg>
+                            Critical Engineering Disclaimer
+                        </div>
+                        <div class="disclaimer-content">
+                            <p style="margin-bottom: 8px;"><strong>Use for estimation only.</strong> This tool uses a simplified linear model ($\Delta L = \alpha L_0 \Delta T$). Be aware of:</p>
+                            <ul class="disclaimer-list">
+                                <li><strong>Non-Linearity:</strong> CTE changes with temperature, sometimes drastically (e.g. near glass transition $T_g$).</li>
+                                <li><strong>Material Variance:</strong> Values are generic. Specific alloys/fillers will differ.</li>
+                                <li><strong>Anisotropy:</strong> Wood and printed plastics expand differently in X vs Y axes.</li>
+                            </ul>
+                            <p class="disclaimer-footer">
+                                Always verify with specific datasheets and testing standards. Provided "as is" with no warranty.
+                            </p>
+                        </div>
+                    </div>
+                </aside>
+            </div>
+
+            <section class="explanation-section">
+                <div class="explanation-grid">
+                    <div class="exp-col">
+                        <h3>What is Linear Thermal Expansion?</h3>
+                        
+                        <div class="atomic-demo">
+                            <div class="atomic-state">
+                                <div class="temp-label cold">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+                                    Cold / Contracted
+                                </div>
+                                <div class="lattice cold">
+                                    <div class="atom"></div><div class="atom"></div><div class="atom"></div><div class="atom"></div>
+                                    <div class="atom"></div><div class="atom"></div><div class="atom"></div><div class="atom"></div>
+                                    <div class="atom"></div><div class="atom"></div><div class="atom"></div><div class="atom"></div>
+                                    <div class="atom"></div><div class="atom"></div><div class="atom"></div><div class="atom"></div>
+                                </div>
+                                <div style="font-size: 0.65rem; color: var(--text-muted); margin-top: 8px;">Low Kinetic Energy</div>
+                            </div>
+                            <div class="atomic-state">
+                                <div class="temp-label hot">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+                                    Hot / Expanded
+                                </div>
+                                <div class="lattice hot">
+                                    <div class="atom"></div><div class="atom"></div><div class="atom"></div><div class="atom"></div>
+                                    <div class="atom"></div><div class="atom"></div><div class="atom"></div><div class="atom"></div>
+                                    <div class="atom"></div><div class="atom"></div><div class="atom"></div><div class="atom"></div>
+                                    <div class="atom"></div><div class="atom"></div><div class="atom"></div><div class="atom"></div>
+                                </div>
+                                <div style="font-size: 0.65rem; color: var(--text-muted); margin-top: 8px;">High Kinetic Energy</div>
+                            </div>
+                        </div>
+
+                        <p>
+                            Put simply: <strong>When things get hot, they get longer.</strong>
+                        </p>
+                        <p>
+                            Notice in the animation above how the "Hot" atoms vibrate more aggressively? 
+                            To maintain that movement without colliding, they push their neighbors further away (shown by the larger gaps).
+                        </p>
+                        <p>
+                            Across billions of atoms, these microscopic gaps add up to a measurable change in length.
+                        </p>
+                        <p>
+                            At the atomic level, heat is just energy. 
+                            As a material gets warmer, its atoms vibrate more vigorously. 
+                            This vibration creates "personal space" issues - the atoms push their neighbors slightly further away. 
+                            Across billions of atoms, these microscopic pushes add up to a noticeable change in length.
+
+                            This is why bridges have "expansion joints" (gaps with teeth) and why power lines sag more on hot summer days.
+                        </p>
+                    </div>
+                    <div class="exp-col">
+                        <h3>Understanding the Formula</h3>
+                        <p>
+                            Engineers use a simple formula to estimate this growth:
+                        </p>
+                        <div class="highlight-box">
+                            <code>ΔL = α · L₀ · ΔT</code>
+                        </div>
+                        <ul style="list-style: none; padding-left: 0; color: var(--text-secondary); font-size: 0.9rem;">
+                            <li style="margin-bottom: 8px;"><strong>ΔL (Delta L):</strong> The change in length (how much it grew).</li>
+                            <li style="margin-bottom: 8px;"><strong>α (Alpha):</strong> The Coefficient of Thermal Expansion. This is a material property that says "how sensitive is this stuff to heat?"</li>
+                            <li style="margin-bottom: 8px;"><strong>L₀:</strong> The original starting length.</li>
+                            <li style="margin-bottom: 8px;"><strong>ΔT (Delta T):</strong> The change in temperature (Final - Initial).</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <div class="footer-content">
+                <p class="footer-text">© 2025 Tools Hub — Built for engineers</p>
+                <nav class="footer-links">
+                    <a href="../tools.html">All Tools</a>
+                    <a href="#">Report Issue</a>
+                </nav>
+            </div>
+        </footer>
+    </div>
+
+    <script src="../js/shared.js"></script>
+    <script>
+        const elements = {
+            materialSelect: document.getElementById('materialSelect'),
+            cteInput: document.getElementById('cteInput'),
+            lengthInput: document.getElementById('lengthInput'),
+            lengthUnit: document.getElementById('lengthUnit'),
+            tempInitial: document.getElementById('tempInitial'),
+            tempFinal: document.getElementById('tempFinal'),
+            tempUnit: document.getElementById('tempUnit'),
+            resDeltaT: document.getElementById('resDeltaT'),
+            resDeltaL: document.getElementById('resDeltaL'),
+            resDeltaLUnit: document.getElementById('resDeltaLUnit'),
+            resFinalL: document.getElementById('resFinalL'),
+            resPercent: document.getElementById('resPercent'),
+            vizBarBase: document.getElementById('vizBarBase'),
+            vizExpansion: document.getElementById('vizExpansion'),
+            vizLabel: document.getElementById('vizLabel'),
+            cteTableBody: document.getElementById('cteTableBody')
+        };
+
+        const materialsDB = [
+            { cat: 'Plastics', name: "ABS (Generic)", val: 95.0 },
+            { cat: 'Plastics', name: "Acetal (POM)", val: 85.0 },
+            { cat: 'Plastics', name: "Acrylic (PMMA)", val: 75.0 },
+            { cat: 'Plastics', name: "CPVC", val: 65.0 },
+            { cat: 'Plastics', name: "HDPE", val: 120.0 },
+            { cat: 'Plastics', name: "LDPE", val: 200.0 },
+            { cat: 'Plastics', name: "Nylon 6", val: 80.0 },
+            { cat: 'Plastics', name: "Nylon 6/6", val: 80.0 },
+            { cat: 'Plastics', name: "PEEK", val: 47.0 },
+            { cat: 'Plastics', name: "Polybutylene (PB)", val: 130.0 },
+            { cat: 'Plastics', name: "Polycarbonate (PC)", val: 68.0 },
+            { cat: 'Plastics', name: "Polypropylene (PP)", val: 150.0 },
+            { cat: 'Plastics', name: "Polystyrene (PS)", val: 70.0 },
+            { cat: 'Plastics', name: "PET (Polyester)", val: 70.0 },
+            { cat: 'Plastics', name: "PTFE (Teflon)", val: 126.0 }, 
+            { cat: 'Plastics', name: "PVA", val: 85.0 },
+            { cat: 'Plastics', name: "PVC (Rigid)", val: 54.0 },
+            { cat: 'Plastics', name: "PVDF", val: 120.0 },
+            { cat: 'Metals', name: "Aluminum 3003", val: 23.2 },
+            { cat: 'Metals', name: "Aluminum 6061", val: 23.6 },
+            { cat: 'Metals', name: "Brass (Yellow)", val: 20.3 },
+            { cat: 'Metals', name: "Brass (Red)", val: 18.7 },
+            { cat: 'Metals', name: "Bronze (Comm.)", val: 18.0 },
+            { cat: 'Metals', name: "Cast Iron, Gray", val: 10.8 },
+            { cat: 'Metals', name: "Cast Iron, Ductile", val: 11.5 },
+            { cat: 'Metals', name: "Copper", val: 16.5 },
+            { cat: 'Metals', name: "Gold", val: 14.2 },
+            { cat: 'Metals', name: "Lead", val: 29.3 },
+            { cat: 'Metals', name: "Magnesium", val: 26.0 },
+            { cat: 'Metals', name: "Nickel", val: 13.0 },
+            { cat: 'Metals', name: "Platinum", val: 9.0 },
+            { cat: 'Metals', name: "Silver", val: 19.0 },
+            { cat: 'Metals', name: "Steel, Carbon (1020)", val: 11.7 },
+            { cat: 'Metals', name: "Steel, Carbon (4140)", val: 12.3 },
+            { cat: 'Metals', name: "Steel, SS 304", val: 17.3 },
+            { cat: 'Metals', name: "Steel, SS 316", val: 16.0 },
+            { cat: 'Metals', name: "Steel, Tool A2", val: 11.6 },
+            { cat: 'Metals', name: "Steel, Tool D2", val: 10.5 },
+            { cat: 'Metals', name: "Titanium Gr2", val: 8.6 },
+            { cat: 'Metals', name: "Zinc", val: 30.0 },
+            { cat: 'Wood', name: "Fir (Parallel)", val: 3.8 },
+            { cat: 'Wood', name: "Fir (Perp.)", val: 32.0 },
+            { cat: 'Wood', name: "Oak (Parallel)", val: 4.9 },
+            { cat: 'Wood', name: "Oak (Perp.)", val: 54.0 },
+            { cat: 'Wood', name: "Pine (Parallel)", val: 5.0 },
+            { cat: 'Wood', name: "Pine (Perp.)", val: 34.0 },
+            { cat: 'Others', name: "Alumina (99%)", val: 8.1 },
+            { cat: 'Others', name: "Concrete", val: 12.0 },
+            { cat: 'Others', name: "Glass, Borosilicate", val: 3.3 },
+            { cat: 'Others', name: "Glass, Soda Lime", val: 9.0 },
+            { cat: 'Others', name: "Quartz, Fused", val: 0.55 }
+        ];
+
+        function init() {
+            populateTable();
+            populateDropdown();
+            
+            const inputs = [
+                elements.cteInput, elements.lengthInput, 
+                elements.tempInitial, elements.tempFinal
+            ];
+            
+            inputs.forEach(el => el.addEventListener('input', calculate));
+            [elements.lengthUnit, elements.tempUnit].forEach(el => el.addEventListener('change', calculate));
+
+            elements.materialSelect.addEventListener('change', (e) => {
+                if(e.target.value !== 'custom') {
+                    elements.cteInput.value = e.target.value;
+                    elements.cteInput.readOnly = true;
+                    elements.cteInput.style.backgroundColor = 'var(--bg-secondary)';
+                } else {
+                    elements.cteInput.readOnly = false;
+                    elements.cteInput.style.backgroundColor = 'var(--bg-card)';
+                    elements.cteInput.focus();
+                }
+                calculate();
+            });
+
+            elements.materialSelect.value = "11.7";
+            elements.cteInput.readOnly = true;
+            calculate();
+        }
+
+        function populateDropdown() {
+            const groups = {};
+            materialsDB.forEach(m => {
+                if(!groups[m.cat]) groups[m.cat] = [];
+                groups[m.cat].push(m);
+            });
+
+            let html = '<option value="custom">Custom CTE...</option>';
+            const order = ['Metals', 'Plastics', 'Wood', 'Others'];
+            
+            order.forEach(cat => {
+                if(groups[cat]) {
+                    html += `<optgroup label="${cat}">`;
+                    groups[cat].sort((a,b) => a.name.localeCompare(b.name));
+                    groups[cat].forEach(m => {
+                        html += `<option value="${m.val}">${m.name} (${m.val})</option>`;
+                    });
+                    html += `</optgroup>`;
+                }
+            });
+            
+            elements.materialSelect.innerHTML = html;
+        }
+
+        function populateTable() {
+            const sorted = [...materialsDB].sort((a, b) => a.name.localeCompare(b.name));
+            elements.cteTableBody.innerHTML = sorted.map(m => {
+                const valC = m.val;
+                const valF = (valC * 5 / 9).toFixed(1);
+                return `
+                    <tr onclick="selectFromTable('${m.val}')">
+                        <td>${m.name}</td>
+                        <td>${valC}</td>
+                        <td>${valF}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        window.selectFromTable = function(val) {
+            elements.materialSelect.value = val;
+            let found = false;
+            for(let i=0; i<elements.materialSelect.options.length; i++) {
+                if(elements.materialSelect.options[i].value === val.toString()) {
+                    elements.materialSelect.selectedIndex = i;
+                    found = true;
+                    break;
+                }
+            }
+            if(!found) elements.materialSelect.value = 'custom';
+            elements.cteInput.value = val;
+            elements.cteInput.readOnly = true;
+            elements.cteInput.style.backgroundColor = 'var(--bg-secondary)';
+            calculate();
+        };
+
+        function calculate() {
+            const alphaVal = parseFloat(elements.cteInput.value) || 0;
+            const L0 = parseFloat(elements.lengthInput.value) || 0;
+            const T1 = parseFloat(elements.tempInitial.value) || 0;
+            const T2 = parseFloat(elements.tempFinal.value) || 0;
+            const tempUnit = elements.tempUnit.value;
+            
+            let deltaT_User = T2 - T1;
+            let deltaT_C = (tempUnit === 'F') ? deltaT_User / 1.8 : deltaT_User;
+
+            const alphaRaw = alphaVal * 1e-6; 
+            const deltaL = alphaRaw * L0 * deltaT_C;
+            const finalL = L0 + deltaL;
+
+            let percentChange = 0;
+            if (L0 !== 0) percentChange = (deltaL / L0) * 100;
+
+            elements.resDeltaT.textContent = `${formatNumber(deltaT_User)} °${tempUnit === 'K' ? 'K' : tempUnit}`;
+
+            const lUnit = elements.lengthUnit.value;
+            const sign = deltaL > 0 ? '+' : '';
+            
+            elements.resDeltaL.textContent = sign + formatNumber(deltaL);
+            elements.resDeltaLUnit.textContent = lUnit;
+            elements.resFinalL.textContent = `${formatNumber(finalL)} ${lUnit}`;
+            
+            const pSign = percentChange > 0 ? '+' : '';
+            let pText;
+            if (Math.abs(percentChange) < 0.001 && percentChange !== 0) {
+                 pText = pSign + percentChange.toExponential(2) + '%';
+            } else {
+                 pText = pSign + percentChange.toPrecision(4) + '%';
+            }
+            elements.resPercent.textContent = pText;
+
+            updateViz(deltaL, L0);
+        }
+
+        function updateViz(dL, L0) {
+            if (L0 === 0) return;
+            
+            const pct = (dL / L0) * 100;
+            const isExpansion = dL >= 0;
+            const absPct = Math.abs(pct);
+
+            if (isExpansion) {
+                elements.vizExpansion.style.left = '100%';
+                elements.vizExpansion.style.right = 'auto';
+                elements.vizExpansion.style.width = absPct + '%';
+                elements.vizExpansion.style.backgroundColor = 'var(--accent-engineering)';
+                
+                elements.vizLabel.textContent = `+ΔL ${formatNumber(dL)}`;
+                elements.vizLabel.style.color = 'var(--accent-engineering)';
+                elements.vizLabel.style.left = `calc(80% + ${absPct * 0.8}%)`; 
+            } else {
+                elements.vizExpansion.style.left = 'auto';
+                elements.vizExpansion.style.right = '0'; 
+                elements.vizExpansion.style.width = absPct + '%';
+                elements.vizExpansion.style.backgroundColor = '#ef4444';
+                
+                elements.vizLabel.textContent = `-ΔL ${formatNumber(dL)}`;
+                elements.vizLabel.style.color = '#ef4444';
+                elements.vizLabel.style.left = `calc(80% - ${absPct * 0.8}%)`; 
+            }
+        }
+
+        function formatNumber(num) {
+            if (num === 0) return "0";
+            if (Math.abs(num) < 0.0001) return num.toExponential(3);
+            if (Math.abs(num % 1) < 1e-5) return num.toFixed(0);
+            return parseFloat(num.toFixed(4));
+        }
+
+        init();
+    </script>
+</body>
+</html>

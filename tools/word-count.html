@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Word Count | Tools Hub</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/shared.css">
+    <style>
+        /* Layout */
+        .calculator-layout {
+            display: grid;
+            grid-template-columns: 1fr 320px;
+            gap: 24px;
+            min-height: calc(100vh - 300px);
+        }
+
+        .calculator-panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel-header {
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .panel-header h2 { font-size: 1.5rem; margin-bottom: 4px; }
+        .panel-header p { color: var(--text-secondary); font-size: 0.9375rem; }
+
+        /* Stats Grid (Top of Editor) */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 16px;
+            text-align: center;
+            transition: border-color 0.2s;
+        }
+        
+        .stat-card:hover { border-color: var(--accent-engineering); }
+
+        .stat-card-val {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .stat-card-label {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 600;
+        }
+
+        /* Editor Area */
+        .editor-container {
+            flex: 1;
+            position: relative;
+            min-height: 400px;
+        }
+
+        textarea.text-input {
+            width: 100%;
+            height: 100%;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9375rem;
+            color: var(--text-primary);
+            resize: none;
+            outline: none;
+            line-height: 1.6;
+        }
+
+        textarea.text-input:focus { border-color: var(--accent-engineering); }
+
+        /* Toolbar */
+        .toolbar {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 16px;
+            justify-content: flex-end;
+        }
+
+        .tool-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8125rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .tool-btn:hover { border-color: var(--accent-engineering); background: var(--bg-card); }
+
+        /* Sidebar Stats */
+        .sidebar { display: flex; flex-direction: column; gap: 24px; }
+        .sidebar-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; }
+        .sidebar-card h3 { font-size: 0.875rem; color: var(--text-primary); margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.8125rem;
+        }
+        .detail-row:last-child { border-bottom: none; }
+        .detail-label { color: var(--text-secondary); }
+        .detail-val { font-family: 'JetBrains Mono', monospace; font-weight: 600; color: var(--accent-engineering); }
+
+        /* Keyword Density Bar */
+        .keyword-item {
+            margin-bottom: 10px;
+        }
+        .keyword-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            margin-bottom: 4px;
+            font-family: 'Space Grotesk', sans-serif;
+            color: var(--text-primary);
+        }
+        .keyword-bar-bg {
+            width: 100%;
+            height: 4px;
+            background: var(--bg-secondary);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        .keyword-bar-fill {
+            height: 100%;
+            background: var(--accent-engineering);
+            border-radius: 2px;
+        }
+
+        @media (max-width: 1024px) {
+            .calculator-layout { grid-template-columns: 1fr; }
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <div class="header-left">
+                    <a href="../tools.html" class="back-link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="19" y1="12" x2="5" y2="12"/>
+                            <polyline points="12 19 5 12 12 5"/>
+                        </svg>
+                        Back to Tools
+                    </a>
+                </div>
+                <div class="header-right">
+                    <div class="theme-toggle">
+                        <button data-theme-toggle="light" title="Light mode">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="5"/>
+                                <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+                            </svg>
+                        </button>
+                        <button data-theme-toggle="dark" title="Dark mode">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div style="margin-top: 24px; display: flex; align-items: center; gap: 16px;">
+                <div class="tool-icon-header engineering">
+                    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="21" y1="10" x2="3" y2="10"/>
+                        <line x1="21" y1="6" x2="3" y2="6"/>
+                        <line x1="21" y1="14" x2="3" y2="14"/>
+                        <line x1="21" y1="18" x2="3" y2="18"/>
+                    </svg>
+                </div>
+                <div>
+                    <h1>Word Counter</h1>
+                    <p class="tagline">// METRICS • DENSITY • TIME ESTIMATES</p>
+                </div>
+            </div>
+        </header>
+
+        <main>
+            <div class="calculator-layout">
+                <div class="calculator-panel">
+                    <div class="panel-header">
+                        <h2>Text Analysis</h2>
+                        <p>Type or paste text to analyze instantly.</p>
+                    </div>
+
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <span class="stat-card-val" id="countWords">0</span>
+                            <span class="stat-card-label">Words</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-card-val" id="countChars">0</span>
+                            <span class="stat-card-label">Characters</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-card-val" id="countSentences">0</span>
+                            <span class="stat-card-label">Sentences</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-card-val" id="countParagraphs">0</span>
+                            <span class="stat-card-label">Paragraphs</span>
+                        </div>
+                    </div>
+
+                    <div class="toolbar">
+                        <button class="tool-btn" onclick="copyText()">
+                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                            Copy Text
+                        </button>
+                        <button class="tool-btn" onclick="clearText()" style="color: #ef4444; border-color: rgba(239,68,68,0.3);">
+                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                            Clear
+                        </button>
+                    </div>
+
+                    <div class="editor-container">
+                        <textarea id="inputArea" class="text-input" placeholder="Start typing here..." spellcheck="false"></textarea>
+                    </div>
+                </div>
+
+                <aside class="sidebar">
+                    <div class="sidebar-card">
+                        <h3>
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"/>
+                                <polyline points="12 6 12 12 16 14"/>
+                            </svg>
+                            Time Estimates
+                        </h3>
+                        <div class="detail-row">
+                            <span class="detail-label">Reading Time</span>
+                            <span class="detail-val" id="timeRead">0m</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Speaking Time</span>
+                            <span class="detail-val" id="timeSpeak">0m</span>
+                        </div>
+                    </div>
+
+                    <div class="sidebar-card">
+                        <h3>
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+                                <line x1="8" y1="21" x2="16" y2="21"/>
+                                <line x1="12" y1="17" x2="12" y2="21"/>
+                            </svg>
+                            Composition Details
+                        </h3>
+                        <div class="detail-row">
+                            <span class="detail-label">Chars (No Spaces)</span>
+                            <span class="detail-val" id="countCharsNoSpace">0</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Avg. Word Length</span>
+                            <span class="detail-val" id="avgLen">0</span>
+                        </div>
+                    </div>
+
+                    <div class="sidebar-card">
+                        <h3>
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 20v-6M6 20V10M18 20V4"/>
+                            </svg>
+                            Keyword Density
+                        </h3>
+                        <div id="densityList">
+                            <p style="color: var(--text-muted); font-size: 0.8125rem;">Type to see keywords...</p>
+                        </div>
+                    </div>
+                </aside>
+            </div>
+        </main>
+
+        <footer>
+            <div class="footer-content">
+                <p class="footer-text">© 2025 Tools Hub — Built for engineers</p>
+                <nav class="footer-links">
+                    <a href="../tools.html">All Tools</a>
+                    <a href="#">Report Issue</a>
+                </nav>
+            </div>
+        </footer>
+    </div>
+
+    <script src="../js/shared.js"></script>
+    <script>
+        // ============================================
+        // Word Count Logic
+        // ============================================
+
+        const inputArea = document.getElementById('inputArea');
+        
+        // Main Counts
+        const countWords = document.getElementById('countWords');
+        const countChars = document.getElementById('countChars');
+        const countSentences = document.getElementById('countSentences');
+        const countParagraphs = document.getElementById('countParagraphs');
+        
+        // Side Stats
+        const timeRead = document.getElementById('timeRead');
+        const timeSpeak = document.getElementById('timeSpeak');
+        const countCharsNoSpace = document.getElementById('countCharsNoSpace');
+        const avgLen = document.getElementById('avgLen');
+        const densityList = document.getElementById('densityList');
+
+        // Common Stop Words to filter out of density check
+        const STOP_WORDS = new Set([
+            'the','be','to','of','and','a','in','that','have','i','it','for','not','on','with','he','as','you','do','at',
+            'this','but','his','by','from','they','we','say','her','she','or','an','will','my','one','all','would','there',
+            'their','what','so','up','out','if','about','who','get','which','go','me','when','make','can','like','time',
+            'no','just','him','know','take','people','into','year','your','good','some','could','them','see','other','than',
+            'then','now','look','only','come','its','over','think','also','back','after','use','two','how','our','work',
+            'first','well','way','even','new','want','because','any','these','give','day','most','us'
+        ]);
+
+        inputArea.addEventListener('input', analyzeText);
+
+        function analyzeText() {
+            const text = inputArea.value;
+            
+            // 1. Basic Counts
+            const chars = text.length;
+            const charsNoSpace = text.replace(/\s/g, '').length;
+            
+            // Words: Split by whitespace, filter empty
+            // Using a regex that handles various whitespace chars
+            const wordsArray = text.trim().split(/\s+/).filter(w => w.length > 0);
+            const words = wordsArray.length;
+
+            // Sentences: approximate splitting by punctuation (.!?) followed by space or end
+            const sentences = text.split(/[.!?]+(\s|$)/).filter(s => s.trim().length > 0).length;
+
+            // Paragraphs: split by newline, filter empty
+            const paragraphs = text.split(/\n+/).filter(p => p.trim().length > 0).length;
+
+            // 2. Averages & Time
+            // Reading: Avg 225 wpm. Speaking: Avg 130 wpm.
+            const readSecs = words > 0 ? Math.round((words / 225) * 60) : 0;
+            const speakSecs = words > 0 ? Math.round((words / 130) * 60) : 0;
+            
+            // Calculate average word length excluding punctuation (but keeping Unicode letters)
+            const avgWordLen = words > 0 
+                ? (wordsArray.reduce((sum, w) => sum + w.replace(/[\p{P}\p{S}]/gu, '').length, 0) / words).toFixed(1) 
+                : 0;
+
+            // 3. Update DOM
+            countWords.textContent = formatNum(words);
+            countChars.textContent = formatNum(chars);
+            countSentences.textContent = formatNum(sentences);
+            countParagraphs.textContent = formatNum(paragraphs);
+
+            countCharsNoSpace.textContent = formatNum(charsNoSpace);
+            avgLen.textContent = avgWordLen;
+
+            timeRead.textContent = formatTime(readSecs);
+            timeSpeak.textContent = formatTime(speakSecs);
+
+            // 4. Keyword Density
+            updateDensity(wordsArray);
+        }
+
+        function updateDensity(words) {
+            if (words.length === 0) {
+                densityList.innerHTML = '<p style="color: var(--text-muted); font-size: 0.8125rem;">Type to see keywords...</p>';
+                return;
+            }
+
+            const freqMap = {};
+            words.forEach(w => {
+                // Clean punctuation but keep Unicode letters and numbers (café, naïve, 日本語, etc.)
+                const clean = w.toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
+                if (clean && !STOP_WORDS.has(clean) && clean.length > 2) {
+                    freqMap[clean] = (freqMap[clean] || 0) + 1;
+                }
+            });
+
+            // Sort by frequency
+            const sorted = Object.entries(freqMap)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 5); // Top 5
+
+            if (sorted.length === 0) {
+                densityList.innerHTML = '<p style="color: var(--text-muted); font-size: 0.8125rem;">No keywords found.</p>';
+                return;
+            }
+
+            // Render
+            let html = '';
+            const maxVal = sorted[0][1]; // for bar scaling
+
+            sorted.forEach(([word, count]) => {
+                const percent = (count / maxVal) * 100;
+                html += `
+                    <div class="keyword-item">
+                        <div class="keyword-header">
+                            <span>${word}</span>
+                            <span style="color: var(--accent-engineering);">${count}</span>
+                        </div>
+                        <div class="keyword-bar-bg">
+                            <div class="keyword-bar-fill" style="width: ${percent}%"></div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            densityList.innerHTML = html;
+        }
+
+        function formatNum(n) {
+            return n.toLocaleString();
+        }
+
+        function formatTime(totalSecs) {
+            if (totalSecs === 0) return '0m 0s';
+            const mins = Math.floor(totalSecs / 60);
+            const secs = totalSecs % 60;
+            if (mins === 0) return `${secs}s`;
+            return `${mins}m ${secs}s`;
+        }
+
+        function clearText() {
+            inputArea.value = '';
+            analyzeText();
+            inputArea.focus();
+        }
+
+        function copyText() {
+            if(!inputArea.value) return;
+            navigator.clipboard.writeText(inputArea.value);
+            // Visual feedback could be added here
+        }
+    </script>
+</body>
+</html>

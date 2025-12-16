@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tools Hub</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/shared.css">
+    <style>
+
+        /* Animation on load */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .category-section {
+            animation: fadeInUp 0.5s ease forwards;
+        }
+
+        .category-section:nth-child(1) { animation-delay: 0.1s; }
+        .category-section:nth-child(2) { animation-delay: 0.2s; }
+        .category-section:nth-child(3) { animation-delay: 0.3s; }
+
+        /* View Toggle Controls */
+        .controls-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 32px;
+            padding: 12px 16px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            flex-wrap: wrap;
+        }
+
+        .controls-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .controls-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .control-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .toggle-group {
+            display: flex;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .toggle-btn {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            padding: 8px 14px;
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.15s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .toggle-btn:hover {
+            color: var(--text-primary);
+            background: var(--bg-card);
+        }
+
+        .toggle-btn.active {
+            background: var(--accent-it);
+            color: var(--bg-primary);
+        }
+
+        .toggle-btn svg {
+            width: 14px;
+            height: 14px;
+        }
+
+        .expand-collapse-btns {
+            display: flex;
+            gap: 4px;
+        }
+
+        .action-btn {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.6875rem;
+            padding: 6px 10px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .action-btn:hover {
+            color: var(--text-primary);
+            border-color: var(--border-hover);
+        }
+
+        /* Collapsible Categories */
+        .category-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border-color);
+            cursor: pointer;
+            user-select: none;
+            transition: opacity 0.15s ease;
+        }
+
+        .category-header:hover {
+            opacity: 0.8;
+        }
+
+        .collapse-icon {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+            transition: transform 0.2s ease;
+            margin-left: auto;
+        }
+
+        .collapse-icon svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        .category-section.collapsed .collapse-icon {
+            transform: rotate(-90deg);
+        }
+
+        .category-section.collapsed .tools-grid {
+            display: none;
+        }
+
+        .category-section.collapsed .category-header {
+            margin-bottom: 0;
+            border-bottom-color: transparent;
+        }
+
+        /* Condensed View */
+        body.condensed .tools-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        body.condensed .tool-card {
+            flex-direction: row;
+            align-items: center;
+            padding: 10px 16px;
+            gap: 16px;
+            border-radius: 6px;
+        }
+
+        body.condensed .tool-card::before {
+            width: 3px;
+            height: 100%;
+            top: 0;
+            left: 0;
+            right: auto;
+        }
+
+        body.condensed .tool-card:hover::before {
+            opacity: 1;
+        }
+
+        body.condensed .tool-card-header {
+            display: contents;
+        }
+
+        body.condensed .tool-icon {
+            width: 32px;
+            height: 32px;
+            font-size: 14px;
+            border-radius: 6px;
+            order: 1;
+        }
+
+        body.condensed .tool-name {
+            font-size: 0.9375rem;
+            order: 2;
+            flex: 1;
+            min-width: 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        body.condensed .tool-description {
+            display: none;
+        }
+
+        body.condensed .tool-tags {
+            display: none;
+        }
+
+        body.condensed .tool-status {
+            order: 3;
+            flex-shrink: 0;
+        }
+
+        /* Condensed responsive */
+        @media (max-width: 768px) {
+            .controls-bar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .controls-left, .controls-right {
+                justify-content: space-between;
+            }
+
+            body.condensed .tool-card {
+                padding: 12px;
+            }
+
+            body.condensed .tool-name {
+                font-size: 0.875rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <div class="logo-section">
+                    <div class="logo-icon">⚙</div>
+                    <div>
+                        <h1>Tools Hub</h1>
+                        <p class="tagline">// ENGINEERING & DEVELOPMENT UTILITIES</p>
+                    </div>
+                </div>
+                <div class="header-meta">
+                    <div class="theme-toggle">
+                        <button data-theme-toggle="light" title="Light mode">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="5"/>
+                                <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+                            </svg>
+                        </button>
+                        <button data-theme-toggle="dark" title="Dark mode">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div>
+                        <div>VERSION <span>1.6.0</span></div>
+                        <div>TOOLS: <span>18</span></div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <main>
+            <!-- Controls Bar -->
+            <div class="controls-bar">
+                <div class="controls-left">
+                    <span class="control-label">View:</span>
+                    <div class="toggle-group">
+                        <button class="toggle-btn active" data-view="detailed" title="Detailed view with descriptions">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="3" width="7" height="7" rx="1"/>
+                                <rect x="14" y="3" width="7" height="7" rx="1"/>
+                                <rect x="3" y="14" width="7" height="7" rx="1"/>
+                                <rect x="14" y="14" width="7" height="7" rx="1"/>
+                            </svg>
+                            Detailed
+                        </button>
+                        <button class="toggle-btn" data-view="condensed" title="Compact list view">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="3" y1="6" x2="21" y2="6"/>
+                                <line x1="3" y1="12" x2="21" y2="12"/>
+                                <line x1="3" y1="18" x2="21" y2="18"/>
+                            </svg>
+                            Condensed
+                        </button>
+                    </div>
+                </div>
+                <div class="controls-right">
+                    <span class="control-label">Sections:</span>
+                    <div class="expand-collapse-btns">
+                        <button class="action-btn" id="expandAll">Expand All</button>
+                        <button class="action-btn" id="collapseAll">Collapse All</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Engineering Calculators -->
+            <section class="category-section">
+                <div class="category-header">
+                    <div class="category-indicator engineering"></div>
+                    <h2 class="category-title">Engineering Calculators</h2>
+                    <span class="category-count">6 tools</span>
+                    <div class="collapse-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="6 9 12 15 18 9"/>
+                        </svg>
+                    </div>
+                </div>
+                <div class="tools-grid">
+                    <a href="tools/unit-converter.html" class="tool-card engineering">
+                        <div class="tool-card-header">
+                            <div class="tool-icon engineering">⇌</div>
+                            <span class="tool-status active">Active</span>
+                        </div>
+                        <h3 class="tool-name">Unit Converter</h3>
+                        <p class="tool-description">Convert between metric, imperial, and engineering units with precision.</p>
+                        <div class="tool-tags">
+                            <span class="tool-tag">length</span>
+                            <span class="tool-tag">mass</span>
+                            <span class="tool-tag">pressure</span>
+                        </div>
+                    </a>
+
+                    <a href="tools/ohms-law.html" class="tool-card engineering">
+                        <div class="tool-card-header">
+                            <div class="tool-icon engineering">Ω</div>
+                            <span class="tool-status coming">Under Review</span>
+                        </div>
+                        <h3 class="tool-name">Ohm's Law Calculator</h3>
+                        <p class="tool-description">Calculate voltage, current, resistance, and power relationships.</p>
+                        <div class="tool-tags">
+                            <span class="tool-tag">electrical</span>
+                            <span class="tool-tag">circuits</span>
+                        </div>
+                    </a>
+
+                    <a href="tools/linear-thermal-expansion.html" class="tool-card engineering">
+                        <div class="tool-card-header">
+                            <div class="tool-icon engineering">↔</div>
+                            <span class="tool-status coming">Under Review</span>
+                        </div>
+                        <h3 class="tool-name">Linear Thermal Expansion</h3>
+                        <p class="tool-description">Calculate material expansion and contraction due to temperature changes.</p>
+                        <div class="tool-tags">
+                            <span class="tool-tag">thermal</span>
+                            <span class="tool-tag">materials</span>
+                        </div>
+                    </a>
+
+                    <a href="tools/esp32-pinout.html" class="tool-card engineering">
+                        <div class="tool-card-header">
+                            <div class="tool-icon engineering">◫</div>
+                            <span class="tool-status coming">Coming</span>
+                        </div>
+                        <h3 class="tool-name">ESP32 Pinouts</h3>
+                        <p class="tool-description">Reference diagrams for ESP32 development board pin configurations.</p>
+                        <div class="tool-tags">
+                            <span class="tool-tag">microcontroller</span>
+                            <span class="tool-tag">reference</span>
+                        </div>
+                    </a>
+
+                    <a href="tools/rpi-pinout.html" class="tool-card engineering">
+                        <div class="tool-card-header">
+                            <div class="tool-icon engineering">◫</div>
+                            <span class="tool-status coming">Coming</span>
+                        </div>
+                        <h3 class="tool-name">Raspberry Pi Pinouts</h3>
+                        <p class="tool-description">GPIO reference diagrams for Raspberry Pi board configurations.</p>
+                        <div class="tool-tags">
+                            <span class="tool-tag">gpio</span>
+                            <span class="tool-tag">reference</span>
+                        </div>
+                    </a>
+
+                    <a href="tools/sensors.html" class="tool-card engineering">
+                        <div class="tool-card-header">
+                            <div class="tool-icon engineering">◉</div>
+                            <span class="tool-status active">Active</span>
+                        </div>
+                        <h3 class="tool-name">Sensors Reference</h3>
+                        <p class="tool-description">Common sensors for temperature, pressure, flow, proximity, and more.</p>
+                        <div class="tool-tags">
+                            <span class="tool-tag">instrumentation</span>
+                            <span class="tool-tag">measurement</span>
+                        </div>
+                    </a>
+                </div>
+            </section>
+
+            <!-- IT & Coding Tools -->
+            <section class="category-section">
+                <div class="category-header">
+                    <div class="category-indicator it"></div>
+                    <h2 class="category-title">IT & Coding Tools</h2>
+                    <span class="category-count">5 tools</span>
+                    <div class="collapse-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="6 9 12 15 18 9"/>
+                        </svg>
+                    </div>
+                </div>
+                <div class="tools-grid">
+                    <a href="tools/color-picker.html" class="tool-card it">
+                        <div class="tool-card-header">
+                            <div class="tool-icon it">◐</div>
+                            <span class="tool-status coming">Coming</span>
+                        </div>
+                        <h3 class="tool-name">Color Picker & Converter</h3>
+                        <p class="tool-description">Pick colors and convert between HEX, RGB, HSL, and other formats.</p>
+                        <div class="tool-tags">
+                            <span class="tool-tag">hex</span>
+                            <span class="tool-tag">rgb</span>
+                            <span class="tool-tag">hsl</span>
+                        </div>
+                    </a>
+
+                    <a href="tools/base-converter.html" class="tool-card it">
+                        <div class="tool-card-header">
+                            <div class="tool-icon it">01</div>
+                            <span class="tool-status coming">Coming</span>
+                        </div>
+                        <h3 class="tool-name">Number Base Converter</h3>
+                        <p class="tool-description">Convert numbers between binary, octal, decimal, and hexadecimal.</p>
+                        <div class="tool-tags">
+                            <span class="tool-tag">binary</span>
+                            <span class="tool-tag">hex</span>
+                            <span class="tool-tag">decimal</span>
+                        </div>
+                    </a>
+
+                    <a href="tools/json-formatter.html" class="tool-card it">
+                        <div class="tool-card-header">
+                            <div class="tool-icon it">{ }</div>
+                            <span class="tool-status active">Active</span>
+                        </div>
+                        <h3 class="tool-name">JSON Formatter</h3>
+                        <p class="tool-description">Format, validate, and minify JSON data with syntax highlighting.</p>
+                        <div class="tool-tags">
+                            <span class="tool-tag">json</span>
+                            <span class="tool-tag">format</span>
+                            <span class="tool-tag">validate</span>
+                        </div>
+                    </a>
+
+                    <a href="tools/regex-tester.html" class="tool-card it">
+                        <div class="tool-card-header">
+                            <div class="tool-icon it">.*</div>
+                            <span class="tool-status active">Active</span>
+                        </div>
+                        <h3 class="tool-name">Regex Tester</h3>
+                        <p class="tool-description">Test and debug regular expressions with live matching and explanation.</p>
+                        <div class="tool-tags">
+                            <span class="tool-tag">regex</span>
+                            <span class="tool-tag">pattern</span>
+                        </div>
+                    </a>
+
+                    <a href="tools/ai-image-detector.html" class="tool-card it">
+                        <div class="tool-card-header">
+                            <div class="tool-icon it">⚡</div>
+                            <span class="tool-status coming">Prototypical...</span>
+                        </div>
+                        <h3 class="tool-name">AI Image Detector - FFT Noise Freq Analysis</h3>
+                        <p class="tool-description">Analyze images for AI-generation.</p>
+                        <div class="tool-tags">
+                            <span class="tool-tag">detection</span>
+                            <span class="tool-tag">analysis</span>
+                        </div>
+                    </a>
+                </div>
+            </section>
+
+            <!-- General Utilities -->
+            <section class="category-section">
+                <div class="category-header">
+                    <div class="category-indicator general"></div>
+                    <h2 class="category-title">General Utilities</h2>
+                    <span class="category-count">5 tools</span>
+                    <div class="collapse-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="6 9 12 15 18 9"/>
+                        </svg>
+                    </div>
+                </div>
+                <div class="tools-grid">
+                    <a href="tools/timestamp-converter.html" class="tool-card general">
+                        <div class="tool-card-header">
+                            <div class="tool-icon general">◷</div>
+                            <span class="tool-status active">Active</span>
+                        </div>
+                        <h3 class="tool-name">Timestamp Converter</h3>
+                        <p class="tool-description">Convert between Unix timestamps, ISO dates, and human-readable formats.</p>
+                        <div class="tool-tags">
+                            <span class="tool-tag">unix</span>
+                            <span class="tool-tag">iso</span>
+                            <span class="tool-tag">datetime</span>
+                        </div>
+                    </a>
+
+                    <a href="tools/crypto-lab.html" class="tool-card general">
+                        <div class="tool-card-header">
+                            <div class="tool-icon general">#</div>
+                            <span class="tool-status active">Active</span>
+                        </div>
+                        <h3 class="tool-name">Crypto Lab</h3>
+                        <p class="tool-description">Encrypt and decrypt via AES/DES, or generate MD5/SHA hashes.</p>
+                        <div class="tool-tags">
+                            <span class="tool-tag">md5</span>
+                            <span class="tool-tag">sha</span>
+                            <span class="tool-tag">crypto</span>
+                        </div>
+                    </a>
+
+                    <a href="tools/word-count.html" class="tool-card general">
+                        <div class="tool-card-header">
+                            <div class="tool-icon general">¶</div>
+                            <span class="tool-status active">Active</span>
+                        </div>
+                        <h3 class="tool-name">Word Count</h3>
+                        <p class="tool-description">Count words, characters, sentences, and paragraphs in your text.</p>
+                        <div class="tool-tags">
+                            <span class="tool-tag">words</span>
+                            <span class="tool-tag">characters</span>
+                            <span class="tool-tag">stats</span>
+                        </div>
+                    </a>
+
+                    <a href="tools/case-conversion.html" class="tool-card general">
+                        <div class="tool-card-header">
+                            <div class="tool-icon general">Aa</div>
+                            <span class="tool-status active">Active</span>
+                        </div>
+                        <h3 class="tool-name">Case Conversion</h3>
+                        <p class="tool-description">Convert text between uppercase, lowercase, title case, and more.</p>
+                        <div class="tool-tags">
+                            <span class="tool-tag">uppercase</span>
+                            <span class="tool-tag">lowercase</span>
+                            <span class="tool-tag">title</span>
+                        </div>
+                    </a>
+
+                    <a href="tools/encoding.html" class="tool-card general">
+                        <div class="tool-card-header">
+                            <div class="tool-icon general">&lt;/&gt;</div>
+                            <span class="tool-status active">Active</span>
+                        </div>
+                        <h3 class="tool-name">Encoding / Decoding</h3>
+                        <p class="tool-description">Encode and decode Base64, URL, HTML entities, and other formats.</p>
+                        <div class="tool-tags">
+                            <span class="tool-tag">base64</span>
+                            <span class="tool-tag">url</span>
+                            <span class="tool-tag">html</span>
+                        </div>
+                    </a>
+                </div>
+            </section>
+            <section class="category-section">
+                <div class="category-header">
+                    <div class="category-indicator general"></div>
+                    <h2 class="category-title">Biochemical Engineering Utilities</h2>
+                    <span class="category-count">2 tools</span>
+                    <div class="collapse-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="6 9 12 15 18 9"/>
+                        </svg>
+                    </div>
+                </div>
+                <div class="tools-grid">
+                    <a href="tools/hed-calculator.html" class="tool-card biology">
+                        <div class="tool-card-header">
+                            <div class="tool-icon biology">
+                                <svg viewBox="0 0 24 24" width="24" height="24" fill="red" stroke="currentColor" stroke-width="2">
+                                    <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/>
+                                </svg>
+                            </div>
+                            <span class="tool-status active">Active</span>
+                        </div>
+                        <h3 class="tool-name">HED Calculator</h3>
+                        <p class="tool-description">Translate preclinical animal doses to Human Equivalent Doses (HED) via BSA normalization.</p>
+                        <div class="tool-tags">
+                            <span class="tool-tag">biology</span>
+                            <span class="tool-tag">pharmacology</span>
+                            <span class="tool-tag">research</span>
+                        </div>
+                    </a>
+                
+                <a href="tools/toxicology-body-burden.html" class="tool-card biology">
+                <div class="tool-card-header">
+                    <div class="tool-icon biology">
+                        <svg viewBox="0 0 24 24" width="24" height="24" fill="green" stroke="currentColor" stroke-width="2">
+                            <path d="M9 3h6v6l5 10H4L9 9V3z"/>
+                            <line x1="9" y1="3" x2="15" y2="3"/>
+                        </svg>
+                    </div>
+                    <span class="tool-status active">Experimental</span>
+                </div>
+                <h3 class="tool-name">Toxicology Body Burden</h3>
+                <p class="tool-description">Estimate total systemic load from plasma concentration using volume of distribution models with optional kinetic back-calculation.</p>
+                <div class="tool-tags">
+                    <span class="tool-tag">toxicology</span>
+                    <span class="tool-tag">pharmacokinetics</span>
+                    <span class="tool-tag">research</span>
+                </div>
+            </a>
+
+            </div> 
+            <!-- final div for section(s) there.  -->
+            </section>
+        </main>
+
+        <footer>
+            <div class="footer-content">
+                <p class="footer-text">© 2025 Tools Hub — Built for engineers and developers</p>
+                <nav class="footer-links">
+                    <a href="#">About</a>
+                    <a href="#">Changelog</a>
+                    <a href="#">Request a Tool</a>
+                </nav>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        // View Toggle (Detailed / Condensed)
+        const toggleBtns = document.querySelectorAll('.toggle-btn');
+        toggleBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                toggleBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                
+                if (btn.dataset.view === 'condensed') {
+                    document.body.classList.add('condensed');
+                } else {
+                    document.body.classList.remove('condensed');
+                }
+                
+                // Save preference
+                localStorage.setItem('toolsView', btn.dataset.view);
+            });
+        });
+
+        // Load saved view preference
+        const savedView = localStorage.getItem('toolsView');
+        if (savedView === 'condensed') {
+            document.body.classList.add('condensed');
+            toggleBtns.forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.view === 'condensed');
+            });
+        }
+
+        // Category Collapse Toggle
+        const categoryHeaders = document.querySelectorAll('.category-header');
+        categoryHeaders.forEach(header => {
+            header.addEventListener('click', () => {
+                const section = header.closest('.category-section');
+                section.classList.toggle('collapsed');
+                
+                // Save collapsed state
+                saveCollapsedState();
+            });
+        });
+
+        // Expand All / Collapse All
+        document.getElementById('expandAll').addEventListener('click', () => {
+            document.querySelectorAll('.category-section').forEach(section => {
+                section.classList.remove('collapsed');
+            });
+            saveCollapsedState();
+        });
+
+        document.getElementById('collapseAll').addEventListener('click', () => {
+            document.querySelectorAll('.category-section').forEach(section => {
+                section.classList.add('collapsed');
+            });
+            saveCollapsedState();
+        });
+
+        // Save/Load collapsed state
+        function saveCollapsedState() {
+            const collapsed = [];
+            document.querySelectorAll('.category-section').forEach((section, index) => {
+                if (section.classList.contains('collapsed')) {
+                    collapsed.push(index);
+                }
+            });
+            localStorage.setItem('collapsedSections', JSON.stringify(collapsed));
+        }
+
+        function loadCollapsedState() {
+            const saved = localStorage.getItem('collapsedSections');
+            if (saved) {
+                const collapsed = JSON.parse(saved);
+                document.querySelectorAll('.category-section').forEach((section, index) => {
+                    if (collapsed.includes(index)) {
+                        section.classList.add('collapsed');
+                    }
+                });
+            }
+        }
+
+        // Load saved collapsed state on page load
+        loadCollapsedState();
+    </script>
+    <script src="js/shared.js"></script>
+</body>
+</html>

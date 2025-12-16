@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Timestamp Converter | Tools Hub</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/shared.css">
+    <style>
+        /* Shared Tool Styles */
+        .calculator-layout {
+            display: grid;
+            grid-template-columns: 1fr 320px;
+            gap: 24px;
+            min-height: calc(100vh - 300px);
+        }
+
+        .calculator-panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel-header {
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .panel-header h2 { font-size: 1.5rem; margin-bottom: 4px; }
+        .panel-header p { color: var(--text-secondary); font-size: 0.9375rem; }
+
+        /* Input Section */
+        .input-group {
+            margin-bottom: 24px;
+            position: relative;
+        }
+
+        .main-input {
+            width: 100%;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 16px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.25rem;
+            color: var(--text-primary);
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .main-input:focus {
+            border-color: var(--accent-engineering);
+        }
+
+        /* Results Grid */
+        .results-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            flex: 1;
+        }
+
+        .result-row {
+            display: grid;
+            grid-template-columns: 140px 1fr 40px;
+            gap: 12px;
+            align-items: center;
+            background: var(--bg-secondary);
+            padding: 12px 16px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+        }
+
+        .result-label {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .result-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9375rem;
+            color: var(--text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .copy-btn-sm {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .copy-btn-sm:hover {
+            background: var(--bg-card);
+            color: var(--accent-engineering);
+        }
+
+        /* Toolbar */
+        .toolbar {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .tool-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8125rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+
+        .tool-btn:hover {
+            border-color: var(--accent-engineering);
+            background: var(--bg-card);
+        }
+
+        .tool-btn.primary {
+            background: var(--accent-engineering);
+            color: var(--bg-primary);
+            border-color: var(--accent-engineering);
+            font-weight: 600;
+        }
+
+        /* Picker Overlay - Fixes the click issue */
+        input[type="datetime-local"].picker-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+            z-index: 10;
+        }
+
+        /* Sidebar Styles */
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .sidebar-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .sidebar-card h3 {
+            font-size: 0.875rem;
+            color: var(--text-primary);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.8125rem;
+        }
+        .stat-row:last-child { border-bottom: none; }
+        .stat-label { color: var(--text-secondary); }
+        .stat-val { font-family: 'JetBrains Mono', monospace; font-weight: 600; color: var(--accent-engineering); }
+
+        /* Disclaimer Card */
+        .disclaimer-card {
+            background: var(--bg-card);
+            border: 1px solid rgba(245, 158, 11, 0.4);
+            border-left: 4px solid rgba(245, 158, 11, 0.8);
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 24px;
+        }
+        .disclaimer-title {
+            display: flex; align-items: center; gap: 10px;
+            font-family: 'Space Grotesk', sans-serif; font-weight: 700;
+            color: #f59e0b; text-transform: uppercase; letter-spacing: 0.05em;
+            margin-bottom: 12px;
+        }
+        .disclaimer-content { font-size: 0.875rem; color: var(--text-secondary); line-height: 1.6; }
+
+        @media (max-width: 1024px) {
+            .calculator-layout { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <div class="header-left">
+                    <a href="../tools.html" class="back-link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="19" y1="12" x2="5" y2="12"/>
+                            <polyline points="12 19 5 12 12 5"/>
+                        </svg>
+                        Back to Tools
+                    </a>
+                </div>
+                <div class="header-right">
+                    <div class="theme-toggle">
+                        <button data-theme-toggle="light" title="Light mode">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="5"/>
+                                <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+                            </svg>
+                        </button>
+                        <button data-theme-toggle="dark" title="Dark mode">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div style="margin-top: 24px; display: flex; align-items: center; gap: 16px;">
+                <div class="tool-icon-header engineering">
+                    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <polyline points="12 6 12 12 16 14"/>
+                    </svg>
+                </div>
+                <div>
+                    <h1>Timestamp Converter</h1>
+                    <p class="tagline">// UNIX • ISO 8601 • RELATIVE • CALENDAR</p>
+                </div>
+            </div>
+        </header>
+
+        <main>
+            <div class="calculator-layout">
+                <div class="calculator-panel">
+                    <div class="panel-header">
+                        <h2>Convert Time</h2>
+                        <p>Enter a Timestamp, Date string, or Relative offset (e.g. "+2h").</p>
+                    </div>
+
+                    <div class="toolbar">
+                        <button class="tool-btn primary" onclick="setNow()">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"/>
+                                <polyline points="12 6 12 12 16 14"/>
+                            </svg>
+                            Now
+                        </button>
+                        
+                        <div style="position: relative;">
+                            <button class="tool-btn">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                                    <line x1="16" y1="2" x2="16" y2="6"/>
+                                    <line x1="8" y1="2" x2="8" y2="6"/>
+                                    <line x1="3" y1="10" x2="21" y2="10"/>
+                                </svg>
+                                Calendar
+                            </button>
+                            <input type="datetime-local" id="datePicker" class="picker-overlay" onchange="handlePicker(this.value)">
+                        </div>
+
+                        <button class="tool-btn" onclick="clearInput()" style="margin-left: auto; color: #ef4444; border-color: rgba(239,68,68,0.3);">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="3 6 5 6 21 6"/>
+                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                            </svg>
+                            Clear
+                        </button>
+                    </div>
+
+                    <div class="input-group">
+                        <input type="text" id="timeInput" class="main-input" placeholder="e.g. 1672531200, 2023-01-01, or +1d" spellcheck="false" autocomplete="off">
+                    </div>
+
+                    <div class="results-container">
+                        <div class="result-row">
+                            <span class="result-label">Unix (Seconds)</span>
+                            <span class="result-val" id="resSeconds">-</span>
+                            <button class="copy-btn-sm" onclick="copyId('resSeconds')">
+                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                            </button>
+                        </div>
+                        <div class="result-row">
+                            <span class="result-label">Unix (Millis)</span>
+                            <span class="result-val" id="resMillis">-</span>
+                            <button class="copy-btn-sm" onclick="copyId('resMillis')">
+                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                            </button>
+                        </div>
+                        <div class="result-row">
+                            <span class="result-label">ISO 8601 (UTC)</span>
+                            <span class="result-val" id="resISO" style="color: var(--accent-engineering);">-</span>
+                            <button class="copy-btn-sm" onclick="copyId('resISO')">
+                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                            </button>
+                        </div>
+                        <div class="result-row">
+                            <span class="result-label">Local String</span>
+                            <span class="result-val" id="resLocal">-</span>
+                            <button class="copy-btn-sm" onclick="copyId('resLocal')">
+                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                            </button>
+                        </div>
+                        <div class="result-row">
+                            <span class="result-label">Relative</span>
+                            <span class="result-val" id="resRelative" style="font-style: italic; color: var(--text-muted);">-</span>
+                            <button class="copy-btn-sm" onclick="copyId('resRelative')">
+                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <aside class="sidebar">
+                    <div class="sidebar-card">
+                        <h3>
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"/>
+                                <line x1="2" y1="12" x2="22" y2="12"/>
+                                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                            </svg>
+                            System Context
+                        </h3>
+                        <div class="stat-row">
+                            <span class="stat-label">Your Timezone</span>
+                            <span class="stat-val" id="statTZ">UTC</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Offset</span>
+                            <span class="stat-val" id="statOffset">+00:00</span>
+                        </div>
+                    </div>
+
+                    <div class="sidebar-card">
+                        <h3>
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                            </svg>
+                            Quick Actions
+                        </h3>
+                        <button class="tool-btn" onclick="setInput(0)" style="width: 100%; justify-content: center; margin-bottom: 8px;">
+                            Epoch (1970)
+                        </button>
+                        <button class="tool-btn" onclick="setInput(946684800)" style="width: 100%; justify-content: center; margin-bottom: 8px;">
+                            Y2K (2000)
+                        </button>
+                        <button class="tool-btn" onclick="setInput(2147483647)" style="width: 100%; justify-content: center;">
+                            Int32 Max (2038)
+                        </button>
+                    </div>
+
+                    <div class="disclaimer-card">
+                        <div class="disclaimer-title">
+                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5">
+                                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                                <line x1="12" y1="9" x2="12" y2="13"/>
+                                <line x1="12" y1="17" x2="12.01" y2="17"/>
+                            </svg>
+                            Timezone Warning
+                        </div>
+                        <div class="disclaimer-content">
+                            <p style="margin-bottom: 8px;"><strong>Context Matters.</strong> Unix timestamps are always UTC. However:</p>
+                            <ul style="padding-left: 20px; margin: 8px 0;">
+                                <li style="margin-bottom: 4px;"><strong>Local Display:</strong> "Local String" uses your browser's configured timezone (<span id="warnTZ">UTC</span>).</li>
+                                <li style="margin-bottom: 4px;"><strong>Math:</strong> JavaScript Dates do not handle leap seconds.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </aside>
+            </div>
+        </main>
+
+        <footer>
+            <div class="footer-content">
+                <p class="footer-text">© 2025 Tools Hub — Built for engineers</p>
+                <nav class="footer-links">
+                    <a href="../tools.html">All Tools</a>
+                    <a href="#">Report Issue</a>
+                </nav>
+            </div>
+        </footer>
+    </div>
+
+    <script src="../js/shared.js"></script>
+    <script>
+        // ============================================
+        // Timestamp Logic
+        // ============================================
+
+        const inputEl = document.getElementById('timeInput');
+        const pickerEl = document.getElementById('datePicker');
+        
+        // Outputs
+        const resSeconds = document.getElementById('resSeconds');
+        const resMillis = document.getElementById('resMillis');
+        const resISO = document.getElementById('resISO');
+        const resLocal = document.getElementById('resLocal');
+        const resRelative = document.getElementById('resRelative');
+        
+        // Stats
+        const statTZ = document.getElementById('statTZ');
+        const warnTZ = document.getElementById('warnTZ');
+        const statOffset = document.getElementById('statOffset');
+
+        // Init
+        document.addEventListener('DOMContentLoaded', () => {
+            // Detect Timezone
+            const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            statTZ.textContent = tz;
+            warnTZ.textContent = tz;
+            
+            // Format offset as UTC±HH:MM
+            const offsetMins = -new Date().getTimezoneOffset();
+            const sign = offsetMins >= 0 ? '+' : '-';
+            const absOffsetMins = Math.abs(offsetMins);
+            const hours = String(Math.floor(absOffsetMins / 60)).padStart(2, '0');
+            const mins = String(absOffsetMins % 60).padStart(2, '0');
+            statOffset.textContent = `UTC${sign}${hours}:${mins}`;
+
+            // Init with Now
+            setNow();
+        });
+
+        // Listeners
+        inputEl.addEventListener('input', () => processInput(inputEl.value));
+
+        function setNow() {
+            const now = Math.floor(Date.now() / 1000);
+            inputEl.value = now;
+            processInput(now);
+        }
+
+        function setInput(val) {
+            inputEl.value = val;
+            processInput(val);
+        }
+
+        function clearInput() {
+            inputEl.value = '';
+            processInput('');
+        }
+
+        // openPicker() removed ; using css overlay meth now.
+
+        function handlePicker(isoStr) {
+            if(!isoStr) return;
+            // The picker gives local ISO like "2023-01-01T12:00"
+            const d = new Date(isoStr);
+            const ts = Math.floor(d.getTime() / 1000);
+            inputEl.value = ts;
+            processInput(ts);
+        }
+
+        function processInput(raw) {
+            // Check for empty string, null, or undefined explicitly
+            if (raw === '' || raw === null || raw === undefined) {
+                resetOutputs();
+                return;
+            }
+
+            // Convert to string to safely handle "0" passed as number
+            const strVal = String(raw).trim();
+            let dateObj;
+
+            // 1. Check for Relative Math (e.g. "+2h", "-3d")
+            const relMatch = strVal.match(/^([+-]?\d+)\s*(s|m|h|d|w|y)$/i);
+            if (relMatch) {
+                const amount = parseInt(relMatch[1]);
+                const unit = relMatch[2].toLowerCase();
+                const now = new Date();
+                
+                let multiplier = 1000;
+                if (unit === 'm') multiplier *= 60;
+                if (unit === 'h') multiplier *= 3600;
+                if (unit === 'd') multiplier *= 86400;
+                if (unit === 'w') multiplier *= 604800;
+                if (unit === 'y') multiplier *= 31536000; // approx
+
+                dateObj = new Date(now.getTime() + (amount * multiplier));
+            }
+            // 2. Try numeric parsing (Unix Timestamp)
+            else if (/^-?\d+(\.\d+)?$/.test(strVal)) {
+                let num = parseFloat(strVal);
+                // Heuristic: If < 100 billion, treat as seconds.
+                if (Math.abs(num) < 100000000000) {
+                    dateObj = new Date(num * 1000);
+                } else {
+                    dateObj = new Date(num);
+                }
+            } 
+            // 3. Try String parsing (ISO, etc)
+            else {
+                const parsed = Date.parse(strVal);
+                if (!isNaN(parsed)) {
+                    dateObj = new Date(parsed);
+                }
+            }
+
+            if (dateObj && !isNaN(dateObj.getTime())) {
+                updateUI(dateObj);
+            } else {
+                showError();
+            }
+        }
+
+        function updateUI(date) {
+            const tsMillis = date.getTime();
+            const tsSeconds = Math.floor(tsMillis / 1000);
+
+            resSeconds.textContent = tsSeconds;
+            resMillis.textContent = tsMillis;
+            resISO.textContent = date.toISOString();
+            resLocal.textContent = date.toLocaleString();
+            resRelative.textContent = getRelativeTime(date);
+            resSeconds.style.color = 'var(--text-primary)';
+
+            // Sync hidden calendar picker if possible
+            try {
+                // To get local ISO string for input[type=datetime-local]
+                const tzOffset = date.getTimezoneOffset() * 60000; 
+                const localISOTime = new Date(date.getTime() - tzOffset).toISOString().slice(0, 16);
+                pickerEl.value = localISOTime;
+            } catch(e) { /* ignore range errors */ }
+        }
+
+        function showError() {
+            resSeconds.textContent = "Invalid Date";
+            resSeconds.style.color = "#ef4444";
+            resMillis.textContent = "-";
+            resISO.textContent = "-";
+            resLocal.textContent = "-";
+            resRelative.textContent = "-";
+        }
+
+        function resetOutputs() {
+            resSeconds.textContent = "-";
+            resSeconds.style.color = "var(--text-primary)";
+            resMillis.textContent = "-";
+            resISO.textContent = "-";
+            resLocal.textContent = "-";
+            resRelative.textContent = "-";
+            pickerEl.value = "";
+        }
+
+        function getRelativeTime(date) {
+            const now = new Date();
+            const diffMs = now - date;
+            const diffSec = Math.floor(diffMs / 1000);
+            const absSec = Math.abs(diffSec);
+            const isFuture = diffSec < 0;
+
+            const suffix = isFuture ? "from now" : "ago";
+            
+            // Handle "just now" only for past, show "< 1m from now" for near future
+            if (absSec < 60) return isFuture ? "< 1m from now" : "Just now";
+            if (absSec < 3600) return `${Math.floor(absSec / 60)}m ${suffix}`;
+            if (absSec < 86400) return `${Math.floor(absSec / 3600)}h ${suffix}`;
+            if (absSec < 2592000) return `${Math.floor(absSec / 86400)}d ${suffix}`;
+            if (absSec < 31536000) return `${Math.floor(absSec / 2592000)}mo ${suffix}`;
+            return `${Math.floor(absSec / 31536000)}y ${suffix}`;
+        }
+
+        function copyId(id) {
+            const val = document.getElementById(id).textContent;
+            if (val && val !== '-') {
+                navigator.clipboard.writeText(val);
+            }
+        }
+    </script>
+</body>
+</html>

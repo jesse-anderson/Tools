@@ -1,0 +1,1270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Toxicology Body Burden | Tools Hub</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/shared.css">
+    <style>
+        /* Page-Specific Overrides */
+        .calculator-layout {
+            display: grid;
+            grid-template-columns: 1fr 380px; 
+            gap: 24px;
+            min-height: calc(100vh - 300px);
+        }
+
+        .calculator-panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel-header {
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .panel-header h2 { font-size: 1.5rem; margin-bottom: 4px; }
+        .panel-header p { color: var(--text-secondary); font-size: 0.9375rem; }
+
+        /* Input Grid */
+        .input-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .input-group label {
+            display: block;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 0.8125rem;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .main-input, .main-select {
+            width: 100%;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px 16px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1rem;
+            color: var(--text-primary);
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .main-input:focus, .main-select:focus { border-color: var(--accent-engineering); }
+
+        .unit-group { display: flex; gap: 8px; }
+        .unit-select {
+            width: 130px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 0 8px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            color: var(--text-primary);
+            outline: none;
+        }
+
+        /* Mode Selection Cards */
+        .mode-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+        
+        .mode-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+        .mode-card:hover { border-color: var(--accent-engineering); background: var(--bg-card); }
+        .mode-card.active {
+            border-color: var(--accent-engineering);
+            background: var(--accent-engineering-dim);
+        }
+        .mode-card input { display: none; }
+        .mode-title { font-size: 0.8rem; font-weight: 700; color: var(--text-primary); display: block; margin-bottom: 4px; }
+        .mode-desc { font-size: 0.7rem; color: var(--text-secondary); line-height: 1.3; display: block; }
+
+        /* Custom Vd Input */
+        .custom-vd-wrapper {
+            margin-top: 12px;
+            padding: 16px;
+            background: var(--bg-secondary);
+            border: 1px dashed var(--border-color);
+            border-radius: 6px;
+            display: none;
+        }
+        .custom-vd-wrapper.visible { display: block; }
+
+        /* Kinetic Toggle Area */
+        .kinetic-wrapper {
+            margin-bottom: 24px;
+            padding: 16px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+        }
+        .kinetic-header {
+            display: flex; align-items: center; gap: 10px; cursor: pointer;
+        }
+        .kinetic-header input { width: 16px; height: 16px; accent-color: var(--accent-engineering); }
+        .kinetic-label { font-size: 0.9rem; font-weight: 600; color: var(--text-primary); }
+        .kinetic-content {
+            margin-top: 16px;
+            display: none;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+        .kinetic-content.visible { display: grid; }
+
+        /* Result Box */
+        .result-box {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 24px;
+            margin-top: auto;
+        }
+        .result-row {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--border-color);
+        }
+        .result-row:last-child { border: none; margin: 0; padding: 0; }
+        .res-label { font-family: 'Space Grotesk', sans-serif; color: var(--text-secondary); font-size: 0.9rem; }
+        .res-value { font-family: 'JetBrains Mono', monospace; font-size: 1.25rem; font-weight: 700; color: var(--accent-engineering); }
+        .res-sub { font-size: 0.8rem; color: var(--text-muted); font-weight: 400; margin-left: 4px; }
+
+        /* Ledger */
+        .calc-ledger {
+            margin-top: 20px; padding: 16px; background: var(--bg-card); border: 1px dashed var(--border-color);
+            border-radius: 6px; font-family: 'JetBrains Mono', monospace; font-size: 0.75rem;
+            color: var(--text-secondary); line-height: 1.6;
+        }
+        .ledger-title { font-size: 0.7rem; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px; font-weight: 600; }
+        .ledger-line { margin-bottom: 6px; display: flex; justify-content: space-between; }
+
+        /* Sidebar - ADDED/FIXED */
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+        }
+
+        .sidebar-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .sidebar-card h3 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin: 0 0 16px 0;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        /* Warning Box (Sidebar) */
+        .critical-warning {
+            background: var(--bg-card); border: 1px solid rgba(239, 68, 68, 0.4);
+            border-left: 4px solid rgba(239, 68, 68, 0.8); border-radius: 8px; padding: 20px; margin-top: 0;
+        }
+        .warning-title {
+            color: #ef4444; font-size: 0.8rem; text-transform:uppercase; margin-bottom: 12px; font-weight: 700;
+            display: flex; align-items: center; gap: 8px; letter-spacing: 0.05em;
+        }
+        .warning-text p { font-size: 0.75rem; color: var(--text-secondary); line-height: 1.6; margin-bottom: 10px; }
+        .warning-text p:last-child { margin-bottom: 0; }
+        .warning-text p strong { color: var(--text-primary); }
+
+        /* Sidebar Tables - FIXED */
+        .sidebar-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.75rem;
+            font-family: 'JetBrains Mono', monospace;
+            margin-top: 0;
+        }
+        .sidebar-table thead th {
+            text-align: left;
+            color: var(--text-secondary);
+            padding: 8px 6px;
+            border-bottom: 2px solid var(--border-color);
+            font-weight: 600;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+        .sidebar-table tbody td {
+            padding: 8px 6px;
+            color: var(--text-primary);
+            border-bottom: 1px solid var(--border-color);
+            vertical-align: top;
+        }
+        .sidebar-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+        .sidebar-table tbody tr:hover {
+            background: var(--bg-secondary);
+        }
+
+        /* Dropdowns */
+        .dropdown-container {
+            margin-top: 24px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-card); overflow: hidden;
+        }
+        .dropdown-header {
+            padding: 16px; background: var(--bg-secondary); cursor: pointer; display: flex;
+            justify-content: space-between; align-items: center; font-weight: 600; font-family: 'Space Grotesk';
+        }
+        .dropdown-content {
+            padding: 24px; display: none; font-size: 0.9rem; line-height: 1.6; color: var(--text-secondary); border-top: 1px solid var(--border-color);
+        }
+        .dropdown-content.open { display: block; }
+        
+        /* Math Blocks */
+        .math-block {
+            background: var(--bg-primary); border-left: 3px solid var(--accent-engineering);
+            padding: 12px; margin: 12px 0; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: var(--text-primary);
+        }
+        .variable { color: var(--accent-engineering); font-weight: bold; }
+
+        /* Tag hover enhancement for interactive tags */
+        .tag[style*="cursor:pointer"]:hover,
+        .tag.clickable:hover {
+            border-color: var(--accent-engineering);
+            color: var(--accent-engineering);
+            background: var(--accent-engineering-dim);
+        }
+        
+        .hidden { display: none; }
+        
+        @media (max-width: 1024px) {
+            .calculator-layout { grid-template-columns: 1fr; }
+            .mode-container { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <div class="header-left">
+                    <a href="../tools.html" class="back-link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="19" y1="12" x2="5" y2="12"/>
+                            <polyline points="12 19 5 12 12 5"/>
+                        </svg>
+                        Back to Tools
+                    </a>
+                </div>
+                <div class="header-right">
+                    <div class="theme-toggle">
+                        <button data-theme-toggle="light" title="Light mode"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg></button>
+                        <button data-theme-toggle="dark" title="Dark mode"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></button>
+                    </div>
+                </div>
+            </div>
+            <div style="margin-top: 24px; display: flex; align-items: center; gap: 16px;">
+                <div class="tool-icon-header" style="background: rgba(239,68,68,0.1); color:#ef4444; border:1px solid #ef4444;">
+                    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line>
+                    </svg>
+                </div>
+                <div>
+                    <h1>Toxicology Body Burden</h1>
+                    <p class="tagline">// TOTAL LOAD &bull; KINETICS &bull; DISTRIBUTION</p>
+                </div>
+            </div>
+        </header>
+
+        <main>
+            <div class="calculator-layout">
+                <div class="calculator-panel">
+                    <div class="panel-header">
+                        <div>
+                            <h2>Input Parameters</h2>
+                            <p>Estimate total systemic load (mg) from plasma concentration using V<sub>d</sub> models.</p>
+                        </div>
+                    </div>
+
+                    <div class="input-grid">
+                        <div class="input-group">
+                            <label>Concentration (C<sub>measured</sub>)</label>
+                            <div class="unit-group">
+                                <input type="number" id="conc" class="main-input" placeholder="e.g. 10" oninput="calculate()">
+                                <select id="concUnit" class="unit-select" onchange="calculate()">
+                                    <optgroup label="Molar (Requires MW)">
+                                        <option value="mol">mol/L (M)</option>
+                                        <option value="mmol">mmol/L</option>
+                                        <option value="umol">µmol/L</option>
+                                        <option value="nmol">nmol/L</option>
+                                        <option value="pmol">pmol/L</option>
+                                    </optgroup>
+                                    <optgroup label="Mass (Weight/Vol)">
+                                        <option value="g_l">g/L</option>
+                                        <option value="g_dl">g/dL</option>
+                                        <option value="mg_l" selected>mg/L</option>
+                                        <option value="mg_dl">mg/dL</option>
+                                        <option value="ug_ml">µg/mL</option>
+                                        <option value="ug_l">µg/L</option>
+                                        <option value="ng_ml">ng/mL</option>
+                                        <option value="ng_l">ng/L</option>
+                                        <option value="pg_ml">pg/mL</option>
+                                    </optgroup>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="input-group">
+                            <label>Molecular Weight (MW)</label>
+                            <input type="number" id="mw" class="main-input" placeholder="Req. for Molar" oninput="calculate()">
+                        </div>
+                    </div>
+
+                    <div class="input-grid">
+                        <div class="input-group">
+                            <label>Species</label>
+                            <select id="species" class="main-select" onchange="handleSpeciesChange()">
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label>Weight (kg)</label>
+                            <input type="number" id="weight" class="main-input" step="0.01" oninput="calculate()">
+                        </div>
+                    </div>
+
+                    <div class="input-group" style="margin-bottom: 24px;">
+                        <label>Fluid Loss Adjustment (L)</label>
+                        <input type="number" id="loss" class="main-input" placeholder="0" oninput="calculate()">
+                    </div>
+
+                    <div style="margin-bottom: 8px;">
+                        <label>Volume of Distribution (V<sub>d</sub>) Model</label>
+                        <div class="mode-container">
+                            <label class="mode-card active" id="card-modeA" onclick="setMode('modeA')">
+                                <input type="radio" name="mode" value="modeA" checked>
+                                <span class="mode-title">Mode A: Vascular</span>
+                                <span class="mode-desc">Total Blood Volume. For large/bound molecules.</span>
+                            </label>
+                            <label class="mode-card" id="card-modeB" onclick="setMode('modeB')">
+                                <input type="radio" name="mode" value="modeB">
+                                <span class="mode-title">Mode B: Body Water</span>
+                                <span class="mode-desc">Total Body Water. For small/polar molecules.</span>
+                            </label>
+                            <label class="mode-card" id="card-modeC" onclick="setMode('modeC')">
+                                <input type="radio" name="mode" value="modeC">
+                                <span class="mode-title">Mode C: Custom</span>
+                                <span class="mode-desc">Apparent V<sub>d</sub>. For tissue binding / lipophilic.</span>
+                            </label>
+                        </div>
+                        
+                        <div id="customVd" class="custom-vd-wrapper">
+                            <div class="input-group">
+                                <label>Custom Coefficient (L/kg)</label>
+                                <input type="number" id="vdCoeff" class="main-input" value="1.0" step="0.1" oninput="calculate()">
+                                <div style="margin-top:8px; display:flex; gap:8px; flex-wrap: wrap;">
+                                    <span class="tag" style="cursor:pointer;" onclick="setCoeff(0.07)">Insulin (0.07)</span>
+                                    <span class="tag" style="cursor:pointer;" onclick="setCoeff(0.6)">Ethanol (0.6)</span>
+                                    <span class="tag" style="cursor:pointer;" onclick="setCoeff(4.0)">Digoxin (4.0)</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="kinetic-wrapper">
+                        <label class="kinetic-header">
+                            <input type="checkbox" id="kineticToggle" onchange="toggleKinetics()">
+                            <span class="kinetic-label">Enable Kinetic Back-Calculation (Estimated C<sub>0</sub>)</span>
+                        </label>
+                        <div class="kinetic-content" id="kineticInputs">
+                            <div class="input-group">
+                                <label>Time Elapsed (hrs)</label>
+                                <input type="number" id="time" class="main-input" value="0" oninput="calculate()">
+                            </div>
+                            <div class="input-group">
+                                <label>Elimination Half-Life (t<sub>1/2</sub>)</label>
+                                <input type="number" id="halflife" class="main-input" value="4" oninput="calculate()">
+                            </div>
+                            <div class="input-group" style="grid-column: 1 / -1;">
+                                <label>Clearance Target (Remaining %)</label>
+                                <select id="clearTargetPct" class="main-select" onchange="calculate()">
+                                    <option value="0" selected>0% remaining (100% cleared, asymptotic)</option>
+                                    <option value="0.1">0.1% remaining (99.9% cleared)</option>
+                                    <option value="1">1% remaining (99% cleared)</option>
+                                    <option value="5">5% remaining (95% cleared)</option>
+                                    <option value="10">10% remaining (90% cleared)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="result-box">
+                        <div class="result-row">
+                            <span class="res-label">C<sub>t</sub> (Normalized at Time t)</span>
+                            <div>
+                                <span class="res-value" id="resCt">0</span>
+                                <span class="res-sub">mg/L</span>
+                            </div>
+                        </div>
+                        <div class="result-row">
+                            <span class="res-label">C<sub>0</sub> (Estimated Initial)</span>
+                            <div>
+                                <span class="res-value" id="resC0">---</span>
+                                <span class="res-sub">mg/L</span>
+                            </div>
+                        </div>
+                        <div class="result-row">
+                            <span class="res-label">Volume of Distribution</span>
+                            <div>
+                                <span class="res-value" id="resVd">0</span>
+                                <span class="res-sub">L</span>
+                            </div>
+                        </div>
+                        <div class="result-row">
+                            <span class="res-label">A<sub>t</sub> (Amount at Time t)</span>
+                            <div>
+                                <span class="res-value" id="resAt">0</span>
+                                <span class="res-sub">mg</span>
+                            </div>
+                        </div>
+                        <div class="result-row">
+                            <span class="res-label">A<sub>0</sub> (Estimated Initial Amount)</span>
+                            <div>
+                                <span class="res-value" id="resA0">---</span>
+                                <span class="res-sub">mg</span>
+                            </div>
+                        </div>
+                        <div class="result-row">
+                            <span class="res-label">Clearance Time to ≤ <span id="labelClearPct">0</span>% Remaining</span>
+                            <div>
+                                <span class="res-value" id="resT99">---</span>
+                                <span class="res-sub">hr</span>
+                            </div>
+                        </div>
+                        <div class="result-row">
+                            <span class="res-label">Approx. 5 Half-Lives (97% Eliminated)</span>
+                            <div>
+                                <span class="res-value" id="resT97">---</span>
+                                <span class="res-sub">hr</span>
+                            </div>
+                        </div>
+                        <div class="result-row" style="border-top: 1px dashed var(--border-color); padding-top: 12px; margin-top: 12px;">
+                            <span class="res-label">Body Burden (A*)</span>
+                            <div>
+                                <span class="res-value" id="resTotal">0</span>
+                                <span class="res-sub">mg</span>
+                                <span class="res-sub" id="resABasis" style="margin-left:6px; opacity:0.8;">(A<sub>t</sub>)</span>
+                            </div>
+                        </div>
+                        
+                        <div class="calc-ledger">
+                            <div class="ledger-title">Calculation Ledger</div>
+                            <div id="ledgerText">Waiting for input...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <aside class="sidebar">
+                    <div class="critical-warning">
+                        <div class="warning-title">
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                            LIABILITY &amp; SAFETY
+                        </div>
+                        <div class="warning-text">
+                            <p><strong>RESEARCH USE ONLY.</strong> This software is a theoretical modelling tool. Physiological constants are population averages and do not account for individual variance or pathology.</p>
+                            <p><strong>NO WARRANTY.</strong> The authors provide this tool "AS IS" without warranty of any kind, express or implied. The entire risk as to the quality and performance of the calculations is with you.</p>
+                            <p><strong>ASSUMPTION OF RISK.</strong> Volume of Distribution (V<sub>d</sub>) is a theoretical concept. Simple coefficient models are estimates. Do not use for clinical dosing, forensic certification, or medical diagnosis.</p>
+                            <p><strong>INDEMNIFICATION.</strong> By using this tool, you agree to indemnify and hold harmless the creators from any claims arising out of its use.</p>
+                        </div>
+                    </div>
+
+                    <div class="sidebar-card" style="margin-top: 24px;">
+                        <h3>Engineering Notes</h3>
+                        <div style="font-size:0.75rem; color:var(--text-secondary); line-height:1.6;">
+                            <p style="margin-bottom:12px;">
+                                <strong>Assumption of Homogeneity:</strong>
+                                The optional kinetic back-calculation assumes the measured concentration reflects a
+                                well-mixed (post-distribution) phase consistent with a single-compartment, first-order
+                                terminal model. It does not model absorption (<code>k<sub>a</sub></code>) or early distribution
+                                (the "alpha" phase).
+                            </p>
+
+                            <p style="margin-bottom:12px;">
+                                <strong>Fluid Loss Logic:</strong>
+                                <br>Mode A/B: <code>V<sub>eff</sub> = max(0, V<sub>phys</sub> - V<sub>loss</sub>)</code>.
+                                <br>Mode C: <code>V<sub>eff</sub> ≈ V<sub>phys</sub></code> (loss ignored).
+                                <br><em>Rationale:</em> When <code>V<sub>d</sub></code> is large (extensive tissue distribution),
+                                reducing circulating volume often represents a small fraction of the implied amount
+                                <code>A ≈ C × V<sub>d</sub></code>.
+                            </p>
+
+                            <p>
+                                <strong>Allometric Intuition:</strong>
+                                Physiological volumes often scale approximately linearly with body mass
+                                (<code>V ∝ BW<sup>1.0</sup></code>), while many clearance/metabolic processes scale
+                                allometrically (<code>CL ∝ BW<sup>0.75</sup></code>)[Kleiber's Law for metabolism].
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="sidebar-card" style="margin-top: 24px;">
+                        <h3>Physiological Reference</h3>
+                        <table class="sidebar-table">
+                            <thead>
+                                <tr>
+                                    <th>Species</th>
+                                    <th>Blood (mL/kg)</th>
+                                    <th>Water (%)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="refTableBody">
+                                <!-- Populated by JavaScript, cleaner and easier to edit. -->
+                            </tbody>
+                        </table>
+                        <div style="margin-top:12px; font-size:0.7rem; color:var(--text-secondary); line-height:1.5;">
+                            <p style="margin:0;">
+                                <strong>Blood volume (mL/kg):</strong> species reference values (and ranges in parentheses when available) follow the
+                                BioNumbers "Circulating Blood Volumes of Healthy Adult Animals" table and common IACUC sampling guidance tables
+                                (e.g., Brown University; Virginia Tech). <sup><a href="https://bionumbers.hms.harvard.edu/files/Circulating%20Blood%20Volumes%20of%20Healthy%20Adult%20Animals.pdf" target="_blank" rel="noopener">[BV1]</a></sup><sup><a href="https://policy.brown.edu/sites/default/files/Table%201.%20Circulating%20Blood%20Volumes%20and%20%26%20Withdrawal%20Volume%20Examples%20for%20Common%20Species.pdf" target="_blank" rel="noopener">[BV2]</a></sup><sup><a href="https://www.research.vt.edu/content/dam/ouv_vt_edu/guidelines/guidelines/guidelines-regulating-volume-bloodsamples.pdf" target="_blank" rel="noopener">[BV3]</a></sup>
+                                For cattle, the classic T-1824 hematocrit method study is also cited. <sup><a href="https://doi.org/10.1152/ajplegacy.1953.173.3.421" target="_blank" rel="noopener">[BV4]</a></sup>
+                            </p>
+                            <p style="margin:6px 0 0;">
+                                <strong>Total body water (TBW, %):</strong> mouse/rat/rabbit/monkey/dog TBW defaults come from the Davies &amp; Morris (1993)
+                                compilation (BioNumbers mirror). Human male/female TBW fractions are taken from Merck's professional fluid-metabolism guidance.
+                                For species without a readily tabulated TBW fraction, the table marks TBW as "(est.)" and uses a conservative 60% default unless you override it.
+                                <sup><a href="https://bionumbers.hms.harvard.edu/files/Volumes%20of%20various%20body%20fluids%20and%20organs%20in%20laboratory%20animals%20and%20humans.pdf" target="_blank" rel="noopener">[TBW1]</a></sup><sup><a href="https://www.merckmanuals.com/professional/clinical-pharmacology/pharmacokinetics/drug-distribution-to-tissues" target="_blank" rel="noopener">[TBW2]</a></sup>
+                            </p>
+                        </div>
+                    </div>
+                </aside>
+            </div>
+
+            <div class="dropdown-container">
+                <div class="dropdown-header" onclick="toggleDropdown('methodContent', this)">
+                    <span>Methodology: Kinetic Modeling &amp; V<sub>d</sub></span>
+                    <svg class="dropdown-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                </div>
+                <div class="dropdown-content" id="methodContent">
+                    
+                    <h3 style="margin-top: 0;">Mode A vs Mode B (Why the volumes look so different)</h3>
+                    <p style="margin-bottom: 12px; line-height: 1.65;">
+                        If you felt a moment of whiplash going from <strong>Mode A</strong> (a few liters) to <strong>Mode B</strong> (tens of liters),
+                        you are not misunderstanding anything - those two modes intentionally represent very different "reference volumes."
+                    </p>
+
+                    <h4>Mode A: Blood Volume Model (Intravascular)</h4>
+                    <p style="margin-bottom: 10px; line-height: 1.65;">
+                        Mode A approximates the <strong>intravascular</strong> space using <strong>circulating blood volume</strong>.
+                        In the reference table, blood volume is stored as <strong>mL/kg</strong> (a standard way these values appear in animal sampling guidance).
+                        The calculator converts this into liters with:
+                        <code>V<sub>blood</sub>(L) = (BW(kg) × BV(mL/kg)) / 1000</code>.
+                        <br>
+                        Example (human default): <code>70 kg × 70 mL/kg = 4900 mL = 4.9 L</code>.
+                        Values in the 50-90 mL/kg range (species dependent) are commonly used in toxicology/IACUC blood-volume tables.<sup><a href="https://lar.fsu.edu/media/1127/a-good-practice-guide-to-the-administration.pdf" target="_blank" rel="noopener">[BV5]</a></sup><sup><a href="https://policy.brown.edu/sites/default/files/Table%201.%20Circulating%20Blood%20Volumes%20and%20%26%20Withdrawal%20Volume%20Examples%20for%20Common%20Species.pdf" target="_blank" rel="noopener">[BV2]</a></sup>
+                    </p>
+                    <p style="margin-bottom: 12px; line-height: 1.65;">
+                        Use Mode A when you want a conservative "blood-space amount" estimate (e.g., substances largely confined to vascular space),
+                        or when you explicitly do <em>not</em> want to assume broad distribution beyond blood.
+                        Practical caveat: <em>plasma concentration</em> is not always identical to <em>whole-blood concentration</em>, and protein binding / tissue binding can matter.<sup><a href="https://www.merckmanuals.com/professional/clinical-pharmacology/pharmacokinetics/drug-distribution-to-tissues" target="_blank" rel="noopener">[VD2]</a></sup>
+                    </p>
+                    <p style="margin-bottom: 12px; line-height: 1.65;">
+                        Human blood volume is also variable by sex, size, and method. Many practical guidance documents use a broad
+                        "rule-of-thumb" range on the order of <code>~55-70 mL/kg</code>, while some sources quote about
+                        <code>~70 mL/kg</code> for adult males and <code>~65 mL/kg</code> for adult females.<sup><a href="https://www.research.vt.edu/content/dam/ouv_vt_edu/guidelines/guidelines/guidelines-regulating-volume-bloodsamples.pdf" target="_blank" rel="noopener">[BV3]</a></sup><sup><a href="https://bionumbers.hms.harvard.edu/files/Circulating%20Blood%20Volumes%20of%20Healthy%20Adult%20Animals.pdf" target="_blank" rel="noopener">[BV1]</a></sup>
+                        This tool uses <code>70 mL/kg</code> as an engineering default for adults; change species/weight (or use Mode C) if you need a more specific scenario.
+                    </p>
+
+                    <h4>Mode B: Total Body Water Model (Water-space proxy)</h4>
+                    <p style="margin-bottom: 10px; line-height: 1.65;">
+                        Mode B approximates <strong>total body water</strong> (TBW) as a fraction of body mass (e.g., 0.60 for 60%).
+                        The calculator uses the engineering approximation <code>1 kg water ≈ 1 L</code>, so:
+                        <code>V<sub>TBW</sub>(L) ≈ BW(kg) × TBW(L/kg)</code>.
+                        <br>
+                        Example (human default): <code>70 kg × 0.60 = 42 L</code>.
+                        Multi-species TBW values are tabulated in physiology references (e.g., Davies &amp; Morris 1993 tables as mirrored in BioNumbers).<sup><a href="https://bionumbers.hms.harvard.edu/files/Volumes%20of%20various%20body%20fluids%20and%20organs%20in%20laboratory%20animals%20and%20humans.pdf" target="_blank" rel="noopener">[TBW1]</a></sup>
+                    </p>
+                    <p style="margin-bottom: 12px; line-height: 1.65;">
+                        Mode B does <em>not</em> claim that "60% of the entire body is pharmacologically active."
+                        It is simply a rough physical proxy for distribution into aqueous compartments (intracellular + extracellular water).
+                        Many substances distribute far beyond blood volume; others do not.
+                        This is why pharmacokinetics uses an <strong>apparent</strong> volume of distribution:
+                        <code>V<sub>d</sub> = Amount / C<sub>plasma</sub></code>.<sup><a href="https://www.ncbi.nlm.nih.gov/books/NBK545280/" target="_blank" rel="noopener">[VD1]</a></sup><sup><a href="https://www.merckmanuals.com/professional/clinical-pharmacology/pharmacokinetics/drug-distribution-to-tissues" target="_blank" rel="noopener">[VD2]</a></sup><sup><a href="https://derangedphysiology.com/main/cicm-primary-exam/pharmacokinetics/Chapter-202/volume-distribution" target="_blank" rel="noopener">[VD3]</a></sup>
+                    </p>
+
+                    <p style="margin-bottom: 10px; line-height: 1.65;">In other words:</p>
+                    <ul style="padding-left: 20px; margin-top: 8px; margin-bottom: 12px; line-height: 1.6;">
+                        <li><strong>Mode A</strong> ≈ "blood-space amount" (small V)</li>
+                        <li><strong>Mode B</strong> ≈ "water-space proxy" (larger V)</li>
+                        <li><strong>Mode C</strong> ≈ "apparent V<sub>d</sub>/kg from literature" (often best when available)</li>
+                    </ul>
+
+                    <h4 style="margin-top: 0;">References for Mode A / Mode B</h4>
+                    <ol style="margin-top: 8px; padding-left: 20px; line-height: 1.6;">
+                        <li id="ref-bv-bionumbers">
+                            <strong>[BV1]</strong> BioNumbers (Harvard Medical School). <em>Circulating Blood Volumes of Healthy Adult Animals</em>.
+                            <a href="https://bionumbers.hms.harvard.edu/files/Circulating%20Blood%20Volumes%20of%20Healthy%20Adult%20Animals.pdf" target="_blank" rel="noopener">PDF</a>
+                        </li>
+                        <li id="ref-bv-brown">
+                            <strong>[BV2]</strong> Brown University (Policy &amp; Procedures). <em>Table 1. Circulating Blood Volumes and Withdrawal Volume Examples for Common Species</em>.
+                            <a href="https://policy.brown.edu/sites/default/files/Table%201.%20Circulating%20Blood%20Volumes%20and%20%26%20Withdrawal%20Volume%20Examples%20for%20Common%20Species.pdf" target="_blank" rel="noopener">PDF</a>
+                        </li>
+                        <li id="ref-bv-vt">
+                            <strong>[BV3]</strong> Virginia Tech Office of Research / IACUC. <em>Guidelines for Regulating the Volume of Experimental Blood Sample Withdrawals in Animals</em>.
+                            <a href="https://www.research.vt.edu/content/dam/ouv_vt_edu/guidelines/guidelines/guidelines-regulating-volume-bloodsamples.pdf" target="_blank" rel="noopener">PDF</a>
+                        </li>
+                        <li id="ref-bv-cow">
+                            <strong>[BV4]</strong> Reynolds M. <em>Plasma and Blood Volume in the Cow Using the T-1824 Hematocrit Method</em>. <em>American Journal of Physiology</em>. 1953;173(3):421-427.
+                            <a href="https://doi.org/10.1152/ajplegacy.1953.173.3.421" target="_blank" rel="noopener">doi:10.1152/ajplegacy.1953.173.3.421</a>
+                        </li>
+                        <li id="ref-bv-diehl">
+                            <strong>[BV5]</strong> Diehl K-H, Hull R, Morton D, Pfister R, Rabemampianina Y, Smith D, Vidal J-M, van de Vorstenbosch C. <em>A good practice guide to the administration of substances and removal of blood, including routes and volumes</em>. <em>Journal of Applied Toxicology</em>. 2001;21(1):15-23.
+                            <a href="https://doi.org/10.1002/jat.727" target="_blank" rel="noopener">doi:10.1002/jat.727</a> •
+                            <a href="https://lar.fsu.edu/media/1127/a-good-practice-guide-to-the-administration.pdf" target="_blank" rel="noopener">PDF</a>
+                        </li>
+                        <li id="ref-bv-drexel">
+                            <strong>[BV6]</strong> Drexel University College of Medicine (ULAR). <em>A Compendium of Drugs Used for Laboratory Animal Anesthesia, Analgesia, Tranquilization and Restraint</em> (archived April 2011 capture).
+                            <a href="https://web.archive.org/web/20110606212907/http://www.drexelmed.edu/documents/ULAR/IACUC_drugs.pdf" target="_blank" rel="noopener">Archived PDF</a>
+                        </li>
+                        <li id="ref-bv-wolf">
+                            <strong>[BV7]</strong> Wolfensohn S, Lloyd M. <em>Handbook of Laboratory Animal Management and Welfare</em>. 3rd ed. Blackwell Publishing; 2003.
+                            <a href="https://books.google.com/books/about/Handbook_of_Laboratory_Animal_Management.html?id=xVqjrZ7yQ2cC" target="_blank" rel="noopener">Google Books</a>
+                        </li>
+                        <li id="ref-bv-lee2019">
+                            <strong>[BV8]</strong> Lee MH, et al. <em>Improved Estimation of Total Blood Volume Can Provide a Better Unit of Normalization for Pharmacokinetic Studies</em>. 2019 (open-access).
+                            <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC6586263/" target="_blank" rel="noopener">PMC</a>
+                        </li>
+
+                        <li id="ref-tbw-davies">
+                            <strong>[TBW1]</strong> Davies B, Morris T. <em>Physiological parameters in laboratory animals and humans</em>. <em>Pharmaceutical Research</em>. 1993;10(7):1093-1095.
+                            <a href="https://doi.org/10.1023/A:1018943613122" target="_blank" rel="noopener">doi:10.1023/A:1018943613122</a> •
+                            <a href="https://pubmed.ncbi.nlm.nih.gov/8378254/" target="_blank" rel="noopener">PubMed</a>
+                        </li>
+                        <li id="ref-tbw-merck">
+                            <strong>[TBW2]</strong> Merck Manual Professional Edition. <em>Drug Distribution to Tissues</em> (includes discussion of distribution into body water and factors affecting distribution).
+                            <a href="https://www.merckmanuals.com/professional/clinical-pharmacology/pharmacokinetics/drug-distribution-to-tissues" target="_blank" rel="noopener">Web</a>
+                        </li>
+
+
+                        <li id="ref-vd-deranged">
+                            <strong>[VD1]</strong> Deranged Physiology. <em>Volume of distribution</em>.
+                            <a href="https://derangedphysiology.com/main/cicm-primary-exam/pharmacokinetics/Chapter-202/volume-distribution" target="_blank" rel="noopener">Web</a>
+                        </li>
+                        <li id="ref-vd-merckdist">
+                            <strong>[VD2]</strong> Merck Manual Professional Edition. <em>Drug Distribution to Tissues</em>.
+                            <a href="https://www.merckmanuals.com/professional/clinical-pharmacology/pharmacokinetics/drug-distribution-to-tissues" target="_blank" rel="noopener">Web</a>
+                        </li>
+                        <li id="ref-vd-statpearls">
+                            <strong>[VD3]</strong> StatPearls (NCBI Bookshelf). <em>Volume of Distribution</em> (NBK545280).
+                            <a href="https://www.ncbi.nlm.nih.gov/books/NBK545280/" target="_blank" rel="noopener">NCBI</a>
+                        </li>
+                    </ol>
+
+                    <hr style="border: none; border-top: 1px solid var(--border-color); margin: 16px 0;">
+                    <h3 style="margin-top: 0;">Technical Documentation</h3>
+
+                    <p style="margin-bottom: 12px;">
+                        This tool estimates an <strong>apparent amount in the body</strong> ("body burden") from a measured
+                        concentration and an estimated <em>apparent</em> volume of distribution (<strong>V<sub>d</sub></strong>).
+                        It is a pharmacokinetic back-of-the-envelope calculator intended for engineering-style
+                        dimensional checks and scenario exploration - not a substitute for clinical judgment or
+                        medical decision-making.
+                    </p>
+
+                    <h4>0. What the Tool Computes</h4>
+                    <p style="margin-bottom: 10px;">
+                        At a high level, the pipeline is:
+                    </p>
+                    <ul style="padding-left: 20px; margin-top: 8px; margin-bottom: 12px; line-height: 1.6;">
+                        <li><strong>Normalize</strong> the input concentration to <strong>mg/L</strong> (with MW required for molar units).</li>
+                        <li><strong>Optional:</strong> apply a <strong>first-order elimination</strong> back-calculation to estimate
+                            an earlier concentration (C<sub>0</sub>) from a later measured concentration (C<sub>t</sub>).</li>
+                        <li><strong>Estimate</strong> V<sub>d</sub> (L) using one of three modes (Blood, TBW, or Custom).</li>
+                        <li><strong>Compute</strong> apparent amount (mg) as <strong>A ≈ C × V<sub>d</sub></strong>.</li>
+                    </ul>
+
+                    <h4>1. Volume of Distribution (V<sub>d</sub>) - What It Is (and What It Is Not)</h4>
+                    <p style="margin-bottom: 12px;">
+                        The <strong>apparent volume of distribution</strong> is a proportionality constant relating the
+                        <strong>amount of substance in the body</strong> to a <strong>plasma (or blood) concentration</strong>.
+                        A widely used definition is:
+                    </p>
+
+                    <div class="math-block">
+                        <span class="variable">V<sub>d</sub></span>
+                        = <span class="variable">Amount in body</span> / <span class="variable">Plasma concentration</span>
+                        &nbsp;&nbsp;→&nbsp;&nbsp;
+                        V<sub>d</sub> (L) = A (mg) / C<sub>p</sub> (mg/L)
+                    </div>
+
+                    <p style="margin-bottom: 12px;">
+                        Critically, V<sub>d</sub> is an <strong>apparent (theoretical) volume</strong>:
+                        it does <strong>not</strong> have to match any real anatomical fluid volume, and it can exceed total body
+                        volume when plasma concentrations are low relative to the amount stored in tissues
+                        (e.g., strong tissue binding). In other words, V<sub>d</sub> summarizes "how much the measured plasma
+                        concentration under-represents the total amount" rather than literally describing where the compound is.
+                    </p>
+
+                    <h4>2. Apparent Body Burden (Amount) from Concentration</h4>
+                    <p style="margin-bottom: 12px;">
+                        Rearranging the definition above gives the tool's core "body burden" estimate:
+                    </p>
+
+                    <div class="math-block">
+                        <span class="variable">A</span>
+                        &nbsp;≈&nbsp;
+                        <span class="variable">C</span> × <span class="variable">V<sub>d</sub></span>
+                        &nbsp;&nbsp;→&nbsp;&nbsp;
+                        A (mg) ≈ C (mg/L) × V<sub>d</sub> (L)
+                    </div>
+
+                    <p style="margin-bottom: 12px;">
+                        This is best interpreted as the <strong>apparent amount implied by the model</strong>.
+                        If your measured concentration is not a true plasma/blood concentration (e.g., urine, saliva,
+                        tissue biopsy), or if the compound is not in a well-mixed phase, the interpretation changes.
+                        Multi-compartment kinetics (distribution phase vs terminal elimination) can also make the "right"
+                        V<sub>d</sub> phase-dependent.
+                    </p>
+
+                    <h4>3. Optional Kinetic Back-Calculation (First-Order Elimination)</h4>
+                    <p style="margin-bottom: 12px;">
+                        If you enable kinetics, the tool assumes <strong>first-order elimination</strong> in a one-compartment
+                        model during the period of interest. The concentration-time relationship is:
+                    </p>
+
+                    <div class="math-block">
+                        <span class="variable">C<sub>t</sub></span>
+                        = <span class="variable">C<sub>0</sub></span> × e<sup>(-k · t)</sup>
+                        &nbsp;&nbsp;→&nbsp;&nbsp;
+                        C<sub>0</sub> = C<sub>t</sub> / e<sup>(-k · t)</sup> = C<sub>t</sub> × e<sup>(k · t)</sup>
+                    </div>
+
+                    <p style="margin-bottom: 12px;">
+                        The elimination rate constant k is derived from the half-life:
+                    </p>
+
+                    <div class="math-block">
+                        <span class="variable">k</span>
+                        = ln(2) / t<sub>1/2</sub>
+                        &nbsp;≈&nbsp; 0.693 / t<sub>1/2</sub>
+                    </div>
+
+                    <p style="margin-bottom: 12px;">
+                        <strong>Important modeling constraints:</strong>
+                    </p>
+                    <ul style="padding-left: 20px; margin-top: 8px; margin-bottom: 12px; line-height: 1.6;">
+                        <li><strong>No absorption model:</strong> This is not an oral/dermal inhalation absorption model (no k<sub>a</sub>, no lag time).</li>
+                        <li><strong>Post-distribution assumption:</strong> Back-calculations are most defensible when the sample is in the terminal elimination phase.</li>
+                        <li><strong>Constant half-life:</strong> Assumes half-life is stable across the interval and not concentration-dependent.</li>
+                        <li><strong>Numerical stability:</strong> Extremely large k·t will make e<sup>(-k·t)</sup> approach zero; this tool flags those cases.</li>
+                    </ul>
+
+                    <h4>4. V<sub>d</sub> Estimation Modes</h4>
+                    <p style="margin-bottom: 12px;">
+                        The tool offers three V<sub>d</sub> modes. Modes A and B attempt to anchor V<sub>d</sub> to a physical
+                        fluid space; Mode C allows explicit apparent V<sub>d</sub> scaling for tissue-binding / lipophilicity.
+                    </p>
+
+                    <h5 style="margin-top: 12px;">Mode A - Blood / Vascular Space (Species blood volume)</h5>
+                    <p style="margin-bottom: 10px;">
+                        Uses an estimated blood volume (mL/kg) for the selected species and converts to liters:
+                    </p>
+                    <div class="math-block">
+                        V<sub>blood</sub> (L) = (Weight (kg) × BV (mL/kg)) / 1000
+                    </div>
+                    <p style="margin-bottom: 12px;">
+                        Then optionally subtracts a user-entered fluid loss (L) as a crude "effective circulating volume":
+                        V<sub>eff</sub> = max(0, V<sub>blood</sub> - loss).
+                    </p>
+
+                    <h5 style="margin-top: 12px;">Mode B - Total Body Water (TBW fraction)</h5>
+                    <p style="margin-bottom: 10px;">
+                        Uses a TBW fraction and treats 1 kg body mass as approximately 1 L water for this approximation:
+                    </p>
+                    <div class="math-block">
+                        V<sub>TBW</sub> (L) ≈ Weight (kg) × TBW (L/kg)
+                    </div>
+                    <p style="margin-bottom: 12px;">
+                        As with Mode A, fluid loss (L) is subtracted only as a coarse adjustment:
+                        V<sub>eff</sub> = max(0, V<sub>TBW</sub> - loss).
+                    </p>
+
+                    <h5 style="margin-top: 12px;">Mode C - Custom Apparent V<sub>d</sub> (L/kg)</h5>
+                    <p style="margin-bottom: 10px;">
+                        Uses a user-entered coefficient:
+                    </p>
+                    <div class="math-block">
+                        V<sub>d</sub> (L) = Weight (kg) × (V<sub>d</sub>/kg) (L/kg)
+                    </div>
+                    <p style="margin-bottom: 12px;">
+                        Fluid loss is intentionally ignored here: if you are using an apparent V<sub>d</sub>/kg from the literature,
+                        it already implicitly encodes typical distribution behavior for the context that produced it.
+                    </p>
+
+                    <h4>5. Unit Normalization (Everything Becomes mg/L)</h4>
+                    <p style="margin-bottom: 12px;">
+                        To keep the math dimensionally consistent, the tool converts your input concentration into <strong>mg/L</strong>
+                        before doing anything else.
+                    </p>
+
+                    <h5 style="margin-top: 10px;">5.1 Molar units (MW required)</h5>
+                    <p style="margin-bottom: 10px;">
+                        If you enter molar units, the tool requires molecular weight (MW in g/mol) and uses:
+                    </p>
+                    <div class="math-block">
+                        C (mg/L) = C (mol/L) × MW (g/mol) × 1000 (mg/g)
+                    </div>
+                    <ul style="padding-left: 20px; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; line-height: 1.6;">
+                        <li>mol/L: mg/L = C × MW × 1000</li>
+                        <li>mmol/L: mg/L = C × MW</li>
+                        <li>µmol/L: mg/L = (C × MW) / 1000</li>
+                        <li>nmol/L: mg/L = (C × MW) / 10<sup>6</sup></li>
+                        <li>pmol/L: mg/L = (C × MW) / 10<sup>9</sup></li>
+                    </ul>
+
+                    <h5 style="margin-top: 10px;">5.2 Mass units (direct scaling)</h5>
+                    <ul style="padding-left: 20px; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; line-height: 1.6;">
+                        <li>g/L: mg/L = C × 1000</li>
+                        <li>g/dL: mg/L = C × 10000</li>
+                        <li>mg/dL: mg/L = C × 10</li>
+                        <li>µg/mL: mg/L = C</li>
+                        <li>ng/mL: mg/L = C / 1000</li>
+                        <li>µg/L: mg/L = C / 1000</li>
+                        <li>ng/L: mg/L = C / 10<sup>6</sup></li>
+                        <li>pg/mL: mg/L = C / 10<sup>6</sup></li>
+                    </ul>
+
+                    <h4>6. Interpretation Guidance (Why V<sub>d</sub> Can Be Huge)</h4>
+                    <p style="margin-bottom: 12px;">
+                        High V<sub>d</sub> values commonly arise when plasma concentrations are low relative to tissue stores
+                        (e.g., extensive tissue binding or high lipophilicity). Conversely, strong plasma protein binding
+                        or confinement to vascular space tends to yield smaller V<sub>d</sub>. V<sub>d</sub> also provides only limited
+                        information about <em>where</em> a substance goes; different distribution patterns can yield similar V<sub>d</sub>.
+                    </p>
+
+                    <h4>7. Validation, Guardrails, and Failure Modes</h4>
+                    <ul style="padding-left: 20px; margin-top: 8px; margin-bottom: 12px; line-height: 1.6;">
+                        <li><strong>Molecular weight</strong> must be &gt; 0 when molar units are selected.</li>
+                        <li><strong>Weight</strong> must be &gt; 0; concentration and fluid loss must be non-negative.</li>
+                        <li><strong>Kinetics:</strong> time must be ≥ 0 and half-life must be &gt; 0; numerical underflow is flagged.</li>
+                        <li><strong>Custom V<sub>d</sub>/kg</strong> must be &gt; 0.</li>
+                        <li><strong>Unknown units</strong> are treated as an error (rather than silently producing 0).</li>
+                    </ul>
+
+                    <h4>8. References (Primary Concepts)</h4>
+                    <p style="margin-bottom: 10px;">
+                        The conceptual framing here follows standard pharmacokinetics definitions of apparent volume of distribution
+                        and general distribution/binding considerations:
+                    </p>
+                    <ol style="padding-left: 20px; line-height: 1.7;">
+                        <li>
+                            StatPearls / NCBI Bookshelf - <a href="https://www.ncbi.nlm.nih.gov/books/NBK545280/" target="_blank" rel="noopener">Volume of Distribution</a> (definition, V<sub>d</sub> = amount / plasma concentration, single vs multi-compartment notes).
+                        </li>
+                        <li>
+                            Merck Manual Professional - <a href="https://www.merckmanuals.com/professional/clinical-pharmacology/pharmacokinetics/drug-distribution-to-tissues" target="_blank" rel="noopener">Drug Distribution to Tissues</a> (V<sub>d</sub> is theoretical, not anatomical, tissue vs plasma binding).
+                        </li>
+                        <li>
+                            Deranged Physiology - <a href="https://derangedphysiology.com/main/cicm-primary-exam/pharmacokinetics/Chapter-202/volume-distribution" target="_blank" rel="noopener">Volume of distribution</a> (V<sub>d</sub> is not a "real volume"; relates plasma concentration to total amount).
+                        </li>
+                    </ol>
+                    <p style="margin-top: 12px; font-size: 0.9rem; opacity: 0.9;">
+                        Tip: If you want traceable reports, copy the calculation ledger into your notes. The ledger is designed
+                        to be audit-friendly and makes each step explicit.
+                    </p>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <div class="footer-content">
+                <p class="footer-text">© 2025 Tools Hub — Built for engineers</p>
+            </div>
+        </footer>
+    </div>
+
+    <script src="../js/shared.js"></script>
+    <script>
+        const SPECIES_DB = [
+            // Reference-value fields:
+            //   bv: circulating blood volume (mL/kg) used in Mode A
+            //   bv_range: display-only range string like '(47-66)' when available
+            //   tbw: total body water as a fraction of body mass (L/kg ~ fraction) used in Mode B
+            //   tbw_note: display-only qualifiers like '(est.)' when TBW is a generic approximation
+            //   refs_bv / refs_tbw: short tags that map to the HTML reference list (for transparency)
+            // Unit conversions in code:
+            //   Mode A: Vblood(L) = BW(kg) × BV(mL/kg) / 1000
+            //   Mode B: Vtbw(L) ≈ BW(kg) × TBW(fraction)   (1 kg water ≈ 1 L)
+
+            { id: 'human', name: 'Human (Adult, generic)', weight: 70.0, bv: 70.0, bv_range: '(60-75)*', tbw: 0.55, tbw_note: '(50-60%)', refs_bv: '[H1,H2]', refs_tbw: '[W1]' },
+            { id: 'human_male', name: 'Human (Adult male)', weight: 80.0, bv: 75.0, bv_range: '', tbw: 0.6, tbw_note: '', refs_bv: '[H2]', refs_tbw: '[W1]' },
+            { id: 'human_female', name: 'Human (Adult female)', weight: 65.0, bv: 65.0, bv_range: '', tbw: 0.5, tbw_note: '', refs_bv: '[H2]', refs_tbw: '[W1]' },
+            { id: 'mouse', name: 'Mouse', weight: 0.025, bv: 79.0, bv_range: '(78-80)', tbw: 0.725, tbw_note: '', refs_bv: '[B1]', refs_tbw: '[D1]' },
+            { id: 'rat', name: 'Rat', weight: 0.25, bv: 64.0, bv_range: '(50-70)', tbw: 0.668, tbw_note: '', refs_bv: '[B1]', refs_tbw: '[D1]' },
+            { id: 'rabbit', name: 'Rabbit', weight: 4.0, bv: 56.0, bv_range: '(44-70)', tbw: 0.716, tbw_note: '', refs_bv: '[B1]', refs_tbw: '[D1]' },
+            { id: 'dog', name: 'Dog', weight: 10.0, bv: 86.0, bv_range: '(79-90)', tbw: 0.604, tbw_note: '', refs_bv: '[B1,Diehl]', refs_tbw: '[D1]' },
+            { id: 'cat', name: 'Cat', weight: 4.0, bv: 55.0, bv_range: '(47-66)', tbw: 0.6, tbw_note: '(est.)', refs_bv: '[B1]', refs_tbw: '[W1]' },
+            { id: 'guinea_pig', name: 'Guinea pig', weight: 0.8, bv: 75.0, bv_range: '(67-92)', tbw: 0.6, tbw_note: '(est.)', refs_bv: '[B1]', refs_tbw: '[W1]' },
+            { id: 'hamster', name: 'Hamster', weight: 0.12, bv: 78.0, bv_range: '', tbw: 0.6, tbw_note: '(est.)', refs_bv: '[B1]', refs_tbw: '[W1]' },
+            { id: 'gerbil', name: 'Gerbil', weight: 0.1, bv: 67.0, bv_range: '', tbw: 0.6, tbw_note: '(est.)', refs_bv: '[B1]', refs_tbw: '[W1]' },
+            { id: 'ferret', name: 'Ferret', weight: 1.2, bv: 75.0, bv_range: '', tbw: 0.6, tbw_note: '(est.)', refs_bv: '[B1]', refs_tbw: '[W1]' },
+            { id: 'monkey_rhesus', name: 'Monkey (rhesus)', weight: 5.0, bv: 54.0, bv_range: '', tbw: 0.693, tbw_note: '', refs_bv: '[B1]', refs_tbw: '[D1]' },
+            { id: 'marmoset', name: 'Marmoset', weight: 0.35, bv: 65.0, bv_range: '(60-70)', tbw: 0.6, tbw_note: '(est.)', refs_bv: '[VT1,Wolf]', refs_tbw: '[W1]' },
+            { id: 'pig', name: 'Pig', weight: 90.0, bv: 65.0, bv_range: '', tbw: 0.6, tbw_note: '(est.)', refs_bv: '[B1,VT1]', refs_tbw: '[W1]' },
+            { id: 'sheep', name: 'Sheep', weight: 55.0, bv: 60.0, bv_range: '', tbw: 0.6, tbw_note: '(est.)', refs_bv: '[B1,VT1]', refs_tbw: '[W1]' },
+            { id: 'goat', name: 'Goat', weight: 50.0, bv: 70.0, bv_range: '', tbw: 0.6, tbw_note: '(est.)', refs_bv: '[B1,VT1]', refs_tbw: '[W1]' },
+            { id: 'cow', name: 'Cow', weight: 600.0, bv: 55.0, bv_range: '(52-57)', tbw: 0.6, tbw_note: '(est.)', refs_bv: '[VT1,Rey]', refs_tbw: '[W1]' },
+            { id: 'horse', name: 'Horse', weight: 500.0, bv: 76.0, bv_range: '', tbw: 0.6, tbw_note: '(est.)', refs_bv: '[VT1]', refs_tbw: '[W1]' },
+        ];
+
+        let currentMode = 'modeA';
+
+        document.addEventListener('DOMContentLoaded', () => {
+            populateSpecies();
+            populateRefTable();
+
+            // Initialize the weight field to the default for the currently selected species.
+            handleSpeciesChange();
+
+            calculate();
+        });
+
+        function populateSpecies() {
+            const sel = document.getElementById('species');
+            if (!sel) return;
+            sel.innerHTML = SPECIES_DB.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+        }
+
+        function populateRefTable() {
+            const tbody = document.getElementById('refTableBody');
+            if (!tbody) {
+                console.error('refTableBody element not found');
+                return;
+            }
+
+            const rows = SPECIES_DB.map(s => {
+                // Format blood volume with range if available
+                const bvVal = Number(s.bv).toFixed(0);
+                const bvTxt = (s.bv_range && String(s.bv_range).trim().length)
+                    ? `${bvVal} ${s.bv_range}`
+                    : bvVal;
+
+                // Format TBW as percentage
+                const tbwPct = Number.isFinite(s.tbw) ? (s.tbw * 100) : NaN;
+                let tbwTxt = '—';
+                if (Number.isFinite(tbwPct)) {
+                    const tbwVal = tbwPct.toFixed(0);
+                    tbwTxt = (s.tbw_note && String(s.tbw_note).trim().length)
+                        ? `${tbwVal}% ${s.tbw_note}`
+                        : `${tbwVal}%`;
+                }
+
+                return `<tr>
+                    <td>${s.name}</td>
+                    <td>${bvTxt}</td>
+                    <td>${tbwTxt}</td>
+                </tr>`;
+            });
+
+            tbody.innerHTML = rows.join('');
+        }
+
+
+        function handleSpeciesChange() {
+            const id = document.getElementById('species').value;
+            const data = SPECIES_DB.find(s => s.id === id);
+            if (data) document.getElementById('weight').value = data.weight;
+            calculate();
+        }
+
+        function setMode(mode) {
+            currentMode = mode;
+
+            // Visual state (CSS-driven)
+            ['modeA', 'modeB', 'modeC'].forEach(m => {
+                document.getElementById('card-' + m).classList.toggle('active', m === mode);
+            });
+
+            // Show/hide custom coefficient panel
+            document.getElementById('customVd').classList.toggle('visible', mode === 'modeC');
+            calculate();
+        }
+
+        function toggleKinetics() {
+            const isActive = document.getElementById('kineticToggle').checked;
+            const content = document.getElementById('kineticInputs');
+            content.classList.toggle('visible', isActive);
+            calculate();
+        }
+
+        function toggleDropdown(id, header) {
+            const content = document.getElementById(id);
+            const icon = header.querySelector('.dropdown-icon');
+            content.classList.toggle('open');
+            icon.style.transform = content.classList.contains('open') ? 'rotate(180deg)' : 'rotate(0deg)';
+        }
+
+        function setCoeff(val) {
+            document.getElementById('vdCoeff').value = val;
+            calculate();
+        }
+
+        function calculate() {
+            // 1) Gather inputs
+            const rawConc = parseFloat(document.getElementById('conc').value);
+            const unit = document.getElementById('concUnit').value;
+            const mw = parseFloat(document.getElementById('mw').value);
+
+            const speciesId = document.getElementById('species').value;
+            const weight = parseFloat(document.getElementById('weight').value);
+            const loss = parseFloat(document.getElementById('loss').value) || 0;
+
+            const speciesData = SPECIES_DB.find(s => s.id === speciesId);
+
+            // Helper: render a consistent "error" state
+            function renderError(msg) {
+                document.getElementById('ledgerText').textContent = msg;
+
+                document.getElementById('resCt').textContent = "---";
+                document.getElementById('resC0').textContent = "---";
+                document.getElementById('resVd').textContent = "---";
+                document.getElementById('resAt').textContent = "---";
+                document.getElementById('resA0').textContent = "---";
+                document.getElementById('resTotal').textContent = "---";
+                document.getElementById('resABasis').textContent = "";
+
+                document.getElementById('resT99').textContent = "---";
+                document.getElementById('resT97').textContent = "---";
+            }
+
+            // Basic presence checks
+            if (!speciesData || !Number.isFinite(rawConc) || !Number.isFinite(weight)) {
+                document.getElementById('ledgerText').textContent = "Waiting for valid input...";
+
+                document.getElementById('resCt').textContent = "0";
+                document.getElementById('resC0').textContent = "---";
+                document.getElementById('resVd').textContent = "0";
+                document.getElementById('resAt').textContent = "0";
+                document.getElementById('resA0').textContent = "---";
+                document.getElementById('resTotal').textContent = "0";
+                document.getElementById('resABasis').textContent = "(At)";
+
+                document.getElementById('resT99').textContent = "---";
+                document.getElementById('resT97').textContent = "---";
+                return;
+            }
+
+            // Sanity checks
+            if (rawConc < 0) return renderError("Error: Concentration must be non-negative.");
+            if (weight <= 0) return renderError("Error: Weight must be > 0.");
+            if (loss < 0) return renderError("Error: Fluid loss must be >= 0.");
+
+            // 2) Normalize to mg/L
+            let mgL = 0;
+            let normLedger = "";
+
+            const MASS_UNIT_TO_MG_L_FACTOR = {
+                g_l:   1000,
+                g_dl:  10000,
+                mg_l:  1,
+                mg_dl: 10,
+                ug_ml: 1,
+                ug_l:  1/1000,
+                ng_ml: 1/1000,
+                ng_l:  1/1000000,
+                pg_ml: 1/1000000
+            };
+
+            const MOLAR_UNIT_TO_MOL_L_FACTOR = {
+                mol:  1,
+                mmol: 1e-3,
+                umol: 1e-6,
+                nmol: 1e-9,
+                pmol: 1e-12
+            };
+
+            if (unit in MOLAR_UNIT_TO_MOL_L_FACTOR) {
+                if (!Number.isFinite(mw) || mw <= 0) {
+                    return renderError("Error: Molecular Weight (g/mol) must be > 0 for molar units.");
+                }
+
+                const molPerL = rawConc * MOLAR_UNIT_TO_MOL_L_FACTOR[unit];
+                mgL = molPerL * mw * 1000;
+
+                normLedger =
+                    `Ct_norm: ${rawConc} ${unit}/L → ${molPerL.toExponential(3)} mol/L; ` +
+                    `(${molPerL.toExponential(3)} mol/L) × (${mw} g/mol) × (1000 mg/g) = ${mgL.toExponential(2)} mg/L`;
+            } else if (unit in MASS_UNIT_TO_MG_L_FACTOR) {
+                const factor = MASS_UNIT_TO_MG_L_FACTOR[unit];
+                mgL = rawConc * factor;
+
+                const unitLabel = unit.replace('_', '/');
+
+                if (factor === 1) {
+                    normLedger = `Ct_norm: ${rawConc} ${unitLabel} = ${mgL.toExponential(2)} mg/L`;
+                } else {
+                    normLedger = `Ct_norm: ${rawConc} ${unitLabel} × ${factor} = ${mgL.toExponential(2)} mg/L`;
+                }
+            } else {
+                return renderError("Error: Unknown concentration unit.");
+            }
+
+            // Ct: normalized concentration corresponding to the user's measurement at time t
+            const Ct = mgL;
+
+            // 3) Kinetic back-calc (optional)
+            let C0 = Ct;
+            let kinLedger = "";
+            let clearLedger = "";
+            let t97 = null;
+            let t99 = null;
+
+            const kineticsEnabled = document.getElementById('kineticToggle').checked;
+
+            if (kineticsEnabled) {
+                const t = parseFloat(document.getElementById('time').value);
+                const th = parseFloat(document.getElementById('halflife').value);
+
+                if (!Number.isFinite(t) || t < 0) return renderError("Error: Time elapsed must be >= 0.");
+                if (!Number.isFinite(th) || th <= 0) return renderError("Error: Half-life must be > 0.");
+
+                const k = 0.693147 / th;   // ln(2) / t1/2, 1/hr
+                const exponent = k * t;    // +k t
+                const factor = Math.exp(exponent);
+
+                if (!Number.isFinite(factor) || factor <= 0) {
+                    return renderError("Error: Kinetic back-calc overflow/underflow (inputs out of numeric range).");
+                }
+
+                C0 = Ct * factor;
+
+                // Clearance / "time-to-threshold" heuristics (first-order elimination)
+                t97 = 5.0 * th; // rule-of-thumb (~97% eliminated; ~3% remaining)
+
+                const targetPct = parseFloat(document.getElementById('clearTargetPct')?.value ?? "0");
+                const targetFrac = targetPct / 100.0;
+
+                // Time to reach a given remaining fraction under first-order elimination:
+                // fraction_remaining = exp(-k t) = (1/2)^(t / t1/2)
+                // => t = -ln(fraction_remaining)/k = t1/2 * log2(1/fraction_remaining)
+                if (!Number.isFinite(targetPct) || targetPct < 0) {
+                    return renderError("Error: Clearance target must be >= 0% remaining.");
+                }
+
+                if (targetFrac === 0) {
+                    // Exactly 0 remaining is asymptotic for exponential decay.
+                    t99 = Infinity;
+                } else if (targetFrac >= 1) {
+                    t99 = 0;
+                } else {
+                    t99 = th * (Math.log(1 / targetFrac) / Math.log(2));
+                }
+                kinLedger =
+                    `k = ln(2)/t1/2 = 0.693/${th} = ${k.toFixed(6)} 1/hr; ` +
+                    `C0 = Ct × e^(k×t) = ${Ct.toExponential(2)} × e^(${(k*t).toFixed(4)}) = ${C0.toExponential(2)} mg/L`;
+
+                const labelPct = parseFloat(document.getElementById('clearTargetPct')?.value ?? "0");
+                const labelText = (labelPct === 0)
+                    ? "0% remaining (asymptotic)"
+                    : `${labelPct}% remaining`;
+
+                clearLedger =
+                    `5×t1/2 ≈ ${t97.toFixed(2)} hr (~97% eliminated); ` +
+                    (Number.isFinite(t99)
+                        ? `t(≤${labelText}) = t1/2×log2(1/f) ≈ ${t99.toFixed(2)} hr`
+                        : `t(≤${labelText}) = ∞ (exponential decay never reaches exactly 0)`);
+
+            }
+
+            // 4) Volume calculation
+            let Vd = 0;
+            let vLedger = "";
+
+            if (currentMode === 'modeA') {
+                const physV_L = (weight * speciesData.bv) / 1000;
+                Vd = Math.max(0, physV_L - loss);
+
+                vLedger =
+                    `Mode A (Blood): Vphys = (${weight} kg × ${speciesData.bv} mL/kg)/1000 = ${physV_L.toFixed(3)} L; ` +
+                    `Veff = max(0, Vphys - loss) = max(0, ${physV_L.toFixed(3)} - ${loss}); Vd = ${Vd.toFixed(3)} L`;
+            } else if (currentMode === 'modeB') {
+                const physV_L = weight * speciesData.tbw;
+                Vd = Math.max(0, physV_L - loss);
+
+                vLedger =
+                    `Mode B (TBW): Vphys ≈ ${weight} kg × ${speciesData.tbw} L/kg = ${physV_L.toFixed(3)} L; ` +
+                    `Veff = max(0, Vphys - loss) = max(0, ${physV_L.toFixed(3)} - ${loss}); Vd = ${Vd.toFixed(3)} L`;
+            } else {
+                const coeff = parseFloat(document.getElementById('vdCoeff').value);
+                if (!Number.isFinite(coeff) || coeff <= 0) return renderError("Error: Custom Vd coefficient (L/kg) must be > 0.");
+
+                Vd = weight * coeff;
+                vLedger = `Mode C (Custom): Vd = ${weight} kg × ${coeff} L/kg = ${Vd.toFixed(3)} L (loss ignored)`;
+            }
+
+            // 5) Amount calculations
+            const At = Ct * Vd;
+            const A0 = C0 * Vd;
+            const Astar = kineticsEnabled ? A0 : At;
+
+            // Render outputs
+            document.getElementById('resCt').textContent = Ct.toExponential(2);
+            document.getElementById('resC0').textContent = kineticsEnabled ? C0.toExponential(2) : "---";
+            document.getElementById('resVd').textContent = Vd.toFixed(3);
+            document.getElementById('resAt').textContent = At.toExponential(2);
+            document.getElementById('resA0').textContent = kineticsEnabled ? A0.toExponential(2) : "---";
+            document.getElementById('resTotal').textContent = Astar.toExponential(2);
+            document.getElementById('resABasis').textContent = kineticsEnabled ? "(A0)" : "(At)";
+
+            document.getElementById('labelClearPct').textContent = (document.getElementById('clearTargetPct')?.value ?? "0");
+            document.getElementById('resT99').textContent = kineticsEnabled ? (Number.isFinite(t99) ? t99.toFixed(2) : "∞") : "---";
+            document.getElementById('resT97').textContent = kineticsEnabled ? t97.toFixed(2) : "---";
+
+            // Ledger lines
+            const ledgerLines = [];
+            ledgerLines.push(`<div class="ledger-line"><strong>1. Norm:</strong> <span>${normLedger}</span></div>`);
+
+            if (kineticsEnabled) {
+                ledgerLines.push(`<div class="ledger-line"><strong>2. Kinetic:</strong> <span>${kinLedger}</span></div>`);
+            } else {
+                ledgerLines.push(`<div class="ledger-line"><strong>2. Kinetic:</strong> <span>Disabled (Ct used directly).</span></div>`);
+            }
+
+            ledgerLines.push(`<div class="ledger-line"><strong>3. Vol:</strong> <span>${vLedger}</span></div>`);
+
+            ledgerLines.push(`<div class="ledger-line"><strong>4. Amount@t:</strong> <span>At = Ct × Vd = ${Ct.toExponential(2)} mg/L × ${Vd.toFixed(3)} L = ${At.toExponential(2)} mg</span></div>`);
+
+            if (kineticsEnabled) {
+                ledgerLines.push(`<div class="ledger-line" style="color:var(--accent-engineering)"><strong>5. Amount@0:</strong> <span>A0 = C0 × Vd = ${C0.toExponential(2)} mg/L × ${Vd.toFixed(3)} L = ${A0.toExponential(2)} mg</span></div>`);
+                ledgerLines.push(`<div class="ledger-line"><strong>6. Clearance:</strong> <span>${clearLedger}</span></div>`);
+            } else {
+                ledgerLines.push(`<div class="ledger-line" style="color:var(--accent-engineering)"><strong>5. Body Burden:</strong> <span>A* = At (kinetics disabled) = ${At.toExponential(2)} mg</span></div>`);
+            }
+
+            document.getElementById('ledgerText').innerHTML = ledgerLines.join("");
+        }
+    </script>
+</body>
+</html>

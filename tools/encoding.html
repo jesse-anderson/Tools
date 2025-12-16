@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Encoder / Decoder | Tools Hub</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/shared.css">
+    <style>
+        /* Layout */
+        .calculator-layout {
+            display: grid;
+            grid-template-columns: 1fr 320px;
+            gap: 24px;
+            min-height: calc(100vh - 300px);
+        }
+
+        .calculator-panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Tabs */
+        .mode-tabs {
+            display: flex;
+            gap: 4px;
+            background: var(--bg-secondary);
+            padding: 4px;
+            border-radius: 8px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 600;
+            font-size: 0.875rem;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .tab-btn.active {
+            background: var(--bg-card);
+            color: var(--accent-engineering);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        /* Editor Areas */
+        .split-editor {
+            display: grid;
+            grid-template-rows: 1fr auto 1fr;
+            gap: 16px;
+            flex: 1;
+        }
+
+        .editor-group {
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            min-height: 200px;
+        }
+
+        .editor-label {
+            font-size: 0.75rem;
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        textarea.text-input {
+            flex: 1;
+            width: 100%;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 16px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.875rem;
+            color: var(--text-primary);
+            resize: none;
+            outline: none;
+            line-height: 1.6;
+        }
+        textarea.text-input:focus { border-color: var(--accent-engineering); }
+        textarea.text-input[readonly] { opacity: 0.8; background: var(--bg-card); cursor: default; }
+
+        /* Action Bar (Middle) */
+        .action-bar {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .action-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 24px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 600;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .action-btn:hover { border-color: var(--accent-engineering); background: var(--bg-card); }
+        .action-btn.primary { background: var(--accent-engineering); color: var(--bg-primary); border-color: var(--accent-engineering); }
+        .action-btn.primary:hover { opacity: 0.9; }
+
+        /* Sidebar Cards */
+        .sidebar { display: flex; flex-direction: column; gap: 24px; }
+        .sidebar-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; }
+        
+        .stat-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border-color); font-size: 0.8125rem; }
+        .stat-row:last-child { border-bottom: none; }
+        .stat-label { color: var(--text-secondary); }
+        .stat-val { font-family: 'JetBrains Mono', monospace; font-weight: 600; color: var(--accent-engineering); }
+
+        /* Error Badge */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-family: 'JetBrains Mono', monospace;
+            display: none;
+        }
+        .status-error { background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.2); }
+        .status-success { background: rgba(52, 211, 153, 0.1); color: #34d399; border: 1px solid rgba(52, 211, 153, 0.2); }
+
+        /* Hidden File Input */
+        #fileInput { display: none; }
+
+        @media (max-width: 1024px) {
+            .calculator-layout { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <div class="header-left">
+                    <a href="../tools.html" class="back-link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="19" y1="12" x2="5" y2="12"/>
+                            <polyline points="12 19 5 12 12 5"/>
+                        </svg>
+                        Back to Tools
+                    </a>
+                </div>
+                <div class="header-right">
+                    <div class="theme-toggle">
+                        <button data-theme-toggle="light" title="Light mode">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="5"/>
+                                <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+                            </svg>
+                        </button>
+                        <button data-theme-toggle="dark" title="Dark mode">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div style="margin-top: 24px; display: flex; align-items: center; gap: 16px;">
+                <div class="tool-icon-header engineering">
+                    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="16 18 22 12 16 6"/>
+                        <polyline points="8 6 2 12 8 18"/>
+                    </svg>
+                </div>
+                <div>
+                    <h1>Encoder / Decoder</h1>
+                    <p class="tagline">// BASE64 • URL • HTML • HEX • BINARY</p>
+                </div>
+            </div>
+        </header>
+
+        <main>
+            <div class="calculator-layout">
+                <div class="calculator-panel">
+                    <div class="mode-tabs">
+                        <button class="tab-btn active" onclick="setMode('base64')">Base64</button>
+                        <button class="tab-btn" onclick="setMode('url')">URL</button>
+                        <button class="tab-btn" onclick="setMode('html')">HTML</button>
+                        <button class="tab-btn" onclick="setMode('hex')">Hex</button>
+                        <button class="tab-btn" onclick="setMode('binary')">Binary</button>
+                    </div>
+
+                    <div class="split-editor">
+                        <div class="editor-group">
+                            <div class="editor-label">
+                                <span>Input (Decoded)</span>
+                                <div id="fileUploadWrapper" style="display: block;">
+                                    <button onclick="document.getElementById('fileInput').click()" style="background:none; border:none; color:var(--accent-engineering); cursor:pointer; font-size:0.75rem; font-family:inherit; text-decoration:underline; display:flex; align-items:center; gap:4px;">
+                                        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                                        Load File / Image
+                                    </button>
+                                    <input type="file" id="fileInput" onchange="handleFileUpload(this)">
+                                </div>
+                            </div>
+                            <textarea id="inputArea" class="text-input" placeholder="Type text here..." spellcheck="false"></textarea>
+                        </div>
+
+                        <div class="action-bar">
+                            <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
+                                <button class="action-btn primary" onclick="process('encode')" title="Convert Top to Bottom">
+                                    Encode <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
+                                </button>
+                                <button class="action-btn" onclick="process('decode')" title="Convert Bottom to Top">
+                                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg> Decode
+                                </button>
+                            </div>
+                            
+                            <label style="font-size:0.8rem; display:flex; align-items:center; gap:6px; user-select:none; cursor:pointer;">
+                                <input type="checkbox" id="liveMode" checked> Live Mode
+                            </label>
+                        </div>
+
+                        <div class="editor-group">
+                            <div class="editor-label">
+                                <span>Output (Encoded)</span>
+                                <div id="statusBadge" class="status-badge status-error">Invalid Input</div>
+                            </div>
+                            <textarea id="outputArea" class="text-input" placeholder="Result appears here..." spellcheck="false"></textarea>
+                            
+                            <button onclick="copyOutput()" style="position:absolute; bottom:12px; right:12px; background:var(--bg-card); border:1px solid var(--border-color); padding:6px 12px; border-radius:6px; cursor:pointer; font-family:'JetBrains Mono'; font-size:0.75rem; color:var(--text-secondary);">
+                                Copy
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <aside class="sidebar">
+                    <div class="sidebar-card">
+                        <h3>
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"/>
+                                <line x1="12" y1="16" x2="12" y2="12"/>
+                                <line x1="12" y1="8" x2="12.01" y2="8"/>
+                            </svg>
+                            Usage Context
+                        </h3>
+                        <div class="stat-row">
+                            <span class="stat-label">Current Mode</span>
+                            <span class="stat-val" id="statMode">Base64</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Input Size</span>
+                            <span class="stat-val" id="statInSize">0 B</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Output Size</span>
+                            <span class="stat-val" id="statOutSize">0 B</span>
+                        </div>
+                    </div>
+
+                    <div class="sidebar-card">
+                        <h3>Quick Actions</h3>
+                        <button class="action-btn" onclick="clearAll()" style="width:100%; justify-content:center; color:#ef4444; border-color:rgba(239,68,68,0.3);">
+                            Clear All
+                        </button>
+                    </div>
+
+                    <div class="disclaimer-card" style="background: var(--bg-card); border: 1px solid rgba(245, 158, 11, 0.4); border-left: 4px solid rgba(245, 158, 11, 0.8); padding: 20px; border-radius: 8px;">
+                        <h4 style="color: #f59e0b; font-size: 0.8rem; text-transform:uppercase; margin-bottom: 8px; font-weight: 700; display:flex; align-items:center; gap:8px;">
+                            Engineering Notes
+                        </h4>
+                        <div class="disclaimer-content" style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.5;">
+                            <ul style="padding-left: 20px; margin: 0;">
+                                <li style="margin-bottom:6px;"><strong>Base64:</strong> Converts binary data to ASCII. Adds ~33% overhead. Used for email attachments and embedding images (Data URIs).</li>
+                                <li style="margin-bottom:6px;"><strong>URL Encoding:</strong> Escapes unsafe ASCII characters (like space to %20) for HTTP requests.</li>
+                                <li style="margin-bottom:6px;"><strong>HTML Entities:</strong> Converts reserved characters (`<` to `&lt;`) to prevent XSS attacks and rendering issues.</li>
+                                <li style="margin-bottom:6px;"><strong>Hex (Base16):</strong> Represents binary data using 0-9 and A-F. Each byte is exactly 2 characters.</li>
+                                <li style="margin-bottom:6px;"><strong>File Loader:</strong> Uses the browser's `FileReader` API to convert local files directly into Base64 Data Strings. No data leaves your device.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </aside>
+            </div>
+        </main>
+
+        <footer>
+            <div class="footer-content">
+                <p class="footer-text">© 2025 Tools Hub — Built for engineers</p>
+                <nav class="footer-links">
+                    <a href="../tools.html">All Tools</a>
+                    <a href="#">Report Issue</a>
+                </nav>
+            </div>
+        </footer>
+    </div>
+
+    <script src="../js/shared.js"></script>
+    <script>
+        // ============================================
+        // Encoder Logic
+        // ============================================
+
+        const inputArea = document.getElementById('inputArea');
+        const outputArea = document.getElementById('outputArea');
+        const liveMode = document.getElementById('liveMode');
+        const statusBadge = document.getElementById('statusBadge');
+        
+        // Stats
+        const statMode = document.getElementById('statMode');
+        const statInSize = document.getElementById('statInSize');
+        const statOutSize = document.getElementById('statOutSize');
+
+        let currentMode = 'base64';
+
+        // Init
+        inputArea.addEventListener('input', () => {
+            updateStats();
+            if(liveMode.checked) process('encode');
+        });
+        
+        outputArea.addEventListener('input', () => {
+            updateStats();
+        });
+
+        function setMode(mode) {
+            currentMode = mode;
+            statMode.textContent = mode.charAt(0).toUpperCase() + mode.slice(1);
+            
+            // Update Active Tab
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.textContent.toLowerCase() === mode);
+            });
+
+            // Toggle File Upload visibility (Base64 only)
+            document.getElementById('fileUploadWrapper').style.display = (mode === 'base64') ? 'block' : 'none';
+
+            // Re-process if content exists
+            if (inputArea.value) process('encode');
+        }
+
+        function process(action) {
+            statusBadge.style.display = 'none';
+            let source = (action === 'encode') ? inputArea.value : outputArea.value;
+            let targetEl = (action === 'encode') ? outputArea : inputArea;
+
+            if (!source) {
+                targetEl.value = '';
+                updateStats();
+                return;
+            }
+
+            try {
+                let result = '';
+                
+                switch(currentMode) {
+                    case 'base64':
+                        if(action === 'encode') {
+                            // UTF-8 Safe Encode
+                            result = btoa(unescape(encodeURIComponent(source)));
+                        } else {
+                            // UTF-8 Safe Decode
+                            result = decodeURIComponent(escape(atob(source)));
+                        }
+                        break;
+                    case 'url':
+                        result = (action === 'encode') ? encodeURIComponent(source) : decodeURIComponent(source);
+                        break;
+                    case 'html':
+                        result = (action === 'encode') ? htmlEncode(source) : htmlDecode(source);
+                        break;
+                    case 'hex':
+                        result = (action === 'encode') ? toHex(source) : fromHex(source);
+                        break;
+                    case 'binary':
+                        result = (action === 'encode') ? toBinary(source) : fromBinary(source);
+                        break;
+                }
+
+                targetEl.value = result;
+                updateStats();
+
+            } catch (e) {
+                showError();
+            }
+        }
+
+        // --- Algorithms ---
+
+        function htmlEncode(str) {
+            return str.replace(/[&<>"']/g, function(m) {
+                return {
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    '"': '&quot;',
+                    "'": '&#039;'
+                }[m];
+            });
+        }
+
+        function htmlDecode(str) {
+            const txt = document.createElement("textarea");
+            txt.innerHTML = str;
+            return txt.value;
+        }
+
+        function toHex(str) {
+            // Use TextEncoder for proper UTF-8 byte representation
+            const bytes = new TextEncoder().encode(str);
+            return Array.from(bytes)
+                .map(b => b.toString(16).padStart(2, '0'))
+                .join('');
+        }
+
+        function fromHex(str) {
+            str = str.replace(/\s/g, ''); // Clean spaces
+            if (str.length % 2 !== 0) throw new Error("Invalid Hex");
+            // Convert hex pairs to byte array, then decode as UTF-8
+            const bytes = new Uint8Array(str.length / 2);
+            for (let i = 0; i < bytes.length; i++) {
+                bytes[i] = parseInt(str.substr(i * 2, 2), 16);
+            }
+            return new TextDecoder().decode(bytes);
+        }
+
+        function toBinary(str) {
+            // Use TextEncoder for proper UTF-8 byte representation
+            const bytes = new TextEncoder().encode(str);
+            return Array.from(bytes)
+                .map(b => b.toString(2).padStart(8, '0'))
+                .join(' ');
+        }
+
+        function fromBinary(str) {
+            // Convert binary strings to byte array, then decode as UTF-8
+            const binArray = str.split(/\s+/).filter(bin => bin.length > 0);
+            const bytes = new Uint8Array(binArray.map(bin => parseInt(bin, 2)));
+            return new TextDecoder().decode(bytes);
+        }
+
+        // --- File Handling (Base64) ---
+
+        function handleFileUpload(input) {
+            if (input.files && input.files[0]) {
+                // Auto-switch to Base64 mode if not active
+                if(currentMode !== 'base64') setMode('base64');
+
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    // Set result to OUTPUT area (since it's encoded)
+                    outputArea.value = e.target.result; // Data URI
+                    inputArea.value = `[File Loaded: ${input.files[0].name}]\n\n(Base64 Data URI generated in Output)`;
+                    updateStats();
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        // --- Utils ---
+
+        function showError() {
+            statusBadge.textContent = "Error: Invalid Input";
+            statusBadge.className = "status-badge status-error";
+            statusBadge.style.display = "inline-flex";
+        }
+
+        function updateStats() {
+            statInSize.textContent = formatBytes(new Blob([inputArea.value]).size);
+            statOutSize.textContent = formatBytes(new Blob([outputArea.value]).size);
+        }
+
+        function copyOutput() {
+            if(!outputArea.value) return;
+            navigator.clipboard.writeText(outputArea.value);
+            // Visual feedback
+            const btn = event.target;
+            const orig = btn.innerText;
+            btn.innerText = "Copied!";
+            setTimeout(() => btn.innerText = orig, 1500);
+        }
+
+        function clearAll() {
+            inputArea.value = '';
+            outputArea.value = '';
+            document.getElementById('fileInput').value = '';
+            statusBadge.style.display = 'none';
+            updateStats();
+        }
+
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+    </script>
+</body>
+</html>

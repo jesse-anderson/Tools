@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crypto Lab | Tools Hub</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <link rel="stylesheet" href="../css/shared.css">
+    <style>
+        /* Shared Layout */
+        .calculator-layout {
+            display: grid;
+            grid-template-columns: 1fr 340px;
+            gap: 24px;
+            min-height: calc(100vh - 300px);
+        }
+
+        .calculator-panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel-header {
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .panel-header h2 { font-size: 1.5rem; margin-bottom: 4px; }
+        .panel-header p { color: var(--text-secondary); font-size: 0.9375rem; }
+
+        /* Tabs */
+        .mode-tabs {
+            display: flex;
+            gap: 4px;
+            background: var(--bg-secondary);
+            padding: 4px;
+            border-radius: 8px;
+            margin-bottom: 24px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 600;
+            font-size: 0.875rem;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .tab-btn.active {
+            background: var(--bg-card);
+            color: var(--accent-engineering);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        /* Inputs */
+        .input-container { margin-bottom: 24px; }
+        
+        textarea.hash-input {
+            width: 100%;
+            height: 100px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 16px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.875rem;
+            color: var(--text-primary);
+            resize: vertical;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        textarea.hash-input:focus { border-color: var(--accent-engineering); }
+
+        /* --- Encryption Controls --- */
+        .enc-controls {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        .control-header {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 0.875rem;
+            margin-bottom: 12px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .algo-select, .config-select, .config-input {
+            width: 100%;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 10px;
+            color: var(--text-primary);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.875rem;
+            outline: none;
+            margin-bottom: 12px;
+        }
+        
+        .config-input.invalid { border-color: #ef4444; }
+        .config-input.valid { border-color: #34d399; }
+
+        /* AES Grid */
+        .aes-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .label-sm {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+            display: block;
+            font-family: 'Space Grotesk', sans-serif;
+        }
+
+        .helper-text {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            font-family: 'JetBrains Mono', monospace;
+            display: flex;
+            justify-content: space-between;
+            margin-top: -8px;
+            margin-bottom: 12px;
+        }
+
+        /* Results */
+        .hashes-container { display: flex; flex-direction: column; gap: 12px; }
+
+        .hash-row {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            position: relative;
+        }
+
+        .hash-header { display: flex; justify-content: space-between; align-items: center; }
+        .hash-label { font-family: 'Space Grotesk', sans-serif; font-weight: 700; color: var(--accent-engineering); font-size: 0.75rem; text-transform: uppercase; }
+        .hash-value { font-family: 'JetBrains Mono', monospace; font-size: 0.8125rem; color: var(--text-primary); word-break: break-all; padding-right: 30px; }
+
+        .copy-btn-abs {
+            position: absolute; top: 10px; right: 10px;
+            background: transparent; border: none; color: var(--text-secondary);
+            cursor: pointer; padding: 6px; border-radius: 4px;
+        }
+        .copy-btn-abs:hover { background: var(--bg-card); color: var(--accent-engineering); }
+
+        /* Matcher */
+        .matcher-box {
+            margin-top: 16px;
+            padding: 16px;
+            border: 1px dashed var(--border-color);
+            border-radius: 8px;
+            background: rgba(0,0,0,0.02);
+        }
+        .match-status { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 0.8rem; margin-top: 8px; }
+        .match-success { color: #34d399; }
+        .match-fail { color: #ef4444; }
+
+        /* Buttons */
+        .action-btns { display: flex; gap: 12px; margin-bottom: 20px; }
+        .action-btn {
+            flex: 1; padding: 12px; border-radius: 8px; border: none; font-weight: 600; cursor: pointer;
+            font-family: 'Space Grotesk', sans-serif; transition: opacity 0.2s;
+        }
+        .btn-enc { background: var(--accent-engineering); color: var(--bg-primary); }
+        .btn-dec { background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-primary); }
+        .btn-dec:hover { border-color: var(--accent-engineering); }
+
+        /* Sidebar */
+        .sidebar { display: flex; flex-direction: column; gap: 24px; }
+        .sidebar-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; }
+        .stat-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border-color); font-size: 0.8125rem; }
+        .stat-label { color: var(--text-secondary); }
+        .stat-val { font-family: 'JetBrains Mono', monospace; font-weight: 600; color: var(--accent-engineering); }
+
+        .hidden { display: none !important; }
+        
+        @media (max-width: 1024px) { 
+            .calculator-layout { grid-template-columns: 1fr; } 
+            .aes-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <div class="header-left">
+                    <a href="../tools.html" class="back-link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="19" y1="12" x2="5" y2="12"/>
+                            <polyline points="12 19 5 12 12 5"/>
+                        </svg>
+                        Back to Tools
+                    </a>
+                </div>
+                <div class="header-right">
+                    <div class="theme-toggle">
+                        <button data-theme-toggle="light" title="Light mode">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="5"/>
+                                <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+                            </svg>
+                        </button>
+                        <button data-theme-toggle="dark" title="Dark mode">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div style="margin-top: 24px; display: flex; align-items: center; gap: 16px;">
+                <div class="tool-icon-header engineering">
+                    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                    </svg>
+                </div>
+                <div>
+                    <h1>Crypto Lab</h1>
+                    <p class="tagline">// AES • LEGACY • HASHING • VERIFICATION</p>
+                </div>
+            </div>
+        </header>
+
+        <main>
+            <div class="calculator-layout">
+                <div class="calculator-panel">
+                    <div class="mode-tabs">
+                        <button class="tab-btn" onclick="switchMode('hash')" id="tabHash">Hashing</button>
+                        <button class="tab-btn active" onclick="switchMode('enc')" id="tabEnc">Encryption</button>
+                    </div>
+
+                    <div class="panel-header" style="border:none; margin-bottom: 12px; padding-bottom: 0;">
+                        <h2 id="inputLabel">Input Data</h2>
+                    </div>
+                    <div class="input-container">
+                        <textarea id="inputArea" class="hash-input" placeholder="Type text to hash/encrypt..." spellcheck="false"></textarea>
+                    </div>
+
+                    <div id="encUI">
+                        <div class="enc-controls">
+                            <div class="control-header">1. Select Algorithm</div>
+                            <select id="encAlgo" class="algo-select" onchange="updateEncUI()">
+                                <option value="AES">AES (Advanced Config)</option>
+                                <option value="DES">DES (Legacy)</option>
+                                <option value="Rabbit">Rabbit (Stream)</option>
+                                <option value="RC4">RC4 (Insecure)</option>
+                            </select>
+
+                            <div id="aesControls">
+                                <div style="margin-bottom: 12px;">
+                                    <span class="label-sm">Key Method</span>
+                                    <select id="aesMethod" class="config-select" onchange="updateAESView()">
+                                        <option value="raw">Raw Key & IV (Engineering)</option>
+                                        <option value="pass">Passphrase (Simple)</option>
+                                    </select>
+                                </div>
+
+                                <div id="aesRawFields">
+                                    <div class="aes-grid">
+                                        <div>
+                                            <span class="label-sm">Mode</span>
+                                            <select id="aesMode" class="config-select" onchange="updateAESValidation()">
+                                                <option value="CBC">CBC (Req. IV)</option>
+                                                <option value="ECB">ECB (No IV)</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <span class="label-sm">Key Size</span>
+                                            <select id="aesKeySize" class="config-select" onchange="updateAESValidation()">
+                                                <option value="128">128-bit (16 bytes)</option>
+                                                <option value="192">192-bit (24 bytes)</option>
+                                                <option value="256">256-bit (32 bytes)</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    
+                                    <div style="margin-top: 8px;">
+                                        <span class="label-sm">Secret Key (Raw UTF-8)</span>
+                                        <input type="text" id="aesKey" class="config-input" placeholder="Enter exact key..." oninput="updateAESValidation()">
+                                        <div class="helper-text">
+                                            <span id="keyCounter">0/16</span>
+                                            <span id="keyStatus">Invalid</span>
+                                        </div>
+                                    </div>
+
+                                    <div id="ivGroup">
+                                        <span class="label-sm">Initialization Vector (IV)</span>
+                                        <input type="text" id="aesIV" class="config-input" placeholder="Enter IV..." oninput="updateAESValidation()">
+                                        <div class="helper-text">
+                                            <span id="ivCounter">0/16</span>
+                                            <span id="ivStatus">Invalid</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div>
+                                        <span class="label-sm">Output Format</span>
+                                        <select id="aesOutput" class="config-select" style="margin-bottom:0;">
+                                            <option value="Base64">Base64 Encoded</option>
+                                            <option value="Hex">Hex Encoded</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div id="aesPassFields" class="hidden">
+                                    <span class="label-sm">Passphrase</span>
+                                    <input type="text" id="aesPassSimple" class="config-input" placeholder="Enter simple password..." style="margin-bottom:0;">
+                                </div>
+                            </div>
+
+                            <div id="simpleControls" class="hidden">
+                                <div class="control-header" style="margin-top:16px;">2. Security</div>
+                                <span class="label-sm">Passphrase</span>
+                                <input type="text" id="simplePass" class="config-input" placeholder="Enter password..." style="margin-bottom:0;">
+                            </div>
+                        </div>
+
+                        <div class="action-btns">
+                            <button class="action-btn btn-enc" onclick="processCrypto('encrypt')">Encrypt 🔒</button>
+                            <button class="action-btn btn-dec" onclick="processCrypto('decrypt')">Decrypt 🔓</button>
+                        </div>
+
+                        <div class="hash-row">
+                            <div class="hash-header"><span class="hash-label">Output</span></div>
+                            <div class="hash-value" id="encResult">-</div>
+                            <button class="copy-btn-abs" onclick="copyId('encResult')">
+                                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="hashUI" class="hidden">
+                        <div class="hashes-container">
+                            <div class="hash-row">
+                                <div class="hash-header"><span class="hash-label">MD5 (128-bit)</span></div>
+                                <div class="hash-value" id="resMD5">-</div>
+                                <button class="copy-btn-abs" onclick="copyId('resMD5')"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
+                            </div>
+                            <div class="hash-row">
+                                <div class="hash-header"><span class="hash-label">SHA-1 (160-bit)</span></div>
+                                <div class="hash-value" id="resSHA1">-</div>
+                                <button class="copy-btn-abs" onclick="copyId('resSHA1')"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
+                            </div>
+                            <div class="hash-row">
+                                <div class="hash-header"><span class="hash-label">SHA-256 (256-bit)</span></div>
+                                <div class="hash-value" id="resSHA256" style="color: var(--accent-engineering);">-</div>
+                                <button class="copy-btn-abs" onclick="copyId('resSHA256')"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
+                            </div>
+                            <div class="hash-row">
+                                <div class="hash-header"><span class="hash-label">SHA-3 (512-bit) / Keccak</span></div>
+                                <div class="hash-value" id="resSHA3">-</div>
+                                <button class="copy-btn-abs" onclick="copyId('resSHA3')"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
+                            </div>
+                            <div class="hash-row">
+                                <div class="hash-header"><span class="hash-label">RIPEMD-160</span></div>
+                                <div class="hash-value" id="resRIPEMD">-</div>
+                                <button class="copy-btn-abs" onclick="copyId('resRIPEMD')"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
+                            </div>
+
+                            <div class="matcher-box">
+                                <input type="text" id="matchInput" placeholder="Paste hash to verify integrity..." class="config-input" style="width: 100%; border-style: dashed; margin-bottom: 0;">
+                                <div id="matchStatus" class="match-status"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <aside class="sidebar">
+                    <div class="sidebar-card">
+                        <h3>Input Stats</h3>
+                        <div class="stat-row">
+                            <span class="stat-label">Chars</span>
+                            <span class="stat-val" id="statChars">0</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Size (UTF-8)</span>
+                            <span class="stat-val" id="statBytes">0 B</span>
+                        </div>
+                    </div>
+
+                    <div class="sidebar-card">
+                        <h3>Quick Actions</h3>
+                        <button class="tool-btn" onclick="fillSample()" style="width: 100%; justify-content: center; margin-bottom: 8px;">
+                            Load AES Sample
+                        </button>
+                        <button class="tool-btn" onclick="clearAll()" style="width: 100%; justify-content: center; color: #ef4444;">
+                            Clear All
+                        </button>
+                    </div>
+
+                    <div class="disclaimer-card" style="background: var(--bg-card); border: 1px solid rgba(239, 68, 68, 0.4); border-left: 4px solid rgba(239, 68, 68, 0.8); padding: 20px; border-radius: 8px; margin-top: 24px;">
+    <h4 style="color: #ef4444; font-size: 0.8rem; text-transform:uppercase; margin-bottom: 12px; font-weight: 700; letter-spacing: 0.05em; display: flex; align-items: center; gap: 8px;">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        Engineering & Security Notes
+    </h4>
+    <div class="disclaimer-content" style="font-size: 0.8125rem; color: var(--text-secondary); line-height: 1.6;">
+        <ul style="padding-left: 16px; margin: 0; list-style-type: disc;">
+            <li style="margin-bottom: 8px;">
+                <strong>Hash Verification:</strong> The "Matcher" performs a case-insensitive, O(n) comparison against all generated outputs. A match proves <em>integrity</em> (data hasn't changed), not <em>authenticity</em> (who sent it).
+            </li>
+            <li style="margin-bottom: 8px;">
+                <strong>Cryptographic Brokenness:</strong> <span style="color: #ef4444;">MD5</span> and <span style="color: #ef4444;">SHA-1</span> are cryptographically broken (collision attacks exist). Use them <strong>only</strong> for legacy checksums or non-security identifiers. Use SHA-256/SHA-3 for security.
+            </li>
+            <li style="margin-bottom: 8px;">
+                <strong>Raw AES Keys:</strong> In "Raw" mode, keys and IVs are validated by <em>byte length</em>, not character count. 
+                Multibyte characters (e.g., emojis 🚀, accented chars é) count as 2-4 bytes each. The counter shows actual byte usage.
+            </li>
+            <li>
+                <strong>Client-Side Only:</strong> All operations occur within the browser's JS engine. No data is transmitted, ensuring privacy, but keys are resident in browser memory during execution.
+            </li>
+        </ul>
+    </div>
+</div>
+                </aside>
+            </div>
+        </main>
+        
+        <footer>
+            <div class="footer-content">
+                <p class="footer-text">© 2025 Tools Hub</p>
+                <nav class="footer-links">
+                    <a href="../tools.html">Back to Tools</a>
+                </nav>
+            </div>
+        </footer>
+    </div>
+
+    <script src="../js/shared.js"></script>
+    <script>
+        // ============================================
+        // Universal Crypto Logic
+        // ============================================
+
+        const inputArea = document.getElementById('inputArea');
+        const matchInput = document.getElementById('matchInput');
+        const matchStatus = document.getElementById('matchStatus');
+        
+        // Hash Elements
+        const hashResultIds = ['resMD5', 'resSHA1', 'resSHA256', 'resSHA3', 'resRIPEMD'];
+        
+        // Enc Elements
+        const encAlgo = document.getElementById('encAlgo');
+        const encResult = document.getElementById('encResult');
+        
+        // AES Inputs
+        const aesControls = document.getElementById('aesControls');
+        const aesMethod = document.getElementById('aesMethod');
+        const aesRawFields = document.getElementById('aesRawFields');
+        const aesPassFields = document.getElementById('aesPassFields');
+        const aesPassSimple = document.getElementById('aesPassSimple');
+        
+        const aesMode = document.getElementById('aesMode');
+        const aesKeySize = document.getElementById('aesKeySize');
+        const aesKey = document.getElementById('aesKey');
+        const aesIV = document.getElementById('aesIV');
+        const aesOutput = document.getElementById('aesOutput');
+        const ivGroup = document.getElementById('ivGroup');
+
+        // Simple Inputs
+        const simpleControls = document.getElementById('simpleControls');
+        const simplePass = document.getElementById('simplePass');
+
+        // Stats
+        const statChars = document.getElementById('statChars');
+        const statBytes = document.getElementById('statBytes');
+
+        let currentMode = 'enc';
+
+        // Init
+        inputArea.addEventListener('input', () => {
+            updateStats();
+            if(currentMode === 'hash') processHashing();
+        });
+        matchInput.addEventListener('input', checkMatch);
+        
+        // Set Default
+        updateEncUI();
+
+        function switchMode(mode) {
+            currentMode = mode;
+            document.getElementById('tabEnc').classList.toggle('active', mode === 'enc');
+            document.getElementById('tabHash').classList.toggle('active', mode === 'hash');
+            document.getElementById('encUI').classList.toggle('hidden', mode !== 'enc');
+            document.getElementById('hashUI').classList.toggle('hidden', mode !== 'hash');
+            
+            if(mode === 'hash') processHashing();
+        }
+
+        // --- Hashing ---
+        function processHashing() {
+            const raw = inputArea.value;
+            if(!raw) return clearHashes();
+
+            document.getElementById('resMD5').textContent = CryptoJS.MD5(raw).toString();
+            document.getElementById('resSHA1').textContent = CryptoJS.SHA1(raw).toString();
+            document.getElementById('resSHA256').textContent = CryptoJS.SHA256(raw).toString();
+            document.getElementById('resSHA3').textContent = CryptoJS.SHA3(raw).toString();
+            document.getElementById('resRIPEMD').textContent = CryptoJS.RIPEMD160(raw).toString();
+            
+            checkMatch();
+        }
+
+        function checkMatch() {
+            const val = matchInput.value.trim().toLowerCase();
+            if(!val) {
+                matchStatus.textContent = "";
+                return;
+            }
+            const current = hashResultIds.map(id => document.getElementById(id).textContent);
+            if(current.includes(val)) {
+                matchStatus.textContent = "✅ MATCH FOUND";
+                matchStatus.className = "match-status match-success";
+            } else {
+                matchStatus.textContent = "❌ NO MATCH";
+                matchStatus.className = "match-status match-fail";
+            }
+        }
+
+        function clearHashes() {
+            hashResultIds.forEach(id => document.getElementById(id).textContent = '-');
+            matchStatus.textContent = "";
+        }
+
+        // --- Encryption Switcher ---
+        function updateEncUI() {
+            const algo = encAlgo.value;
+            const isAES = algo === 'AES';
+
+            if(isAES) {
+                aesControls.classList.remove('hidden');
+                simpleControls.classList.add('hidden');
+                updateAESView();
+            } else {
+                aesControls.classList.add('hidden');
+                simpleControls.classList.remove('hidden');
+            }
+        }
+
+        function updateAESView() {
+            const method = aesMethod.value;
+            if (method === 'raw') {
+                aesRawFields.classList.remove('hidden');
+                aesPassFields.classList.add('hidden');
+                updateAESValidation();
+            } else {
+                aesRawFields.classList.add('hidden');
+                aesPassFields.classList.remove('hidden');
+            }
+        }
+
+        // --- AES Logic ---
+        function getByteLength(str) {
+            return new TextEncoder().encode(str).length;
+        }
+
+        function updateAESValidation() {
+            const mode = aesMode.value;
+            const size = parseInt(aesKeySize.value);
+            const reqKeyBytes = size / 8; 
+            
+            // IV Visibility
+            if(mode === 'ECB') {
+                ivGroup.style.opacity = '0.5';
+                ivGroup.style.pointerEvents = 'none';
+            } else {
+                ivGroup.style.opacity = '1';
+                ivGroup.style.pointerEvents = 'all';
+            }
+
+            // Key Validation (byte length, not character length)
+            const kBytes = getByteLength(aesKey.value);
+            document.getElementById('keyCounter').textContent = `${kBytes}/${reqKeyBytes} bytes`;
+            if(kBytes === reqKeyBytes) {
+                document.getElementById('keyStatus').textContent = "Valid";
+                aesKey.classList.add('valid'); aesKey.classList.remove('invalid');
+            } else {
+                document.getElementById('keyStatus').textContent = "Invalid";
+                aesKey.classList.add('invalid'); aesKey.classList.remove('valid');
+            }
+
+            // IV Validation (byte length, not character length)
+            const iBytes = getByteLength(aesIV.value);
+            document.getElementById('ivCounter').textContent = `${iBytes}/16 bytes`;
+            if(mode !== 'ECB') {
+                if(iBytes === 16) {
+                    document.getElementById('ivStatus').textContent = "Valid";
+                    aesIV.classList.add('valid'); aesIV.classList.remove('invalid');
+                } else {
+                    document.getElementById('ivStatus').textContent = "Invalid";
+                    aesIV.classList.add('invalid'); aesIV.classList.remove('valid');
+                }
+            } else {
+                document.getElementById('ivStatus').textContent = "N/A";
+                aesIV.classList.remove('invalid'); aesIV.classList.remove('valid');
+            }
+        }
+
+        function processCrypto(action) {
+            const text = inputArea.value;
+            const algo = encAlgo.value;
+
+            if(!text) return alert("Please enter Input Data.");
+
+            try {
+                let result;
+
+                if(algo === 'AES') {
+                    const method = aesMethod.value;
+                    
+                    // 1. AES Simple Passphrase
+                    if (method === 'pass') {
+                        const pass = aesPassSimple.value;
+                        if(!pass) throw new Error("Passphrase required.");
+                        if(action === 'encrypt') {
+                            result = CryptoJS.AES.encrypt(text, pass).toString();
+                        } else {
+                            const decrypted = CryptoJS.AES.decrypt(text, pass);
+                            result = decrypted.toString(CryptoJS.enc.Utf8);
+                        }
+                    } 
+                    // 2. AES Raw Engineering
+                    else {
+                        const mode = aesMode.value;
+                        const reqKeyBytes = parseInt(aesKeySize.value) / 8;
+                        
+                        const keyBytes = getByteLength(aesKey.value);
+                        const ivBytes = getByteLength(aesIV.value);
+                        
+                        if(keyBytes !== reqKeyBytes) throw new Error(`Key must be exactly ${reqKeyBytes} bytes (currently ${keyBytes}).`);
+                        if(mode !== 'ECB' && ivBytes !== 16) throw new Error(`IV must be exactly 16 bytes (currently ${ivBytes}).`);
+
+                        const keyHex = CryptoJS.enc.Utf8.parse(aesKey.value);
+                        const ivHex = (mode !== 'ECB') ? CryptoJS.enc.Utf8.parse(aesIV.value) : null;
+                        
+                        const options = {
+                            mode: mode === 'CBC' ? CryptoJS.mode.CBC : CryptoJS.mode.ECB,
+                            padding: CryptoJS.pad.Pkcs7
+                        };
+                        if(ivHex) options.iv = ivHex;
+
+                        if(action === 'encrypt') {
+                            const encrypted = CryptoJS.AES.encrypt(text, keyHex, options);
+                            result = (aesOutput.value === 'Base64') ? encrypted.toString() : encrypted.ciphertext.toString(CryptoJS.enc.Hex);
+                        } else {
+                            // Decrypt: Auto-detect
+                            let cipherParams = text;
+                            // If output setting is Hex, and input looks Hex, try Hex parsing.
+                            if(aesOutput.value === 'Hex' && /^[0-9a-fA-F]+$/.test(text) && text.length % 2 === 0) {
+                                 cipherParams = { ciphertext: CryptoJS.enc.Hex.parse(text) };
+                            }
+                            const decrypted = CryptoJS.AES.decrypt(cipherParams, keyHex, options);
+                            result = decrypted.toString(CryptoJS.enc.Utf8);
+                        }
+                    }
+                } 
+                // 3. Legacy Algos (DES, RC4, Rabbit)
+                else {
+                    const pass = simplePass.value;
+                    if(!pass) throw new Error("Passphrase required.");
+
+                    const targetAlgo = CryptoJS[algo];
+                    if(!targetAlgo) throw new Error("Algorithm not found.");
+
+                    if(action === 'encrypt') {
+                        result = targetAlgo.encrypt(text, pass).toString();
+                    } else {
+                        const decrypted = targetAlgo.decrypt(text, pass);
+                        result = decrypted.toString(CryptoJS.enc.Utf8);
+                    }
+                }
+
+                if(!result) throw new Error("Operation failed. Check Key/IV/Format.");
+                encResult.textContent = result;
+                encResult.style.color = "var(--text-primary)";
+
+            } catch(e) {
+                encResult.textContent = "Error: " + e.message;
+                encResult.style.color = "#ef4444";
+            }
+        }
+
+        // --- Utils ---
+        function updateStats() {
+            const raw = inputArea.value;
+            statChars.textContent = raw.length;
+            statBytes.textContent = formatBytes(new Blob([raw]).size);
+        }
+
+        function fillSample() {
+            encAlgo.value = 'AES';
+            aesMethod.value = 'raw';
+            updateEncUI();
+            
+            aesKeySize.value = "128";
+            aesMode.value = "CBC";
+            aesKey.value = "aesEncryptionKey";
+            aesIV.value = "encryptionIntVec";
+            inputArea.value = "Hello World";
+            updateAESValidation();
+        }
+
+        function clearAll() {
+            inputArea.value = "";
+            aesKey.value = ""; aesIV.value = ""; simplePass.value = ""; matchInput.value = ""; aesPassSimple.value = "";
+            encResult.textContent = "-";
+            clearHashes();
+            updateStats();
+            updateAESValidation();
+        }
+
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function copyId(id) {
+            const val = document.getElementById(id).textContent;
+            if (val && val !== '-') navigator.clipboard.writeText(val);
+        }
+    </script>
+</body>
+</html>

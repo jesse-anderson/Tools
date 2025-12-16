@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Case Converter | Tools Hub</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/shared.css">
+    <style>
+        /* Shared Layout */
+        .calculator-layout {
+            display: grid;
+            grid-template-columns: 1fr 320px;
+            gap: 24px;
+            min-height: calc(100vh - 300px);
+        }
+
+        .calculator-panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel-header {
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .panel-header h2 { font-size: 1.5rem; margin-bottom: 4px; }
+        .panel-header p { color: var(--text-secondary); font-size: 0.9375rem; }
+
+        /* Usage Banner */
+        .info-banner {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            color: #60a5fa;
+            padding: 10px 14px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 0.8125rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-family: 'Space Grotesk', sans-serif;
+        }
+
+        /* Toolbar Grid */
+        .toolbar-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .transform-btn {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 10px;
+            border-radius: 6px;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .transform-btn:hover {
+            border-color: var(--accent-engineering);
+            background: var(--bg-card);
+        }
+        
+        .transform-btn span {
+            display: block;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            margin-top: 2px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Editor Area */
+        .editor-container {
+            flex: 1;
+            position: relative;
+            min-height: 400px;
+        }
+
+        textarea.text-input {
+            width: 100%;
+            height: 100%;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9375rem;
+            color: var(--text-primary);
+            resize: none;
+            outline: none;
+            line-height: 1.6;
+            transition: border-color 0.2s;
+        }
+        textarea.text-input:focus { border-color: var(--accent-engineering); }
+
+        /* Sidebar Stats */
+        .sidebar { display: flex; flex-direction: column; gap: 24px; }
+        .sidebar-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; }
+        .sidebar-card h3 { font-size: 0.875rem; color: var(--text-primary); margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+
+        .stat-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border-color); font-size: 0.8125rem; }
+        .stat-row:last-child { border-bottom: none; }
+        .stat-label { color: var(--text-secondary); }
+        .stat-val { font-family: 'JetBrains Mono', monospace; font-weight: 600; color: var(--accent-engineering); }
+
+        /* History List */
+        .history-list { display: flex; flex-direction: column; gap: 12px; }
+        .history-item {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .history-item:hover { border-color: var(--accent-engineering); }
+        .history-meta { display: flex; justify-content: space-between; font-size: 0.7rem; color: var(--text-secondary); margin-bottom: 4px; font-family: 'Space Grotesk', sans-serif; }
+        .history-preview { font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        /* Utility Actions */
+        .utility-bar {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 16px;
+            align-items: center;
+        }
+        
+        .tool-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8125rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .tool-btn:hover:not(:disabled) { border-color: var(--accent-engineering); }
+        .tool-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* Separator in toolbar */
+        .tool-sep { width: 1px; height: 24px; background: var(--border-color); margin: 0 4px; }
+
+        /* Status Pill */
+        .selection-status {
+            margin-left: auto;
+            font-size: 0.75rem;
+            font-family: 'JetBrains Mono', monospace;
+            background: rgba(52, 211, 153, 0.1);
+            color: #34d399;
+            padding: 4px 10px;
+            border-radius: 4px;
+            border: 1px solid rgba(52, 211, 153, 0.2);
+            display: none;
+            align-items: center;
+            gap: 6px;
+        }
+        .selection-status.active { display: flex; }
+
+        @media (max-width: 1024px) {
+            .calculator-layout { grid-template-columns: 1fr; }
+            .toolbar-grid { grid-template-columns: repeat(2, 1fr); }
+            .utility-bar { flex-wrap: wrap; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <div class="header-left">
+                    <a href="../tools.html" class="back-link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="19" y1="12" x2="5" y2="12"/>
+                            <polyline points="12 19 5 12 12 5"/>
+                        </svg>
+                        Back to Tools
+                    </a>
+                </div>
+                <div class="header-right">
+                    <div class="theme-toggle">
+                        <button data-theme-toggle="light" title="Light mode">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="5"/>
+                                <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+                            </svg>
+                        </button>
+                        <button data-theme-toggle="dark" title="Dark mode">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div style="margin-top: 24px; display: flex; align-items: center; gap: 16px;">
+                <div class="tool-icon-header engineering">
+                    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M4 7V4h16v3M9 20h6M12 4v16" />
+                    </svg>
+                </div>
+                <div>
+                    <h1>Case Converter</h1>
+                    <p class="tagline">// UPPER • lower • Title • camelCase</p>
+                </div>
+            </div>
+        </header>
+
+        <main>
+            <div class="calculator-layout">
+                <div class="calculator-panel">
+                    <div class="panel-header">
+                        <h2>Input Text</h2>
+                        <p>Paste text below and select a transformation format.</p>
+                    </div>
+
+                    <div class="info-banner">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <line x1="12" y1="16" x2="12" y2="12"/>
+                            <line x1="12" y1="8" x2="12.01" y2="8"/>
+                        </svg>
+                        <span><strong>Tip:</strong> You can highlight specific text to convert only that selection.</span>
+                    </div>
+
+                    <div class="toolbar-grid">
+                        <button class="transform-btn" onclick="transform('upper')">
+                            UPPERCASE
+                            <span>HELLO WORLD</span>
+                        </button>
+                        <button class="transform-btn" onclick="transform('lower')">
+                            lowercase
+                            <span>hello world</span>
+                        </button>
+                        <button class="transform-btn" onclick="transform('title')">
+                            Title Case
+                            <span>Hello World</span>
+                        </button>
+                        <button class="transform-btn" onclick="transform('sentence')">
+                            Sentence case
+                            <span>Hello world</span>
+                        </button>
+                        <button class="transform-btn" onclick="transform('camel')">
+                            camelCase
+                            <span>helloWorld</span>
+                        </button>
+                        <button class="transform-btn" onclick="transform('snake')">
+                            snake_case
+                            <span>hello_world</span>
+                        </button>
+                        <button class="transform-btn" onclick="transform('kebab')">
+                            kebab-case
+                            <span>hello-world</span>
+                        </button>
+                        <button class="transform-btn" onclick="transform('constant')">
+                            CONSTANT
+                            <span>HELLO_WORLD</span>
+                        </button>
+                    </div>
+
+                    <div class="utility-bar">
+                        <button class="tool-btn" id="btnUndo" onclick="performUndo()" disabled title="Undo (Ctrl+Z)">
+                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11"/></svg>
+                            Undo
+                        </button>
+                        <button class="tool-btn" id="btnRedo" onclick="performRedo()" disabled title="Redo (Ctrl+Y)">
+                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5A5.5 5.5 0 0 0 4 14.5v0A5.5 5.5 0 0 0 9.5 20H13"/></svg>
+                            Redo
+                        </button>
+                        
+                        <div class="tool-sep"></div>
+
+                        <button class="tool-btn" onclick="saveToHistory()" title="Save current text to history">
+                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                            Snapshot
+                        </button>
+                        <button class="tool-btn" onclick="copyText()">
+                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                            Copy
+                        </button>
+                        <button class="tool-btn" onclick="clearText()" style="color: #ef4444; border-color: rgba(239,68,68,0.3);">
+                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                            Clear
+                        </button>
+
+                        <div id="selStatus" class="selection-status">
+                            <div style="width: 8px; height: 8px; background: #34d399; border-radius: 50%;"></div>
+                            Targeting Selection
+                        </div>
+                    </div>
+
+                    <div class="editor-container">
+                        <textarea id="inputArea" class="text-input" placeholder="Type or paste text here..." spellcheck="false"></textarea>
+                    </div>
+                </div>
+
+                <aside class="sidebar">
+                    <div class="sidebar-card">
+                        <h3>Text Stats</h3>
+                        <div class="stat-row">
+                            <span class="stat-label">Words</span>
+                            <span class="stat-val" id="statWords">0</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Characters</span>
+                            <span class="stat-val" id="statChars">0</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Lines</span>
+                            <span class="stat-val" id="statLines">0</span>
+                        </div>
+                    </div>
+
+                    <div class="sidebar-card">
+                        <h3>Snapshots (Last 5)</h3>
+                        <div id="historyList" class="history-list">
+                            <div style="font-size: 0.8125rem; color: var(--text-muted); text-align: center; padding: 10px;">
+                                No snapshots saved.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="disclaimer-card" style="background: var(--bg-card); border: 1px solid rgba(245, 158, 11, 0.4); border-left: 4px solid rgba(245, 158, 11, 0.8); padding: 20px; border-radius: 8px;">
+                        <h4 style="color: #f59e0b; font-size: 0.8rem; text-transform:uppercase; margin-bottom: 8px; font-weight: 700; display:flex; align-items:center; gap:8px;">
+                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                            Engineering Notes
+                        </h4>
+                        <div class="disclaimer-content" style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.5;">
+                            <ul style="padding-left: 20px; margin: 0;">
+                                <li style="margin-bottom:6px;"><strong>Custom Undo:</strong> Transformations utilize a custom history stack. Standard browser undo (Ctrl+Z) is intercepted when appropriate.</li>
+                                <li style="margin-bottom:6px;"><strong>Smart Select:</strong> Highlighting text limits the transformation scope to that selection.</li>
+                                <li><strong>Memory:</strong> Snapshots are session-based and will clear on refresh.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </aside>
+            </div>
+        </main>
+
+        <footer>
+            <div class="footer-content">
+                <p class="footer-text">© 2025 Tools Hub — Built for engineers</p>
+                <nav class="footer-links">
+                    <a href="../tools.html">All Tools</a>
+                    <a href="#">Report Issue</a>
+                </nav>
+            </div>
+        </footer>
+    </div>
+
+    <script src="../js/shared.js"></script>
+    <script>
+        // ============================================
+        // Logic
+        // ============================================
+
+        const inputArea = document.getElementById('inputArea');
+        const historyList = document.getElementById('historyList');
+        const selStatus = document.getElementById('selStatus');
+        const btnUndo = document.getElementById('btnUndo');
+        const btnRedo = document.getElementById('btnRedo');
+        
+        // Stats
+        const statWords = document.getElementById('statWords');
+        const statChars = document.getElementById('statChars');
+        const statLines = document.getElementById('statLines');
+
+        // State
+        let snapshots = []; 
+        let undoStack = [];
+        let redoStack = [];
+        const MAX_STACK = 50;
+
+        // Stop words for Title Case
+        const MINOR_WORDS = new Set(['a', 'an', 'the', 'and', 'but', 'or', 'nor', 'at', 'by', 'for', 'from', 'in', 'into', 'of', 'off', 'on', 'onto', 'out', 'over', 'up', 'with', 'to', 'as']);
+
+        // Init Listeners
+        inputArea.addEventListener('input', updateStats);
+        inputArea.addEventListener('mouseup', checkSelection);
+        inputArea.addEventListener('keyup', checkSelection);
+
+        // Keyboard Shortcuts for Undo/Redo
+        inputArea.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+                if (e.shiftKey) {
+                    // Ctrl+Shift+Z (Redo)
+                    e.preventDefault();
+                    performRedo();
+                } else {
+                    // Ctrl+Z (Undo) - Only prevent default if we actually have a custom history to undo
+                    if (undoStack.length > 0) {
+                        e.preventDefault();
+                        performUndo();
+                    }
+                }
+            }
+            else if ((e.ctrlKey || e.metaKey) && e.key === 'y') {
+                // Ctrl+Y (Redo)
+                e.preventDefault();
+                performRedo();
+            }
+        });
+
+        function updateStats() {
+            const text = inputArea.value;
+            statChars.textContent = text.length.toLocaleString();
+            statLines.textContent = text ? text.split(/\n/).length.toLocaleString() : 0;
+            const words = text.trim().split(/\s+/).filter(w => w.length > 0);
+            statWords.textContent = words.length.toLocaleString();
+        }
+
+        function checkSelection() {
+            if (inputArea.selectionStart !== inputArea.selectionEnd) {
+                selStatus.classList.add('active');
+            } else {
+                selStatus.classList.remove('active');
+            }
+        }
+
+        // --- Custom Undo/Redo System ---
+
+        function pushToUndo() {
+            const currentVal = inputArea.value;
+            // Don't push duplicates
+            if (undoStack.length > 0 && undoStack[undoStack.length - 1] === currentVal) return;
+            
+            undoStack.push(currentVal);
+            if (undoStack.length > MAX_STACK) undoStack.shift();
+            
+            // Clear redo stack on new action
+            redoStack = [];
+            updateUndoButtons();
+        }
+
+        function performUndo() {
+            if (undoStack.length === 0) return;
+
+            const current = inputArea.value;
+            redoStack.push(current);
+
+            const prev = undoStack.pop();
+            inputArea.value = prev;
+            
+            updateStats();
+            updateUndoButtons();
+        }
+
+        function performRedo() {
+            if (redoStack.length === 0) return;
+
+            const current = inputArea.value;
+            undoStack.push(current);
+
+            const next = redoStack.pop();
+            inputArea.value = next;
+
+            updateStats();
+            updateUndoButtons();
+        }
+
+        function updateUndoButtons() {
+            btnUndo.disabled = undoStack.length === 0;
+            btnRedo.disabled = redoStack.length === 0;
+        }
+
+        // --- Transformation Logic ---
+
+        function transform(type) {
+            const raw = inputArea.value;
+            if(!raw) return;
+
+            // 1. Save state BEFORE transforming
+            pushToUndo();
+
+            // 2. Perform Transform
+            const start = inputArea.selectionStart;
+            const end = inputArea.selectionEnd;
+            const hasSelection = start !== end;
+
+            if (hasSelection) {
+                const originalText = raw;
+                const selectedText = originalText.substring(start, end);
+                const transformed = applyTransform(selectedText, type);
+                inputArea.value = originalText.substring(0, start) + transformed + originalText.substring(end);
+                inputArea.setSelectionRange(start, start + transformed.length);
+            } else {
+                inputArea.value = applyTransform(raw, type);
+            }
+
+            updateStats();
+        }
+
+        function applyTransform(text, type) {
+            if(!text) return '';
+            switch(type) {
+                case 'upper': return text.toUpperCase();
+                case 'lower': return text.toLowerCase();
+                case 'title': return toTitleCase(text);
+                case 'sentence': return toSentenceCase(text);
+                case 'camel': return toCamelCase(text);
+                case 'snake': return toDelimitedCase(text, '_');
+                case 'kebab': return toDelimitedCase(text, '-');
+                case 'constant': return toDelimitedCase(text, '_').toUpperCase();
+                default: return text;
+            }
+        }
+
+        // --- Algos ---
+        function toTitleCase(str) {
+            let isFirstWord = true;
+            return str.replace(/\w\S*/g, (txt) => {
+                if (isFirstWord) {
+                    isFirstWord = false;
+                    return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
+                }
+                if (MINOR_WORDS.has(txt.toLowerCase())) return txt.toLowerCase();
+                return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
+            });
+        }
+
+        function toSentenceCase(str) {
+            // Lowercase everything first, then capitalize after sentence boundaries
+            return str.toLowerCase().replace(/(^\s*\w|[.!?]\s+\w)/g, (match) => match.toUpperCase());
+        }
+
+        function toCamelCase(str) {
+            return str.replace(/(?:^\w|[A-Z]|\b\w)/g, (word, index) => index === 0 ? word.toLowerCase() : word.toUpperCase()).replace(/\s+/g, '').replace(/[^a-zA-Z0-9]/g, ''); 
+        }
+
+        function toDelimitedCase(str, delimiter) {
+            const matches = str.match(/[A-Z]{2,}(?=[A-Z][a-z]+[0-9]*|\b)|[A-Z]?[a-z]+[0-9]*|[A-Z]|[0-9]+/g);
+            if (!matches) return str; // Return original if no word characters found
+            return matches.map(x => x.toLowerCase()).join(delimiter);
+        }
+
+        // --- Snapshot History ---
+        function saveToHistory() {
+            const text = inputArea.value;
+            if(!text || !text.trim()) return;
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            snapshots.unshift({ text, time: timeStr });
+            if (snapshots.length > 5) snapshots.pop();
+            renderHistory();
+        }
+
+        function renderHistory() {
+            if (snapshots.length === 0) {
+                historyList.innerHTML = '<div style="font-size: 0.8125rem; color: var(--text-muted); text-align: center; padding: 10px;">No snapshots saved.</div>';
+                return;
+            }
+            historyList.innerHTML = snapshots.map((snap, index) => `
+                <div class="history-item" onclick="loadSnapshot(${index})">
+                    <div class="history-meta">
+                        <span>${snap.time}</span>
+                        <span>Restore ↺</span>
+                    </div>
+                    <div class="history-preview">${snap.text.substring(0, 40)}${snap.text.length > 40 ? '...' : ''}</div>
+                </div>
+            `).join('');
+        }
+
+        function loadSnapshot(index) {
+            if (snapshots[index]) {
+                // Save current state to undo stack before restoring snapshot
+                pushToUndo();
+                inputArea.value = snapshots[index].text;
+                updateStats();
+            }
+        }
+
+        // --- Utility ---
+        function copyText() {
+            if(!inputArea.value) return;
+            navigator.clipboard.writeText(inputArea.value);
+        }
+
+        function clearText() {
+            pushToUndo(); // Save before clearing
+            inputArea.value = '';
+            updateStats();
+            selStatus.classList.remove('active');
+            inputArea.focus();
+        }
+    </script>
+</body>
+</html>
