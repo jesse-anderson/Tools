@@ -87,6 +87,26 @@
             font-weight: 600;
         }
 
+        .clear-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8125rem;
+            border: 1px solid var(--border-color);
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+
+        .clear-btn:hover {
+            border-color: #ef4444;
+            color: #ef4444;
+        }
+
         /* Converter Grid */
         .converter-input-grid {
             display: grid;
@@ -152,6 +172,30 @@
 
         .base-input::placeholder { color: var(--text-muted); opacity: 0.5; }
 
+        /* Binary uses textarea for wrapping */
+        .base-textarea {
+            width: 100%;
+            background: transparent;
+            border: none;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1rem;
+            color: var(--text-primary);
+            outline: none;
+            resize: none;
+            line-height: 1.5;
+            min-height: 1.5em;
+            max-height: 6em;
+            overflow-y: auto;
+        }
+
+        .base-textarea::placeholder { color: var(--text-muted); opacity: 0.5; }
+
+        .base-prefix {
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--accent-engineering);
+            flex-shrink: 0;
+        }
+
         .copy-btn {
             background: var(--bg-card);
             border: 1px solid var(--border-color);
@@ -164,6 +208,7 @@
             justify-content: center;
             cursor: pointer;
             transition: all 0.2s;
+            flex-shrink: 0;
         }
 
         .copy-btn:hover {
@@ -344,7 +389,7 @@
                     <div class="arch-toolbar">
                         <div class="control-group">
                             <span class="control-label">Word Size</span>
-                            <div class="toggle-group">
+                            <div class="toggle-group" id="width-toggles">
                                 <button class="toggle-btn" onclick="setMode('width', 'auto')">Auto</button>
                                 <button class="toggle-btn" onclick="setMode('width', 16)">16-bit</button>
                                 <button class="toggle-btn active" onclick="setMode('width', 32)">32-bit</button>
@@ -353,10 +398,19 @@
                         </div>
                         <div class="control-group">
                             <span class="control-label">Endianness</span>
-                            <div class="toggle-group">
+                            <div class="toggle-group" id="endian-toggles">
                                 <button class="toggle-btn active" onclick="setMode('endian', 'BE')">Big Endian (BE)</button>
                                 <button class="toggle-btn" onclick="setMode('endian', 'LE')">Little Endian (LE)</button>
                             </div>
+                        </div>
+                        <div class="control-group" style="margin-left: auto;">
+                            <span class="control-label">&nbsp;</span>
+                            <button class="clear-btn" onclick="clearAll()">
+                                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                                </svg>
+                                Clear
+                            </button>
                         </div>
                     </div>
 
@@ -382,9 +436,25 @@
                                 <span class="base-label">Hexadecimal <span class="base-badge">Base 16</span></span>
                             </div>
                             <div class="base-input-wrapper">
-                                <span style="font-family: 'JetBrains Mono'; color: var(--accent-engineering);">0x</span>
+                                <span class="base-prefix">0x</span>
                                 <input type="text" class="base-input" id="input-hex" placeholder="00 00 00 00" spellcheck="false" autocomplete="off">
                                 <button class="copy-btn" onclick="copyValue('input-hex')" title="Copy">
+                                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="base-card" id="card-oct">
+                            <div class="base-header">
+                                <span class="base-label">Octal <span class="base-badge">Base 8</span></span>
+                            </div>
+                            <div class="base-input-wrapper">
+                                <span class="base-prefix">0o</span>
+                                <input type="text" class="base-input" id="input-oct" placeholder="0" spellcheck="false" autocomplete="off">
+                                <button class="copy-btn" onclick="copyValue('input-oct')" title="Copy">
                                     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
                                         <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
                                         <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
@@ -398,7 +468,8 @@
                                 <span class="base-label">Binary <span class="base-badge">Base 2</span></span>
                             </div>
                             <div class="base-input-wrapper">
-                                <input type="text" class="base-input" id="input-bin" placeholder="0" spellcheck="false" autocomplete="off">
+                                <span class="base-prefix">0b</span>
+                                <textarea class="base-textarea" id="input-bin" placeholder="00000000 00000000 00000000 00000000" spellcheck="false" autocomplete="off" rows="1"></textarea>
                                 <button class="copy-btn" onclick="copyValue('input-bin')" title="Copy">
                                     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
                                         <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
@@ -425,6 +496,7 @@
                                 <li><strong>Word Size:</strong> Endian swapping requires a fixed word size (e.g. 32-bit). In "Auto" mode, Endianness is ignored (defaults to Big Endian).</li>
                                 <li><strong>Signedness:</strong> This tool treats all inputs as Unsigned Integers. Negative inputs will be parsed as positive magnitudes.</li>
                                 <li><strong>Truncation:</strong> Inputting a value larger than the selected Word Size will result in high-byte truncation.</li>
+                                <li><strong>Octal:</strong> Octal representation is not affected by endianness (it represents the abstract value, like Decimal).</li>
                             </ul>
                             <p class="disclaimer-footer">
                                 PROVIDED "AS IS" WITH NO WARRANTY. ALWAYS VERIFY MEMORY ALIGNMENT IN DATASHEETS.
@@ -444,14 +516,14 @@
                             </svg>
                             Byte Visualizer (LSB)
                         </h3>
-                        <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 12px;">Lowest byte status</div>
+                        <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 12px;">Lowest byte of abstract value</div>
                         
                         <div class="bit-labels">
                             <span>7</span><span>6</span><span>5</span><span>4</span>
                             <span>3</span><span>2</span><span>1</span><span>0</span>
                         </div>
                         <div class="bit-grid" id="bit-grid">
-                            </div>
+                        </div>
                     </div>
 
                     <div class="sidebar-card">
@@ -509,6 +581,7 @@
         const inputs = {
             dec: document.getElementById('input-dec'),
             hex: document.getElementById('input-hex'),
+            oct: document.getElementById('input-oct'),
             bin: document.getElementById('input-bin')
         };
         const bitGrid = document.getElementById('bit-grid');
@@ -525,10 +598,14 @@
                 bitGrid.appendChild(bit);
             }
 
-            // Bind Inputs
+            // Bind Inputs with validation regex
             bindInput('dec', /[^0-9]/g);
-            bindInput('hex', /[^0-9A-Fa-f\s]/g); // Allow spaces in hex
-            bindInput('bin', /[^0-1\s]/g); // Allow spaces in bin
+            bindInput('hex', /[^0-9A-Fa-f\s]/g);
+            bindInput('oct', /[^0-7]/g);
+            bindInput('bin', /[^0-1\s]/g);
+
+            // Auto-resize binary textarea on input
+            inputs.bin.addEventListener('input', () => autoResizeTextarea(inputs.bin));
 
             updateModeUI();
         }
@@ -539,65 +616,62 @@
             
             // Re-evaluate current decimal value in new mode
             let currentDec = inputs.dec.value.replace(/[^0-9]/g, '');
-            if(currentDec) {
+            if (currentDec) {
                 try {
-                    updateAll(BigInt(currentDec), 'dec');
+                    let bigVal = BigInt(currentDec);
+                    // Apply mask for new width
+                    if (state.width !== 'auto') {
+                        const mask = (1n << BigInt(state.width)) - 1n;
+                        bigVal = bigVal & mask;
+                    }
+                    updateAll(bigVal, null);
                 } catch(e) {}
             }
         }
 
         function updateModeUI() {
-            // Update buttons
-            document.querySelectorAll('.toggle-btn').forEach(btn => {
-                // Heuristic to find which button corresponds to state
+            // Update width buttons
+            const widthToggles = document.getElementById('width-toggles');
+            Array.from(widthToggles.children).forEach(btn => {
                 const txt = btn.textContent.toLowerCase();
                 const isActive = (
                     (state.width === 'auto' && txt.includes('auto')) ||
                     (state.width === 16 && txt.includes('16')) ||
                     (state.width === 32 && txt.includes('32')) ||
-                    (state.width === 64 && txt.includes('64')) ||
-                    (state.endian === 'BE' && txt.includes('big')) ||
-                    (state.endian === 'LE' && txt.includes('little'))
+                    (state.width === 64 && txt.includes('64'))
                 );
-                
-                if (isActive) btn.classList.add('active');
-                else {
-                    // Only remove if it belongs to the same group
-                    if (btn.parentNode.querySelector('.active')) {
-                        // Check if this button is a sibling of an active one (same group)
-                        // This logic is simple: remove active from siblings
-                        // Actually, simpler: Just re-render strictly based on state
-                        btn.classList.remove('active');
-                        if (isActive) btn.classList.add('active');
-                    }
-                }
+                btn.classList.toggle('active', isActive);
             });
+
+            // Update endian buttons
+            const endianToggles = document.getElementById('endian-toggles');
+            const beBtn = endianToggles.children[0];
+            const leBtn = endianToggles.children[1];
 
             // Disable LE if Auto is selected (doesn't make sense)
             if (state.width === 'auto') {
-                state.endian = 'BE'; 
-                // Visually force BE active
-                const beBtn = document.querySelectorAll('.toggle-group')[1].children[0];
-                const leBtn = document.querySelectorAll('.toggle-group')[1].children[1];
+                state.endian = 'BE';
                 beBtn.classList.add('active');
                 leBtn.classList.remove('active');
                 leBtn.disabled = true;
                 leBtn.style.opacity = '0.5';
+                leBtn.style.cursor = 'not-allowed';
             } else {
-                const leBtn = document.querySelectorAll('.toggle-group')[1].children[1];
                 leBtn.disabled = false;
                 leBtn.style.opacity = '1';
+                leBtn.style.cursor = 'pointer';
+                beBtn.classList.toggle('active', state.endian === 'BE');
+                leBtn.classList.toggle('active', state.endian === 'LE');
             }
         }
 
         function bindInput(type, invalidRegex) {
             inputs[type].addEventListener('input', (e) => {
                 let val = e.target.value;
-                // Remove invalid chars
-                if (invalidRegex.test(val)) {
-                    val = val.replace(invalidRegex, '');
-                    e.target.value = val;
-                }
+                
+                // Remove invalid chars (always replace; don't use .test() with /g regex)
+                val = val.replace(invalidRegex, '');
+                if (val !== e.target.value) e.target.value = val;
                 
                 const cleanVal = val.replace(/\s/g, ''); // Remove spaces for parsing
                 if (cleanVal === '') {
@@ -607,25 +681,19 @@
 
                 try {
                     let bigIntVal;
+                    
                     if (type === 'dec') {
-                        // Decimal is always the "Value"
+                        // Decimal is always the abstract value
                         bigIntVal = BigInt(cleanVal);
+                    } else if (type === 'oct') {
+                        // Octal is always the abstract value (not byte-swapped)
+                        bigIntVal = BigInt('0o' + cleanVal);
                     } else if (type === 'hex') {
                         // Hex represents BYTES. If LE, we must swap them to get Value.
-                        // 1. Pad to full bytes if needed
-                        let hexStr = cleanVal;
-                        if (hexStr.length % 2 !== 0) hexStr = '0' + hexStr;
-                        
-                        // 2. If LE, reverse bytes
-                        if (state.endian === 'LE' && state.width !== 'auto') {
-                            hexStr = reverseHexBytes(hexStr, state.width / 8);
-                        }
-                        
-                        bigIntVal = BigInt('0x' + hexStr);
+                        bigIntVal = parseHexWithEndian(cleanVal);
                     } else if (type === 'bin') {
-                        bigIntVal = BigInt('0b' + cleanVal);
-                        // Binary swapping is rare but technically LE flips byte order
-                        // For simplicity in this tool, Bin follows Hex logic
+                        // Binary represents BYTES (like hex). If LE, swap bytes.
+                        bigIntVal = parseBinWithEndian(cleanVal);
                     }
 
                     // Mask to width
@@ -636,51 +704,165 @@
 
                     updateAll(bigIntVal, type);
                 } catch (err) {
-                    console.log(err);
+                    console.log('Parse error:', err);
                 }
             });
         }
 
+        function parseHexWithEndian(hexStr) {
+            // hexStr comes in with no spaces (caller does .replace(/\s/g,''))
+            if (hexStr.length === 0) return 0n;
+
+            // Normalize to whole bytes
+            if (hexStr.length % 2 !== 0) hexStr = '0' + hexStr;
+
+            // Split into bytes in the order the user typed (display order)
+            let bytes = [];
+            for (let i = 0; i < hexStr.length; i += 2) {
+                bytes.push(hexStr.slice(i, i + 2));
+            }
+
+            // If fixed width: pad/truncate as BYTES in the input's byte order
+            if (state.width !== 'auto') {
+                const byteCount = state.width / 8;
+
+                if (bytes.length > byteCount) {
+                    // Truncation:
+                    // - BE display order: keep least-significant bytes => keep last
+                    // - LE memory order: keep lowest-address bytes (LSB side) => keep first
+                    bytes = (state.endian === 'LE')
+                        ? bytes.slice(0, byteCount)
+                        : bytes.slice(-byteCount);
+                } else if (bytes.length < byteCount) {
+                    const pad = new Array(byteCount - bytes.length).fill('00');
+
+                    // Padding:
+                    // - BE display order: pad high bytes at the front
+                    // - LE memory order: pad high-address bytes at the end
+                    bytes = (state.endian === 'LE')
+                        ? bytes.concat(pad)
+                        : pad.concat(bytes);
+                }
+
+                // Convert from memory order (LE) to abstract big-endian byte order
+                if (state.endian === 'LE') {
+                    bytes = bytes.slice().reverse();
+                }
+            }
+
+            return BigInt('0x' + bytes.join(''));
+        }
+
+        function parseBinWithEndian(binStr) {
+            // binStr comes in with no spaces (caller does .replace(/\s/g,''))
+            if (binStr.length === 0) return 0n;
+
+            // Normalize to whole bytes
+            const remainder = binStr.length % 8;
+            if (remainder !== 0) {
+                binStr = '0'.repeat(8 - remainder) + binStr;
+            }
+
+            // Split into bytes in the order the user typed (display order)
+            let bytes = [];
+            for (let i = 0; i < binStr.length; i += 8) {
+                bytes.push(binStr.slice(i, i + 8));
+            }
+
+            // If fixed width: pad/truncate as BYTES in the input's byte order
+            if (state.width !== 'auto') {
+                const byteCount = state.width / 8;
+
+                if (bytes.length > byteCount) {
+                    // Truncation:
+                    // - BE display order: keep least-significant bytes => keep last
+                    // - LE memory order: keep lowest-address bytes (LSB side) => keep first
+                    bytes = (state.endian === 'LE')
+                        ? bytes.slice(0, byteCount)
+                        : bytes.slice(-byteCount);
+                } else if (bytes.length < byteCount) {
+                    const pad = new Array(byteCount - bytes.length).fill('00000000');
+
+                    // Padding:
+                    // - BE display order: pad high bytes at the front
+                    // - LE memory order: pad high-address bytes at the end
+                    bytes = (state.endian === 'LE')
+                        ? bytes.concat(pad)
+                        : pad.concat(bytes);
+                }
+
+                // Convert from memory order (LE) to abstract big-endian byte order
+                if (state.endian === 'LE') {
+                    bytes = bytes.slice().reverse();
+                }
+            }
+
+            return BigInt('0b' + bytes.join(''));
+        }
+
         function updateAll(value, skipType) {
-            // Value is the ABSTRACT numeric value (Big Endian logic)
+            // Value is the ABSTRACT numeric value (Big Endian interpretation)
             
             // 1. Update Decimal (Always abstract value)
             if (skipType !== 'dec') {
                 inputs.dec.value = value.toString(10);
             }
 
-            // 2. Prepare Hex/Bin strings
+            // 2. Update Octal (Always abstract value, not byte-swapped)
+            if (skipType !== 'oct') {
+                inputs.oct.value = value.toString(8);
+            }
+
+            // 3. Prepare Hex string
             let hexStr = value.toString(16).toUpperCase();
             if (hexStr.length % 2 !== 0) hexStr = '0' + hexStr;
 
             // Pad to width if fixed
             if (state.width !== 'auto') {
-                const targetChars = state.width / 4;
-                hexStr = hexStr.padStart(targetChars, '0');
+                const targetHexChars = state.width / 4;
+                hexStr = hexStr.padStart(targetHexChars, '0');
             }
 
-            // Swap if LE
+            // 4. Prepare Binary string
+            let binStr = value.toString(2);
+            
+            // Pad to width if fixed
+            if (state.width !== 'auto') {
+                binStr = binStr.padStart(state.width, '0');
+            } else {
+                // Pad to full bytes in auto mode
+                const remainder = binStr.length % 8;
+                if (remainder !== 0) {
+                    binStr = '0'.repeat(8 - remainder) + binStr;
+                }
+            }
+
+            // 5. Apply endian swap for display if LE
+            let displayHex = hexStr;
+            let displayBin = binStr;
+            
             if (state.endian === 'LE' && state.width !== 'auto') {
-                hexStr = reverseHexBytes(hexStr, state.width / 8);
+                displayHex = reverseHexBytes(hexStr, state.width / 8);
+                displayBin = reverseBinBytes(binStr, state.width / 8);
             }
 
-            // Format Hex (Add spaces)
+            // 6. Update fields with formatted display
             if (skipType !== 'hex') {
-                inputs.hex.value = formatHex(hexStr);
+                inputs.hex.value = formatHex(displayHex);
             }
 
-            // Binary (Simple view for now, usually follows value, but lets match hex)
             if (skipType !== 'bin') {
-                inputs.bin.value = value.toString(2);
+                inputs.bin.value = formatBin(displayBin);
+                autoResizeTextarea(inputs.bin);
             }
 
-            updateBits(value); // Always shows LSB of Value
+            updateBits(value);
         }
 
         function reverseHexBytes(hex, byteCount) {
             // Ensure full length for swapping
             const targetLength = byteCount * 2;
-            const padded = hex.padStart(targetLength, '0').slice(-targetLength); // Right align
+            const padded = hex.padStart(targetLength, '0').slice(-targetLength);
             
             const bytes = [];
             for (let i = 0; i < padded.length; i += 2) {
@@ -689,13 +871,35 @@
             return bytes.reverse().join('');
         }
 
+        function reverseBinBytes(bin, byteCount) {
+            // Ensure full length for swapping
+            const targetLength = byteCount * 8;
+            const padded = bin.padStart(targetLength, '0').slice(-targetLength);
+            
+            const bytes = [];
+            for (let i = 0; i < padded.length; i += 8) {
+                bytes.push(padded.substr(i, 8));
+            }
+            return bytes.reverse().join('');
+        }
+
         function formatHex(hex) {
-            // Add space every 2 chars
+            // Add space every 2 chars (byte separation)
             return hex.replace(/(.{2})/g, '$1 ').trim();
         }
 
+        function formatBin(bin) {
+            // Add space every 8 chars (byte separation)
+            return bin.replace(/(.{8})/g, '$1 ').trim();
+        }
+
+        function autoResizeTextarea(textarea) {
+            textarea.style.height = 'auto';
+            textarea.style.height = Math.min(textarea.scrollHeight, 144) + 'px'; // max 6em ~~ 144px
+        }
+
         function updateBits(value) {
-            // Always visualize the LSB of the VALUE
+            // Always visualize the LSB of the abstract VALUE
             const lowByte = Number(value & 0xFFn);
             const bits = bitGrid.children;
             for (let i = 0; i < 8; i++) {
@@ -716,26 +920,41 @@
         function toggleBit(index) {
             let currentVal = inputs.dec.value === '' ? 0n : BigInt(inputs.dec.value);
             const mask = 1n << BigInt(index);
-            if ((currentVal & mask) !== 0n) currentVal = currentVal & ~mask;
-            else currentVal = currentVal | mask;
+            
+            if ((currentVal & mask) !== 0n) {
+                currentVal = currentVal & ~mask;
+            } else {
+                currentVal = currentVal | mask;
+            }
             
             if (state.width !== 'auto') {
                 const widthMask = (1n << BigInt(state.width)) - 1n;
                 currentVal = currentVal & widthMask;
             }
 
-            updateAll(currentVal);
+            updateAll(currentVal, null);
         }
 
         function setDecimal(val) {
-            const bigVal = BigInt(val);
-            updateAll(bigVal);
+            let bigVal = BigInt(val);
+            
+            // Apply mask for current width
+            if (state.width !== 'auto') {
+                const mask = (1n << BigInt(state.width)) - 1n;
+                bigVal = bigVal & mask;
+            }
+            
+            updateAll(bigVal, null);
         }
 
-        function clearAll(skipType) {
+        function clearAll(skipType = null) {
             if (skipType !== 'dec') inputs.dec.value = '';
             if (skipType !== 'hex') inputs.hex.value = '';
-            if (skipType !== 'bin') inputs.bin.value = '';
+            if (skipType !== 'oct') inputs.oct.value = '';
+            if (skipType !== 'bin') {
+                inputs.bin.value = '';
+                autoResizeTextarea(inputs.bin);
+            }
             
             Array.from(bitGrid.children).forEach(b => {
                 b.classList.remove('active');
@@ -749,6 +968,16 @@
                 // Remove spaces for copy
                 const clean = input.value.replace(/\s/g, '');
                 navigator.clipboard.writeText(clean);
+                
+                // Visual feedback
+                const btn = input.parentElement.querySelector('.copy-btn');
+                const originalColor = btn.style.borderColor;
+                btn.style.borderColor = 'var(--accent-engineering)';
+                btn.style.color = 'var(--accent-engineering)';
+                setTimeout(() => {
+                    btn.style.borderColor = originalColor;
+                    btn.style.color = '';
+                }, 200);
             }
         }
 
