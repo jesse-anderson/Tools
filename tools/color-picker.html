@@ -540,30 +540,82 @@
             // Bind Native Picker
             nativePicker.addEventListener('input', (e) => {
                 const hex = e.target.value;
-                updateFromHex(hex);
+                // When user uses the native picker, we DO want to update the HEX input
+                updateFromHex(hex, { skipHexUpdate: false });
             });
 
             // Bind Hex Input
             hexInput.addEventListener('input', (e) => {
-                let hex = e.target.value.replace(/[^0-9A-Fa-f]/g, '');
+                const el = e.target;
+                const raw = el.value;
+
+                // Keep only hex digits and cap at 6
+                let hex = raw.replace(/[^0-9A-Fa-f]/g, '').toUpperCase();
+                if (hex.length > 6) hex = hex.slice(0, 6);
+
+                // Write back only if changed
+                if (hex !== raw) {
+                    const pos = el.selectionStart;
+                    el.value = hex;
+                    if (typeof pos === 'number') el.setSelectionRange(pos, pos);
+                }
+
                 if (hex.length === 6) {
-                    updateFromHex('#' + hex);
+                    updateFromHex('#' + hex, { skipHexUpdate: true });
                 }
             });
 
+
+            // Optional: on blur, normalize hex to uppercase to keep it clean. if problm, remove.
+            hexInput.addEventListener('blur', () => {
+            const hex = rgbToHex(state.r, state.g, state.b);
+            hexInput.value = hex.substring(1).toUpperCase();
+            });
+
+            hexInput.addEventListener('paste', (e) => {
+                const pasted = (e.clipboardData || window.clipboardData).getData('text') || '';
+                const m = pasted.match(/#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{3})/);
+                if (!m) return;
+
+                e.preventDefault();
+
+                let hex = m[1];
+                if (hex.length === 3) {
+                    hex = hex.split('').map(ch => ch + ch).join(''); // expand RGB -> RRGGBB
+                }
+
+                hex = hex.toUpperCase();
+                hexInput.value = hex;
+                updateFromHex('#' + hex, { skipHexUpdate: true });
+            });
             // Bind Sliders & Number Inputs
-            ['r', 'g', 'b'].forEach(key => {
-                sliders[key].addEventListener('input', (e) => {
-                    state[key] = parseInt(e.target.value);
-                    updateUIFromState();
-                });
-                inputs[key].addEventListener('input', (e) => {
-                    let val = parseInt(e.target.value);
-                    if (val < 0) val = 0;
-                    if (val > 255) val = 255;
-                    state[key] = val;
-                    updateUIFromState();
-                });
+            ['r', 'g', 'b'].forEach((key) => {
+            sliders[key].addEventListener('input', (e) => {
+                state[key] = parseInt(e.target.value, 10);
+                updateUIFromState();
+            });
+
+            inputs[key].addEventListener('input', (e) => {
+                // Handle empty string / NaN safely
+                if (e.target.value === '') return; // don't poison state while user is clearing/typing
+
+                let val = Number(e.target.value);
+                if (!Number.isFinite(val)) return;
+
+                val = Math.round(val);
+                if (val < 0) val = 0;
+                if (val > 255) val = 255;
+
+                state[key] = val;
+                updateUIFromState();
+            });
+
+            // Optional: on blur, if empty, snap to current state value. can remove if annoying.
+            inputs[key].addEventListener('blur', (e) => {
+                if (e.target.value === '') {
+                e.target.value = state[key];
+                }
+            });
             });
 
             // Initial Draw
@@ -571,33 +623,35 @@
         }
 
         // Logic
-        function updateFromHex(hex) {
+        function updateFromHex(hex, { skipHexUpdate = false } = {}) {
             const rgb = hexToRgb(hex);
-            if (rgb) {
-                state.r = rgb.r;
-                state.g = rgb.g;
-                state.b = rgb.b;
-                updateUIFromState(true); // true = skipHexUpdate to avoid cursor jumping
-            }
+            if (!rgb) return;
+
+            state.r = rgb.r;
+            state.g = rgb.g;
+            state.b = rgb.b;
+
+            // Only skip HEX updates when the SOURCE is the hex input typing case
+            updateUIFromState(skipHexUpdate);
         }
 
         function updateUIFromState(skipHexUpdate = false) {
-            const {r, g, b} = state;
+            const { r, g, b } = state;
             const hex = rgbToHex(r, g, b);
             const hsl = rgbToHsl(r, g, b);
             const cmyk = rgbToCmyk(r, g, b);
 
-            // Update Swatch
+            // Update Swatch + Native Picker
             mainSwatch.style.backgroundColor = `rgb(${r},${g},${b})`;
             nativePicker.value = hex;
 
             // Update Hex Input
             if (!skipHexUpdate) {
-                hexInput.value = hex.substring(1).toUpperCase();
+            hexInput.value = hex.substring(1).toUpperCase();
             }
 
             // Update Sliders/Inputs
-            ['r', 'g', 'b'].forEach(key => {
+            ['r', 'g', 'b'].forEach((key) => {
                 sliders[key].value = state[key];
                 inputs[key].value = state[key];
             });
@@ -606,7 +660,9 @@
             outputs.rgb.textContent = `rgb(${r}, ${g}, ${b})`;
             outputs.hsl.textContent = `hsl(${hsl.h}, ${hsl.s}%, ${hsl.l}%)`;
             outputs.cmyk.textContent = `${cmyk.c}, ${cmyk.m}, ${cmyk.y}, ${cmyk.k}`;
-            outputs.css.textContent = `--color-var: ${hex};`;
+
+            // Keep this consistent with UI label (pick one):
+            outputs.css.textContent = `--color-primary: ${hex};`;
 
             // Update Sidebar
             updateContrast(r, g, b);
@@ -749,13 +805,50 @@
         // Copy Helper
         function copyText(id) {
             const text = document.getElementById(id).textContent;
-            navigator.clipboard.writeText(text).then(() => {
-                const btn = document.getElementById(id).nextElementSibling;
+            const btn = document.getElementById(id).nextElementSibling;
+
+            const flashCheck = () => {
                 const original = btn.innerHTML;
-                btn.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>`;
-                setTimeout(() => btn.innerHTML = original, 1000);
-            });
-        }
+                btn.innerHTML =
+                `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>`;
+                setTimeout(() => (btn.innerHTML = original), 1000);
+            };
+
+            // Prefer modern clipboard
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard
+                .writeText(text)
+                .then(flashCheck)
+                .catch(() => {
+                    // Fallback for unexpected permission blocks
+                    fallbackCopy(text, flashCheck);
+                });
+            } else {
+                // Fallback for file:// or non-HTTPS
+                fallbackCopy(text, flashCheck);
+            }
+            }
+
+            function fallbackCopy(text, onSuccess) {
+                const ta = document.createElement('textarea');
+                ta.value = text;
+                ta.setAttribute('readonly', '');
+                ta.style.position = 'fixed';
+                ta.style.left = '-9999px';
+                document.body.appendChild(ta);
+                ta.select();
+                try {
+                    if (document.execCommand('copy')) {
+                        onSuccess();
+                    }
+                } catch (e) {
+                    //show a toast or alert here
+                    // alert('Copy failed - please copy manually.');
+                } finally {
+                    document.body.removeChild(ta);
+                }
+                }
+
 
         init();
     </script>

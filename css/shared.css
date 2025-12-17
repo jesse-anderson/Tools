@@ -32,6 +32,12 @@
     --grid-color: rgba(255, 255, 255, 0.02);
     --link-color: #f8f8f8;
     --link-hover: #187bed;
+
+    --accent-biochemical: #de7010;
+    --accent-biochemical-dim: rgba(239, 68, 68, 0.15);
+
+    --accent-educational: #22c55e;
+    --accent-educational-dim: rgba(34, 197, 94, 0.15);
 }
 
 /* Light Theme */
@@ -64,6 +70,13 @@
     --grid-color: rgba(0, 0, 0, 0.03);
     --link-color: #60a5fa;
     --link-hover: #93c5fd;
+
+    --accent-biochemical: #de7010;
+    --accent-biochemical-dim: rgba(220, 38, 38, 0.12);
+
+    --accent-educational: #16a34a;
+    --accent-educational-dim: rgba(22, 163, 74, 0.12);
+
 }
 
 /* Reset & Base */
@@ -310,6 +323,15 @@ header {
     background: var(--accent-general);
 }
 
+.tool-card.biochemical::before {
+    background: var(--accent-biochemical);
+}
+
+.tool-card.educational::before {
+    background: var(--accent-educational);
+}
+
+
 .tool-card:hover {
     background: var(--bg-card-hover);
     border-color: var(--border-hover);
@@ -351,6 +373,16 @@ header {
 .tool-icon.general {
     background: var(--accent-general-dim);
     color: var(--accent-general);
+}
+
+.tool-icon.biochemical {
+    background: var(--accent-biochemical-dim);
+    color: var(--accent-biochemical);
+}
+
+.tool-icon.educational {
+    background: var(--accent-educational-dim);
+    color: var(--accent-educational);
 }
 
 .tool-status {
@@ -424,6 +456,14 @@ header {
 
 .category-indicator.general {
     background: var(--accent-general);
+}
+
+.category-indicator.biochemical {
+    background: var(--accent-biochemical);
+}
+
+.category-indicator.educational {
+    background: var(--accent-educational);
 }
 
 .category-title {
