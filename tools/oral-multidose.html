@@ -1,0 +1,3039 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Oral Multi-Dose Accumulation Simulator | Tools Hub</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* I actually did a really rough estimate of how much caffeine 
+        I was intaking in relation to half lives during my engineering program.
+        At the worst of it, which wasn't honestly that bad, it was 2 large cans
+        of Monster and a starbucks bottled coffee per day. This ends up being
+        240mg *2 + ~220 = ~700mg/day. 
+        I did it in MATLAB and it was very ugly. This is just a little tiny bit better.*/
+        /* TODO: References hell. Instead of getting this and that and writing it in my
+        notebook I need to actually cite everything in line with the text to backcheck
+        as needed any calculations. */
+/* ============================================
+   TOOLS HUB - SHARED STYLES (EMBEDDED)
+   ============================================ */
+:root {
+    --bg-primary: #0a0a0b;
+    --bg-secondary: #111113;
+    --bg-card: #18181b;
+    --bg-card-hover: #1f1f23;
+    --bg-input: #0f0f10;
+    --border-color: #27272a;
+    --border-hover: #3f3f46;
+    --text-primary: #fafafa;
+    --text-secondary: #a1a1aa;
+    --text-muted: #71717a;
+    --accent-pk: #10b981;
+    --accent-pk-dim: rgba(16, 185, 129, 0.15);
+    --accent-warning: #ea4008;
+    --accent-warning-dim: rgba(234, 179, 8, 0.15);
+    --accent-error: #ef4444;
+    --accent-error-dim: rgba(239, 68, 68, 0.15);
+    --accent-info: #06b6d4;
+    --accent-info-dim: rgba(6, 182, 212, 0.15);
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.5);
+    --grid-color: rgba(255, 255, 255, 0.02);
+}
+
+[data-theme="light"] {
+    --bg-primary: #f8f9fa;
+    --bg-secondary: #ffffff;
+    --bg-card: #ffffff;
+    --bg-card-hover: #f1f5f9;
+    --bg-input: #ffffff;
+    --border-color: #e2e8f0;
+    --border-hover: #cbd5e1;
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --text-muted: #94a3b8;
+    --accent-pk: #059669;
+    --accent-pk-dim: rgba(5, 150, 105, 0.12);
+    --accent-warning: #ea4008;
+    --accent-warning-dim: rgba(202, 138, 4, 0.12);
+    --accent-error: #dc2626;
+    --accent-error-dim: rgba(220, 38, 38, 0.12);
+    --accent-info: #0891b2;
+    --accent-info-dim: rgba(8, 145, 178, 0.12);
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07);
+    --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+    --grid-color: rgba(0, 0, 0, 0.03);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    font-family: 'Space Grotesk', sans-serif;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    min-height: 100vh;
+    line-height: 1.6;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+body::before {
+    content: '';
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background-image: 
+        linear-gradient(var(--grid-color) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+    background-size: 50px 50px;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.container {
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: 0 24px;
+    position: relative;
+    z-index: 1;
+}
+
+h1 { font-size: 2rem; font-weight: 700; letter-spacing: -0.02em; }
+h2 { font-size: 1.25rem; font-weight: 600; letter-spacing: -0.01em; }
+h3 { font-size: 1.125rem; font-weight: 600; letter-spacing: -0.01em; }
+.mono { font-family: 'JetBrains Mono', monospace; }
+
+header {
+    padding: 32px 0 24px;
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 32px;
+}
+
+.header-content {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 24px;
+    flex-wrap: wrap;
+}
+
+.back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition: color 0.15s;
+}
+.back-link:hover { color: var(--accent-pk); }
+.back-link svg { width: 16px; height: 16px; }
+
+.tool-icon-header {
+    width: 48px; height: 48px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.tagline {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    letter-spacing: 0.05em;
+    margin-top: 4px;
+}
+
+.theme-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 6px;
+}
+
+.theme-toggle button {
+    width: 32px; height: 32px;
+    border: none;
+    background: transparent;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    transition: all 0.15s ease;
+}
+
+.theme-toggle button:hover { color: var(--text-primary); background: var(--bg-card); }
+.theme-toggle button.active { background: var(--accent-pk); color: var(--bg-primary); }
+.theme-toggle button svg { width: 18px; height: 18px; }
+
+/* Main Layout */
+.simulator-layout {
+    display: grid;
+    grid-template-columns: 400px 1fr;
+    gap: 24px;
+    min-height: calc(100vh - 250px);
+}
+
+.panel {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 24px;
+}
+
+.panel-header {
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border-color);
+}
+.panel-header h2 { font-size: 1.125rem; margin-bottom: 4px; }
+.panel-header p { color: var(--text-secondary); font-size: 0.85rem; }
+
+/* Form Elements */
+.input-group { margin-bottom: 16px; }
+
+.input-group label {
+    display: block;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+    font-weight: 600;
+}
+
+.main-input, .main-select {
+    width: 100%;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 10px 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.9rem;
+    color: var(--text-primary);
+    outline: none;
+    transition: border-color 0.2s;
+}
+.main-input:focus, .main-select:focus { border-color: var(--accent-pk); }
+.main-input:disabled, .main-select:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.input-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.input-row-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+}
+
+/* Mode Cards */
+.mode-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.mode-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+}
+.mode-card:hover { border-color: var(--accent-pk); background: var(--bg-card); }
+.mode-card.active { border-color: var(--accent-pk); background: var(--accent-pk-dim); }
+.mode-card input { display: none; }
+.mode-title { font-size: 0.75rem; font-weight: 700; color: var(--text-primary); display: block; }
+.mode-desc { font-size: 0.65rem; color: var(--text-muted); line-height: 1.3; display: block; margin-top: 2px; }
+
+/* Dose Form Cards */
+.doseform-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+/* Section Dividers */
+.section-divider {
+    border-top: 1px dashed var(--border-color);
+    margin: 20px 0 16px;
+    padding-top: 16px;
+}
+
+.section-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+}
+
+/* Collapsible Sections */
+.collapsible-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    padding: 10px 12px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    margin-bottom: 12px;
+    transition: all 0.2s;
+}
+.collapsible-header:hover { border-color: var(--border-hover); }
+.collapsible-header .icon { transition: transform 0.2s; }
+.collapsible-header.open .icon { transform: rotate(90deg); }
+.collapsible-header span { font-size: 0.8rem; font-weight: 600; }
+
+.collapsible-content {
+    display: none;
+    padding: 12px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    margin-bottom: 16px;
+}
+.collapsible-content.open { display: block; }
+
+/* Buttons */
+.btn {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    padding: 10px 16px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+.btn:hover { background: var(--bg-card-hover); border-color: var(--border-hover); color: var(--text-primary); }
+
+.btn-primary {
+    background: var(--accent-pk);
+    border-color: var(--accent-pk);
+    color: var(--bg-primary);
+    font-weight: 600;
+}
+.btn-primary:hover { opacity: 0.9; background: var(--accent-pk); border-color: var(--accent-pk); color: var(--bg-primary); }
+
+.btn-sm {
+    padding: 6px 10px;
+    font-size: 0.7rem;
+}
+
+/* Disclaimer Box */
+.disclaimer-box {
+    background: var(--accent-warning-dim);
+    border: 1px solid var(--accent-warning);
+    border-left: 4px solid var(--accent-warning);
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 20px;
+}
+.disclaimer-title {
+    color: var(--accent-warning);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    letter-spacing: 0.05em;
+}
+.disclaimer-text { font-size: 0.75rem; color: var(--text-secondary); line-height: 1.5; }
+.disclaimer-text strong { color: var(--text-primary); }
+
+/* Non-oral Warning Banner */
+.non-oral-banner {
+    display: none;
+    background: var(--accent-error-dim);
+    border: 1px solid var(--accent-error);
+    border-radius: 6px;
+    padding: 10px 14px;
+    margin-bottom: 16px;
+    font-size: 0.75rem;
+    color: var(--accent-error);
+    font-weight: 600;
+    text-align: center;
+}
+.non-oral-banner.visible { display: block; }
+
+/* Plot Container */
+.plot-container {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 20px;
+    height: 400px;
+    position: relative;
+    position: relative;
+}
+
+#pkPlot {
+    width: 100%;
+    height: 100%;
+}
+
+.plot-legend {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-top: 12px;
+    font-size: 0.75rem;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.legend-color {
+    width: 16px;
+    height: 3px;
+    border-radius: 2px;
+}
+
+/* Metrics Panel */
+.metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+    margin-top: 20px;
+}
+
+.metric-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 14px;
+}
+
+.metric-label {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    margin-bottom: 4px;
+}
+
+.metric-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--accent-pk);
+}
+
+.metric-unit {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-weight: 400;
+    margin-left: 4px;
+}
+
+.metric-hint {
+    font-size: 0.6rem;
+    color: var(--text-muted);
+    margin-top: 4px;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+/* Elimination Timeline Metrics */
+.elimination-metrics {
+    margin-top: 8px;
+}
+
+.elim-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.elim-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.elim-icon {
+    font-size: 1.5rem;
+    opacity: 0.8;
+}
+
+.elim-content {
+    flex: 1;
+}
+
+.elim-label {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+}
+
+.elim-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--accent-pk);
+}
+
+/* Plot Hover Tooltip */
+.plot-tooltip {
+    position: absolute;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 10px 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    pointer-events: none;
+    z-index: 100;
+    box-shadow: var(--shadow-md);
+    opacity: 0;
+    transition: opacity 0.15s ease;
+    max-width: 220px;
+}
+
+.plot-tooltip.visible {
+    opacity: 1;
+}
+
+.tooltip-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 4px;
+}
+
+.tooltip-row:last-child {
+    margin-bottom: 0;
+}
+
+.tooltip-label {
+    color: var(--text-muted);
+}
+
+.tooltip-value {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.tooltip-value.highlight {
+    color: var(--accent-pk);
+}
+
+.tooltip-datetime {
+    color: var(--accent-info);
+    font-size: 0.7rem;
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px dashed var(--border-color);
+}
+
+.tooltip-range {
+    color: var(--text-muted);
+    font-size: 0.7rem;
+    margin-top: 4px;
+    opacity: 0.8;
+}
+
+/* Event Editor */
+.event-list {
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    margin-bottom: 12px;
+}
+
+.event-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border-color);
+    font-size: 0.75rem;
+    font-family: 'JetBrains Mono', monospace;
+}
+.event-item:last-child { border-bottom: none; }
+.event-item:hover { background: var(--bg-card-hover); }
+
+.event-type {
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.65rem;
+    font-weight: 600;
+}
+.event-type.missed { background: var(--accent-error-dim); color: var(--accent-error); }
+.event-type.late { background: var(--accent-warning-dim); color: var(--accent-warning); }
+.event-type.early { background: var(--accent-info-dim); color: var(--accent-info); }
+.event-type.double { background: var(--accent-pk-dim); color: var(--accent-pk); }
+
+.event-remove {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 4px;
+}
+.event-remove:hover { color: var(--accent-error); }
+
+/* Educational Dropdown */
+.dropdown-container {
+    margin-top: 24px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--bg-card);
+    overflow: hidden;
+}
+
+.dropdown-header {
+    padding: 16px;
+    background: var(--bg-secondary);
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: 600;
+    font-family: 'Space Grotesk';
+}
+.dropdown-header:hover { background: var(--bg-card-hover); }
+
+.dropdown-content {
+    padding: 24px;
+    display: none;
+    font-size: 0.875rem;
+    line-height: 1.7;
+    color: var(--text-secondary);
+    border-top: 1px solid var(--border-color);
+}
+.dropdown-content.open { display: block; }
+
+.dropdown-content h3 {
+    color: var(--text-primary);
+    margin: 24px 0 12px;
+    font-size: 1rem;
+}
+.dropdown-content h3:first-child { margin-top: 0; }
+
+.dropdown-content h4 {
+    color: var(--text-primary);
+    margin: 16px 0 8px;
+    font-size: 0.9rem;
+}
+
+.math-block {
+    background: var(--bg-primary);
+    border-left: 3px solid var(--accent-pk);
+    padding: 12px 16px;
+    margin: 12px 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+    color: var(--text-primary);
+    overflow-x: auto;
+}
+
+.variable { color: var(--accent-pk); font-weight: bold; }
+
+.reference-list {
+    margin-top: 16px;
+    padding-left: 20px;
+}
+.reference-list li {
+    margin-bottom: 8px;
+    font-size: 0.8rem;
+}
+.reference-list a {
+    color: var(--accent-info);
+    text-decoration: none;
+}
+.reference-list a:hover { text-decoration: underline; }
+
+/* Canvas Styles */
+canvas {
+    display: block;
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: var(--bg-secondary); }
+::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--border-hover); }
+
+/* Footer */
+footer {
+    border-top: 1px solid var(--border-color);
+    padding: 24px 0;
+    margin-top: 48px;
+}
+
+.footer-text {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-align: center;
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+    .simulator-layout { grid-template-columns: 1fr; }
+    .plot-container { height: 350px; }
+}
+
+@media (max-width: 768px) {
+    .mode-container, .doseform-container { grid-template-columns: 1fr; }
+    .input-row, .input-row-3 { grid-template-columns: 1fr; }
+    .metrics-grid { grid-template-columns: 1fr 1fr; }
+    .elim-grid { grid-template-columns: 1fr; }
+}
+
+/* Preset info badge */
+.preset-info {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    margin-top: 4px;
+    font-style: italic;
+}
+
+.preset-ref {
+    color: var(--accent-info);
+    text-decoration: none;
+    font-size: 0.65rem;
+}
+.preset-ref:hover { text-decoration: underline; }
+
+/* Range inputs for uncertainty */
+.range-input-group {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 8px;
+    align-items: center;
+}
+.range-input-group .range-sep {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+}
+.range-input-group input {
+    padding: 8px 10px;
+    font-size: 0.8rem;
+}
+
+/* Checkbox toggle */
+.checkbox-toggle {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    padding: 10px 12px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    margin-bottom: 12px;
+}
+.checkbox-toggle input { width: 16px; height: 16px; accent-color: var(--accent-pk); }
+.checkbox-toggle span { font-size: 0.8rem; font-weight: 600; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <div class="header-left">
+                    <a href="../tools.html" class="back-link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="19" y1="12" x2="5" y2="12"/>
+                            <polyline points="12 19 5 12 12 5"/>
+                        </svg>
+                        Back to Tools
+                    </a>
+                </div>
+                <div class="header-right">
+                    <div class="theme-toggle">
+                        <button data-theme-toggle="light" title="Light mode">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+                            </svg>
+                        </button>
+                        <button data-theme-toggle="dark" title="Dark mode">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div style="margin-top: 24px; display: flex; align-items: center; gap: 16px;">
+                <div class="tool-icon-header" style="background: var(--accent-pk-dim); color: var(--accent-pk); border: 1px solid var(--accent-pk);">
+                    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+                    </svg>
+                </div>
+                <div>
+                    <h1>Oral Multi-Dose Simulator</h1>
+                    <p class="tagline">// ACCUMULATION • MISSED DOSE • PK MODELING</p>
+                </div>
+            </div>
+        </header>
+
+        <main>
+            <!-- Disclaimer -->
+            <div class="disclaimer-box">
+                <div class="disclaimer-title">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                    </svg>
+                    Educational Tool Only — Not Medical Advice
+                </div>
+                <div class="disclaimer-text">
+                    <p><strong>FOR EDUCATIONAL AND ENGINEERING EXPLORATION ONLY.</strong> This simulator is provided "as is" without warranty of any kind, express or implied, including but not limited to the warranties of merchantability, fitness for a particular purpose, accuracy, or non-infringement.</p>
+                    <p style="margin-top: 8px;"><strong>NO MEDICAL ADVICE:</strong> This tool does not provide medical advice, dosing guidance, clinical recommendations, or therapeutic suggestions. Outputs are based on simplified pharmacokinetic models using generalized population parameters and do not account for individual health status, organ function, age, weight, pregnancy, drug interactions, disease states, genetic polymorphisms, formulation differences, or other patient-specific factors that critically affect drug behavior.</p>
+                    <p style="margin-top: 8px;"><strong>LIMITATION OF LIABILITY:</strong> In no event shall the authors, developers, or distributors be liable for any direct, indirect, incidental, special, exemplary, or consequential damages (including, but not limited to, procurement of substitute goods or services, loss of use, data, or profits, or business interruption) however caused and on any theory of liability, whether in contract, strict liability, or tort (including negligence or otherwise) arising in any way out of the use of this software, even if advised of the possibility of such damage.</p>
+                    <p style="margin-top: 8px;"><strong>ASSUMPTION OF RISK:</strong> By using this tool, you acknowledge that you understand its limitations, accept all associated risks, and agree that you will not use it to make any decisions regarding medication dosing, timing, or administration. <strong>Always consult a qualified healthcare professional for any medical decisions.</strong></p>
+                </div>
+            </div>
+
+            <div class="simulator-layout">
+                <!-- Input Panel -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <h2>Input Parameters</h2>
+                        <p>Configure dosing regimen and PK parameters</p>
+                    </div>
+
+                    <!-- Preset Selection -->
+                     <!-- I'm stupid. Make sure to swap default using selected! -->
+                    <div class="input-group">
+                        <label>Preset</label>
+                        <select id="presetSelect" class="main-select" onchange="loadPreset()">
+                            <option value="custom">Custom Parameters</option>
+                            <option value="coffee" selected>Coffee (oral, IR, 1 cup)</option>
+                            <option value="caffeine">Caffeine (oral, IR, standard pill)</option>
+                            <option value="aspirin_ir">Aspirin → Salicylate (oral, IR/Chewable)</option>
+                            <option value="aspirin_ec">Aspirin → Salicylate (oral, Enteric-Coated)</option>
+                            <optgroup label="Comparators (Non-Oral)">
+                                <option value="tobacco">Tobacco (Smoke) - Nicotine Comparator</option>
+                            </optgroup>
+                        </select>
+                        <div id="presetInfo" class="preset-info"></div>
+                    </div>
+
+                    <!-- Non-oral Warning Banner -->
+                    <div id="nonOralBanner" class="non-oral-banner">
+                        NOT ORAL — Inhalation route shown for educational contrast only
+                    </div>
+
+                    <!-- Core Dosing Parameters -->
+                    <div class="section-title">Dosing Regimen</div>
+                    <div class="input-row">
+                        <div class="input-group">
+                            <label>Dose (mg)</label>
+                            <input type="number" id="dose" class="main-input" value="95" min="0" step="any">
+                        </div>
+                        <div class="input-group">
+                            <label>Interval τ (hours)</label>
+                            <input type="number" id="tau" class="main-input" value="4" min="0.1" step="any">
+                        </div>
+                    </div>
+
+                    <div class="input-row">
+                        <div class="input-group">
+                            <label>Number of Doses</label>
+                            <input type="number" id="numDoses" class="main-input" value="3" min="1" max="100">
+                        </div>
+                        <div class="input-group">
+                            <label>Simulation Duration (hrs)</label>
+                            <input type="number" id="simDuration" class="main-input" value="" placeholder="Auto from doses">
+                        </div>
+                    </div>
+
+                    <label class="checkbox-toggle" style="margin-top: 8px;">
+                        <input type="checkbox" id="extendElimination">
+                        <span>Extend graph to full elimination (~7 half-lives, 99% cleared)</span>
+                    </label>
+
+                    <!-- Dose Form -->
+                    <div class="section-divider"></div>
+                    <div class="section-title">Dose Form</div>
+                    <div class="doseform-container">
+                        <label class="mode-card active" id="card-IR" onclick="setDoseForm('IR')">
+                            <input type="radio" name="doseform" value="IR" checked>
+                            <span class="mode-title">IR</span>
+                            <span class="mode-desc">Immediate Release</span>
+                        </label>
+                        <label class="mode-card" id="card-Delayed" onclick="setDoseForm('Delayed')">
+                            <input type="radio" name="doseform" value="Delayed">
+                            <span class="mode-title">Delayed</span>
+                            <span class="mode-desc">Enteric-coated / Lag</span>
+                        </label>
+                        <label class="mode-card" id="card-ER" onclick="setDoseForm('ER')">
+                            <input type="radio" name="doseform" value="ER">
+                            <span class="mode-title">ER</span>
+                            <span class="mode-desc">Extended Release</span>
+                        </label>
+                    </div>
+
+                    <!-- Delayed/ER Options -->
+                    <div id="delayedOptions" style="display: none;">
+                        <div class="input-group">
+                            <label>Lag Time t<sub>lag</sub> (hours)</label>
+                            <input type="number" id="tLag" class="main-input" value="1" min="0" step="any">
+                        </div>
+                    </div>
+                    <div id="erOptions" style="display: none;">
+                        <div class="input-group">
+                            <label>Release Duration T<sub>rel</sub> (hours)</label>
+                            <input type="number" id="tRel" class="main-input" value="8" min="0.5" step="any">
+                        </div>
+                    </div>
+
+                    <!-- Parameter Entry Mode -->
+                    <div class="section-divider"></div>
+                    <div class="section-title">PK Parameter Entry Mode</div>
+                    <div class="mode-container">
+                        <label class="mode-card active" id="card-modeA" onclick="setParamMode('A')">
+                            <input type="radio" name="paramMode" value="A" checked>
+                            <span class="mode-title">Mode A</span>
+                            <span class="mode-desc">t½ + Bucket</span>
+                        </label>
+                        <label class="mode-card" id="card-modeB" onclick="setParamMode('B')">
+                            <input type="radio" name="paramMode" value="B">
+                            <span class="mode-title">Mode B</span>
+                            <span class="mode-desc">t½ + T<sub>max</sub></span>
+                        </label>
+                        <label class="mode-card" id="card-modeC" onclick="setParamMode('C')">
+                            <input type="radio" name="paramMode" value="C">
+                            <span class="mode-title">Mode C</span>
+                            <span class="mode-desc">t½ + k<sub>a</sub> (Expert)</span>
+                        </label>
+                    </div>
+
+                    <!-- Half-life (common to all modes) -->
+                    <div class="input-group">
+                        <label>Elimination Half-Life t<sub>½</sub> (hours)</label>
+                        <input type="number" id="halfLife" class="main-input" value="5" min="0.01" step="any">
+                    </div>
+
+                    <!-- Mode A: Absorption Bucket -->
+                    <div id="modeAInputs">
+                        <div class="input-group">
+                            <label>Absorption Speed (Bucket)</label>
+                            <select id="absorptionBucket" class="main-select">
+                                <option value="0.25">Very Fast (~minutes, 90% by 15 min)</option>
+                                <option value="0.5" selected>Fast (90% within 30 min)</option>
+                                <option value="1">Moderate (90% within 1 hour)</option>
+                                <option value="2">Slow (90% within 2 hours)</option>
+                                <option value="4">Very Slow (90% within 4 hours)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Mode B: Tmax -->
+                    <div id="modeBInputs" style="display: none;">
+                        <div class="input-group">
+                            <label>T<sub>max</sub> (hours)</label>
+                            <input type="number" id="tmax" class="main-input" value="0.5" min="0.01" step="any">
+                        </div>
+                        <div class="input-group">
+                            <label>T<sub>max</sub> measured from:</label>
+                            <select id="tmaxBasis" class="main-select">
+                                <option value="ingestion" selected>Ingestion time</option>
+                                <option value="absorption">Absorption onset (post-lag)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Mode C: Direct ka -->
+                    <div id="modeCInputs" style="display: none;">
+                        <div class="input-group">
+                            <label>Absorption Rate k<sub>a</sub> (1/hour)</label>
+                            <input type="number" id="kaInput" class="main-input" value="4.6" min="0.01" step="any">
+                        </div>
+                    </div>
+
+                    <!-- Advanced Options -->
+                    <div class="section-divider"></div>
+                    <div class="collapsible-header" onclick="toggleCollapsible('advancedOptions', this)">
+                        <svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="9 18 15 12 9 6"/>
+                        </svg>
+                        <span>Advanced Options</span>
+                    </div>
+                    <div id="advancedOptions" class="collapsible-content">
+                        <div class="input-group">
+                            <label>Bioavailability F (0-1)</label>
+                            <input type="number" id="bioavailability" class="main-input" value="1.0" min="0" max="1" step="0.01">
+                        </div>
+                        <div class="input-group">
+                            <label>Volume of Distribution V<sub>d</sub> (L) — optional for mg/L output</label>
+                            <input type="number" id="vd" class="main-input" value="" placeholder="Leave blank for amount (mg) only">
+                        </div>
+                        
+                        <div style="border-top: 1px dashed var(--border-color); margin: 16px 0; padding-top: 16px;">
+                            <label class="checkbox-toggle" style="margin-bottom: 12px;">
+                                <input type="checkbox" id="showRealTime">
+                                <span>Show real date/time axis</span>
+                            </label>
+                            <div id="realTimeOptions" style="display: none;">
+                                <div class="input-group">
+                                    <label>First Dose Date/Time</label>
+                                    <input type="datetime-local" id="firstDoseTime" class="main-input">
+                                </div>
+                                <p style="font-size: 0.7rem; color: var(--text-muted); margin-top: 4px;">
+                                    Graph will show actual clock time alongside simulation hours
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Event Editor -->
+                    <div class="collapsible-header" onclick="toggleCollapsible('eventEditor', this)">
+                        <svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="9 18 15 12 9 6"/>
+                        </svg>
+                        <span>Schedule Disruptions (Events)</span>
+                    </div>
+                    <div id="eventEditor" class="collapsible-content">
+                        <div class="event-list" id="eventList">
+                            <div style="padding: 12px; color: var(--text-muted); font-size: 0.75rem; text-align: center;">
+                                No disruptions added
+                            </div>
+                        </div>
+                        <div class="input-row-3" style="margin-bottom: 12px;">
+                            <div class="input-group" style="margin-bottom: 0;">
+                                <label>Dose #</label>
+                                <input type="number" id="eventDoseNum" class="main-input" value="3" min="1" style="padding: 8px;">
+                            </div>
+                            <div class="input-group" style="margin-bottom: 0;">
+                                <label>Type</label>
+                                <select id="eventType" class="main-select" style="padding: 8px;">
+                                    <option value="missed">Missed</option>
+                                    <option value="late">Late</option>
+                                    <option value="early">Early</option>
+                                    <option value="double">Double</option>
+                                </select>
+                            </div>
+                            <div class="input-group" style="margin-bottom: 0;">
+                                <label>Shift (hrs)</label>
+                                <input type="number" id="eventShift" class="main-input" value="2" step="0.5" style="padding: 8px;">
+                            </div>
+                        </div>
+                        <button class="btn btn-sm" onclick="addEvent()">+ Add Disruption</button>
+                    </div>
+
+                    <!-- Uncertainty Mode -->
+                    <div class="collapsible-header" onclick="toggleCollapsible('uncertaintyOptions', this)">
+                        <svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="9 18 15 12 9 6"/>
+                        </svg>
+                        <span>Uncertainty Analysis (Monte Carlo)</span>
+                    </div>
+                    <div id="uncertaintyOptions" class="collapsible-content">
+                        <label class="checkbox-toggle">
+                            <input type="checkbox" id="uncertaintyEnabled">
+                            <span>Enable Uncertainty Band</span>
+                        </label>
+                        <div id="uncertaintyInputs" style="display: none;">
+                            <div class="input-group">
+                                <label>t<sub>½</sub> Range (hours)</label>
+                                <div class="range-input-group">
+                                    <input type="number" id="halfLifeMin" class="main-input" value="3" step="any">
+                                    <span class="range-sep">to</span>
+                                    <input type="number" id="halfLifeMax" class="main-input" value="7" step="any">
+                                </div>
+                            </div>
+                            <div class="input-group">
+                                <label>Monte Carlo Samples</label>
+                                <input type="number" id="mcSamples" class="main-input" value="300" min="50" max="2000">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Run Button -->
+                    <div style="margin-top: 24px;">
+                        <button class="btn btn-primary" onclick="runSimulation()" style="width: 100%;">
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                                <polygon points="5 3 19 12 5 21 5 3"/>
+                            </svg>
+                            Run Simulation
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Results Panel -->
+                <div class="panel" style="display: flex; flex-direction: column;">
+                    <div class="panel-header">
+                        <h2>Simulation Results</h2>
+                        <p>Amount in central compartment over time</p>
+                    </div>
+
+                    <!-- Plot -->
+                    <div class="plot-container">
+                        <canvas id="pkPlot"></canvas>
+                        <div class="plot-tooltip" id="plotTooltip">
+                            <div class="tooltip-row">
+                                <span class="tooltip-label">Time:</span>
+                                <span class="tooltip-value" id="tooltipTime">—</span>
+                            </div>
+                            <div class="tooltip-row">
+                                <span class="tooltip-label" id="tooltipAmountLabel">Amount:</span>
+                                <span class="tooltip-value highlight" id="tooltipAmount">—</span>
+                            </div>
+                            <div class="tooltip-range" id="tooltipRange" style="display: none;">
+                                Range (10-90%): <span id="tooltipRangeValues">—</span>
+                            </div>
+                            <div class="tooltip-datetime" id="tooltipDatetime" style="display: none;">
+                                <span id="tooltipDatetimeValue">—</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="plot-legend" id="plotLegend">
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #10b981;"></div>
+                            <span>A<sub>c</sub>(t) — Amount (mg)</span>
+                        </div>
+                    </div>
+
+                    <!-- Metrics -->
+                    <div class="metrics-grid">
+                        <div class="metric-card">
+                            <div class="metric-label">A<sub>max</sub> (Peak)</div>
+                            <div class="metric-value" id="metricAmax">—<span class="metric-unit">mg</span></div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">A<sub>min</sub> (Trough)</div>
+                            <div class="metric-value" id="metricAmin">—<span class="metric-unit">mg</span></div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">T<sub>max</sub></div>
+                            <div class="metric-value" id="metricTmax">—<span class="metric-unit">hr</span></div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">Accumulation Ratio</div>
+                            <div class="metric-value" id="metricAccum">—</div>
+                            <div class="metric-hint">AUC<sub>τ,ss</sub> / AUC<sub>τ,1</sub></div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">Recovery Time</div>
+                            <div class="metric-value" id="metricRecovery">—</div>
+                            <div class="metric-hint">To within 5% of baseline</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">Steady-State?</div>
+                            <div class="metric-value" id="metricSteady">—</div>
+                            <div class="metric-hint">AUC<sub>τ</sub> stable ±5%</div>
+                        </div>
+                    </div>
+
+                    <!-- Elimination Time Metrics -->
+                    <div class="elimination-metrics">
+                        <div class="section-title" style="margin-top: 16px;">Elimination Timeline</div>
+                        <div class="elim-grid">
+                            <div class="elim-card">
+                                <div class="elim-icon">⏱️</div>
+                                <div class="elim-content">
+                                    <div class="elim-label">5 × t<sub>½</sub> (~97% eliminated)</div>
+                                    <div class="elim-value" id="metricT5hl">—</div>
+                                </div>
+                            </div>
+                            <div class="elim-card">
+                                <div class="elim-icon">⏱️</div>
+                                <div class="elim-content">
+                                    <div class="elim-label">7 × t<sub>½</sub> (~99% eliminated)</div>
+                                    <div class="elim-value" id="metricT7hl">—</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Derived Parameters Display -->
+                    <div style="margin-top: 20px; padding: 16px; background: var(--bg-secondary); border: 1px dashed var(--border-color); border-radius: 8px;">
+                        <div class="section-title" style="margin-bottom: 8px;">Derived Parameters</div>
+                        <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: var(--text-secondary); line-height: 1.8;">
+                            <div>k<sub>e</sub> = <span id="derivedKe">—</span> h⁻¹</div>
+                            <div>k<sub>a</sub> = <span id="derivedKa">—</span> h⁻¹</div>
+                            <div>F = <span id="derivedF">—</span></div>
+                            <div id="derivedVdLine" style="display: none;">V<sub>d</sub> = <span id="derivedVd">—</span> L</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+<!-- Educational Content -->
+<div class="dropdown-container">
+    <div class="dropdown-header" onclick="toggleDropdown('eduContent', this)">
+        <span>Model Background &amp; Equations</span>
+        <svg class="dropdown-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="6 9 12 15 18 9"/>
+        </svg>
+    </div>
+
+    <div class="dropdown-content" id="eduContent">
+        <h3>What is Accumulation?</h3>
+        <p>
+            When you take repeated doses of a drug, each new dose adds to what remains from previous doses.
+            If the dosing interval (τ) is short relative to the drug’s elimination half-life (t<sub>½</sub>),
+            the drug <strong>accumulates</strong> until it reaches a repeating (periodic) pattern.
+            In linear pharmacokinetics, that repeating pattern corresponds to a practical "steady state" where
+            <strong>the average rate of drug entering the body matches the average rate of drug leaving the body</strong>
+            <a href="#ref-mbe-1" class="preset-ref">[1]</a><a href="#ref-mbe-3" class="preset-ref">[3]</a>.
+        </p>
+
+        <p>
+            The key relationship: <strong>the degree of accumulation depends strongly on the relationship between τ and t<sub>½</sub></strong>.
+            Shorter intervals and/or longer half-lives generally mean more carryover from prior doses, hence more accumulation
+            <a href="#ref-mbe-3" class="preset-ref">[3]</a><a href="#ref-mbe-1" class="preset-ref">[1]</a>.
+        </p>
+
+        <h3>Key Metrics Explained</h3>
+
+        <h4>Accumulation Ratio (R)</h4>
+        <p>
+            The accumulation ratio is a compact way to describe how much overall exposure increases under repeated dosing.
+            This simulator uses an <strong>AUC-over-a-dosing-interval ratio</strong> form (AUC<sub>τ</sub>-based), consistent with common
+            reporting of AUC<sub>τ</sub> in multiple-dose settings
+            <a href="#ref-mbe-2" class="preset-ref">[2]</a>.
+        </p>
+
+        <div class="math-block">
+            <span class="variable">R</span> = AUC<sub>τ,ss</sub> / AUC<sub>τ,ref</sub>
+        </div>
+
+        <p>
+            Where AUC<sub>τ,ss</sub> is the area under the concentration-time curve over one full dosing interval at steady state,
+            and AUC<sub>τ,ref</sub> is the reference AUC<sub>τ</sub> used for comparison (commonly the first-dose interval or an early-dose interval,
+            depending on study/reporting convention)
+            <a href="#ref-mbe-2" class="preset-ref">[2]</a>.
+        </p>
+
+        <ul style="margin: 8px 0 16px 20px; font-size: 0.85rem;">
+            <li><strong>R = 1</strong>: No meaningful accumulation (interval exposure is similar across doses)</li>
+            <li><strong>R = 2</strong>: Interval exposure at steady state is 2× the reference interval exposure</li>
+            <li><strong>R &gt; 3</strong>: Substantial accumulation; often seen when t<sub>½</sub> is long relative to τ</li>
+        </ul>
+
+        <p>
+            <strong>Helpful intuition (exact for multiple IV bolus dosing; often a decent approximation when absorption is rapid vs elimination)</strong>:
+            the classic accumulation factor is
+            <a href="#ref-mbe-6" class="preset-ref">[6]</a>
+        </p>
+        <div class="math-block">
+            R<sub>classic</sub> = 1 / (1 − e<sup>−k<sub>e</sub>τ</sup>)
+        </div>
+        <p>
+            This is a closed-form result for repeated bolus input with first-order elimination; oral/extravascular cases can deviate when absorption is slow,
+            but the dependence on k<sub>e</sub> and τ remains the core driver of accumulation
+            <a href="#ref-mbe-6" class="preset-ref">[6]</a><a href="#ref-mbe-3" class="preset-ref">[3]</a>.
+        </p>
+
+        <h4>Steady State</h4>
+        <p>
+            Steady state is the practical condition where the concentration-time profile becomes <strong>periodic</strong> - each dosing interval
+            looks the same (up to small numerical tolerance), reflecting balance between average input and average output
+            <a href="#ref-mbe-1" class="preset-ref">[1]</a>.
+        </p>
+        <p>
+            Rule of thumb in linear pharmacokinetics: <strong>steady state is approached after approximately 4-5 half-lives</strong>
+            of repeated dosing (i.e., most of the eventual accumulation has occurred)
+            <a href="#ref-mbe-1" class="preset-ref">[1]</a>.
+        </p>
+        <p>
+            <strong>Implementation note:</strong> this simulator flags steady state numerically by comparing consecutive interval AUC<sub>τ</sub> values
+            and requiring the relative difference to fall below a tolerance (default: 5%). Because this is a tool definition rather than a universal
+            pharmacokinetic law, you should treat the 5% threshold as a configurable engineering criterion.
+        </p>
+
+        <h4>Recovery Time</h4>
+        <p>
+            When a schedule disruption occurs (missed dose, late dose, etc.), the concentration-time profile deviates from the ideal baseline.
+            <strong>Recovery time</strong> is defined here as the time required for the disrupted profile to return to within a specified tolerance
+            (default: 5%) of the undisrupted baseline using interval AUC<sub>τ</sub> comparison (AUC<sub>τ</sub> is a standard per-interval exposure metric)
+            <a href="#ref-mbe-2" class="preset-ref">[2]</a>.
+        </p>
+        <p>Specifically, this simulator measures recovery as the time from the disruption until the first complete dosing interval where:</p>
+        <div class="math-block">
+            |AUC<sub>τ,disrupted</sub> − AUC<sub>τ,baseline</sub>| / AUC<sub>τ,baseline</sub> ≤ 5%
+        </div>
+        <p>
+            Recovery is typically slower for longer half-life drugs because deviations decay more slowly under first-order elimination
+            <a href="#ref-mbe-3" class="preset-ref">[3]</a>.
+        </p>
+
+        <h4>Elimination Timeline (5 and 7 Half-Lives)</h4>
+        <p>
+            For first-order elimination, half-life means the amount declines by 50% each half-life.
+            Therefore the fraction remaining after n half-lives is (½)<sup>n</sup>
+            <a href="#ref-mbe-1" class="preset-ref">[1]</a>.
+        </p>
+        <ul style="margin: 8px 0 16px 20px; font-size: 0.85rem;">
+            <li><strong>5 × t<sub>½</sub></strong>: (½)<sup>5</sup> = 3.1% remaining → <strong>~97% eliminated</strong> <a href="#ref-mbe-1" class="preset-ref">[1]</a></li>
+            <li><strong>7 × t<sub>½</sub></strong>: (½)<sup>7</sup> = 0.78% remaining → <strong>~99% eliminated</strong> <a href="#ref-mbe-1" class="preset-ref">[1]</a></li>
+        </ul>
+        <p>
+            These are practical “washout intuition” benchmarks under first-order kinetics, not hard regulatory thresholds.
+        </p>
+
+        <h3>1-Compartment Model with First-Order Absorption</h3>
+        <p>
+            This simulator uses a standard one-compartment extravascular (oral) model that tracks an absorption-site amount and
+            a central-compartment amount under first-order absorption and first-order elimination
+            <a href="#ref-mbe-5" class="preset-ref">[5]</a>.
+            It tracks two state variables:
+        </p>
+        <ul style="margin: 12px 0 12px 20px;">
+            <li><strong>A<sub>g</sub>(t)</strong> — Amount at the absorption site (gut/depot), in mg</li>
+            <li><strong>A<sub>c</sub>(t)</strong> — Amount in the central compartment, in mg</li>
+        </ul>
+
+        <h4>Governing Differential Equations</h4>
+        <p>
+            Under first-order assumptions, absorption is proportional to A<sub>g</sub>(t), and elimination is proportional to A<sub>c</sub>(t)
+            <a href="#ref-mbe-5" class="preset-ref">[5]</a>:
+        </p>
+        <div class="math-block">
+            dA<sub>g</sub>/dt = −<span class="variable">k<sub>a</sub></span> · A<sub>g</sub><br>
+            dA<sub>c</sub>/dt = <span class="variable">F</span> · <span class="variable">k<sub>a</sub></span> · A<sub>g</sub> − <span class="variable">k<sub>e</sub></span> · A<sub>c</sub>
+        </div>
+        <p>Where:</p>
+        <ul style="margin: 8px 0 8px 20px; font-size: 0.85rem;">
+            <li><strong>k<sub>a</sub></strong> = absorption rate constant (h⁻¹)</li>
+            <li><strong>k<sub>e</sub></strong> = elimination rate constant (h⁻¹)</li>
+            <li><strong>F</strong> = bioavailability (fraction absorbed, 0–1)</li>
+        </ul>
+
+        <h4>Elimination Rate Constant</h4>
+        <p>
+            Under first-order elimination, the elimination rate constant relates to half-life as
+            <a href="#ref-mbe-5" class="preset-ref">[5]</a>:
+        </p>
+        <div class="math-block">
+            <span class="variable">k<sub>e</sub></span> = ln(2) / t<sub>½</sub> ≈ 0.693 / t<sub>½</sub>
+        </div>
+
+        <h4>T<sub>max</sub> Relationship (for k<sub>a</sub> solving)</h4>
+        <p>
+            For a single extravascular dose with first-order absorption and elimination (and no lag), the time to peak concentration (T<sub>max</sub>)
+            is
+            <a href="#ref-mbe-5" class="preset-ref">[5]</a>:
+        </p>
+        <div class="math-block">
+            T<sub>max</sub> = ln(k<sub>a</sub>/k<sub>e</sub>) / (k<sub>a</sub> − k<sub>e</sub>)  &nbsp;&nbsp;[requires k<sub>a</sub> &gt; k<sub>e</sub>]
+        </div>
+        <p>
+            If the user provides T<sub>max</sub> measured from ingestion and a lag time is enabled, the solver uses:<br>
+            <code style="background: var(--bg-primary); padding: 2px 6px; border-radius: 4px;">
+                T<sub>max,abs</sub> = T<sub>max,ing</sub> − t<sub>lag</sub>
+            </code>
+            (must be &gt; 0)
+        </p>
+
+        <h4>Absorption Bucket Mapping (Mode A)</h4>
+        <p>
+            The "bucket" approach defines how quickly 90% of the dose is absorbed using a first-order absorption fraction
+            <a href="#ref-mbe-5" class="preset-ref">[5]</a>:
+        </p>
+        <div class="math-block">
+            Fraction absorbed by time X: 1 − exp(−k<sub>a</sub> · X)<br>
+            Setting this = 0.90 and solving:<br>
+            <span class="variable">k<sub>a</sub></span> = −ln(1 − 0.90) / X = <strong>2.303 / X</strong>
+        </div>
+
+        <h4>Extended Release (ER) Approximation</h4>
+        <p>
+            ER formulations are approximated by splitting a single dose into N micro-doses uniformly spaced over the release duration
+            T<sub>rel</sub>. This approximates a more continuous input into the absorption site, but it is still an approximation
+            (discrete micro-dosing, not a true continuous zero-order release process).
+        </p>
+
+        <h3>Why V<sub>d</sub> is Optional</h3>
+        <p>
+            All calculations are performed in <strong>amount space (mg)</strong>. Concentration output (mg/L) requires dividing by the
+            apparent volume of distribution
+            <a href="#ref-mbe-5" class="preset-ref">[5]</a>:
+        </p>
+        <div class="math-block">
+            C(t) = A<sub>c</sub>(t) / V<sub>d</sub>
+        </div>
+        <p>
+            If you enter V<sub>d</sub>, the plot can show "Model concentration" — but this is derived from user-entered parameters,
+            not measured plasma values.
+        </p>
+
+        <h3>Aspirin Note: Modeling Salicylate</h3>
+        <p>
+            Intact acetylsalicylic acid (ASA) is rapidly converted to salicylate; in repeated-dose contexts, salicylate exposure is commonly the more
+            relevant analyte for persistence/accumulation intuition than intact ASA
+            <a href="#ref-mbe-7" class="preset-ref">[7]</a><a href="#ref-mbe-8" class="preset-ref">[8]</a>.
+        </p>
+
+        <h3>Assumptions &amp; Limitations (summary)</h3>
+        <ul style="margin: 12px 0 12px 20px;">
+            <li>Linear (first-order) kinetics — no saturable metabolism <a href="#ref-mbe-5" class="preset-ref">[5]</a></li>
+            <li>Single compartment — no distribution phase <a href="#ref-mbe-5" class="preset-ref">[5]</a></li>
+            <li>No drug interactions or disease effects (model does not change parameters dynamically)</li>
+            <li>Parameters represent population-level estimates (not patient-specific)</li>
+            <li>ER approximation uses discrete micro-doses, not true zero-order release</li>
+        </ul>
+
+        <h3>References</h3>
+        <ol class="reference-list">
+            <li id="ref-mbe-1">
+                <strong>[1]</strong> NCBI Bookshelf (StatPearls). <em>Pharmacokinetics</em>.
+                <a href="https://www.ncbi.nlm.nih.gov/books/NBK557405/" target="_blank">NCBI Bookshelf</a>
+            </li>
+
+            <li id="ref-mbe-2">
+                <strong>[2]</strong> U.S. FDA. <em>Clinical Pharmacology Review (Example: NDA 200327)</em> - includes explicit definition of
+                AUC<sub>τ</sub> and "Accumulation ratio" as an AUC<sub>τ</sub> ratio across dosing days.
+                <a href="https://www.accessdata.fda.gov/drugsatfda_docs/nda/2010/200327Orig1s000ClinPharmR.pdf" target="_blank">FDA PDF</a>
+            </li>
+
+            <li id="ref-mbe-3">
+                <strong>[3]</strong> Toutain PL, Bousquet-Mélou A. <em>Plasma terminal half-life</em>. J Vet Pharmacol Ther. 2004;27(6):427-439.
+                <a href="https://pubmed.ncbi.nlm.nih.gov/15601438/" target="_blank">PubMed</a>
+            </li>
+
+            <li id="ref-mbe-4">
+                <strong>[4]</strong> NCBI Bookshelf (StatPearls). <em>Half Life</em>.
+                <a href="https://www.ncbi.nlm.nih.gov/books/NBK554498/" target="_blank">NCBI Bookshelf</a>
+            </li>
+
+            <li id="ref-mbe-5">
+                <strong>[5]</strong> DTU (Technical University of Denmark). <em>PK/PD modelling</em> (course notes; 1-compartment oral model,
+                equations, t<sub>max</sub>, k<sub>e</sub>-half-life relationship).
+                <a href="https://orbit.dtu.dk/files/21085635/PKPD_modelling.pdf" target="_blank">PDF</a>
+            </li>
+
+            <li id="ref-mbe-6">
+                <strong>[6]</strong> Bourne, D. <em>Multiple IV Bolus Doses (Accumulation Factor)</em>.
+                <a href="http://www.boomer.org/c/p4/c14/c1401/c1401.pdf" target="_blank">Boomer.org PDF</a>
+            </li>
+
+            <li id="ref-mbe-7">
+                <strong>[7]</strong> Needs CJ, Brooks PM. <em>Clinical pharmacokinetics of the salicylates</em>. Clin Pharmacokinet. 1985;10(2):164-177.
+                <a href="https://pubmed.ncbi.nlm.nih.gov/3890202/" target="_blank">PubMed</a>
+            </li>
+
+            <li id="ref-mbe-8">
+                <strong>[8]</strong> Levy G. <em>Pharmacokinetics of salicylate in man</em>. Drug Metab Rev. 1979;9(1):3-19.
+                <a href="https://pubmed.ncbi.nlm.nih.gov/?term=Levy%20G%20Pharmacokinetics%20of%20salicylate%20in%20man%201979" target="_blank">PubMed search</a>
+            </li>
+        </ol>
+    </div>
+</div>
+
+
+
+<div class="dropdown-container">
+    <div class="dropdown-header" onclick="toggleDropdown('assumptionsContent', this)">
+        <span>Model Assumptions &amp; Limitations</span>
+        <svg class="dropdown-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="6 9 12 15 18 9"/>
+        </svg>
+    </div>
+
+    <div class="dropdown-content" id="assumptionsContent">
+        <h3>What This Model Does</h3>
+        <ul style="margin: 12px 0 12px 20px;">
+            <li>Simulates drug accumulation with repeat dosing using AUC-based interval comparisons <a href="#ref-assump-5" class="preset-ref">[A5]</a></li>
+            <li>Models first-order absorption from gut/depot to central compartment <a href="#ref-assump-3" class="preset-ref">[A3]</a><a href="#ref-assump-4" class="preset-ref">[A4]</a></li>
+            <li>Models first-order elimination from central compartment <a href="#ref-assump-2" class="preset-ref">[A2]</a></li>
+            <li>Handles schedule disruptions (missed, late, early, double doses)</li>
+            <li>Provides uncertainty bands via Monte Carlo sampling (parameter range sampling)</li>
+        </ul>
+
+        <h3>What This Model Does NOT Do</h3>
+        <ul style="margin: 12px 0 12px 20px;">
+            <li><strong>No medical recommendations</strong> — this is an educational tool only</li>
+
+            <li>
+                <strong>No nonlinear kinetics</strong> — cannot model saturable metabolism (Michaelis-Menten / capacity-limited clearance).
+                Drugs with saturable metabolism can show disproportionate exposure changes with dose (e.g., phenytoin)
+                <a href="#ref-assump-1" class="preset-ref">[A1]</a>.
+            </li>
+
+            <li>
+                <strong>No multi-compartment distribution</strong> — no peripheral compartments / distribution phase modeling
+                <a href="#ref-assump-4" class="preset-ref">[A4]</a>.
+            </li>
+
+            <li>
+                <strong>No protein binding</strong> — the simulator does not distinguish free (unbound) vs bound drug, even though unbound
+                concentration is often the driver of distribution and pharmacologic effect
+                <a href="#ref-assump-3" class="preset-ref">[A3]</a>.
+            </li>
+
+            <li>
+                <strong>No drug interactions</strong> — cannot model enzyme induction/inhibition or competitive displacement.
+                Many clinically relevant interactions occur via metabolism induction/inhibition and/or binding displacement
+                <a href="#ref-assump-1" class="preset-ref">[A1]</a>.
+            </li>
+
+            <li>
+                <strong>No individual variability</strong> — uses population-like parameters, not patient-specific physiology.
+            </li>
+        </ul>
+
+        <h3>When Outputs May Be Misleading</h3>
+        <ul style="margin: 12px 0 12px 20px;">
+            <li>
+                Drugs with saturable metabolism at therapeutic doses (e.g., phenytoin) <a href="#ref-assump-1" class="preset-ref">[A1]</a>
+                or cases where kinetics deviate from first-order (ethanol is a classic zero-order example) <a href="#ref-assump-2" class="preset-ref">[A2]</a>
+            </li>
+            <li>
+                Drugs with significant distribution phases (often better described by 2+ compartment models) <a href="#ref-assump-4" class="preset-ref">[A4]</a>
+            </li>
+            <li>
+                Enteric-coated / delayed-release formulations where absorption timing can be highly variable across people and conditions
+                (example context: enteric-coated aspirin absorption variability) <a href="#ref-assump-6" class="preset-ref">[A6]</a>
+            </li>
+            <li>
+                When comparing to measured plasma concentrations without validated/fit PK parameters (inputs here are simplified and user-provided)
+            </li>
+        </ul>
+
+        <h3>References</h3>
+        <ol class="reference-list">
+            <li id="ref-assump-1">
+                <strong>[A1]</strong> DailyMed (US label). <em>Phenytoin Sodium Injection</em> — notes susceptibility to interactions due to
+                <em>saturable metabolism</em> and extensive <em>plasma protein binding</em>.
+                <a href="https://dailymed.nlm.nih.gov/dailymed/getFile.cfm?setid=035a8d4e-2063-4240-83cb-d7eebcabe301&type=pdf" target="_blank">PDF</a>
+            </li>
+            <li id="ref-assump-2">
+                <strong>[A2]</strong> StatPearls. <em>Half Life</em> — discusses first-order half-life relationships and common examples where
+                kinetics may deviate (e.g., ethanol as a zero-order example).
+                <a href="https://www.ncbi.nlm.nih.gov/books/NBK554498/" target="_blank">NCBI Bookshelf</a>
+            </li>
+            <li id="ref-assump-3">
+                <strong>[A3]</strong> NCBI Bookshelf. <em>Absorption, Distribution, Metabolism, and Excretion in Pharmacokinetics</em> — covers
+                protein binding concepts and why unbound drug matters for distribution/effect.
+                <a href="https://www.ncbi.nlm.nih.gov/books/NBK557405/" target="_blank">NCBI Bookshelf</a>
+            </li>
+            <li id="ref-assump-4">
+                <strong>[A4]</strong> University lecture notes. <em>Compartment Models</em> — overview of 1-compartment vs multi-compartment
+                models and distribution phases.
+                <a href="https://www.srmist.edu.in/sites/default/files/images/Compartment%20Models.pdf" target="_blank">PDF</a>
+            </li>
+            <li id="ref-assump-5">
+                <strong>[A5]</strong> Open-access PMC article discussing accumulation ratio definitions used in PK/BE contexts (AUC-based).
+                <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC4668242/" target="_blank">PubMed Central (PMC)</a>
+            </li>
+            <li id="ref-assump-6">
+                <strong>[A6]</strong> Angiolillo DJ (review context on enteric-coated aspirin absorption variability / delayed absorption issues).
+                <a href="https://link.springer.com/article/10.1007/s11239-020-02051-5" target="_blank">SpringerLink</a>
+            </li>
+        </ol>
+    </div>
+</div>
+
+
+            <h3>References</h3>
+                    <ol class="reference-list">
+                        <li><strong>[R1]</strong> NCBI Bookshelf. <em>Pharmacology of Caffeine</em>. <a href="https://www.ncbi.nlm.nih.gov/books/NBK223808/" target="_blank">Link</a></li>
+                        <li><strong>[R2]</strong> Blanchard J, Sawers SJA. The absolute bioavailability of caffeine in man. (1983). <a href="https://pubmed.ncbi.nlm.nih.gov/6832208/" target="_blank">PubMed</a></li>
+                        <li><strong>[R4]</strong> Patrono C, et al. Aspirin (review). <em>Circulation</em>. <a href="https://www.ahajournals.org/doi/10.1161/01.cir.101.10.1206" target="_blank">Link</a></li>
+                        <li><strong>[R5]</strong> PubChem. Aspirin entry. <a href="https://pubchem.ncbi.nlm.nih.gov/compound/Aspirin" target="_blank">Link</a></li>
+                        <li><strong>[R6]</strong> Hobl EL, et al. Absorption kinetics of low-dose chewable aspirin. (2015). <a href="https://pubmed.ncbi.nlm.nih.gov/25402445/" target="_blank">PubMed</a></li>
+                        <li><strong>[R9]</strong> NCBI Bookshelf. <em>Nicotine Pharmacology - Clearing the Smoke</em>. <a href="https://www.ncbi.nlm.nih.gov/books/NBK222359/" target="_blank">Link</a></li>
+                        <li><strong>[R10]</strong> St Helen G, et al. Nicotine delivery from cigarettes. (2015). <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC4749433/" target="_blank">PMC</a></li>
+                    </ol>
+        </main>
+
+        <footer>
+            <p class="footer-text">Tools Hub — Educational pharmacokinetic simulator. Not for clinical use.</p>
+        </footer>
+    </div>
+
+<script>
+// ============================================
+// ORAL MULTI-DOSE ACCUMULATION SIMULATOR
+// ============================================
+
+// Theme Management
+const ThemeManager = {
+    init() {
+        const savedTheme = localStorage.getItem('toolsTheme');
+        const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        this.setTheme(savedTheme || (systemPrefersDark ? 'dark' : 'dark'));
+        this.setupToggleButtons();
+    },
+    setTheme(theme) {
+        document.documentElement.setAttribute('data-theme', theme);
+        localStorage.setItem('toolsTheme', theme);
+        this.updateToggleButtons(theme);
+    },
+    getTheme() {
+        return document.documentElement.getAttribute('data-theme') || 'dark';
+    },
+    toggle() {
+        this.setTheme(this.getTheme() === 'dark' ? 'light' : 'dark');
+    },
+    setupToggleButtons() {
+        document.querySelectorAll('[data-theme-toggle]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const theme = btn.dataset.themeToggle;
+                theme === 'toggle' ? this.toggle() : this.setTheme(theme);
+            });
+        });
+    },
+    updateToggleButtons(theme) {
+        document.querySelectorAll('[data-theme-toggle]').forEach(btn => {
+            const btnTheme = btn.dataset.themeToggle;
+            if (btnTheme === 'dark' || btnTheme === 'light') {
+                btn.classList.toggle('active', btnTheme === theme);
+            }
+        });
+    }
+};
+
+// ============================================
+// PRESET DEFINITIONS
+// ============================================
+const PRESETS = {
+    coffee: {
+        name: "Coffee (oral, IR, 1 cup)",
+        halfLife: 5,
+        halfLifeRange: [1.5, 9.5],
+        tmax: 0.5,
+        tmaxRange: [0.25, 2],
+        bioavailability: 1.0,
+        tLag: 0,
+        doseForm: "IR",
+        paramMode: "B",
+        dose: 95,
+        tau: 4,
+        notes: "Caffeine: rapid oral absorption, F≈1. Half-life varies widely (1.5-9.5h) due to CYP1A2 polymorphisms.",
+        refs: [
+            { label: "R1", url: "https://www.ncbi.nlm.nih.gov/books/NBK223808/", text: "NCBI Bookshelf" },
+            { label: "R2", url: "https://pubmed.ncbi.nlm.nih.gov/6832208/", text: "Blanchard 1983" }
+        ],
+        isOral: true
+    },
+    caffeine: {
+        name: "Caffeine (oral, IR, standard pill)",
+        halfLife: 5,
+        halfLifeRange: [1.5, 9.5],
+        tmax: 0.5,
+        tmaxRange: [0.25, 2],
+        bioavailability: 1.0,
+        tLag: 0,
+        doseForm: "IR",
+        paramMode: "B",
+        dose: 200,
+        tau: 6,
+        notes: "Caffeine: rapid oral absorption, F≈1. Half-life varies widely (1.5-9.5h) due to CYP1A2 polymorphisms.",
+        refs: [
+            { label: "R1", url: "https://www.ncbi.nlm.nih.gov/books/NBK223808/", text: "NCBI Bookshelf" },
+            { label: "R2", url: "https://pubmed.ncbi.nlm.nih.gov/6832208/", text: "Blanchard 1983" }
+        ],
+        isOral: true
+    },
+    aspirin_ir: {
+        name: "Aspirin → Salicylate (IR/Chewable)",
+        halfLife: 3,  // Salicylate half-life, not intact ASA
+        halfLifeRange: [2, 4],
+        tmax: 0.5,  // Approximate for salicylate formation
+        tmaxRange: [0.3, 1],
+        bioavailability: 0.7,
+        tLag: 0,
+        doseForm: "IR",
+        paramMode: "B",
+        dose: 325,
+        tau: 4,
+        notes: "Models SALICYLATE metabolite (t½≈2-4h). Intact ASA t½≈20min; salicylate is the relevant analyte for accumulation. F≈0.7 accounts for first-pass.",
+        refs: [
+            { label: "R4", url: "https://www.ahajournals.org/doi/10.1161/01.cir.101.10.1206", text: "Circulation review" },
+            { label: "R6", url: "https://pubmed.ncbi.nlm.nih.gov/25402445/", text: "Hobl 2015" }
+        ],
+        isOral: true,
+        analyteNote: "Modeling salicylate, not intact ASA"
+    },
+    aspirin_ec: {
+        name: "Aspirin → Salicylate (Enteric-Coated)",
+        halfLife: 3,
+        halfLifeRange: [2, 4],
+        tmax: 4,
+        tmaxRange: [2, 6],
+        bioavailability: 0.7,
+        tLag: 2,
+        doseForm: "Delayed",
+        paramMode: "B",
+        dose: 325,
+        tau: 8,
+        notes: "Enteric coating delays absorption variably (1-6h lag). Models SALICYLATE. High inter-individual variability — enable uncertainty mode.",
+        refs: [
+            { label: "R7", url: "https://jamanetwork.com/journals/jama/fullarticle/656005", text: "JAMA 1965" },
+            { label: "R8", url: "https://link.springer.com/article/10.1007/s11239-020-02051-5", text: "Angiolillo 2020" }
+        ],
+        isOral: true,
+        analyteNote: "Modeling salicylate, not intact ASA"
+    },
+    tobacco: {
+        name: "Tobacco (Smoke) - Nicotine Comparator",
+        halfLife: 2,
+        halfLifeRange: [2, 3],
+        tmax: 0.05,  // ~3 minutes
+        tmaxRange: [0.033, 0.083],
+        bioavailability: 1.0,
+        tLag: 0,
+        doseForm: "IR",
+        paramMode: "C",  // Use direct ka since Tmax is so fast
+        ka: 120,  // Very fast absorption
+        dose: 1,  // ~1mg nicotine per cigarette absorbed
+        tau: 1,
+        notes: "NOT ORAL — Inhalation comparator only. Shows very fast absorption (Tmax 2-5 min). For educational contrast with oral routes.",
+        refs: [
+            { label: "R9", url: "https://www.ncbi.nlm.nih.gov/books/NBK222359/", text: "NCBI Bookshelf" },
+            { label: "R10", url: "https://pmc.ncbi.nlm.nih.gov/articles/PMC4749433/", text: "St Helen 2015" }
+        ],
+        isOral: false,
+        healthWarning: "Tobacco use causes cancer, heart disease, and death. This preset is for educational comparison only."
+    }
+};
+
+// ============================================
+// STATE
+// ============================================
+let currentDoseForm = "IR";
+let currentParamMode = "A";
+let scheduleEvents = [];
+let simulationData = null;
+
+// ============================================
+// TIME FORMATTING HELPER
+// ============================================
+function formatTime(hours) {
+    if (hours === null || hours === undefined || !isFinite(hours)) {
+        return '—';
+    }
+    
+    if (hours < 72) {
+        return hours.toFixed(1) + ' hr';
+    } else {
+        const days = hours / 24;
+        if (days < 7) {
+            return hours.toFixed(0) + ' hr (' + days.toFixed(1) + ' days)';
+        } else {
+            const weeks = days / 7;
+            return days.toFixed(1) + ' days (' + weeks.toFixed(1) + ' wk)';
+        }
+    }
+}
+
+function formatTimeShort(hours) {
+    if (hours === null || hours === undefined || !isFinite(hours)) {
+        return '—';
+    }
+    
+    if (hours < 72) {
+        return hours.toFixed(1) + ' hr';
+    } else {
+        const days = hours / 24;
+        return days.toFixed(1) + ' d';
+    }
+}
+
+// ============================================
+// UI HELPERS
+// ============================================
+function setDoseForm(form) {
+    currentDoseForm = form;
+    document.querySelectorAll('.doseform-container .mode-card').forEach(c => c.classList.remove('active'));
+    document.getElementById('card-' + form).classList.add('active');
+    
+    document.getElementById('delayedOptions').style.display = (form === 'Delayed') ? 'block' : 'none';
+    document.getElementById('erOptions').style.display = (form === 'ER') ? 'block' : 'none';
+}
+
+function setParamMode(mode) {
+    currentParamMode = mode;
+    document.querySelectorAll('.mode-container .mode-card').forEach(c => c.classList.remove('active'));
+    document.getElementById('card-mode' + mode).classList.add('active');
+    
+    document.getElementById('modeAInputs').style.display = (mode === 'A') ? 'block' : 'none';
+    document.getElementById('modeBInputs').style.display = (mode === 'B') ? 'block' : 'none';
+    document.getElementById('modeCInputs').style.display = (mode === 'C') ? 'block' : 'none';
+}
+
+function toggleCollapsible(id, header) {
+    const content = document.getElementById(id);
+    const isOpen = content.classList.toggle('open');
+    header.classList.toggle('open', isOpen);
+}
+
+function toggleDropdown(id, header) {
+    const content = document.getElementById(id);
+    content.classList.toggle('open');
+}
+
+// ============================================
+// PRESET LOADING
+// ============================================
+function loadPreset() {
+    const presetKey = document.getElementById('presetSelect').value;
+    const banner = document.getElementById('nonOralBanner');
+    const presetInfo = document.getElementById('presetInfo');
+    
+    if (presetKey === 'custom') {
+        banner.classList.remove('visible');
+        presetInfo.innerHTML = '';
+        return;
+    }
+    
+    const preset = PRESETS[presetKey];
+    if (!preset) return;
+    
+    // Show/hide non-oral banner
+    if (!preset.isOral) {
+        banner.classList.add('visible');
+    } else {
+        banner.classList.remove('visible');
+    }
+    
+    // Populate fields
+    document.getElementById('dose').value = preset.dose;
+    document.getElementById('tau').value = preset.tau;
+    document.getElementById('halfLife').value = preset.halfLife;
+    document.getElementById('bioavailability').value = preset.bioavailability;
+    document.getElementById('tLag').value = preset.tLag || 0;
+    
+    // Set dose form
+    setDoseForm(preset.doseForm);
+    
+    // Set param mode
+    setParamMode(preset.paramMode);
+    
+    // Mode-specific values
+    if (preset.paramMode === 'B' && preset.tmax) {
+        document.getElementById('tmax').value = preset.tmax;
+    }
+    if (preset.paramMode === 'C' && preset.ka) {
+        document.getElementById('kaInput').value = preset.ka;
+    }
+    
+    // Update uncertainty ranges if available
+    if (preset.halfLifeRange) {
+        document.getElementById('halfLifeMin').value = preset.halfLifeRange[0];
+        document.getElementById('halfLifeMax').value = preset.halfLifeRange[1];
+    }
+    
+    // Build info text
+    let infoHtml = preset.notes;
+    if (preset.refs && preset.refs.length > 0) {
+        infoHtml += ' ';
+        preset.refs.forEach(ref => {
+            infoHtml += `<a href="${ref.url}" target="_blank" class="preset-ref">[${ref.label}]</a> `;
+        });
+    }
+    if (preset.analyteNote) {
+        infoHtml = `<strong>${preset.analyteNote}.</strong> ` + infoHtml;
+    }
+    if (preset.healthWarning) {
+        infoHtml += `<br><span style="color: var(--accent-error);">⚠️ ${preset.healthWarning}</span>`;
+    }
+    presetInfo.innerHTML = infoHtml;
+}
+
+// ============================================
+// EVENT EDITOR
+// ============================================
+function addEvent() {
+    const doseNum = parseInt(document.getElementById('eventDoseNum').value);
+    const eventType = document.getElementById('eventType').value;
+    const shift = parseFloat(document.getElementById('eventShift').value) || 0;
+    
+    if (doseNum < 1) return;
+    
+    // Check for duplicate
+    const exists = scheduleEvents.find(e => e.doseNum === doseNum);
+    if (exists) {
+        alert(`Dose #${doseNum} already has a disruption. Remove it first.`);
+        return;
+    }
+    
+    scheduleEvents.push({ doseNum, eventType, shift });
+    renderEventList();
+}
+
+function removeEvent(index) {
+    scheduleEvents.splice(index, 1);
+    renderEventList();
+}
+
+function renderEventList() {
+    const list = document.getElementById('eventList');
+    if (scheduleEvents.length === 0) {
+        list.innerHTML = '<div style="padding: 12px; color: var(--text-muted); font-size: 0.75rem; text-align: center;">No disruptions added</div>';
+        return;
+    }
+    
+    list.innerHTML = scheduleEvents.map((e, i) => {
+        let desc = `Dose #${e.doseNum}: `;
+        switch (e.eventType) {
+            case 'missed': desc += 'MISSED'; break;
+            case 'late': desc += `Late by ${e.shift}h`; break;
+            case 'early': desc += `Early by ${e.shift}h`; break;
+            case 'double': desc += 'DOUBLED'; break;
+        }
+        return `
+            <div class="event-item">
+                <span><span class="event-type ${e.eventType}">${e.eventType.toUpperCase()}</span> ${desc}</span>
+                <button class="event-remove" onclick="removeEvent(${i})">✕</button>
+            </div>
+        `;
+    }).join('');
+}
+
+// ============================================
+// UNCERTAINTY TOGGLE
+// ============================================
+document.getElementById('uncertaintyEnabled').addEventListener('change', function() {
+    document.getElementById('uncertaintyInputs').style.display = this.checked ? 'block' : 'none';
+});
+
+// ============================================
+// REAL TIME AXIS TOGGLE
+// ============================================
+document.getElementById('showRealTime').addEventListener('change', function() {
+    document.getElementById('realTimeOptions').style.display = this.checked ? 'block' : 'none';
+    // Re-render plot if we have data
+    if (simulationData) {
+        const Vd = parseFloat(document.getElementById('vd').value) || null;
+        renderPlot(simulationData.result, simulationData.mcBands || null, Vd);
+    }
+});
+
+function initializeDateTimeInput() {
+    const now = new Date();
+    // Format as YYYY-MM-DDTHH:MM for datetime-local input
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    document.getElementById('firstDoseTime').value = `${year}-${month}-${day}T${hours}:${minutes}`;
+}
+
+function getFirstDoseDate() {
+    const input = document.getElementById('firstDoseTime').value;
+    if (!input) return null;
+    return new Date(input);
+}
+
+function formatRealTime(hoursFromStart) {
+    const firstDose = getFirstDoseDate();
+    if (!firstDose) return null;
+    
+    const msOffset = hoursFromStart * 60 * 60 * 1000;
+    const realTime = new Date(firstDose.getTime() + msOffset);
+    
+    // Format nicely
+    const options = { 
+        weekday: 'short', 
+        month: 'short', 
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+    };
+    return realTime.toLocaleDateString('en-US', options);
+}
+
+function formatRealTimeShort(hoursFromStart) {
+    const firstDose = getFirstDoseDate();
+    if (!firstDose) return null;
+    
+    const msOffset = hoursFromStart * 60 * 60 * 1000;
+    const realTime = new Date(firstDose.getTime() + msOffset);
+    
+    const month = String(realTime.getMonth() + 1).padStart(2, '0');
+    const day = String(realTime.getDate()).padStart(2, '0');
+    const hours = realTime.getHours();
+    const minutes = String(realTime.getMinutes()).padStart(2, '0');
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    const h12 = hours % 12 || 12;
+    
+    return `${month}/${day} ${h12}:${minutes}${ampm}`;
+}
+
+// ============================================
+// PK MATH ENGINE
+// ============================================
+
+/**
+ * Compute ka from absorption bucket (90% absorbed by time X)
+ */
+function kaFromBucket(X) {
+    // ka = -ln(1 - 0.90) / X = ln(10) / X ≈ 2.303 / X
+    return 2.302585093 / X;
+}
+
+/**
+ * Solve for ka given ke and Tmax using bisection
+ * Tmax = ln(ka/ke) / (ka - ke), requires ka > ke
+ */
+function solveKaFromTmax(ke, tmax, kaMax = 200) {
+    const eps = 1e-6;
+    let lo = ke * (1 + eps);
+    let hi = kaMax;
+    
+    // Check if solution exists in bracket
+    const fLo = Math.log(lo / ke) / (lo - ke) - tmax;
+    const fHi = Math.log(hi / ke) / (hi - ke) - tmax;
+    
+    if (fLo * fHi > 0) {
+        // No solution in bracket
+        return null;
+    }
+    
+    // Bisection
+    for (let i = 0; i < 100; i++) {
+        const mid = (lo + hi) / 2;
+        const fMid = Math.log(mid / ke) / (mid - ke) - tmax;
+        
+        if (Math.abs(fMid) < 1e-10 || (hi - lo) < 1e-10) {
+            return mid;
+        }
+        
+        if (fMid * fLo < 0) {
+            hi = mid;
+        } else {
+            lo = mid;
+        }
+    }
+    
+    return (lo + hi) / 2;
+}
+
+/**
+ * Analytic propagation of 1-compartment model over time delta
+ * Returns [Ag_new, Ac_new]
+ */
+function propagate(Ag, Ac, ka, ke, F, dt) {
+    if (dt <= 0) return [Ag, Ac];
+    
+    const threshold = 1e-8;
+    
+    if (Math.abs(ka - ke) < threshold) {
+        // Edge case: ka ≈ ke
+        const k = (ka + ke) / 2;
+        const expK = Math.exp(-k * dt);
+        const Ag_new = Ag * expK;
+        const Ac_new = expK * (Ac + F * k * Ag * dt);
+        return [Ag_new, Ac_new];
+    }
+    
+    const expKa = Math.exp(-ka * dt);
+    const expKe = Math.exp(-ke * dt);
+    
+    const Ag_new = Ag * expKa;
+    const Ac_new = Ac * expKe + (F * ka * Ag / (ke - ka)) * (expKa - expKe);
+    
+    return [Ag_new, Ac_new];
+}
+
+/**
+ * Build dose event schedule
+ */
+function buildSchedule(numDoses, tau, events, doseAmount, doseForm, tLag, tRel) {
+    const schedule = [];
+    
+    for (let i = 1; i <= numDoses; i++) {
+        const baseTime = (i - 1) * tau;
+        let multiplier = 1;
+        let timeShift = 0;
+        
+        // Check for disruptions
+        const disruption = events.find(e => e.doseNum === i);
+        if (disruption) {
+            switch (disruption.eventType) {
+                case 'missed':
+                    multiplier = 0;
+                    break;
+                case 'late':
+                    timeShift = disruption.shift;
+                    break;
+                case 'early':
+                    timeShift = -disruption.shift;
+                    break;
+                case 'double':
+                    multiplier = 2;
+                    break;
+            }
+        }
+        
+        if (multiplier === 0) continue;
+        
+        const ingestionTime = baseTime + timeShift;
+        const effectiveLag = (doseForm === 'Delayed') ? tLag : 0;
+        
+        if (doseForm === 'ER') {
+            // Extended release: split into micro-doses
+            const microDosesPerHour = 60;  // was 15
+            const N = Math.min(240, Math.max(60, Math.round(tRel * microDosesPerHour)));
+            const dtMicro = tRel / N;
+            const microDose = (doseAmount * multiplier) / N;
+            
+            for (let j = 0; j < N; j++) {
+                schedule.push({
+                    time: ingestionTime + effectiveLag + j * dtMicro,
+                    amount: microDose,
+                    doseNum: i,
+                    isMicro: true
+                });
+            }
+        } else {
+            // IR or Delayed
+            schedule.push({
+                time: ingestionTime + effectiveLag,
+                amount: doseAmount * multiplier,
+                doseNum: i,
+                isMicro: false
+            });
+        }
+    }
+    
+    // Sort by time
+    schedule.sort((a, b) => a.time - b.time);
+    return schedule;
+}
+
+/**
+ * Run single simulation
+ */
+function simulate(params) {
+    const { ka, ke, F, schedule, duration, samplesPerHour = 60 } = params;
+    
+    // Build time points: regular grid + all event times
+    const dt = 1 / samplesPerHour;
+    let timePoints = new Set();
+    
+    for (let t = 0; t <= duration; t += dt) {
+        timePoints.add(Math.round(t * 10000) / 10000);
+    }
+    schedule.forEach(e => {
+        if (e.time >= 0 && e.time <= duration) {
+            timePoints.add(Math.round(e.time * 10000) / 10000);
+            // Add point just after for better resolution
+            timePoints.add(Math.round((e.time + 0.0001) * 10000) / 10000);
+        }
+    });
+    
+    const times = Array.from(timePoints).sort((a, b) => a - b);
+    const Ac_values = [];
+    
+    let Ag = 0;
+    let Ac = 0;
+    let eventIdx = 0;
+    let prevTime = 0;
+    
+    for (const t of times) {
+        // Process any dose events at or before this time
+        while (eventIdx < schedule.length && schedule[eventIdx].time <= t) {
+            // Propagate to event time
+            const dtToEvent = schedule[eventIdx].time - prevTime;
+            if (dtToEvent > 0) {
+                [Ag, Ac] = propagate(Ag, Ac, ka, ke, F, dtToEvent);
+                prevTime = schedule[eventIdx].time;
+            }
+            // Add dose to gut
+            Ag += schedule[eventIdx].amount;
+            eventIdx++;
+        }
+        
+        // Propagate to current time
+        const dtRemaining = t - prevTime;
+        if (dtRemaining > 0) {
+            [Ag, Ac] = propagate(Ag, Ac, ka, ke, F, dtRemaining);
+            prevTime = t;
+        }
+        
+        Ac_values.push(Ac);
+    }
+    
+    return { times, Ac_values };
+}
+
+/**
+ * Build baseline (no disruptions) schedule for comparison
+ */
+function buildBaselineSchedule(numDoses, tau, doseAmount, doseForm, tLag, tRel) {
+    return buildSchedule(numDoses, tau, [], doseAmount, doseForm, tLag, tRel);
+}
+
+/**
+ * Compute AUC using trapezoidal rule for a specific interval
+ */
+function computeIntervalAUC(times, values, tStart, tEnd) {
+    let auc = 0;
+    for (let i = 0; i < times.length - 1; i++) {
+        const t0 = times[i];
+        const t1 = times[i + 1];
+        
+        if (t1 <= tStart || t0 >= tEnd) continue;
+        
+        const tA = Math.max(t0, tStart);
+        const tB = Math.min(t1, tEnd);
+        
+        // Linear interpolation for values at tA and tB
+        const frac0 = (t1 - t0 > 0) ? (tA - t0) / (t1 - t0) : 0;
+        const frac1 = (t1 - t0 > 0) ? (tB - t0) / (t1 - t0) : 0;
+        const vA = values[i] + frac0 * (values[i + 1] - values[i]);
+        const vB = values[i] + frac1 * (values[i + 1] - values[i]);
+        
+        auc += 0.5 * (vA + vB) * (tB - tA);
+    }
+    return auc;
+}
+
+/**
+ * Find max/min in an interval
+ */
+function findIntervalExtrema(times, values, tStart, tEnd) {
+    let max = -Infinity, min = Infinity, tMax = tStart;
+    
+    for (let i = 0; i < times.length; i++) {
+        if (times[i] >= tStart && times[i] <= tEnd) {
+            if (values[i] > max) {
+                max = values[i];
+                tMax = times[i];
+            }
+            if (values[i] < min) {
+                min = values[i];
+            }
+        }
+    }
+    
+    return { max, min, tMax };
+}
+
+/**
+ * Compute metrics from simulation
+ */
+function computeMetrics(simResult, params, baseline = null) {
+    const { times, Ac_values } = simResult;
+    const { tau, numDoses, recoveryThreshold = 5 } = params;
+    
+    const metrics = {};
+    
+    // Overall max/min
+    let overallMax = 0, overallTmax = 0;
+    let lastIntervalMin = Infinity;
+    
+    for (let i = 0; i < times.length; i++) {
+        if (Ac_values[i] > overallMax) {
+            overallMax = Ac_values[i];
+            overallTmax = times[i];
+        }
+    }
+    
+    metrics.Amax = overallMax;
+    metrics.Tmax = overallTmax;
+    
+    // Find last complete interval trough
+    const lastIntervalStart = (numDoses - 1) * tau;
+    const lastIntervalEnd = numDoses * tau;
+    
+    if (lastIntervalEnd <= times[times.length - 1]) {
+        const extrema = findIntervalExtrema(times, Ac_values, lastIntervalStart, lastIntervalEnd);
+        metrics.Amin = extrema.min;
+    } else {
+        // Use minimum in last available interval
+        const extrema = findIntervalExtrema(times, Ac_values, lastIntervalStart, times[times.length - 1]);
+        metrics.Amin = extrema.min;
+    }
+    
+    // AUC for first and last intervals
+    const auc1 = computeIntervalAUC(times, Ac_values, 0, tau);
+    const aucSS = computeIntervalAUC(times, Ac_values, lastIntervalStart, Math.min(lastIntervalEnd, times[times.length - 1]));
+    
+    metrics.accumRatio = (auc1 > 0) ? (aucSS / auc1) : 1;
+    
+    // Steady state detection (within 5% of previous interval)
+    let reachedSS = false;
+    for (let i = 2; i < numDoses; i++) {
+        const aucPrev = computeIntervalAUC(times, Ac_values, (i - 2) * tau, (i - 1) * tau);
+        const aucCurr = computeIntervalAUC(times, Ac_values, (i - 1) * tau, i * tau);
+        if (aucPrev > 0 && Math.abs(aucCurr - aucPrev) / aucPrev < 0.05) {
+            reachedSS = true;
+            break;
+        }
+    }
+    metrics.steadyState = reachedSS;
+    
+    // Recovery time (if baseline provided and there are disruptions)
+    metrics.recoveryTime = null;
+    if (baseline && scheduleEvents.length > 0) {
+        // Find first disruption
+        const firstDisruption = Math.min(...scheduleEvents.map(e => e.doseNum));
+        const disruptionTime = (firstDisruption - 1) * tau;
+        
+        // Compare interval AUCs to baseline
+        for (let i = firstDisruption; i < numDoses; i++) {
+            const tStart = (i - 1) * tau;
+            const tEnd = i * tau;
+            
+            if (tEnd > times[times.length - 1]) break;
+            
+            const aucDisrupted = computeIntervalAUC(times, Ac_values, tStart, tEnd);
+            const aucBaseline = computeIntervalAUC(baseline.times, baseline.Ac_values, tStart, tEnd);
+            
+            if (aucBaseline > 0) {
+                const diff = Math.abs(aucDisrupted - aucBaseline) / aucBaseline * 100;
+                if (diff <= recoveryThreshold) {
+                    metrics.recoveryTime = tEnd - disruptionTime;
+                    break;
+                }
+            }
+        }
+    }
+    
+    return metrics;
+}
+
+// ============================================
+// MONTE CARLO
+// ============================================
+function runMonteCarlo(baseParams, nSamples) {
+    const results = [];
+    
+    const halfLifeMin = parseFloat(document.getElementById('halfLifeMin').value);
+    const halfLifeMax = parseFloat(document.getElementById('halfLifeMax').value);
+    
+    for (let i = 0; i < nSamples; i++) {
+        // Sample half-life uniformly
+        const halfLife = halfLifeMin + Math.random() * (halfLifeMax - halfLifeMin);
+        const ke = Math.LN2 / halfLife;
+        
+        // Recompute ka based on current mode
+        let ka = baseParams.ka;
+        if (currentParamMode === 'B') {
+            const tmax = parseFloat(document.getElementById('tmax').value);
+            let tmaxAbs = tmax;
+            if (document.getElementById('tmaxBasis').value === 'ingestion' && currentDoseForm === 'Delayed') {
+                tmaxAbs = tmax - parseFloat(document.getElementById('tLag').value);
+            }
+            if (tmaxAbs > 0) {
+                const newKa = solveKaFromTmax(ke, tmaxAbs);
+                if (newKa) ka = newKa;
+            }
+        }
+        
+        // Run simulation with sampled parameters
+        const simParams = { ...baseParams, ka, ke };
+        const result = simulate(simParams);
+        results.push(result);
+    }
+    
+    return results;
+}
+
+function computePercentileBands(mcResults, percentiles = [10, 50, 90]) {
+    // Assume all results have same time points
+    const times = mcResults[0].times;
+    const bands = {};
+    
+    percentiles.forEach(p => {
+        bands[p] = [];
+    });
+    
+    for (let i = 0; i < times.length; i++) {
+        const values = mcResults.map(r => r.Ac_values[i]).sort((a, b) => a - b);
+        
+        percentiles.forEach(p => {
+            // const idx = Math.floor(p / 100 * values.length);
+            // bands[p].push(values[Math.min(idx, values.length - 1)]);
+            //sub
+            const idx = Math.floor((p / 100) * (values.length - 1));
+            bands[p].push(values[idx]);
+        });
+    }
+    
+    return { times, bands };
+}
+
+// ============================================
+// PLOTTING
+// ============================================
+let plotChart = null;
+
+function renderPlot(simResult, mcBands = null, Vd = null) {
+    const canvas = document.getElementById('pkPlot');
+    const ctx = canvas.getContext('2d');
+    
+    // Set canvas size
+    // const container = canvas.parentElement;
+    // canvas.width = container.clientWidth;
+    // canvas.height = container.clientHeight;
+    //set canvas internal size to match its displayed size (CSS pixels)
+    canvas.width = canvas.clientWidth;
+    canvas.height = canvas.clientHeight;
+
+    
+    const { times, Ac_values } = simResult;
+    
+    // Determine if showing concentration or amount
+    const showConc = Vd && Vd > 0;
+    const yValues = showConc ? Ac_values.map(a => a / Vd) : Ac_values;
+    const yLabel = showConc ? 'Model Concentration (mg/L)' : 'Amount Ac(t) (mg)';
+    
+    // Find data range
+    let yMax = Math.max(...yValues) * 1.1;
+    let yMin = 0;
+    
+    if (mcBands) {
+        const band90 = showConc ? mcBands.bands[90].map(v => v / Vd) : mcBands.bands[90];
+        yMax = Math.max(yMax, Math.max(...band90) * 1.1);
+    }
+    
+    const xMax = times[times.length - 1];
+    const showDays = xMax > 72; // Show days if duration > 72 hours
+    const showRealTimeForPadding = document.getElementById('showRealTime').checked;
+    
+    // Calculate bottom padding based on what we're showing
+    let bottomPadding = 50;
+    if (showDays) bottomPadding = 65;
+    if (showRealTimeForPadding) bottomPadding += 18;
+    
+    // Plotting area
+    const padding = { top: 30, right: 30, bottom: bottomPadding, left: 70 };
+    const plotWidth = canvas.width - padding.left - padding.right;
+    const plotHeight = canvas.height - padding.top - padding.bottom;
+    
+    // Scale functions
+    const scaleX = (t) => padding.left + (t / xMax) * plotWidth;
+    const scaleY = (y) => padding.top + plotHeight - (y / yMax) * plotHeight;
+    
+    // Clear
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // Get theme colors
+    const isDark = ThemeManager.getTheme() === 'dark';
+    const gridColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)';
+    const textColor = isDark ? '#a1a1aa' : '#475569';
+    const textMutedColor = isDark ? '#71717a' : '#94a3b8';
+    const lineColor = '#10b981';
+    const bandColor = 'rgba(16, 185, 129, 0.2)';
+    
+    // Draw grid
+    ctx.strokeStyle = gridColor;
+    ctx.lineWidth = 1;
+    
+    // Y grid
+    const yTicks = 5;
+    for (let i = 0; i <= yTicks; i++) {
+        const y = padding.top + (i / yTicks) * plotHeight;
+        ctx.beginPath();
+        ctx.moveTo(padding.left, y);
+        ctx.lineTo(canvas.width - padding.right, y);
+        ctx.stroke();
+    }
+    
+    // X grid - adaptive tick spacing
+    let xTicks, xTickInterval;
+    if (showDays) {
+        // For long durations, use day-based ticks
+        const totalDays = xMax / 24;
+        if (totalDays <= 14) {
+            xTickInterval = 24; // Every day
+        } else if (totalDays <= 60) {
+            xTickInterval = 24 * 7; // Every week
+        } else {
+            xTickInterval = 24 * 7; // Every week
+        }
+        xTicks = Math.ceil(xMax / xTickInterval);
+    } else {
+        xTicks = Math.min(10, Math.ceil(xMax / 6));
+        xTickInterval = xMax / xTicks;
+    }
+    
+    for (let i = 0; i <= xTicks; i++) {
+        const t = showDays ? i * xTickInterval : (i / xTicks) * xMax;
+        if (t > xMax) break;
+        const x = scaleX(t);
+        ctx.beginPath();
+        ctx.moveTo(x, padding.top);
+        ctx.lineTo(x, canvas.height - padding.bottom);
+        ctx.stroke();
+    }
+    
+    // Draw uncertainty band if present
+    if (mcBands) {
+        const band10 = showConc ? mcBands.bands[10].map(v => v / Vd) : mcBands.bands[10];
+        const band90 = showConc ? mcBands.bands[90].map(v => v / Vd) : mcBands.bands[90];
+        
+        ctx.fillStyle = bandColor;
+        ctx.beginPath();
+        ctx.moveTo(scaleX(mcBands.times[0]), scaleY(band10[0]));
+        
+        // Upper edge
+        for (let i = 0; i < mcBands.times.length; i++) {
+            ctx.lineTo(scaleX(mcBands.times[i]), scaleY(band90[i]));
+        }
+        
+        // Lower edge (reverse)
+        for (let i = mcBands.times.length - 1; i >= 0; i--) {
+            ctx.lineTo(scaleX(mcBands.times[i]), scaleY(band10[i]));
+        }
+        
+        ctx.closePath();
+        ctx.fill();
+    }
+    
+    // Draw main curve
+    ctx.strokeStyle = lineColor;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(scaleX(times[0]), scaleY(yValues[0]));
+    
+    for (let i = 1; i < times.length; i++) {
+        ctx.lineTo(scaleX(times[i]), scaleY(yValues[i]));
+    }
+    ctx.stroke();
+    
+    // Draw axes labels
+    ctx.fillStyle = textColor;
+    ctx.font = '12px "JetBrains Mono", monospace';
+    ctx.textAlign = 'center';
+    
+    // X axis labels
+    const showRealTime = document.getElementById('showRealTime').checked;
+    
+    for (let i = 0; i <= xTicks; i++) {
+        const t = showDays ? i * xTickInterval : (i / xTicks) * xMax;
+        if (t > xMax) break;
+        const x = scaleX(t);
+        
+        if (showDays) {
+            // Show hours on first line
+            ctx.fillStyle = textColor;
+            ctx.fillText(t.toFixed(0) + 'h', x, canvas.height - padding.bottom + 18);
+            // Show days on second line
+            ctx.fillStyle = textMutedColor;
+            ctx.font = '10px "JetBrains Mono", monospace';
+            ctx.fillText('(' + (t/24).toFixed(1) + 'd)', x, canvas.height - padding.bottom + 32);
+            ctx.font = '12px "JetBrains Mono", monospace';
+        } else {
+            ctx.fillStyle = textColor;
+            ctx.fillText(t.toFixed(1), x, canvas.height - padding.bottom + 18);
+        }
+        
+        // Show real time if enabled
+        if (showRealTime) {
+            const realTimeStr = formatRealTimeShort(t);
+            if (realTimeStr) {
+                ctx.fillStyle = isDark ? '#06b6d4' : '#0891b2'; // accent-info color
+                ctx.font = '9px "JetBrains Mono", monospace';
+                const yOffset = showDays ? 46 : 32;
+                ctx.fillText(realTimeStr, x, canvas.height - padding.bottom + yOffset);
+                ctx.font = '12px "JetBrains Mono", monospace';
+            }
+        }
+    }
+    
+    // X axis title
+    ctx.fillStyle = textColor;
+    let xAxisLabel = showDays ? 'Time (hours / days)' : 'Time (hours)';
+    if (showRealTime) {
+        xAxisLabel += ' — Real time in blue';
+    }
+    ctx.fillText(xAxisLabel, canvas.width / 2, canvas.height - 6);
+    
+    // Y axis labels
+    ctx.textAlign = 'right';
+    for (let i = 0; i <= yTicks; i++) {
+        const val = yMax * (1 - i / yTicks);
+        const y = padding.top + (i / yTicks) * plotHeight;
+        ctx.fillText(val.toFixed(1), padding.left - 10, y + 4);
+    }
+    
+    // Y axis title
+    ctx.save();
+    ctx.translate(15, canvas.height / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.textAlign = 'center';
+    ctx.fillText(yLabel, 0, 0);
+    ctx.restore();
+    
+    // Update legend
+    const legend = document.getElementById('plotLegend');
+    if (showConc) {
+        legend.innerHTML = `
+            <div class="legend-item">
+                <div class="legend-color" style="background: ${lineColor};"></div>
+                <span>C(t) — Model Concentration (mg/L)</span>
+            </div>
+            ${mcBands ? `
+            <div class="legend-item">
+                <div class="legend-color" style="background: ${bandColor}; height: 10px;"></div>
+                <span>10-90% Uncertainty Band</span>
+            </div>
+            ` : ''}
+        `;
+    } else {
+        legend.innerHTML = `
+            <div class="legend-item">
+                <div class="legend-color" style="background: ${lineColor};"></div>
+                <span>A<sub>c</sub>(t) — Amount (mg)</span>
+            </div>
+            ${mcBands ? `
+            <div class="legend-item">
+                <div class="legend-color" style="background: ${bandColor}; height: 10px;"></div>
+                <span>10-90% Uncertainty Band</span>
+            </div>
+            ` : ''}
+        `;
+    }
+    
+    // Store plot state for hover interactions
+    currentPlotState = {
+        times,
+        yValues,
+        mcBands,
+        Vd,
+        showConc,
+        xMax,
+        yMax,
+        padding,
+        plotWidth,
+        plotHeight,
+        showDays
+    };
+    
+    // Save the rendered plot for efficient hover interactions
+    saveCanvasState();
+}
+
+// ============================================
+// PLOT HOVER INTERACTION
+// ============================================
+let currentPlotState = null;
+let isHovering = false;
+let savedPlotImage = null;
+
+function setupPlotHover() {
+    const canvas = document.getElementById('pkPlot');
+    const tooltip = document.getElementById('plotTooltip');
+    const container = canvas.parentElement;
+    
+    canvas.addEventListener('mousemove', handlePlotHover);
+    canvas.addEventListener('mouseleave', handlePlotLeave);
+    canvas.addEventListener('mouseenter', () => { isHovering = true; });
+}
+
+function saveCanvasState() {
+    const canvas = document.getElementById('pkPlot');
+    const ctx = canvas.getContext('2d');
+    savedPlotImage = ctx.getImageData(0, 0, canvas.width, canvas.height);
+}
+
+function restoreCanvasState() {
+    if (!savedPlotImage) return;
+    const canvas = document.getElementById('pkPlot');
+    const ctx = canvas.getContext('2d');
+    ctx.putImageData(savedPlotImage, 0, 0);
+}
+
+function handlePlotHover(e) {
+    if (!currentPlotState) return;
+    
+    const canvas = document.getElementById('pkPlot');
+    const tooltip = document.getElementById('plotTooltip');
+    const rect = canvas.getBoundingClientRect();
+    
+    // const mouseX = e.clientX - rect.left;
+    // const mouseY = e.clientY - rect.top;
+    //map CSS pixels -> canvas internal pixels (prevents hover offset)
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+
+    const mouseX = (e.clientX - rect.left) * scaleX;
+    const mouseY = (e.clientY - rect.top) * scaleY;
+
+    const { times, yValues, mcBands, Vd, showConc, xMax, yMax, padding, plotWidth, plotHeight } = currentPlotState;
+    
+    // Check if mouse is in plot area
+    if (mouseX < padding.left || mouseX > padding.left + plotWidth ||
+        mouseY < padding.top || mouseY > padding.top + plotHeight) {
+        tooltip.classList.remove('visible');
+        restoreCanvasState();
+        return;
+    }
+    
+    // Convert mouse position to time
+    const t = ((mouseX - padding.left) / plotWidth) * xMax;
+    
+    // Find nearest data point using binary search for efficiency
+    let nearestIdx = 0;
+    let lo = 0, hi = times.length - 1;
+    while (lo < hi) {
+        const mid = Math.floor((lo + hi) / 2);
+        if (times[mid] < t) {
+            lo = mid + 1;
+        } else {
+            hi = mid;
+        }
+    }
+    // Check if lo or lo-1 is closer
+    if (lo > 0 && Math.abs(times[lo-1] - t) < Math.abs(times[lo] - t)) {
+        nearestIdx = lo - 1;
+    } else {
+        nearestIdx = lo;
+    }
+    
+    const time = times[nearestIdx];
+    const value = yValues[nearestIdx];
+    
+    // Update tooltip content
+    const showRealTime = document.getElementById('showRealTime').checked;
+    
+    // Time display
+    let timeStr = formatTimeShort(time);
+    document.getElementById('tooltipTime').textContent = timeStr;
+    
+    // Amount/concentration display
+    const label = showConc ? 'Conc:' : 'Amount:';
+    const unit = showConc ? ' mg/L' : ' mg';
+    document.getElementById('tooltipAmountLabel').textContent = label;
+    document.getElementById('tooltipAmount').textContent = value.toFixed(2) + unit;
+    
+    // Uncertainty range if available
+    const rangeEl = document.getElementById('tooltipRange');
+    if (mcBands && mcBands.bands) {
+        const band10 = showConc ? mcBands.bands[10][nearestIdx] / Vd : mcBands.bands[10][nearestIdx];
+        const band90 = showConc ? mcBands.bands[90][nearestIdx] / Vd : mcBands.bands[90][nearestIdx];
+        document.getElementById('tooltipRangeValues').textContent = 
+            band10.toFixed(2) + ' – ' + band90.toFixed(2) + unit;
+        rangeEl.style.display = 'block';
+    } else {
+        rangeEl.style.display = 'none';
+    }
+    
+    // Real time display
+    const datetimeEl = document.getElementById('tooltipDatetime');
+    if (showRealTime) {
+        const realTimeStr = formatRealTime(time);
+        if (realTimeStr) {
+            document.getElementById('tooltipDatetimeValue').textContent = realTimeStr;
+            datetimeEl.style.display = 'block';
+        } else {
+            datetimeEl.style.display = 'none';
+        }
+    } else {
+        datetimeEl.style.display = 'none';
+    }
+    
+    // Position tooltip
+    const container = canvas.parentElement;
+    
+    let tooltipX = mouseX + 15;
+    let tooltipY = mouseY - 10;
+    
+    // Keep tooltip in bounds
+    const tooltipWidth = 200;
+    const tooltipHeight = 100;
+    if (tooltipX + tooltipWidth > container.clientWidth - 10) {
+        tooltipX = mouseX - tooltipWidth - 15;
+    }
+    if (tooltipY + tooltipHeight > container.clientHeight - 10) {
+        tooltipY = container.clientHeight - tooltipHeight - 10;
+    }
+    if (tooltipY < 10) tooltipY = 10;
+    
+    tooltip.style.left = tooltipX + 'px';
+    tooltip.style.top = tooltipY + 'px';
+    tooltip.classList.add('visible');
+    
+    // Draw crosshair (restore base plot first)
+    restoreCanvasState();
+    drawCrosshair(nearestIdx);
+}
+
+function handlePlotLeave() {
+    const tooltip = document.getElementById('plotTooltip');
+    tooltip.classList.remove('visible');
+    isHovering = false;
+    
+    // Restore plot without crosshair
+    restoreCanvasState();
+}
+
+function drawCrosshair(highlightIdx) {
+    if (!currentPlotState || highlightIdx === null) return;
+    
+    const canvas = document.getElementById('pkPlot');
+    const ctx = canvas.getContext('2d');
+    
+    const { times, yValues, xMax, yMax, padding, plotWidth, plotHeight } = currentPlotState;
+    
+    // Get theme colors
+    const isDark = ThemeManager.getTheme() === 'dark';
+    const crosshairColor = isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.2)';
+    const dotColor = '#10b981';
+    
+    // Scale functions
+    const scaleX = (t) => padding.left + (t / xMax) * plotWidth;
+    const scaleY = (y) => padding.top + plotHeight - (y / yMax) * plotHeight;
+    
+    const x = scaleX(times[highlightIdx]);
+    const y = scaleY(yValues[highlightIdx]);
+    
+    // Draw vertical crosshair line
+    ctx.strokeStyle = crosshairColor;
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    ctx.moveTo(x, padding.top);
+    ctx.lineTo(x, padding.top + plotHeight);
+    ctx.stroke();
+    
+    // Draw horizontal line to y-axis
+    ctx.beginPath();
+    ctx.moveTo(padding.left, y);
+    ctx.lineTo(x, y);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    
+    // Draw highlight dot
+    ctx.fillStyle = dotColor;
+    ctx.beginPath();
+    ctx.arc(x, y, 5, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Draw white border on dot
+    ctx.strokeStyle = isDark ? '#fafafa' : '#0f172a';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(x, y, 5, 0, Math.PI * 2);
+    ctx.stroke();
+}
+
+// ============================================
+// MAIN SIMULATION RUNNER
+// ============================================
+function runSimulation() {
+    try {
+        // Gather inputs
+        const dose = parseFloat(document.getElementById('dose').value);
+        const tau = parseFloat(document.getElementById('tau').value);
+        const numDoses = parseInt(document.getElementById('numDoses').value);
+        const halfLife = parseFloat(document.getElementById('halfLife').value);
+        const F = parseFloat(document.getElementById('bioavailability').value);
+        const Vd = parseFloat(document.getElementById('vd').value) || null;
+        const tLag = parseFloat(document.getElementById('tLag').value) || 0;
+        const tRel = parseFloat(document.getElementById('tRel').value) || 8;
+        const extendElimination = document.getElementById('extendElimination').checked;
+        
+        // Validate
+        if (!dose || dose <= 0) { alert('Dose must be > 0'); return; }
+        if (!tau || tau <= 0) { alert('Interval τ must be > 0'); return; }
+        if (!numDoses || numDoses < 1) { alert('Number of doses must be ≥ 1'); return; }
+        if (!halfLife || halfLife <= 0) { alert('Half-life must be > 0'); return; }
+        if (F < 0 || F > 1) { alert('Bioavailability must be 0-1'); return; }
+        
+        // Compute ke
+        const ke = Math.LN2 / halfLife;
+        
+        // Compute ka based on mode
+        let ka;
+        if (currentParamMode === 'A') {
+            const bucket = parseFloat(document.getElementById('absorptionBucket').value);
+            ka = kaFromBucket(bucket);
+        } else if (currentParamMode === 'B') {
+            let tmax = parseFloat(document.getElementById('tmax').value);
+            const tmaxBasis = document.getElementById('tmaxBasis').value;
+            
+            // Adjust Tmax for lag if measuring from ingestion
+            if (tmaxBasis === 'ingestion' && currentDoseForm === 'Delayed') {
+                tmax = tmax - tLag;
+            }
+            
+            if (tmax <= 0) {
+                alert('Tmax (after lag adjustment) must be > 0. Reduce lag time or increase Tmax.');
+                return;
+            }
+            
+            ka = solveKaFromTmax(ke, tmax);
+            if (!ka) {
+                alert('Could not solve for ka. Tmax may be too large or inconsistent with half-life. Try reducing Tmax or switching to Mode A/C.');
+                return;
+            }
+        } else {
+            ka = parseFloat(document.getElementById('kaInput').value);
+        }
+        
+        if (!ka || ka <= ke) {
+            alert('ka must be > ke for valid 1-compartment extravascular model.');
+            return;
+        }
+        
+        // Calculate elimination time milestones
+        const t5hl = 5 * halfLife;  // ~97% eliminated
+        const t7hl = 7 * halfLife;  // ~99% eliminated
+        
+        // Simulation duration
+        let duration = parseFloat(document.getElementById('simDuration').value);
+        if (!duration || duration <= 0) {
+            duration = numDoses * tau + tau; // Extra interval after last dose
+        }
+        
+        // If extend elimination is checked, extend to 7 half-lives after last dose
+        if (extendElimination) {
+            const lastDoseTime = (numDoses - 1) * tau;
+            const extendedDuration = lastDoseTime + t7hl;
+            duration = Math.max(duration, extendedDuration);
+        }
+        
+        // Build schedule
+        const schedule = buildSchedule(numDoses, tau, scheduleEvents, dose, currentDoseForm, tLag, tRel);
+        
+        // Build baseline (no disruptions) for comparison
+        const baselineSchedule = buildBaselineSchedule(numDoses, tau, dose, currentDoseForm, tLag, tRel);
+
+        const samplesPlot = 240;     // smooth plot, base was 60
+        const samplesMetrics = 1200; // very accurate AUC/metrics, base used to be 60
+
+        const simParams = {
+            ka, ke, F,
+            schedule,
+            duration,
+            samplesPerHour: samplesPlot
+        };
+
+        // new
+        const simParamsMetrics = {
+            ka, ke, F, schedule, duration,
+            samplesPerHour: samplesMetrics
+        };
+
+        // Run main simulation
+        // const result = simulate(simParams);
+
+        // Run baseline if there are disruptions
+        // let baseline = null;
+        // if (scheduleEvents.length > 0) {
+        //     baseline = simulate({ ...simParams, schedule: baselineSchedule });
+        // }
+
+        // run two sims (plot vs metrics)
+        const resultPlot = simulate(simParams);
+        const resultMetrics = simulate(simParamsMetrics);
+
+        // Keep existing downstream code working (anything that expects `result`)
+        const result = resultPlot;
+
+        //baseline for metrics (only if disruptions exist)
+        let baselineMetrics = null;
+        if (scheduleEvents.length > 0) {
+            baselineMetrics = simulate({ ...simParamsMetrics, schedule: baselineSchedule });
+        }
+
+        // Monte Carlo if enabled
+        let mcBands = null;
+        if (document.getElementById('uncertaintyEnabled').checked) {
+            const nSamples = parseInt(document.getElementById('mcSamples').value) || 300;
+            const mcResults = runMonteCarlo(simParams, Math.min(nSamples, 2000));
+            mcBands = computePercentileBands(mcResults);
+        }
+
+        // Compute metrics
+        // const metrics = computeMetrics(result, { tau, numDoses }, baseline);
+
+        // Render plot
+        // renderPlot(result, mcBands, Vd);
+
+        // Compute metrics using the high-resolution result
+        const metrics = computeMetrics(resultMetrics, { tau, numDoses }, baselineMetrics);
+
+        // Render plot using the plot-resolution result
+        renderPlot(resultPlot, mcBands, Vd);
+
+        
+        // Update metrics display with proper time formatting
+        document.getElementById('metricAmax').innerHTML = metrics.Amax.toFixed(2) + '<span class="metric-unit">mg</span>';
+        document.getElementById('metricAmin').innerHTML = metrics.Amin.toFixed(2) + '<span class="metric-unit">mg</span>';
+        document.getElementById('metricTmax').innerHTML = formatTimeShort(metrics.Tmax);
+        document.getElementById('metricAccum').innerHTML = metrics.accumRatio.toFixed(2);
+        document.getElementById('metricRecovery').innerHTML = metrics.recoveryTime !== null 
+            ? formatTime(metrics.recoveryTime)
+            : '—';
+        document.getElementById('metricSteady').innerHTML = metrics.steadyState ? 'Yes' : 'No';
+        
+        // Update elimination time metrics
+        document.getElementById('metricT5hl').innerHTML = formatTime(t5hl);
+        document.getElementById('metricT7hl').innerHTML = formatTime(t7hl);
+        
+        // Update derived parameters
+        document.getElementById('derivedKe').textContent = ke.toFixed(4);
+        document.getElementById('derivedKa').textContent = ka.toFixed(4);
+        document.getElementById('derivedF').textContent = F.toFixed(2);
+        
+        if (Vd) {
+            document.getElementById('derivedVdLine').style.display = 'block';
+            document.getElementById('derivedVd').textContent = Vd.toFixed(1);
+        } else {
+            document.getElementById('derivedVdLine').style.display = 'none';
+        }
+        
+        // Store for potential export and hover interactions
+        simulationData = { result, metrics, params: simParams, halfLife, t5hl, t7hl, mcBands };
+        
+    } catch (err) {
+        console.error('Simulation error:', err);
+        alert('Simulation error: ' + err.message);
+    }
+}
+
+// ============================================
+// INITIALIZATION
+// ============================================
+document.addEventListener('DOMContentLoaded', () => {
+    ThemeManager.init();
+    initializeDateTimeInput();
+    setupPlotHover();
+    loadPreset(); // Load default preset (caffeine)
+    
+    // Initial simulation
+    setTimeout(() => {
+        runSimulation();
+    }, 100);
+});
+
+// Handle window resize
+window.addEventListener('resize', () => {
+    if (simulationData) {
+        const Vd = parseFloat(document.getElementById('vd').value) || null;
+        renderPlot(simulationData.result, simulationData.mcBands || null, Vd);
+    }
+});
+</script>
+</body>
+</html>
