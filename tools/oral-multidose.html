@@ -2418,13 +2418,30 @@ function renderPlot(simResult, mcBands = null, Vd = null) {
     const showDays = xMax > 72; // Show days if duration > 72 hours
     const showRealTimeForPadding = document.getElementById('showRealTime').checked;
     
+    // Mobile detection based on canvas width
+    const isMobile = canvas.width < 500;
+    const isNarrow = canvas.width < 700;
+
+    // Responsive font sizes
+    const fontSize = {
+        axis: isMobile ? 9 : 12,
+        secondary: isMobile ? 8 : 10,
+        realTime: isMobile ? 7 : 9
+    };
+
     // Calculate bottom padding based on what we're showing
-    let bottomPadding = 50;
-    if (showDays) bottomPadding = 65;
-    if (showRealTimeForPadding) bottomPadding += 18;
+    // let bottomPadding = 50;
+    // if (showDays) bottomPadding = 65;
+    // if (showRealTimeForPadding) bottomPadding += 18;
     
     // Plotting area
-    const padding = { top: 30, right: 30, bottom: bottomPadding, left: 70 };
+    // const padding = { top: 30, right: 30, bottom: bottomPadding, left: 70 };
+
+    let bottomPadding = isMobile ? 40 : 50;
+    if (showDays) bottomPadding = isMobile ? 50 : 65;
+    if (showRealTimeForPadding) bottomPadding += isMobile ? 12 : 18;
+
+    const padding = { top: 30, right: isMobile ? 15 : 30, bottom: bottomPadding, left: isMobile ? 50 : 70 };
     const plotWidth = canvas.width - padding.left - padding.right;
     const plotHeight = canvas.height - padding.top - padding.bottom;
     
@@ -2459,19 +2476,20 @@ function renderPlot(simResult, mcBands = null, Vd = null) {
     
     // X grid - adaptive tick spacing
     let xTicks, xTickInterval;
+    const maxXTicks = isMobile ? 5 : (isNarrow ? 7 : 10);
     if (showDays) {
         // For long durations, use day-based ticks
         const totalDays = xMax / 24;
         if (totalDays <= 14) {
-            xTickInterval = 24; // Every day
+            xTickInterval = isMobile ? 48 : 24; // Every day or every 2 days on mobile
         } else if (totalDays <= 60) {
-            xTickInterval = 24 * 7; // Every week
+            xTickInterval = isMobile ? 24 * 14 : 24 * 7; // Every 2 weeks or 1 week
         } else {
             xTickInterval = 24 * 7; // Every week
         }
-        xTicks = Math.ceil(xMax / xTickInterval);
+        xTicks = Math.min(maxXTicks, Math.ceil(xMax / xTickInterval));
     } else {
-        xTicks = Math.min(10, Math.ceil(xMax / 6));
+        xTicks = Math.min(maxXTicks, Math.ceil(xMax / 6));
         xTickInterval = xMax / xTicks;
     }
     
@@ -2521,7 +2539,7 @@ function renderPlot(simResult, mcBands = null, Vd = null) {
     
     // Draw axes labels
     ctx.fillStyle = textColor;
-    ctx.font = '12px "JetBrains Mono", monospace';
+    ctx.font = `${fontSize.axis}px "JetBrains Mono", monospace`;
     ctx.textAlign = 'center';
     
     // X axis labels
@@ -2535,15 +2553,16 @@ function renderPlot(simResult, mcBands = null, Vd = null) {
         if (showDays) {
             // Show hours on first line
             ctx.fillStyle = textColor;
-            ctx.fillText(t.toFixed(0) + 'h', x, canvas.height - padding.bottom + 18);
+            ctx.font = `${fontSize.axis}px "JetBrains Mono", monospace`;
+            ctx.fillText(t.toFixed(0) + 'h', x, canvas.height - padding.bottom + (isMobile ? 12 : 18));
             // Show days on second line
             ctx.fillStyle = textMutedColor;
-            ctx.font = '10px "JetBrains Mono", monospace';
-            ctx.fillText('(' + (t/24).toFixed(1) + 'd)', x, canvas.height - padding.bottom + 32);
-            ctx.font = '12px "JetBrains Mono", monospace';
+            ctx.font = `${fontSize.secondary}px "JetBrains Mono", monospace`;
+            ctx.fillText('(' + (t/24).toFixed(1) + 'd)', x, canvas.height - padding.bottom + (isMobile ? 22 : 32));
+            ctx.font = `${fontSize.axis}px "JetBrains Mono", monospace`;
         } else {
             ctx.fillStyle = textColor;
-            ctx.fillText(t.toFixed(1), x, canvas.height - padding.bottom + 18);
+            ctx.fillText(t.toFixed(1), x, canvas.height - padding.bottom + (isMobile ? 12 : 18));
         }
         
         // Show real time if enabled
@@ -2551,19 +2570,20 @@ function renderPlot(simResult, mcBands = null, Vd = null) {
             const realTimeStr = formatRealTimeShort(t);
             if (realTimeStr) {
                 ctx.fillStyle = isDark ? '#06b6d4' : '#0891b2'; // accent-info color
-                ctx.font = '9px "JetBrains Mono", monospace';
-                const yOffset = showDays ? 46 : 32;
+                ctx.font = `${fontSize.realTime}px "JetBrains Mono", monospace`;
+                const yOffset = showDays ? (isMobile ? 32 : 46) : (isMobile ? 22 : 32);
                 ctx.fillText(realTimeStr, x, canvas.height - padding.bottom + yOffset);
-                ctx.font = '12px "JetBrains Mono", monospace';
+                ctx.font = `${fontSize.axis}px "JetBrains Mono", monospace`;
             }
         }
     }
     
     // X axis title
     ctx.fillStyle = textColor;
+    ctx.font = `${fontSize.axis}px "JetBrains Mono", monospace`;
     let xAxisLabel = showDays ? 'Time (hours / days)' : 'Time (hours)';
     if (showRealTime) {
-        xAxisLabel += ' — Real time in blue';
+        xAxisLabel += isMobile ? '' : ' — Real time in blue';
     }
     ctx.fillText(xAxisLabel, canvas.width / 2, canvas.height - 6);
     
@@ -2572,15 +2592,16 @@ function renderPlot(simResult, mcBands = null, Vd = null) {
     for (let i = 0; i <= yTicks; i++) {
         const val = yMax * (1 - i / yTicks);
         const y = padding.top + (i / yTicks) * plotHeight;
-        ctx.fillText(val.toFixed(1), padding.left - 10, y + 4);
+        ctx.fillText(val.toFixed(isMobile ? 0 : 1), padding.left - (isMobile ? 5 : 10), y + 4);
     }
     
     // Y axis title
     ctx.save();
-    ctx.translate(15, canvas.height / 2);
+    ctx.translate(isMobile ? 10 : 15, canvas.height / 2);
     ctx.rotate(-Math.PI / 2);
     ctx.textAlign = 'center';
-    ctx.fillText(yLabel, 0, 0);
+    ctx.font = `${fontSize.axis}px "JetBrains Mono", monospace`;
+    ctx.fillText(isMobile ? (showConc ? 'Conc (mg/L)' : 'Amount (mg)') : yLabel, 0, 0);
     ctx.restore();
     
     // Update legend
