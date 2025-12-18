@@ -618,7 +618,7 @@
                             <line x1="9" y1="3" x2="15" y2="3"/>
                         </svg>
                     </div>
-                    <span class="tool-status active">Experimental</span>
+                    <span class="tool-status coming">Prototypical</span>
                 </div>
                 <h3 class="tool-name">Toxicology Body Burden</h3>
                 <p class="tool-description">Estimate total systemic load from plasma concentration using volume of distribution models with optional kinetic back-calculation.</p>
@@ -632,12 +632,19 @@
             <a href="tools/oral-multidose.html" class="tool-card biology">
             <div class="tool-card-header">
                 <div class="tool-icon biochemical">
-                <svg viewBox="0 0 24 24" width="24" height="24" fill="green" stroke="currentColor" stroke-width="2">
-                    <path d="M9 3h6v6l5 10H4L9 9V3z"/>
-                    <line x1="9" y1="3" x2="15" y1="3"/>
-                </svg>
+                <svg viewBox="0 0 24 24" width="24" height="24">
+                    <!-- Rotated 135° capsule -->
+                    <g transform="rotate(135 12 12)">
+                        <!-- White half -->
+                        <rect x="4" y="9" width="8" height="6" rx="3" ry="3" fill="white" stroke="black" stroke-width="1.2"/>
+                        <!-- Black half -->
+                        <rect x="12" y="9" width="8" height="6" rx="3" ry="3" fill="red" stroke="black" stroke-width="1.2"/>
+                        <!-- Center line to clean up the join -->
+                        <line x1="12" y1="9" x2="12" y2="15" stroke="black" stroke-width="1.2"/>
+                    </g>
+                    </svg>
                 </div>
-                <span class="tool-status active">Experimental</span>
+                <span class="tool-status coming">Prototypical</span>
             </div>
 
             <h3 class="tool-name">Oral Multi-Dose Simulator</h3>
