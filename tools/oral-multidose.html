@@ -596,6 +596,7 @@ header {
 .event-type.late { background: var(--accent-warning-dim); color: var(--accent-warning); }
 .event-type.early { background: var(--accent-info-dim); color: var(--accent-info); }
 .event-type.double { background: var(--accent-pk-dim); color: var(--accent-pk); }
+.event-type.custom { background: rgba(139, 92, 246, 0.15); color: #8b5cf6; }
 
 .event-remove {
     background: none;
@@ -1033,16 +1034,21 @@ footer {
                             </div>
                             <div class="input-group" style="margin-bottom: 0;">
                                 <label>Type</label>
-                                <select id="eventType" class="main-select" style="padding: 8px;">
+                                <select id="eventType" class="main-select" style="padding: 8px;" onchange="toggleEventInputs()">
                                     <option value="missed">Missed</option>
                                     <option value="late">Late</option>
                                     <option value="early">Early</option>
                                     <option value="double">Double</option>
+                                    <option value="custom">Custom Dose</option>
                                 </select>
                             </div>
-                            <div class="input-group" style="margin-bottom: 0;">
+                            <div class="input-group" style="margin-bottom: 0;" id="eventShiftGroup">
                                 <label>Shift (hrs)</label>
                                 <input type="number" id="eventShift" class="main-input" value="2" step="0.5" style="padding: 8px;">
+                            </div>
+                            <div class="input-group" style="margin-bottom: 0; display: none;" id="eventCustomDoseGroup">
+                                <label>Dose (mg)</label>
+                                <input type="number" id="eventCustomDose" class="main-input" value="300" step="any" style="padding: 8px;">
                             </div>
                         </div>
                         <button class="btn btn-sm" onclick="addEvent()">+ Add Disruption</button>
@@ -1869,6 +1875,7 @@ function addEvent() {
     const doseNum = parseInt(document.getElementById('eventDoseNum').value);
     const eventType = document.getElementById('eventType').value;
     const shift = parseFloat(document.getElementById('eventShift').value) || 0;
+    const customDose = parseFloat(document.getElementById('eventCustomDose').value) || 0;
     
     if (doseNum < 1) return;
     
@@ -1879,7 +1886,12 @@ function addEvent() {
         return;
     }
     
-    scheduleEvents.push({ doseNum, eventType, shift });
+    const event = { doseNum, eventType, shift };
+    if (eventType === 'custom') {
+        event.customDose = customDose;
+    }
+    
+    scheduleEvents.push(event);
     renderEventList();
 }
 
@@ -1902,6 +1914,7 @@ function renderEventList() {
             case 'late': desc += `Late by ${e.shift}h`; break;
             case 'early': desc += `Early by ${e.shift}h`; break;
             case 'double': desc += 'DOUBLED'; break;
+            case 'custom': desc += `${e.customDose}mg`; break;
         }
         return `
             <div class="event-item">
@@ -1910,6 +1923,24 @@ function renderEventList() {
             </div>
         `;
     }).join('');
+}
+
+function toggleEventInputs() {
+    const eventType = document.getElementById('eventType').value;
+    const shiftGroup = document.getElementById('eventShiftGroup');
+    const customDoseGroup = document.getElementById('eventCustomDoseGroup');
+    
+    if (eventType === 'custom') {
+        shiftGroup.style.display = 'none';
+        customDoseGroup.style.display = 'block';
+    } else if (eventType === 'late' || eventType === 'early') {
+        shiftGroup.style.display = 'block';
+        customDoseGroup.style.display = 'none';
+    } else {
+        // missed or double - hide both optional inputs
+        shiftGroup.style.display = 'none';
+        customDoseGroup.style.display = 'none';
+    }
 }
 
 // ============================================
@@ -1981,7 +2012,11 @@ function formatRealTimeShort(hoursFromStart) {
     const ampm = hours >= 12 ? 'PM' : 'AM';
     const h12 = hours % 12 || 12;
     
-    return `${month}/${day} ${h12}:${minutes}${ampm}`;
+    // Return object with date and time on separate lines
+    return {
+        date: `${month}/${day}`,
+        time: `${h12}:${minutes}${ampm}`
+    };
 }
 
 // ============================================
@@ -2073,6 +2108,7 @@ function buildSchedule(numDoses, tau, events, doseAmount, doseForm, tLag, tRel) 
         
         // Check for disruptions
         const disruption = events.find(e => e.doseNum === i);
+        let customDoseOverride = null;
         if (disruption) {
             switch (disruption.eventType) {
                 case 'missed':
@@ -2087,6 +2123,9 @@ function buildSchedule(numDoses, tau, events, doseAmount, doseForm, tLag, tRel) 
                 case 'double':
                     multiplier = 2;
                     break;
+                case 'custom':
+                    customDoseOverride = disruption.customDose;
+                    break;
             }
         }
         
@@ -2095,12 +2134,15 @@ function buildSchedule(numDoses, tau, events, doseAmount, doseForm, tLag, tRel) 
         const ingestionTime = baseTime + timeShift;
         const effectiveLag = (doseForm === 'Delayed') ? tLag : 0;
         
+        // Determine the actual dose amount for this administration
+        const actualDose = customDoseOverride !== null ? customDoseOverride : (doseAmount * multiplier);
+        
         if (doseForm === 'ER') {
             // Extended release: split into micro-doses
             const microDosesPerHour = 60;  // was 15
             const N = Math.min(240, Math.max(60, Math.round(tRel * microDosesPerHour)));
             const dtMicro = tRel / N;
-            const microDose = (doseAmount * multiplier) / N;
+            const microDose = actualDose / N;
             
             for (let j = 0; j < N; j++) {
                 schedule.push({
@@ -2114,7 +2156,7 @@ function buildSchedule(numDoses, tau, events, doseAmount, doseForm, tLag, tRel) 
             // IR or Delayed
             schedule.push({
                 time: ingestionTime + effectiveLag,
-                amount: doseAmount * multiplier,
+                amount: actualDose,
                 doseNum: i,
                 isMicro: false
             });
@@ -2439,7 +2481,7 @@ function renderPlot(simResult, mcBands = null, Vd = null) {
 
     let bottomPadding = isMobile ? 40 : 50;
     if (showDays) bottomPadding = isMobile ? 50 : 65;
-    if (showRealTimeForPadding) bottomPadding += isMobile ? 12 : 18;
+    if (showRealTimeForPadding) bottomPadding += isMobile ? 24 : 32;
 
     const padding = { top: 30, right: isMobile ? 15 : 30, bottom: bottomPadding, left: isMobile ? 50 : 70 };
     const plotWidth = canvas.width - padding.left - padding.right;
@@ -2565,14 +2607,16 @@ function renderPlot(simResult, mcBands = null, Vd = null) {
             ctx.fillText(t.toFixed(1), x, canvas.height - padding.bottom + (isMobile ? 12 : 18));
         }
         
-        // Show real time if enabled
+        // Show real time if enabled (date and time on separate lines)
         if (showRealTime) {
-            const realTimeStr = formatRealTimeShort(t);
-            if (realTimeStr) {
+            const realTimeData = formatRealTimeShort(t);
+            if (realTimeData) {
                 ctx.fillStyle = isDark ? '#06b6d4' : '#0891b2'; // accent-info color
                 ctx.font = `${fontSize.realTime}px "JetBrains Mono", monospace`;
-                const yOffset = showDays ? (isMobile ? 32 : 46) : (isMobile ? 22 : 32);
-                ctx.fillText(realTimeStr, x, canvas.height - padding.bottom + yOffset);
+                const yOffsetDate = showDays ? (isMobile ? 32 : 46) : (isMobile ? 22 : 32);
+                const yOffsetTime = yOffsetDate + (isMobile ? 9 : 11); // Line spacing
+                ctx.fillText(realTimeData.date, x, canvas.height - padding.bottom + yOffsetDate);
+                ctx.fillText(realTimeData.time, x, canvas.height - padding.bottom + yOffsetTime);
                 ctx.font = `${fontSize.axis}px "JetBrains Mono", monospace`;
             }
         }
@@ -2772,22 +2816,40 @@ function handlePlotHover(e) {
         datetimeEl.style.display = 'none';
     }
     
-    // Position tooltip
+    // Position tooltip - shift based on which half of chart we're in
     const container = canvas.parentElement;
+    const chartCenterX = padding.left + plotWidth / 2;
+    const isRightHalf = mouseX > chartCenterX;
     
-    let tooltipX = mouseX + 15;
-    let tooltipY = mouseY - 10;
-    
-    // Keep tooltip in bounds
     const tooltipWidth = 200;
     const tooltipHeight = 100;
-    if (tooltipX + tooltipWidth > container.clientWidth - 10) {
-        tooltipX = mouseX - tooltipWidth - 15;
+    
+    // Scale mouse position back to CSS pixels for tooltip positioning
+    const cssMouseX = mouseX / scaleX;
+    const cssMouseY = mouseY / scaleY;
+    
+    let tooltipX, tooltipY;
+    
+    // On right half, show tooltip to the left of cursor; on left half, show to the right
+    if (isRightHalf) {
+        tooltipX = cssMouseX - tooltipWidth - 15;
+    } else {
+        tooltipX = cssMouseX + 15;
     }
+    
+    tooltipY = cssMouseY - 10;
+    
+    // Keep tooltip in vertical bounds
     if (tooltipY + tooltipHeight > container.clientHeight - 10) {
         tooltipY = container.clientHeight - tooltipHeight - 10;
     }
     if (tooltipY < 10) tooltipY = 10;
+    
+    // Final horizontal bounds check (fallback)
+    if (tooltipX < 10) tooltipX = 10;
+    if (tooltipX + tooltipWidth > container.clientWidth - 10) {
+        tooltipX = container.clientWidth - tooltipWidth - 10;
+    }
     
     tooltip.style.left = tooltipX + 'px';
     tooltip.style.top = tooltipY + 'px';
