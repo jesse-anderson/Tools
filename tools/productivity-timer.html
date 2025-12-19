@@ -1,0 +1,1720 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Productivity Timer | Tools Hub</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+    <link rel="stylesheet" href="../css/shared.css" />
+
+    <style>
+        /* ============================================
+           PRODUCTIVITY TIMER - PAGE STYLES
+           ============================================ */
+
+        .calculator-layout {
+            display: grid;
+            grid-template-columns: 1fr 360px;
+            gap: 24px;
+            min-height: calc(100vh - 300px);
+        }
+
+        .calculator-panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel-header {
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .panel-header h2 { font-size: 1.5rem; margin-bottom: 4px; }
+        .panel-header p { color: var(--text-secondary); font-size: 0.9375rem; }
+
+        a,
+        .back-link {
+            color: var(--link-color);
+            text-decoration: none;
+            transition: color 0.2s ease, opacity 0.2s ease;
+            cursor: pointer;
+        }
+        a:hover,
+        .back-link:hover {
+            color: var(--link-hover);
+            text-decoration: underline;
+        }
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 500;
+        }
+
+        .tool-icon-header {
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            border: 1px solid var(--border-color);
+            background: var(--accent-general-dim);
+            color: var(--accent-general);
+        }
+
+        /* Status alert */
+        .method-alert {
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 0.8125rem;
+            margin-bottom: 20px;
+            display: none;
+            align-items: flex-start;
+            gap: 10px;
+            line-height: 1.5;
+        }
+        .alert-info   { background: rgba(59, 130, 246, 0.10); border: 1px solid rgba(59, 130, 246, 0.30); color: #3b82f6; }
+        .alert-warn   { background: rgba(234, 179, 8, 0.10); border: 1px solid rgba(234, 179, 8, 0.30); color: #eab308; }
+        .alert-ok     { background: rgba(34, 197, 94, 0.10); border: 1px solid rgba(34, 197, 94, 0.30); color: #22c55e; }
+        .method-alert svg { flex-shrink: 0; margin-top: 2px; }
+
+        /* Inputs */
+        .input-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+        .input-grid.three { grid-template-columns: 1fr 1fr 1fr; }
+
+        .input-group label {
+            display: block;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 0.8125rem;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .main-input, .main-select {
+            width: 100%;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px 16px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1rem;
+            color: var(--text-primary);
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .main-input:focus, .main-select:focus { 
+            border-color: var(--accent-general); 
+        }
+        .range-edge-to-edge {
+            --thumb-d: 18px; /* adjust if using a different thumb size */
+            width: calc(100% + var(--thumb-d));
+            margin-left: calc(var(--thumb-d) / -2);
+            margin-right: calc(var(--thumb-d) / -2);
+            box-sizing: border-box;
+            display: block;
+
+            /* restores filled track color in modern browsers */
+            accent-color: var(--accent-general);
+        }
+
+        /* --- Alarm volume slider: true edge-to-edge track + correct fill at min/max --- */
+        #volume {
+            width: 100%;
+            margin: 0;
+            padding: 0;
+            background: transparent;
+            -webkit-appearance: none;
+            appearance: none;
+            height: 18px; /* gives room for thumb */
+            display: block;
+            --pct: 10%; /* gets overridden by JS; fallback is fine */
+        }
+
+        /* WebKit / Chromium track */
+        #volume::-webkit-slider-runnable-track {
+            height: 10px;
+            border-radius: 999px;
+            border: 1px solid var(--border-color);
+
+            /* Fill hits true ends via gradient; no more inset look at min/max */
+            background: linear-gradient(
+                to right,
+                var(--accent-general) 0%,
+                var(--accent-general) var(--pct),
+                var(--bg-secondary) var(--pct),
+                var(--bg-secondary) 100%
+            );
+        }
+
+        /* WebKit / Chromium thumb */
+        #volume::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 999px;
+            background: var(--bg-card);
+            border: 2px solid var(--accent-general);
+            margin-top: -4px; /* centers thumb over 10px track */
+            box-shadow: 0 2px 10px rgba(0,0,0,0.25);
+        }
+
+        /* Firefox track + progress (Firefox supports separate progress styling) */
+        #volume::-moz-range-track {
+            height: 10px;
+            border-radius: 999px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-secondary);
+        }
+        #volume::-moz-range-progress {
+            height: 10px;
+            border-radius: 999px;
+            background: var(--accent-general);
+        }
+        #volume::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 999px;
+            background: var(--bg-card);
+            border: 2px solid var(--accent-general);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.25);
+        }
+
+        .options-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .toggle-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s;
+            user-select: none;
+        }
+        .toggle-wrapper:hover { background: var(--bg-card); }
+        .toggle-wrapper input { width: 16px; height: 16px; accent-color: var(--accent-general); }
+        .toggle-text { font-size: 0.8125rem; color: var(--text-secondary); font-weight: 500; }
+
+        /* Timer UI */
+        .timer-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 16px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+
+        .timer-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background: var(--bg-secondary);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .timer-status .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 999px;
+            background: var(--text-muted);
+        }
+
+        /* Phase badge (panel header right) */
+        .timer-status.work .dot { background: var(--accent-success); }
+        .timer-status.break .dot { background: var(--accent-warning); }
+        .timer-status.done .dot { background: var(--accent-it); }
+
+        /* Run badge (above the timer) */
+        .timer-status.running .dot { background: var(--accent-success); }
+        .timer-status.paused  .dot { background: var(--text-muted); }
+        .timer-status.alarm   .dot { background: rgba(239, 68, 68, 0.95); }
+        .timer-status.complete .dot { background: rgba(34, 197, 94, 0.95); }
+
+        .timer-display {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 3.25rem;
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            line-height: 1.0;
+            color: var(--text-primary);
+        }
+
+        .timer-sub {
+            margin-top: 8px;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .timer-sub .mono {
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--text-primary);
+            font-weight: 700;
+        }
+
+        .progress-track {
+            width: 100%;
+            height: 10px;
+            border-radius: 999px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+            margin: 14px 0 18px;
+        }
+        .progress-fill {
+            height: 100%;
+            width: 0%;
+            background: var(--accent-general);
+            transition: width 0.15s linear;
+        }
+
+        .controls-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 18px;
+        }
+
+        .timer-btn {
+            width: 100%;
+            padding: 12px 12px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-primary);
+            cursor: pointer;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: transform 0.05s ease, border-color 0.2s ease, background 0.2s ease, opacity 0.2s ease;
+            font-family: 'Space Grotesk', sans-serif;
+        }
+        .timer-btn:active { transform: translateY(1px); }
+        .timer-btn:hover { border-color: var(--accent-general); }
+        .timer-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .timer-btn.primary {
+            background: var(--accent-general);
+            border-color: var(--accent-general);
+            color: var(--bg-primary);
+        }
+        .timer-btn.primary:hover { opacity: 0.92; }
+
+        .timer-btn.danger { border-color: rgba(239, 68, 68, 0.45); }
+        .timer-btn.danger:hover { border-color: rgba(239, 68, 68, 0.9); }
+
+        .timer-btn.small { padding: 10px 10px; font-size: 0.9rem; }
+
+        .secondary-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .sidebar-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 18px;
+        }
+
+        .sidebar-card h3 { margin-bottom: 10px; font-size: 1.05rem; }
+        .sidebar-card p, .sidebar-card li {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            line-height: 1.6;
+        }
+        .sidebar-card ul { padding-left: 18px; margin-top: 10px; }
+
+        .mini-kbd {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            border: 1px solid var(--border-color);
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border-radius: 6px;
+            padding: 3px 7px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* Dropdowns */
+        .dropdown-container {
+            margin-top: 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background: var(--bg-card);
+            overflow: hidden;
+        }
+        .dropdown-header {
+            padding: 16px;
+            background: var(--bg-secondary);
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 600;
+            font-family: 'Space Grotesk', sans-serif;
+            user-select: none;
+        }
+        .dropdown-content {
+            padding: 18px;
+            display: none;
+            font-size: 0.875rem;
+            line-height: 1.7;
+            color: var(--text-secondary);
+            border-top: 1px solid var(--border-color);
+        }
+        .dropdown-content.open { display: block; }
+        .dropdown-content h4 { color: var(--text-primary); margin: 16px 0 8px 0; font-size: 0.95rem; }
+        .dropdown-content ul { padding-left: 20px; margin-bottom: 12px; }
+        .dropdown-content li { margin-bottom: 6px; }
+
+        .result-note {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px dashed var(--border-color);
+            font-style: italic;
+        }
+
+        @media (max-width: 1024px) {
+            .calculator-layout { grid-template-columns: 1fr; }
+            .input-grid, .input-grid.three { grid-template-columns: 1fr; }
+            .controls-row { grid-template-columns: 1fr; }
+            .secondary-row { grid-template-columns: 1fr; }
+            .timer-display { font-size: 2.7rem; }
+        }
+    </style>
+</head>
+
+<body>
+<div class="container">
+    <header>
+        <div class="header-content">
+            <div class="header-left">
+                <a href="../tools.html" class="back-link">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+                        <line x1="19" y1="12" x2="5" y2="12"></line>
+                        <polyline points="12 19 5 12 12 5"></polyline>
+                    </svg>
+                    Back to Tools
+                </a>
+            </div>
+
+            <div class="header-right">
+                <div class="theme-toggle">
+                    <button data-theme-toggle="light" title="Light mode">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="5"></circle>
+                            <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path>
+                        </svg>
+                    </button>
+                    <button data-theme-toggle="dark" title="Dark mode">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div style="margin-top: 24px; display: flex; align-items: center; gap: 16px;">
+            <div class="tool-icon-header">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="9"></circle>
+                    <path d="M12 7v5l3 2"></path>
+                </svg>
+            </div>
+            <div>
+                <h1>Productivity Timer</h1>
+                <p class="tagline">// WORK • BREAK • DEEP FOCUS</p>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="calculator-layout">
+            <!-- MAIN PANEL -->
+            <div class="calculator-panel">
+                <div class="panel-header">
+                    <div>
+                        <h2>Work / Break Timer</h2>
+                        <p>Focused work blocks with automatic breaks and an audible alarm.</p>
+                    </div>
+
+                    <!-- Phase badge (panel header right) -->
+                    <div class="timer-status work" id="phaseBadge" aria-live="polite">
+                        <span class="dot" aria-hidden="true"></span>
+                        <span id="phaseText">WORK</span>
+                    </div>
+                </div>
+
+                <!-- Status alert (messages) -->
+                <div id="statusAlert" class="method-alert alert-info" role="status" aria-live="polite">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                    </svg>
+                    <div id="alertText">Status message</div>
+                </div>
+
+                <div class="timer-top">
+                    <div>
+                        <!-- Run-state badge ABOVE the time -->
+                        <div class="timer-status paused" id="runBadge" style="margin-bottom: 10px;" aria-live="polite">
+                            <span class="dot" aria-hidden="true"></span>
+                            <span id="runText">PAUSED</span>
+                        </div>
+
+                        <div class="timer-display" id="timeDisplay">25:00</div>
+                        <div class="timer-sub">
+                            <span>Session: <span class="mono" id="sessionDisplay">1</span></span>
+                            <span>Completed: <span class="mono" id="completedDisplay">0</span></span>
+                            <span>Target: <span class="mono" id="targetDisplay">∞</span></span>
+                        </div>
+                    </div>
+
+                    <div style="display:flex; flex-direction:column; gap:10px; min-width: 210px;">
+                        <div class="input-group" style="margin:0;">
+                            <label style="margin-bottom:6px;">Alarm volume</label>
+                            <input type="range" id="volume" class="range-edge-to-edge" min="0" max="1" step="0.01" value="0.5" />
+                            <div class="result-note" style="margin-top:8px; padding-top:8px;">
+                                Tip: browsers often require a user gesture before allowing sound. Starting the timer primes audio.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="progress-track" aria-hidden="true">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+
+                <div class="controls-row">
+                    <button class="timer-btn primary" id="startPauseBtn" onclick="onStartPause()">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <polygon points="8 5 19 12 8 19 8 5"></polygon>
+                        </svg>
+                        Start
+                    </button>
+
+                    <button class="timer-btn" id="resetBtn" onclick="onReset()">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <polyline points="1 4 1 10 7 10"></polyline>
+                            <path d="M3.51 15a9 9 0 1 0 .49-5.5L1 10"></path>
+                        </svg>
+                        Reset
+                    </button>
+
+                    <button class="timer-btn" id="skipBtn" onclick="onSkip()">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <polygon points="5 4 15 12 5 20 5 4"></polygon>
+                            <line x1="19" y1="5" x2="19" y2="19"></line>
+                        </svg>
+                        Skip
+                    </button>
+                </div>
+
+                <div class="secondary-row">
+                    <button class="timer-btn danger small" id="stopAlarmBtn" onclick="stopAlarm()" disabled>
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <rect x="6" y="6" width="12" height="12" rx="2"></rect>
+                        </svg>
+                        Stop alarm
+                    </button>
+
+                    <button class="timer-btn small" id="applyBtn" onclick="applySettings()">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <path d="M20 6L9 17l-5-5"></path>
+                        </svg>
+                        Apply durations
+                    </button>
+                </div>
+
+                <!-- HIGH GRANULARITY MINUTES (resolve to nearest second) -->
+                <div class="input-grid three">
+                    <div class="input-group">
+                        <label>Work (minutes)</label>
+                        <input type="number" id="workMin" class="main-input" value="25" min="0.001" max="240" step="0.001" inputmode="decimal" />
+                    </div>
+                    <div class="input-group">
+                        <label>Short break (minutes)</label>
+                        <input type="number" id="shortMin" class="main-input" value="5" min="0.001" max="120" step="0.001" inputmode="decimal" />
+                    </div>
+                    <div class="input-group">
+                        <label>Long break (minutes)</label>
+                        <input type="number" id="longMin" class="main-input" value="15" min="0.001" max="180" step="0.001" inputmode="decimal" />
+                    </div>
+                </div>
+
+                <div class="input-grid">
+                    <div class="input-group">
+                        <label>Long break every N work sessions</label>
+                        <input type="number" id="longEvery" class="main-input" value="4" min="1" max="12" step="1" />
+                    </div>
+                    <div class="input-group">
+                        <label>Target work sessions (0 = infinite)</label>
+                        <input type="number" id="targetSessions" class="main-input" value="0" min="0" max="200" step="1" />
+                    </div>
+                </div>
+
+                <div class="options-container">
+                    <label class="toggle-wrapper" for="autoStartNext">
+                        <input type="checkbox" id="autoStartNext" />
+                        <div class="toggle-text">
+                            Auto-start next phase (work ↔ break). Enabled by default to minimize clicking.
+                        </div>
+                    </label>
+
+                    <label class="toggle-wrapper" for="silentSkip">
+                        <input type="checkbox" id="silentSkip" />
+                        <div class="toggle-text">
+                            Silent Skip (default on). If off, Skip will trigger the alarm (up to 10s) and optional desktop notifications.
+                        </div>
+                    </label>
+
+                    <!-- Count work session on Skip during WORK -->
+                    <label class="toggle-wrapper" for="skipCountsWork">
+                        <input type="checkbox" id="skipCountsWork" />
+                        <div class="toggle-text">
+                            Count Work on Skip (default on). If you press Skip during WORK, it increments Completed (useful if you already did a session off-timer).
+                        </div>
+                    </label>
+
+                    <label class="toggle-wrapper" for="desktopNotify">
+                        <input type="checkbox" id="desktopNotify" />
+                        <div class="toggle-text">
+                            Desktop notification on phase transitions (optional; requires browser permission).
+                        </div>
+                    </label>
+
+                    <label class="toggle-wrapper" for="keepAwake">
+                        <input type="checkbox" id="keepAwake" />
+                        <div class="toggle-text">
+                            Keep screen awake while running (Wake Lock; supported browsers only).
+                        </div>
+                    </label>
+                </div>
+
+                <div class="dropdown-container">
+                    <div class="dropdown-header" onclick="toggleDropdown('howTo', this)">
+                        <span>How to use</span>
+                        <svg class="dropdown-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </div>
+                    <div class="dropdown-content" id="howTo">
+                        <ul>
+                            <li>Durations accept very small values (e.g., <strong>0.05</strong> minutes). The timer resolves durations to the <strong>nearest second</strong>.</li>
+                            <li><strong>Apply durations</strong> updates the current phase duration when paused (to avoid mid-count surprises).</li>
+                            <li><strong>Auto-start</strong> is enabled by default: phases will roll over automatically and keep running.</li>
+                            <li><strong>Skip</strong> always advances phases:
+                                <ul>
+                                    <li>Skipping during <strong>WORK</strong> can optionally increment Completed (“Count Work on Skip”).</li>
+                                    <li>Skipping during <strong>BREAK</strong> simply jumps to WORK.</li>
+                                </ul>
+                            </li>
+                        </ul>
+
+                        <h4>Keyboard shortcuts</h4>
+                        <ul>
+                            <li><span class="mini-kbd">Space</span> Start / Pause</li>
+                            <li><span class="mini-kbd">R</span> Reset</li>
+                            <li><span class="mini-kbd">N</span> Skip</li>
+                            <li><span class="mini-kbd">S</span> Stop alarm</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="dropdown-container">
+                    <div class="dropdown-header" onclick="toggleDropdown('edu', this)">
+                        <span>Why work/break cycles help (educational)</span>
+                        <svg class="dropdown-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </div>
+                    <div class="dropdown-content" id="edu">
+                        <p>
+                            Long, uninterrupted “time-on-task” tends to produce a <strong>vigilance decrement</strong>—performance and attention drift as you grind.
+                            Short, structured interruptions can help reset task goals and reduce this drop-off.
+                        </p>
+
+                        <h4>What this timer is doing</h4>
+                        <ul>
+                            <li><strong>Protects deep focus</strong>: you commit to a bounded window where the only job is to stay on-task.</li>
+                            <li><strong>Forces micro-recovery</strong>: breaks are short enough to avoid context loss, but long enough to reduce fatigue.</li>
+                            <li><strong>Encourages spacing</strong>: splitting effort into multiple episodes is associated with better long-term retention for learning tasks.</li>
+                        </ul>
+
+                        <h4>Practical guidance</h4>
+                        <ul>
+                            <li>If your work is cognitively heavy, start with <strong>25–35</strong> minute work blocks.</li>
+                            <li>If you’re already in flow, try <strong>45–55</strong> minutes with <strong>8–12</strong> minute breaks.</li>
+                            <li>Use the long break every <strong>3–5</strong> work sessions to avoid cumulative fatigue.</li>
+                        </ul>
+
+                        <h4>References (for the curious)</h4>
+                        <table class="ref-table">
+                            <thead>
+                                <tr>
+                                    <th>Ref</th>
+                                    <th>What it supports</th>
+                                    <th>Source</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>[R1]</td>
+                                    <td>Distributed/“spaced” practice advantage across many experiments</td>
+                                    <td>Cepeda et al., 2006 (meta-analysis) — PubMed: <a href="https://pubmed.ncbi.nlm.nih.gov/16719566/" target="_blank" rel="noopener">16719566</a></td>
+                                </tr>
+                                <tr>
+                                    <td>[R2]</td>
+                                    <td>Brief mental breaks can reduce vigilance decrement in sustained tasks</td>
+                                    <td>Ariga &amp; Lleras, 2011 — PubMed: <a href="https://pubmed.ncbi.nlm.nih.gov/21211793/" target="_blank" rel="noopener">21211793</a></td>
+                                </tr>
+                                <tr>
+                                    <td>[R3]</td>
+                                    <td>Review of vigilance decrement and enhancement techniques</td>
+                                    <td>Al-Shargie et al., 2019 — PMC: <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC6721323/" target="_blank" rel="noopener">PMC6721323</a></td>
+                                </tr>
+                                <tr>
+                                    <td>[R4]</td>
+                                    <td>Rest/task interruptions as a benefit to vigilance performance</td>
+                                    <td>Helton &amp; Russell, 2015 — Cognition (abstract): <a href="https://www.sciencedirect.com/science/article/abs/pii/S0010027714001929" target="_blank" rel="noopener">S0010027714001929</a></td>
+                                </tr>
+                                <tr>
+                                    <td>[R5]</td>
+                                    <td>Spacing guidance for learning in educational contexts</td>
+                                    <td>Carpenter, 2012 (ERIC PDF): <a href="https://files.eric.ed.gov/fulltext/ED536925.pdf" target="_blank" rel="noopener">ED536925</a></td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <div class="result-note">
+                            Note: This timer is a productivity aid, not a medical device. If you experience headaches, dizziness, or significant distress during focus work, stop and reassess your workload and environment.
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- SIDEBAR -->
+            <aside class="sidebar">
+                <div class="sidebar-card">
+                    <h3>Completion logic</h3>
+                    <p>
+                        Work completions increment Completed. When Completed reaches Target (if set), the timer enters a clear <strong>COMPLETE</strong> state.
+                    </p>
+                    <ul>
+                        <li>Auto-start keeps the cycle flowing with minimal interaction.</li>
+                        <li>Skip can be used to “catch up” if you did work off-timer (Count Work on Skip).</li>
+                    </ul>
+                </div>
+
+                <div class="sidebar-card">
+                    <h3>Sound behavior</h3>
+                    <p>
+                        On phase completion, the alarm emits repeated beeps until you click <strong>Stop alarm</strong> or <strong>10 seconds</strong> pass (whichever comes first). 
+                        Skip can be silent or audible via the toggle.
+                    </p>
+                    <ul>
+                        <li>Uses the Web Audio API oscillator (no external audio files).</li>
+                        <li>Respects browser autoplay restrictions: starting the timer primes audio.</li>
+                        <li>Optional vibration on supported devices.</li>
+                    </ul>
+                </div>
+                <div class="sidebar-card">
+                    <h3>Tip: minimize context switching</h3>
+                    <p>
+                        Treat the work block as a commitment contract: write down the next action, close everything unrelated, then start the timer.
+                        If you get an intrusive thought, jot it down and return to the task.
+                    </p>
+                </div>
+            </aside>
+        </div>
+    </main>
+
+    <footer>
+            <div class="footer-content">
+                <p class="footer-text">© 2025 Tools Hub — Built for engineers</p>
+                <nav class="footer-links">
+                    <a href="../tools.html">All Tools</a>
+                    <a href="#">Report Issue</a>
+                </nav>
+            </div>
+        </footer>
+</div>
+
+<script>
+/* ============================================
+   PRODUCTIVITY TIMER - REVAMPED SCRIPT (v4)
+   Fixes:
+   - Auto-start enabled by default
+   - Skip can count a WORK session (toggle, default ON)
+   - Very small minute inputs allowed; durations resolve to nearest second
+   - Toggles are LIVE immediately (no "Apply" required)
+
+   **Its actually a pain to think of all the use cases here. 
+   Realistically I may also have a more granular task timer where 
+   you input tasks and their expected time and then switch to this or that task over time.
+   Can export to pdf or csv to get a workup of your day. Would be useful
+   in 1 on 1s to bring a highly granular pdf of every single thing you've 
+   done for the 1-3 months lol.**
+   ============================================ */
+
+(function() {
+    "use strict";
+
+    // ---------- DOM ----------
+    const el = {
+        timeDisplay: document.getElementById("timeDisplay"),
+        progressFill: document.getElementById("progressFill"),
+        startPauseBtn: document.getElementById("startPauseBtn"),
+        resetBtn: document.getElementById("resetBtn"),
+        skipBtn: document.getElementById("skipBtn"),
+        stopAlarmBtn: document.getElementById("stopAlarmBtn"),
+        applyBtn: document.getElementById("applyBtn"),
+
+        phaseBadge: document.getElementById("phaseBadge"),
+        phaseText: document.getElementById("phaseText"),
+
+        runBadge: document.getElementById("runBadge"),
+        runText: document.getElementById("runText"),
+
+        sessionDisplay: document.getElementById("sessionDisplay"),
+        completedDisplay: document.getElementById("completedDisplay"),
+        targetDisplay: document.getElementById("targetDisplay"),
+
+        statusAlert: document.getElementById("statusAlert"),
+        alertText: document.getElementById("alertText"),
+
+        workMin: document.getElementById("workMin"),
+        shortMin: document.getElementById("shortMin"),
+        longMin: document.getElementById("longMin"),
+        longEvery: document.getElementById("longEvery"),
+        targetSessions: document.getElementById("targetSessions"),
+
+        autoStartNext: document.getElementById("autoStartNext"),
+        silentSkip: document.getElementById("silentSkip"),
+        skipCountsWork: document.getElementById("skipCountsWork"),
+        desktopNotify: document.getElementById("desktopNotify"),
+        keepAwake: document.getElementById("keepAwake"),
+
+        volume: document.getElementById("volume")
+    };
+
+    // ---------- SETTINGS ----------
+    const STORAGE_KEY = "toolsHubProductivityTimerSettings_v4";
+
+    function clampFloat(v, min, max, fallback) {
+        const n = Number.parseFloat(v);
+        if (!Number.isFinite(n)) return fallback;
+        return Math.min(max, Math.max(min, n));
+    }
+
+    function clampInt(v, min, max, fallback) {
+        const n = Number.parseInt(v, 10);
+        if (!Number.isFinite(n)) return fallback;
+        return Math.min(max, Math.max(min, n));
+    }
+
+    function setRangePct(rangeEl) {
+        const min = Number(rangeEl.min ?? 0);
+        const max = Number(rangeEl.max ?? 1);
+        const val = Number(rangeEl.value ?? min);
+
+        const pct = (max > min) ? ((val - min) / (max - min)) * 100 : 0;
+        rangeEl.style.setProperty("--pct", `${pct}%`);
+    }
+
+    function minutesToMsNearestSecond(mins) {
+        // Convert to seconds, rounding to nearest second, and clamp to >= 1 second.
+        // Examples:
+        // 0.05 min => 3 seconds (0.05*60=3)
+        // 0.001 min => 0.06 sec => rounds to 0 => clamp to 1 second
+        const sec = Math.round(mins * 60);
+        const clampedSec = Math.max(1, sec);
+        return clampedSec * 1000;
+    }
+
+    function loadSettings() {
+        try {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            if (!raw) return null;
+            return JSON.parse(raw);
+        } catch (e) {
+            return null;
+        }
+    }
+
+    function saveSettings(cfg) {
+        try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(cfg));
+        } catch (e) {}
+    }
+
+    function readDurationsFromUI() {
+        // Extremely granular; allow down to 0.001 minutes but resolve to nearest second
+        return {
+            workMin: clampFloat(el.workMin.value, 0.001, 240, 25),
+            shortMin: clampFloat(el.shortMin.value, 0.001, 120, 5),
+            longMin: clampFloat(el.longMin.value, 0.001, 180, 15),
+            longEvery: clampInt(el.longEvery.value, 1, 12, 4),
+            targetSessions: clampInt(el.targetSessions.value, 0, 200, 0)
+        };
+    }
+
+    function readLiveTogglesFromUI() {
+        return {
+            autoStartNext: !!el.autoStartNext.checked,
+            silentSkip: !!el.silentSkip.checked,
+            skipCountsWork: !!el.skipCountsWork.checked,
+            desktopNotify: !!el.desktopNotify.checked,
+            keepAwake: !!el.keepAwake.checked,
+            volume: clampFloat(el.volume.value, 0, 1, 0.6)
+        };
+    }
+
+    function writeSettingsToUI(cfg) {
+        el.workMin.value = cfg.workMin;
+        el.shortMin.value = cfg.shortMin;
+        el.longMin.value = cfg.longMin;
+        el.longEvery.value = cfg.longEvery;
+        el.targetSessions.value = cfg.targetSessions;
+
+        el.autoStartNext.checked = !!cfg.autoStartNext;
+        el.silentSkip.checked = (typeof cfg.silentSkip === "boolean") ? cfg.silentSkip : true;
+        el.skipCountsWork.checked = (typeof cfg.skipCountsWork === "boolean") ? cfg.skipCountsWork : true;
+        el.desktopNotify.checked = !!cfg.desktopNotify;
+        el.keepAwake.checked = !!cfg.keepAwake;
+
+        el.volume.value = (typeof cfg.volume === "number") ? cfg.volume : 0.5;
+        setRangePct(el.volume);
+
+    }
+
+    // ---------- THEME TOGGLE ----------
+    function initThemeToggle() {
+        const buttons = document.querySelectorAll("[data-theme-toggle]");
+        function setTheme(theme) {
+            if (theme === "light") document.documentElement.setAttribute("data-theme", "light");
+            else document.documentElement.removeAttribute("data-theme");
+
+            buttons.forEach(b => b.classList.toggle("active", b.getAttribute("data-theme-toggle") === theme));
+            try { localStorage.setItem("toolsHubTheme", theme); } catch (e) {}
+        }
+
+        let saved = null;
+        try { saved = localStorage.getItem("toolsHubTheme"); } catch (e) {}
+        setTheme(saved === "light" ? "light" : "dark");
+
+        buttons.forEach(btn => {
+            btn.addEventListener("click", () => {
+                const theme = btn.getAttribute("data-theme-toggle");
+                setTheme(theme);
+            });
+        });
+    }
+
+    // ---------- DROPDOWNS ----------
+    window.toggleDropdown = function(id, headerEl) {
+        const content = document.getElementById(id);
+        if (!content) return;
+
+        const isOpen = content.classList.contains("open");
+        if (isOpen) content.classList.remove("open");
+        else content.classList.add("open");
+
+        const icon = headerEl ? headerEl.querySelector(".dropdown-icon") : null;
+        if (icon) {
+            icon.style.transform = isOpen ? "rotate(0deg)" : "rotate(180deg)";
+            icon.style.transition = "transform 0.15s ease";
+        }
+    };
+
+    // ---------- STATE ----------
+    const PHASE = {
+        WORK: "work",
+        SHORT: "short_break",
+        LONG: "long_break",
+        DONE: "done"
+    };
+
+    let cfg = null;
+
+    const state = {
+        phase: PHASE.WORK,
+        isRunning: false,
+
+        durationMs: 25 * 60 * 1000,
+        remainingMs: 25 * 60 * 1000,
+        endTs: null,
+
+        workSessionsDone: 0,
+
+        alarmActive: false,
+        alarmInterval: null,
+        alarmTimeout: null,
+
+        wakeLock: null,
+
+        tickInterval: null,
+
+        alertHideTimeout: null
+    };
+
+    // ---------- ALERTS ----------
+    function showAlert(msg, kind, opts) {
+        const options = opts || {};
+        const autoHideMs = (typeof options.autoHideMs === "number") ? options.autoHideMs : 0;
+        const persist = !!options.persist;
+
+        if (state.alertHideTimeout) {
+            clearTimeout(state.alertHideTimeout);
+            state.alertHideTimeout = null;
+        }
+
+        el.statusAlert.style.display = "flex";
+        el.alertText.textContent = msg;
+
+        el.statusAlert.classList.remove("alert-info", "alert-warn", "alert-ok");
+        if (kind === "ok") el.statusAlert.classList.add("alert-ok");
+        else if (kind === "warn") el.statusAlert.classList.add("alert-warn");
+        else el.statusAlert.classList.add("alert-info");
+
+        if (!persist && autoHideMs > 0) {
+            state.alertHideTimeout = setTimeout(() => {
+                hideAlert();
+            }, autoHideMs);
+        }
+    }
+
+    function hideAlert() {
+        if (state.alertHideTimeout) {
+            clearTimeout(state.alertHideTimeout);
+            state.alertHideTimeout = null;
+        }
+        el.statusAlert.style.display = "none";
+        el.alertText.textContent = "";
+    }
+
+    // ---------- TIME FORMAT ----------
+    function pad2(n) { return String(n).padStart(2, "0"); }
+
+    function fmtMs(ms) {
+        const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+        const m = Math.floor(totalSeconds / 60);
+        const s = totalSeconds % 60;
+        return `${pad2(m)}:${pad2(s)}`;
+    }
+
+    function phaseLabel(phase) {
+        if (phase === PHASE.WORK) return "WORK";
+        if (phase === PHASE.SHORT) return "BREAK";
+        if (phase === PHASE.LONG) return "LONG BREAK";
+        return "DONE";
+    }
+
+    function phaseBadgeClass(phase) {
+        if (phase === PHASE.WORK) return "work";
+        if (phase === PHASE.SHORT || phase === PHASE.LONG) return "break";
+        return "done";
+    }
+
+    function runBadgeClass() {
+        if (state.phase === PHASE.DONE) return "complete";
+        if (state.alarmActive) return "alarm";
+        return state.isRunning ? "running" : "paused";
+    }
+
+    function runLabel() {
+        if (state.phase === PHASE.DONE) return "COMPLETE";
+        if (state.alarmActive) return "ALARM";
+        return state.isRunning ? "RUNNING" : "PAUSED";
+    }
+
+    function phaseDurationMs(phase) {
+        if (phase === PHASE.WORK) return minutesToMsNearestSecond(cfg.workMin);
+        if (phase === PHASE.SHORT) return minutesToMsNearestSecond(cfg.shortMin);
+        if (phase === PHASE.LONG) return minutesToMsNearestSecond(cfg.longMin);
+        return 0;
+    }
+
+    // ---------- AUDIO / ALARM ----------
+    let audioCtx = null;
+
+    function ensureAudioContextPrimed() {
+        if (!audioCtx) {
+            const Ctx = window.AudioContext || window.webkitAudioContext;
+            if (!Ctx) {
+                showAlert("Your browser does not support Web Audio. The timer still works, but without beeps.", "warn", { autoHideMs: 7000 });
+                return false;
+            }
+            audioCtx = new Ctx();
+        }
+        if (audioCtx.state === "suspended") {
+            audioCtx.resume().catch(() => {});
+        }
+        return true;
+    }
+
+    function beepOnce(freqHz, durationMs) {
+        if (!ensureAudioContextPrimed()) return;
+
+        try {
+            const now = audioCtx.currentTime;
+            const o = audioCtx.createOscillator();
+            const g = audioCtx.createGain();
+
+            const vol = clampFloat(el.volume ? el.volume.value : cfg.volume, 0, 1, 0.5);
+
+
+            o.type = "sine";
+            o.frequency.setValueAtTime(freqHz, now);
+
+            g.gain.setValueAtTime(0.0001, now);
+            g.gain.exponentialRampToValueAtTime(Math.max(0.0001, vol), now + 0.01);
+            g.gain.exponentialRampToValueAtTime(0.0001, now + (durationMs / 1000));
+
+            o.connect(g);
+            g.connect(audioCtx.destination);
+
+            o.start(now);
+            o.stop(now + (durationMs / 1000) + 0.02);
+        } catch (e) {
+            showAlert("Sound is blocked by the browser. Click Start (or interact with the page) to enable alarm audio.", "warn", { autoHideMs: 8000 });
+        }
+    }
+
+    function startAlarm() {
+        stopAlarm();
+
+        state.alarmActive = true;
+        el.stopAlarmBtn.disabled = false;
+        updateUI();
+
+        beepOnce(880, 130);
+
+        state.alarmInterval = setInterval(() => {
+            const t = Date.now();
+            const freq = (t % 1300 < 650) ? 880 : 740;
+            beepOnce(freq, 130);
+
+            if (navigator.vibrate) {
+                try { navigator.vibrate(120); } catch (e) {}
+            }
+        }, 650);
+
+        state.alarmTimeout = setTimeout(() => {
+            stopAlarm();
+        }, 10000);
+    }
+
+    window.stopAlarm = function() {
+        if (state.alarmInterval) {
+            clearInterval(state.alarmInterval);
+            state.alarmInterval = null;
+        }
+        if (state.alarmTimeout) {
+            clearTimeout(state.alarmTimeout);
+            state.alarmTimeout = null;
+        }
+        state.alarmActive = false;
+        el.stopAlarmBtn.disabled = true;
+        updateUI();
+    };
+
+    // ---------- NOTIFICATIONS ----------
+    async function maybeNotify(title, body) {
+        if (!cfg.desktopNotify) return;
+        if (!("Notification" in window)) return;
+
+        try {
+            if (Notification.permission === "granted") {
+                new Notification(title, { body });
+            } else if (Notification.permission !== "denied") {
+                const perm = await Notification.requestPermission().catch(() => "denied");
+                if (perm === "granted") {
+                    new Notification(title, { body });
+                }
+            }
+        } catch (e) {}
+    }
+
+    // ---------- WAKE LOCK ----------
+    async function setWakeLock(shouldEnable) {
+        if (!cfg.keepAwake) shouldEnable = false;
+
+        if (!("wakeLock" in navigator) || !navigator.wakeLock) return;
+
+        try {
+            if (shouldEnable && !state.wakeLock) {
+                state.wakeLock = await navigator.wakeLock.request("screen");
+            } else if (!shouldEnable && state.wakeLock) {
+                await state.wakeLock.release();
+                state.wakeLock = null;
+            }
+        } catch (e) {}
+    }
+
+    // ---------- TIMER ENGINE ----------
+    function setPhase(phase, resetRemaining) {
+        state.phase = phase;
+        state.durationMs = phaseDurationMs(phase);
+        if (resetRemaining) state.remainingMs = state.durationMs;
+        updateUI();
+    }
+
+    function computeNextPhaseAfterWorkCompletion(workDoneCount) {
+        if (cfg.targetSessions > 0 && workDoneCount >= cfg.targetSessions) return PHASE.DONE;
+        const isLong = (workDoneCount % cfg.longEvery === 0);
+        return isLong ? PHASE.LONG : PHASE.SHORT;
+    }
+
+    function startTicker() {
+        if (state.tickInterval) return;
+
+        state.tickInterval = setInterval(() => {
+            if (!state.isRunning || state.endTs === null) return;
+
+            const now = performance.now();
+            state.remainingMs = Math.max(0, state.endTs - now);
+
+            if (state.remainingMs <= 0) {
+                state.remainingMs = 0;
+                updateUI();
+                onPhaseBoundary({ reason: "complete", prevRunning: true });
+                return;
+            }
+
+            updateUI();
+        }, 125);
+    }
+
+    function stopTicker() {
+        if (state.tickInterval) {
+            clearInterval(state.tickInterval);
+            state.tickInterval = null;
+        }
+    }
+
+    function beginRunningFromRemaining() {
+        state.isRunning = true;
+        state.endTs = performance.now() + state.remainingMs;
+        startTicker();
+        setWakeLock(true);
+        updateUI();
+    }
+
+    function stopRunningKeepRemaining() {
+        state.isRunning = false;
+        state.endTs = null;
+        setWakeLock(false);
+        updateUI();
+    }
+
+    function startTimer() {
+        ensureAudioContextPrimed();
+
+        if (state.phase === PHASE.DONE) {
+            state.workSessionsDone = 0;
+            setPhase(PHASE.WORK, true);
+            hideAlert();
+        }
+
+        if (state.remainingMs <= 0) {
+            state.durationMs = phaseDurationMs(state.phase);
+            state.remainingMs = state.durationMs;
+        }
+
+        beginRunningFromRemaining();
+    }
+
+    function pauseTimer() {
+        if (!state.isRunning) return;
+
+        state.isRunning = false;
+
+        if (state.endTs !== null) {
+            const now = performance.now();
+            state.remainingMs = Math.max(0, state.endTs - now);
+            state.endTs = null;
+        }
+
+        setWakeLock(false);
+        updateUI();
+    }
+
+    function hardReset() {
+        stopAlarm();
+        pauseTimer();
+        stopTicker();
+
+        state.workSessionsDone = 0;
+        state.phase = PHASE.WORK;
+        state.durationMs = phaseDurationMs(PHASE.WORK);
+        state.remainingMs = state.durationMs;
+        state.endTs = null;
+
+        updateUI();
+        showAlert("Reset: back to WORK.", "info", { autoHideMs: 5000 });
+    }
+
+    // ---------- BOUNDARY HANDLING ----------
+    function onPhaseBoundary(opts) {
+        const options = opts || {};
+        const reason = options.reason; // "complete" | "skip"
+        const prevRunning = !!options.prevRunning;
+
+        const prevPhase = state.phase;
+
+        if (reason === "skip") {
+            stopAlarm();
+        }
+
+        // Completion accounting:
+        // - Real completion on WORK increments
+        // - Skip on WORK increments if cfg.skipCountsWork is enabled (the "I already did this" case)
+        let countedWork = false;
+        if (prevPhase === PHASE.WORK) {
+            if (reason === "complete") {
+                state.workSessionsDone += 1;
+                countedWork = true;
+            } else if (reason === "skip" && cfg.skipCountsWork) {
+                state.workSessionsDone += 1;
+                countedWork = true;
+            }
+        }
+
+        // Decide next phase
+        let nextPhase;
+        if (prevPhase === PHASE.WORK) {
+            // If we counted a work session (complete or skip-count), compute break/target accordingly.
+            // If we did NOT count (skipCountsWork disabled), still advance to break, but use current count.
+            if (countedWork) {
+                nextPhase = computeNextPhaseAfterWorkCompletion(state.workSessionsDone);
+            } else {
+                // Advance to a break without treating this as a "completed work session"
+                // (does not affect long-break cadence, target logic, etc.)
+                const isLong = ((state.workSessionsDone + 1) % cfg.longEvery === 0);
+                nextPhase = isLong ? PHASE.LONG : PHASE.SHORT;
+            }
+        } else if (prevPhase === PHASE.SHORT || prevPhase === PHASE.LONG) {
+            nextPhase = PHASE.WORK;
+        } else {
+            nextPhase = PHASE.WORK;
+        }
+
+        // DONE state
+        if (nextPhase === PHASE.DONE) {
+            state.phase = PHASE.DONE;
+            state.durationMs = 0;
+            state.remainingMs = 0;
+            state.endTs = null;
+            state.isRunning = false;
+
+            stopTicker();
+            setWakeLock(false);
+
+            if (reason === "complete" || (reason === "skip" && countedWork)) {
+                startAlarm();
+                const t = cfg.targetSessions > 0 ? cfg.targetSessions : state.workSessionsDone;
+                showAlert(
+                    `Target reached: ${state.workSessionsDone} work session(s) completed (target: ${t}). Alarm beeping up to 10 seconds.`,
+                    "ok",
+                    { persist: true }
+                );
+                maybeNotify("Productivity Timer", `Target reached: ${state.workSessionsDone} work sessions completed.`).catch(() => {});
+            } else {
+                showAlert("Done.", "ok", { persist: true });
+            }
+
+            updateUI();
+            return;
+        }
+
+        // Move to next phase
+        setPhase(nextPhase, true);
+
+        // Messaging + alarm + notifications
+        if (reason === "complete") {
+            const prevLabel = phaseLabel(prevPhase);
+            const nextLabel = phaseLabel(nextPhase);
+
+            startAlarm();
+            showAlert(
+                `${prevLabel} complete. Next: ${nextLabel}. Alarm beeping up to 10 seconds (or click “Stop alarm”).`,
+                "ok",
+                { autoHideMs: 9000 }
+            );
+            maybeNotify("Productivity Timer", `${prevLabel} complete. Next: ${nextLabel}.`).catch(() => {});
+        } else if (reason === "skip") {
+            const prevLabel = phaseLabel(prevPhase);
+            const nextLabel = phaseLabel(nextPhase);
+
+            let skipMsg = `${prevLabel} skipped. Now: ${nextLabel}.`;
+            if (prevPhase === PHASE.WORK && countedWork) {
+                skipMsg = `WORK marked complete (via Skip). Next: ${nextLabel}.`;
+            } else if (prevPhase === PHASE.WORK && !countedWork) {
+                skipMsg = `WORK skipped (not counted). Next: ${nextLabel}.`;
+            }
+
+            if (cfg.silentSkip) {
+                showAlert(skipMsg, "info", { autoHideMs: 4500 });
+            } else {
+                startAlarm();
+                showAlert(`${skipMsg} Alarm beeping up to 10 seconds.`, "warn", { autoHideMs: 9000 });
+                maybeNotify("Productivity Timer", skipMsg).catch(() => {});
+            }
+        }
+
+        // RUN POLICY:
+        // - On COMPLETE: if autoStartNext ON and we were running, keep running; else pause.
+        // - On SKIP: if autoStartNext ON OR we were running, keep running; else pause.
+        if (reason === "complete") {
+            if (cfg.autoStartNext && prevRunning) {
+                beginRunningFromRemaining();
+            } else {
+                stopRunningKeepRemaining();
+                stopTicker();
+            }
+        } else if (reason === "skip") {
+            const runAfterSkip = cfg.autoStartNext || prevRunning;
+            if (runAfterSkip) {
+                beginRunningFromRemaining();
+            } else {
+                stopRunningKeepRemaining();
+                stopTicker();
+            }
+        }
+    }
+
+    // ---------- UI UPDATE ----------
+    function updateUI() {
+        el.timeDisplay.textContent = fmtMs(state.remainingMs);
+
+        const pct = state.durationMs > 0 ? (1 - (state.remainingMs / state.durationMs)) : 0;
+        const clamped = Math.max(0, Math.min(1, pct));
+        el.progressFill.style.width = `${(clamped * 100).toFixed(2)}%`;
+
+        // Phase badge
+        el.phaseText.textContent = phaseLabel(state.phase);
+        el.phaseBadge.classList.remove("work", "break", "done");
+        el.phaseBadge.classList.add(phaseBadgeClass(state.phase));
+
+        // Run badge above time
+        el.runText.textContent = runLabel();
+        el.runBadge.classList.remove("running", "paused", "alarm", "complete");
+        el.runBadge.classList.add(runBadgeClass());
+
+        // Counters
+        const nextSessionNumber = state.workSessionsDone + ((state.phase === PHASE.WORK && state.phase !== PHASE.DONE) ? 1 : 0);
+        el.sessionDisplay.textContent = String(Math.max(1, nextSessionNumber));
+        el.completedDisplay.textContent = String(state.workSessionsDone);
+        el.targetDisplay.textContent = (cfg.targetSessions > 0) ? String(cfg.targetSessions) : "∞";
+
+        // Start/Pause button label
+        if (state.phase === PHASE.DONE) {
+            el.startPauseBtn.innerHTML = `
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <polyline points="1 4 1 10 7 10"></polyline>
+                    <path d="M3.51 15a9 9 0 1 0 .49-5.5L1 10"></path>
+                </svg>
+                Restart
+            `;
+        } else if (state.isRunning) {
+            el.startPauseBtn.innerHTML = `
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <rect x="6" y="5" width="4" height="14"></rect>
+                    <rect x="14" y="5" width="4" height="14"></rect>
+                </svg>
+                Pause
+            `;
+        } else {
+            el.startPauseBtn.innerHTML = `
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <polygon points="8 5 19 12 8 19 8 5"></polygon>
+                </svg>
+                Start
+            `;
+        }
+
+        const titlePrefix = (state.phase === PHASE.DONE) ? "Done" : fmtMs(state.remainingMs);
+        document.title = `${titlePrefix} — ${phaseLabel(state.phase)} | Productivity Timer`;
+    }
+
+    // ---------- LIVE SETTINGS WIRING ----------
+    function persistLiveSettings() {
+        // Only save; don't change durations/phase timing here.
+        saveSettings(cfg);
+    }
+
+    function wireLiveCheckbox(checkboxEl, key, onChange) {
+        if (!checkboxEl) return;
+
+        const handler = () => {
+            const enabled = !!checkboxEl.checked;
+
+            // write into cfg
+            cfg[key] = enabled;
+
+            // persist immediately
+            persistLiveSettings();
+
+            // optional callback (for extra side-effects)
+            if (typeof onChange === "function") {
+                try { onChange(enabled); } catch (e) {}
+            }
+        };
+
+        checkboxEl.addEventListener("change", handler);
+
+        // Ensure cfg matches UI immediately on load
+        handler();
+    }
+
+
+    function wireLiveRange(rangeEl, key) {
+    const handler = () => {
+        cfg[key] = clampFloat(rangeEl.value, 0, 1, 0.6);
+
+        // IMPORTANT: update the CSS-driven fill for WebKit/Chromium
+        setRangePct(rangeEl);
+
+        persistLiveSettings();
+    };
+
+    rangeEl.addEventListener("input", handler);
+    rangeEl.addEventListener("change", handler);
+
+    // Ensure it is correct immediately on page load
+    handler();
+}
+
+
+    // ---------- PUBLIC HANDLERS ----------
+    window.onStartPause = function() {
+        if (state.alarmActive) stopAlarm();
+
+        if (state.phase === PHASE.DONE) {
+            stopAlarm();
+            state.workSessionsDone = 0;
+            setPhase(PHASE.WORK, true);
+            hideAlert();
+            startTimer();
+            return;
+        }
+
+        if (state.isRunning) pauseTimer();
+        else startTimer();
+    };
+
+    window.onReset = function() {
+        hardReset();
+    };
+
+    window.onSkip = function() {
+        if (state.phase === PHASE.DONE) {
+            showAlert("Already complete. Click Restart to begin again.", "info", { autoHideMs: 5000 });
+            return;
+        }
+
+        const wasRunning = state.isRunning;
+
+        if (state.alarmActive) stopAlarm();
+
+        onPhaseBoundary({ reason: "skip", prevRunning: wasRunning });
+
+        // Bulletproof(yet it probably isn't): if auto-start is enabled, skip should never require pressing Start again.
+        if (cfg.autoStartNext && state.phase !== PHASE.DONE) {
+            beginRunningFromRemaining();
+        }
+    };
+
+    window.applySettings = function() {
+        // Apply only durations/target cadence inputs. Toggles are already live.
+        const dur = readDurationsFromUI();
+        cfg.workMin = dur.workMin;
+        cfg.shortMin = dur.shortMin;
+        cfg.longMin = dur.longMin;
+        cfg.longEvery = dur.longEvery;
+        cfg.targetSessions = dur.targetSessions;
+
+        persistLiveSettings();
+
+        if (state.isRunning) {
+            showAlert("Durations saved. Pause/Reset to apply to the active countdown.", "info", { autoHideMs: 6000 });
+            updateUI();
+            return;
+        }
+
+        if (state.phase === PHASE.DONE) {
+            showAlert("Durations saved. Click Restart to begin a new cycle.", "ok", { autoHideMs: 7000 });
+            updateUI();
+            return;
+        }
+
+        state.durationMs = phaseDurationMs(state.phase);
+        state.remainingMs = state.durationMs;
+        state.endTs = null;
+
+        showAlert("Durations applied to current phase.", "ok", { autoHideMs: 4500 });
+        updateUI();
+    };
+
+    // ---------- KEYBOARD SHORTCUTS ----------
+    function onKeyDown(e) {
+        const tag = (e.target && e.target.tagName) ? e.target.tagName.toLowerCase() : "";
+        const isTyping = (tag === "input" || tag === "textarea" || tag === "select");
+        if (isTyping) return;
+
+        if (e.code === "Space") {
+            e.preventDefault();
+            window.onStartPause();
+        } else if (e.key && (e.key.toLowerCase() === "r")) {
+            e.preventDefault();
+            window.onReset();
+        } else if (e.key && (e.key.toLowerCase() === "n")) {
+            e.preventDefault();
+            window.onSkip();
+        } else if (e.key && (e.key.toLowerCase() === "s")) {
+            e.preventDefault();
+            stopAlarm();
+        }
+    }
+
+    // ---------- INIT ----------
+    function init() {
+        initThemeToggle();
+
+        const saved = loadSettings();
+
+        // Defaults:
+        // - autoStartNext: ON
+        // - silentSkip: ON
+        // - skipCountsWork: ON
+        cfg = saved ? saved : {
+            workMin: 25,
+            shortMin: 5,
+            longMin: 15,
+            longEvery: 4,
+            targetSessions: 0,
+
+            autoStartNext: true,
+            silentSkip: true,
+            skipCountsWork: true,
+            desktopNotify: false,
+            keepAwake: false,
+
+            volume: 0.6
+        };
+
+        // If older saved config is missing new keys, apply defaults safely
+        if (typeof cfg.autoStartNext !== "boolean") cfg.autoStartNext = true;
+        if (typeof cfg.silentSkip !== "boolean") cfg.silentSkip = true;
+        if (typeof cfg.skipCountsWork !== "boolean") cfg.skipCountsWork = true;
+        if (typeof cfg.volume !== "number") cfg.volume = 0.6;
+
+        writeSettingsToUI(cfg);
+
+        state.phase = PHASE.WORK;
+        state.workSessionsDone = 0;
+        state.durationMs = phaseDurationMs(state.phase);
+        state.remainingMs = state.durationMs;
+        state.endTs = null;
+        state.isRunning = false;
+
+        // LIVE toggle wiring (no need to hit Apply)
+        wireLiveCheckbox(el.autoStartNext, "autoStartNext");
+        wireLiveCheckbox(el.silentSkip, "silentSkip");
+        wireLiveCheckbox(el.skipCountsWork, "skipCountsWork");
+        wireLiveCheckbox(el.desktopNotify, "desktopNotify", (enabled) => {
+            // If turning on notifications, try requesting permission (this is a user gesture)
+            if (!enabled) return;
+            if (!("Notification" in window)) return;
+            try {
+                if (Notification.permission === "default") {
+                    Notification.requestPermission().catch(() => {});
+                }
+            } catch (e) {}
+        });
+        wireLiveCheckbox(el.keepAwake, "keepAwake", () => {
+            // If timer is running, update wake lock immediately
+            if (state.isRunning) setWakeLock(true);
+            else setWakeLock(false);
+        });
+        wireLiveRange(el.volume, "volume");
+
+        updateUI();
+
+        window.addEventListener("keydown", onKeyDown);
+
+        document.addEventListener("visibilitychange", async () => {
+            if (document.visibilityState === "hidden") {
+                await setWakeLock(false);
+            } else {
+                if (state.isRunning) await setWakeLock(true);
+            }
+        });
+
+        showAlert("Ready. Auto-start is ON by default. Click Start to begin (this also primes audio).", "info", { autoHideMs: 8000 });
+    }
+
+    init();
+})();
+</script>
+</body>
+</html>
