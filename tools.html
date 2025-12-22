@@ -310,12 +310,26 @@
                         </button>
                     </div>
                 </div>
-                <div class="controls-right">
+                <!-- <div class="controls-right">
                     <span class="control-label">Sections:</span>
                     <div class="expand-collapse-btns">
                         <button class="action-btn" id="expandAll">Expand All</button>
                         <button class="action-btn" id="collapseAll">Collapse All</button>
                     </div>
+                </div> -->
+                <div class="controls-center">
+                    <div class="search-wrapper">
+                        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="11" cy="11" r="8"/>
+                            <path d="M21 21l-4.35-4.35"/>
+                        </svg>
+                        <input type="text" class="search-input" id="toolSearch" placeholder="Search tools..." autocomplete="off">
+                        <button class="search-clear" id="searchClear" title="Clear search">×</button>
+                    </div>
+                    <span class="search-results-count" id="searchResultsCount"></span>
+                </div>
+                <div class="controls-right">
+                    <span class="control-label">Sections:</span>
                 </div>
             </div>
 
