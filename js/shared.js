@@ -125,14 +125,95 @@ const NumberFormat = {
     }
 };
 
+// ============================================
+// TOOLS COUNTING FUNCTIONALITY
+// ============================================
+
+const ToolsCounter = {
+    /**
+     * Counts tools in each category and updates the UI
+     * @returns {{totalTools: number, categories: Array<{name: string, count: number}>}}
+     */
+    countAndUpdate() {
+        const sections = document.querySelectorAll('.category-section');
+        const categories = [];
+        let totalTools = 0;
+
+        sections.forEach(section => {
+            const titleEl = section.querySelector('.category-title');
+            const countEl = section.querySelector('.category-count');
+            const toolCards = section.querySelectorAll('.tools-grid .tool-card');
+            
+            const categoryName = titleEl ? titleEl.textContent.trim() : 'Unknown';
+            const toolCount = toolCards.length;
+
+            // Update the category count display
+            if (countEl) {
+                if (toolCount === 0) {
+                    countEl.textContent = 'Coming soon';
+                } else if (toolCount === 1) {
+                    countEl.textContent = '1 tool';
+                } else {
+                    countEl.textContent = `${toolCount} tools`;
+                }
+            }
+
+            categories.push({
+                name: categoryName,
+                count: toolCount
+            });
+
+            totalTools += toolCount;
+        });
+
+        // Update the total tools count in the header
+        const totalCountEl = document.getElementById('totalToolsCount');
+        if (totalCountEl) {
+            totalCountEl.textContent = totalTools;
+        }
+
+        return { totalTools, categories };
+    },
+
+    /**
+     * Gets current tool statistics without updating UI
+     * @returns {{totalTools: number, categories: Array<{name: string, count: number}>}}
+     */
+    getStats() {
+        const sections = document.querySelectorAll('.category-section');
+        const categories = [];
+        let totalTools = 0;
+
+        sections.forEach(section => {
+            const titleEl = section.querySelector('.category-title');
+            const toolCards = section.querySelectorAll('.tools-grid .tool-card');
+            
+            const categoryName = titleEl ? titleEl.textContent.trim() : 'Unknown';
+            const toolCount = toolCards.length;
+
+            if (toolCount > 0) {
+                categories.push({
+                    name: categoryName,
+                    count: toolCount
+                });
+            }
+
+            totalTools += toolCount;
+        });
+
+        return { totalTools, categories };
+    }
+};
 // Initialize on DOM ready
 document.addEventListener('DOMContentLoaded', () => {
     ThemeManager.init();
+    ToolsCounter.countAndUpdate();
 });
 
 // Export for use in other scripts
 window.ToolsHub = {
     ThemeManager,
     Clipboard,
-    NumberFormat
+    NumberFormat,
+    ToolsCounter
 };
