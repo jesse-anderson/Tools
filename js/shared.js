@@ -204,10 +204,153 @@ const ToolsCounter = {
         return { totalTools, categories };
     }
 };
+
+// ============================================
+// TOOLS SEARCH FUNCTIONALITY
+// ============================================
+
+const ToolsSearch = {
+    index: [],
+    searchInput: null,
+    clearBtn: null,
+    resultsCount: null,
+    debounceTimer: null,
+
+    init() {
+        this.searchInput = document.getElementById('toolSearch');
+        this.clearBtn = document.getElementById('searchClear');
+        this.resultsCount = document.getElementById('searchResultsCount');
+
+        if (!this.searchInput) return;
+
+        this.buildIndex();
+        this.bindEvents();
+    },
+
+    buildIndex() {
+        const toolCards = document.querySelectorAll('.tool-card');
+        this.index = [];
+
+        toolCards.forEach(card => {
+            const name = card.querySelector('.tool-name');
+            const desc = card.querySelector('.tool-description');
+            const tags = card.querySelectorAll('.tool-tag');
+
+            let searchText = '';
+            if (name) searchText += name.textContent + ' ';
+            if (desc) searchText += desc.textContent + ' ';
+            tags.forEach(tag => searchText += tag.textContent + ' ');
+
+            this.index.push({
+                element: card,
+                section: card.closest('.category-section'),
+                text: searchText.toLowerCase()
+            });
+        });
+    },
+
+    bindEvents() {
+        this.searchInput.addEventListener('input', () => {
+            clearTimeout(this.debounceTimer);
+            this.debounceTimer = setTimeout(() => this.search(), 50);
+            
+            // Update clear button visibility
+            const wrapper = this.searchInput.closest('.search-wrapper');
+            if (this.searchInput.value) {
+                wrapper.classList.add('has-value');
+            } else {
+                wrapper.classList.remove('has-value');
+            }
+        });
+
+        this.searchInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                this.clear();
+            }
+        });
+
+        if (this.clearBtn) {
+            this.clearBtn.addEventListener('click', () => this.clear());
+        }
+
+        // Keyboard shortcut: "/" to focus search
+        document.addEventListener('keydown', (e) => {
+            if (e.key === '/' && document.activeElement !== this.searchInput) {
+                e.preventDefault();
+                this.searchInput.focus();
+            }
+        });
+    },
+
+    search() {
+        const query = this.searchInput.value.toLowerCase().trim();
+
+        if (!query) {
+            this.clearResults();
+            return;
+        }
+
+        const terms = query.split(/\s+/).filter(t => t.length > 0);
+        let matchCount = 0;
+
+        // Track which sections have visible tools
+        const sectionHasVisible = new Map();
+
+        this.index.forEach(item => {
+            // Match if ALL terms are found
+            const matches = terms.every(term => item.text.includes(term));
+
+            if (matches) {
+                item.element.classList.remove('search-hidden');
+                matchCount++;
+                sectionHasVisible.set(item.section, true);
+            } else {
+                item.element.classList.add('search-hidden');
+            }
+        });
+
+        // Hide/show sections based on whether they have visible tools
+        document.querySelectorAll('.category-section').forEach(section => {
+            if (sectionHasVisible.get(section)) {
+                section.classList.remove('search-empty');
+                section.classList.remove('collapsed'); // Expand to show results
+            } else {
+                section.classList.add('search-empty');
+            }
+        });
+
+        // Update results count
+        if (this.resultsCount) {
+            this.resultsCount.textContent = `${matchCount} found`;
+        }
+    },
+
+    clearResults() {
+        this.index.forEach(item => {
+            item.element.classList.remove('search-hidden');
+        });
+
+        document.querySelectorAll('.category-section').forEach(section => {
+            section.classList.remove('search-empty');
+        });
+
+        if (this.resultsCount) {
+            this.resultsCount.textContent = '';
+        }
+    },
+
+    clear() {
+        this.searchInput.value = '';
+        this.searchInput.closest('.search-wrapper').classList.remove('has-value');
+        this.clearResults();
+        this.searchInput.focus();
+    }
+};
 // Initialize on DOM ready
 document.addEventListener('DOMContentLoaded', () => {
     ThemeManager.init();
     ToolsCounter.countAndUpdate();
+    ToolsSearch.init();
 });
 
 // Export for use in other scripts
@@ -215,5 +358,6 @@ window.ToolsHub = {
     ThemeManager,
     Clipboard,
     NumberFormat,
-    ToolsCounter
+    ToolsCounter,
+    ToolsSearch
 };

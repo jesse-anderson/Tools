@@ -119,6 +119,109 @@ body::before {
     z-index: 1;
 }
 
+/* Search */
+.controls-center {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    max-width: 320px;
+    min-width: 180px;
+}
+
+.search-wrapper {
+    position: relative;
+    flex: 1;
+}
+
+.search-input {
+    width: 100%;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8125rem;
+    padding: 8px 12px 8px 32px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    color: var(--text-primary);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.search-input::placeholder {
+    color: var(--text-muted);
+}
+
+.search-input:focus {
+    outline: none;
+    border-color: var(--accent-it);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+.search-icon {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 14px;
+    height: 14px;
+    color: var(--text-muted);
+    pointer-events: none;
+}
+
+.search-clear {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 18px;
+    height: 18px;
+    border: none;
+    background: var(--bg-secondary);
+    border-radius: 50%;
+    color: var(--text-muted);
+    cursor: pointer;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    line-height: 1;
+    padding: 0;
+}
+
+.search-clear:hover {
+    background: var(--border-color);
+    color: var(--text-primary);
+}
+
+.search-wrapper.has-value .search-clear {
+    display: flex;
+}
+
+.search-results-count {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.6875rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+
+/* Hide tools that don't match search */
+.tool-card.search-hidden {
+    display: none !important;
+}
+
+/* Hide empty categories during search */
+.category-section.search-empty {
+    display: none !important;
+}
+
+/* Search responsive */
+@media (max-width: 768px) {
+    .controls-center {
+        order: 3;
+        max-width: 100%;
+        width: 100%;
+    }
+}
+
 /* Typography */
 h1 {
     font-size: 2rem;
