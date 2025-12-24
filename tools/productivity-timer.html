@@ -530,7 +530,7 @@
                     <div style="display:flex; flex-direction:column; gap:10px; min-width: 210px;">
                         <div class="input-group" style="margin:0;">
                             <label style="margin-bottom:6px;">Alarm volume</label>
-                            <input type="range" id="volume" class="range-edge-to-edge" min="0" max="1" step="0.01" value="0.5" />
+                            <input type="range" id="volume" class="range-edge-to-edge" min="0" max="1" step="0.01" value="0.6" />
                             <div class="result-note" style="margin-top:8px; padding-top:8px;">
                                 Tip: browsers often require a user gesture before allowing sound. Starting the timer primes audio.
                             </div>
@@ -941,7 +941,7 @@
         el.desktopNotify.checked = !!cfg.desktopNotify;
         el.keepAwake.checked = !!cfg.keepAwake;
 
-        el.volume.value = (typeof cfg.volume === "number") ? cfg.volume : 0.5;
+        el.volume.value = (typeof cfg.volume === "number") ? cfg.volume : 0.6;
         setRangePct(el.volume);
 
     }
@@ -951,14 +951,14 @@
         const buttons = document.querySelectorAll("[data-theme-toggle]");
         function setTheme(theme) {
             if (theme === "light") document.documentElement.setAttribute("data-theme", "light");
-            else document.documentElement.removeAttribute("data-theme");
+            else document.documentElement.setAttribute("data-theme", "dark");
 
             buttons.forEach(b => b.classList.toggle("active", b.getAttribute("data-theme-toggle") === theme));
-            try { localStorage.setItem("toolsHubTheme", theme); } catch (e) {}
+            try { localStorage.setItem("toolsTheme", theme); } catch (e) {}
         }
 
         let saved = null;
-        try { saved = localStorage.getItem("toolsHubTheme"); } catch (e) {}
+        try { saved = localStorage.getItem("toolsTheme"); } catch (e) {}
         setTheme(saved === "light" ? "light" : "dark");
 
         buttons.forEach(btn => {
@@ -1119,7 +1119,7 @@
             const o = audioCtx.createOscillator();
             const g = audioCtx.createGain();
 
-            const vol = clampFloat(el.volume ? el.volume.value : cfg.volume, 0, 1, 0.5);
+            const vol = clampFloat(el.volume ? el.volume.value : cfg.volume, 0, 1, 0.6);
 
 
             o.type = "sine";
@@ -1294,6 +1294,7 @@
             state.endTs = null;
         }
 
+        stopTicker();
         setWakeLock(false);
         updateUI();
     }
@@ -1528,21 +1529,22 @@
 
 
     function wireLiveRange(rangeEl, key) {
-    const handler = () => {
-        cfg[key] = clampFloat(rangeEl.value, 0, 1, 0.6);
+        if (!rangeEl) return; //check if exist..
+        const handler = () => {
+            cfg[key] = clampFloat(rangeEl.value, 0, 1, 0.6);
 
-        // IMPORTANT: update the CSS-driven fill for WebKit/Chromium
-        setRangePct(rangeEl);
+            // IMPORTANT: update the CSS-driven fill for WebKit/Chromium
+            setRangePct(rangeEl);
 
-        persistLiveSettings();
-    };
+            persistLiveSettings();
+        };
 
-    rangeEl.addEventListener("input", handler);
-    rangeEl.addEventListener("change", handler);
+        rangeEl.addEventListener("input", handler);
+        rangeEl.addEventListener("change", handler);
 
-    // Ensure it is correct immediately on page load
-    handler();
-}
+        // Ensure it is correct immediately on page load
+        handler();
+    }
 
 
     // ---------- PUBLIC HANDLERS ----------
