@@ -72,6 +72,13 @@ function handleError(f, args) {
     }
 }
 
+function passArray32ToWasm0(arg, malloc) {
+    const ptr = malloc(arg.length * 4, 4) >>> 0;
+    getUint32ArrayMemory0().set(arg, ptr / 4);
+    WASM_VECTOR_LEN = arg.length;
+    return ptr;
+}
+
 function passArrayF32ToWasm0(arg, malloc) {
     const ptr = malloc(arg.length * 4, 4) >>> 0;
     getFloat32ArrayMemory0().set(arg, ptr / 4);
@@ -122,6 +129,45 @@ export function classify_points(data, n_rows, n_dims, eps, min_pts, missing_poli
 }
 
 /**
+ * Compute cluster quality metrics with selective computation.
+ *
+ * # Arguments
+ * * `data` - Flat array of points [x0,y0,z0, x1,y1,z1, ...]
+ * * `n_rows` - Number of points
+ * * `n_dims` - Dimensionality
+ * * `labels` - Cluster labels (-1 = noise, -2 = unclassified, i32::MIN = dropped)
+ * * `min_pts` - DBSCAN min_pts (used for DBCV core distances)
+ * * `max_silhouette_samples` - Cap on sampled points for silhouette (recommend: 3000)
+ * * `silhouette_sample_fraction` - Fraction to sample (recommend: 0.10)
+ * * `max_dbcv_samples_per_cluster` - Cap on samples per cluster for DBCV (recommend: 1000)
+ * * `metric_flags` - Bitmask of which metrics to compute (use METRIC_* constants)
+ *
+ * # Returns
+ * Object with computed metrics. Metrics not requested will be NaN.
+ * @param {Float32Array} data
+ * @param {number} n_rows
+ * @param {number} n_dims
+ * @param {Int32Array} labels
+ * @param {number} min_pts
+ * @param {number} max_silhouette_samples
+ * @param {number} silhouette_sample_fraction
+ * @param {number} max_dbcv_samples_per_cluster
+ * @param {number} metric_flags
+ * @returns {any}
+ */
+export function compute_cluster_metrics(data, n_rows, n_dims, labels, min_pts, max_silhouette_samples, silhouette_sample_fraction, max_dbcv_samples_per_cluster, metric_flags) {
+    const ptr0 = passArrayF32ToWasm0(data, wasm.__wbindgen_malloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ptr1 = passArray32ToWasm0(labels, wasm.__wbindgen_malloc);
+    const len1 = WASM_VECTOR_LEN;
+    const ret = wasm.compute_cluster_metrics(ptr0, len0, n_rows, n_dims, ptr1, len1, min_pts, max_silhouette_samples, silhouette_sample_fraction, max_dbcv_samples_per_cluster, metric_flags);
+    if (ret[2]) {
+        throw takeFromExternrefTable0(ret[1]);
+    }
+    return takeFromExternrefTable0(ret[0]);
+}
+
+/**
  * @param {Float32Array} data
  * @param {number} n_rows
  * @param {number} n_dims
@@ -162,6 +208,14 @@ export function dbscan_fit(data, n_rows, n_dims, eps, min_pts, missing_policy, s
         throw takeFromExternrefTable0(ret[1]);
     }
     return takeFromExternrefTable0(ret[0]);
+}
+
+/**
+ * @returns {any}
+ */
+export function metric_flags() {
+    const ret = wasm.metric_flags();
+    return ret;
 }
 
 /**
@@ -222,6 +276,10 @@ function __wbg_get_imports() {
         const ret = new Object();
         return ret;
     };
+    imports.wbg.__wbg_new_25f239778d6112b9 = function() {
+        const ret = new Array();
+        return ret;
+    };
     imports.wbg.__wbg_new_from_slice_41e2764a343e3cb1 = function(arg0, arg1) {
         const ret = new Float32Array(getArrayF32FromWasm0(arg0, arg1));
         return ret;
@@ -240,6 +298,14 @@ function __wbg_get_imports() {
     };
     imports.wbg.__wbg_new_with_length_95ba657dfb7d3dfb = function(arg0) {
         const ret = new Float32Array(arg0 >>> 0);
+        return ret;
+    };
+    imports.wbg.__wbg_now_69d776cd24f5215b = function() {
+        const ret = Date.now();
+        return ret;
+    };
+    imports.wbg.__wbg_push_7d9be8f38fc13975 = function(arg0, arg1) {
+        const ret = arg0.push(arg1);
         return ret;
     };
     imports.wbg.__wbg_set_781438a03c0c3c81 = function() { return handleError(function (arg0, arg1, arg2) {
