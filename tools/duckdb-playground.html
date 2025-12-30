@@ -1,0 +1,4053 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DuckDB Playground | Tools Hub</title>
+    
+    <!-- 
+    ============================================
+    DuckDB-WASM Playground v2.0.0
+    ============================================
+    Dependencies (pinned versions):
+    - @duckdb/duckdb-wasm: 1.29.0
+    - Chart.js: 4.4.1
+    - SheetJS (xlsx): 0.20.1
+    - fflate: 0.8.2 (for ZIP export)
+    
+    Last Updated: December 2025
+    ============================================
+    -->
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- SheetJS for Excel import -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    
+    <!-- Chart.js for basic charting -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    
+    <!-- fflate for ZIP operations -->
+    <script src="https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js"></script>
+    
+    <style>
+        /* ============================================
+           CSS VARIABLES - DESIGN SYSTEM
+           ============================================ */
+        :root {
+            /* Dark Theme (default) */
+            --bg-primary: #0a0a0b;
+            --bg-secondary: #111113;
+            --bg-card: #18181b;
+            --bg-card-hover: #1f1f23;
+            --bg-input: #0f0f10;
+            --border-color: #27272a;
+            --border-hover: #3f3f46;
+            --text-primary: #fafafa;
+            --text-secondary: #a1a1aa;
+            --text-muted: #71717a;
+            --accent-primary: #06b6d4;
+            --accent-primary-dim: rgba(6, 182, 212, 0.15);
+            --accent-success: #22c55e;
+            --accent-success-dim: rgba(34, 197, 94, 0.15);
+            --accent-warning: #eab308;
+            --accent-warning-dim: rgba(234, 179, 8, 0.15);
+            --accent-error: #ef4444;
+            --accent-error-dim: rgba(239, 68, 68, 0.15);
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+            --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.4);
+            --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.5);
+        }
+
+        [data-theme="light"] {
+            --bg-primary: #f8f9fa;
+            --bg-secondary: #ffffff;
+            --bg-card: #ffffff;
+            --bg-card-hover: #f1f5f9;
+            --bg-input: #ffffff;
+            --border-color: #e2e8f0;
+            --border-hover: #cbd5e1;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --text-muted: #94a3b8;
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.15);
+        }
+
+        /* ============================================
+           BASE STYLES
+           ============================================ */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+            transition: background-color 0.2s ease, color 0.2s ease;
+        }
+
+        /* Grid Background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: 
+                linear-gradient(rgba(6, 182, 212, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(6, 182, 212, 0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        /* Scrollbar Styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-secondary);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--border-hover);
+        }
+
+        /* Focus States for Accessibility */
+        *:focus-visible {
+            outline: 2px solid var(--accent-primary);
+            outline-offset: 2px;
+        }
+
+        button:focus-visible,
+        input:focus-visible,
+        textarea:focus-visible,
+        select:focus-visible,
+        a:focus-visible {
+            outline: 2px solid var(--accent-primary);
+            outline-offset: 2px;
+        }
+
+        /* Spin Animation for Loading Button */
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .spin {
+            animation: spin 1s linear infinite;
+        }
+
+        /* ============================================
+           HEADER
+           ============================================ */
+        header {
+            margin-bottom: 24px;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .back-link {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8125rem;
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: color 0.15s ease;
+        }
+
+        .back-link:hover {
+            color: var(--accent-primary);
+        }
+
+        .back-link svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        .tool-header {
+            margin-top: 24px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .tool-icon-header {
+            width: 48px;
+            height: 48px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            background: var(--accent-primary-dim);
+            color: var(--accent-primary);
+        }
+
+        .tool-header h1 {
+            font-size: 1.75rem;
+            font-weight: 700;
+        }
+
+        .tagline {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8125rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        .header-controls {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        /* Theme Toggle */
+        .theme-toggle {
+            display: flex;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .theme-toggle button {
+            padding: 8px;
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .theme-toggle button:hover {
+            color: var(--text-primary);
+        }
+
+        .theme-toggle button.active {
+            background: var(--accent-primary);
+            color: var(--bg-primary);
+        }
+
+        .theme-toggle button svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        /* Help Button */
+        .help-btn {
+            padding: 8px 12px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-secondary);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.15s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .help-btn:hover {
+            border-color: var(--accent-primary);
+            color: var(--text-primary);
+        }
+
+        .help-btn svg {
+            width: 14px;
+            height: 14px;
+        }
+
+        /* Experimental Toggle */
+        .experimental-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .experimental-toggle input[type="checkbox"] {
+            width: 36px;
+            height: 20px;
+            appearance: none;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .experimental-toggle input[type="checkbox"]::before {
+            content: '';
+            position: absolute;
+            width: 14px;
+            height: 14px;
+            background: var(--text-muted);
+            border-radius: 50%;
+            top: 2px;
+            left: 2px;
+            transition: all 0.2s;
+        }
+
+        .experimental-toggle input[type="checkbox"]:checked {
+            background: var(--accent-warning);
+            border-color: var(--accent-warning);
+        }
+
+        .experimental-toggle input[type="checkbox"]:checked::before {
+            background: white;
+            left: 18px;
+        }
+
+        /* ============================================
+           MAIN LAYOUT
+           ============================================ */
+        .main-layout {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 24px;
+            min-height: calc(100vh - 200px);
+        }
+
+        @media (max-width: 1200px) {
+            .main-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* ============================================
+           PANELS
+           ============================================ */
+        .panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            overflow: visible;
+        }
+
+        .panel-content {
+            border-radius: 0 0 12px 12px;
+        }
+
+        .panel-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .panel-header h2 {
+            font-size: 0.9375rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .panel-header h2 svg {
+            width: 16px;
+            height: 16px;
+            color: var(--accent-primary);
+        }
+
+        .panel-header .subtitle {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .panel-content {
+            padding: 20px;
+        }
+
+        /* ============================================
+           SIDEBAR
+           ============================================ */
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        /* Schema Explorer */
+        .schema-explorer {
+            max-height: 300px;
+            overflow-y: auto;
+            scroll-behavior: smooth;
+        }
+
+        .table-item {
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.15s;
+            user-select: none;
+        }
+
+        .table-item:hover {
+            border-color: var(--accent-primary);
+            background: var(--bg-card-hover);
+        }
+
+        .table-item:focus-visible {
+            outline: 2px solid var(--accent-primary);
+            outline-offset: 2px;
+        }
+
+        .table-item.expanded {
+            border-color: var(--accent-primary);
+            background: var(--bg-card-hover);
+        }
+
+        .table-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .table-name {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--accent-primary);
+        }
+
+        .table-meta {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .row-count {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.6875rem;
+            color: var(--text-muted);
+            background: var(--bg-secondary);
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+
+        .table-actions {
+            display: flex;
+            gap: 4px;
+        }
+
+        .table-action-btn {
+            padding: 4px 8px;
+            background: transparent;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            color: var(--text-muted);
+            font-size: 0.625rem;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .table-action-btn:hover {
+            border-color: var(--accent-primary);
+            color: var(--accent-primary);
+        }
+
+        .table-action-btn.danger:hover {
+            border-color: var(--accent-error);
+            color: var(--accent-error);
+        }
+
+        .column-list {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid var(--border-color);
+            display: none;
+        }
+
+        .table-item.expanded .column-list {
+            display: block;
+        }
+
+        .column-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 0;
+            font-size: 0.8125rem;
+        }
+
+        .column-name {
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--text-primary);
+        }
+
+        .column-type {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.6875rem;
+            color: var(--text-muted);
+            background: var(--bg-secondary);
+            padding: 2px 6px;
+            border-radius: 3px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 32px 16px;
+            color: var(--text-muted);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 150px;
+        }
+
+        .empty-state svg {
+            width: 48px;
+            height: 48px;
+            margin-bottom: 12px;
+            opacity: 0.5;
+        }
+
+        .empty-state p {
+            font-size: 0.875rem;
+            margin-bottom: 8px;
+        }
+
+        .empty-state p:last-child {
+            margin-bottom: 0;
+        }
+
+        /* File Import */
+        .file-drop-zone {
+            border: 2px dashed var(--border-color);
+            border-radius: 8px;
+            padding: 24px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .file-drop-zone:hover,
+        .file-drop-zone:focus-visible,
+        .file-drop-zone.drag-over {
+            border-color: var(--accent-primary);
+            background: var(--accent-primary-dim);
+        }
+
+        .file-drop-zone:focus-visible {
+            outline: none;
+        }
+
+        .file-drop-zone.error {
+            border-color: var(--accent-error);
+            background: var(--accent-error-dim);
+        }
+
+        .file-drop-zone svg {
+            width: 32px;
+            height: 32px;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+
+        .file-drop-zone p {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .file-drop-zone .formats {
+            font-size: 0.6875rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Sample Data Dropdown */
+        .dropdown {
+            position: relative;
+            z-index: 50;
+        }
+
+        .dropdown-trigger {
+            width: 100%;
+            padding: 10px 14px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8125rem;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.15s;
+        }
+
+        .dropdown-trigger:hover {
+            border-color: var(--accent-primary);
+        }
+
+        .dropdown-trigger svg {
+            width: 14px;
+            height: 14px;
+            transition: transform 0.2s;
+        }
+
+        .dropdown.open .dropdown-trigger svg {
+            transform: rotate(180deg);
+        }
+
+        .dropdown-menu {
+            position: absolute;
+            top: calc(100% + 4px);
+            left: 0;
+            right: 0;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 8px;
+            z-index: 100;
+            display: none;
+            box-shadow: var(--shadow-lg);
+            animation: dropdownFadeIn 0.15s ease;
+        }
+
+        @keyframes dropdownFadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-4px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .dropdown-menu.active {
+            display: block;
+        }
+
+        .dropdown-item {
+            padding: 10px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8125rem;
+            color: var(--text-primary);
+            transition: background 0.15s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .dropdown-item:hover {
+            background: var(--bg-secondary);
+        }
+
+        .dropdown-item .badge {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.625rem;
+            color: var(--text-muted);
+        }
+
+        /* Session Controls */
+        .session-controls {
+            display: flex;
+            gap: 8px;
+        }
+
+        .session-controls .btn {
+            flex: 1;
+        }
+
+        /* History Panel */
+        .history-list {
+            max-height: 280px;
+            overflow-y: auto;
+            scroll-behavior: smooth;
+        }
+
+        .history-item {
+            padding: 10px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            margin-bottom: 6px;
+            cursor: pointer;
+            transition: all 0.15s;
+            user-select: none;
+        }
+
+        .history-item:hover {
+            border-color: var(--accent-primary);
+            background: var(--bg-card-hover);
+        }
+
+        .history-item:focus-visible {
+            outline: 2px solid var(--accent-primary);
+            outline-offset: 2px;
+        }
+
+        .history-item:active {
+            transform: scale(0.99);
+        }
+
+        .history-item.error {
+            border-left: 3px solid var(--accent-error);
+        }
+
+        .history-sql {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-bottom: 4px;
+        }
+
+        .history-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.6875rem;
+            color: var(--text-muted);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .history-results {
+            display: flex;
+            gap: 8px;
+        }
+
+        .history-tables-row {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            margin: 4px 0;
+            font-size: 0.625rem;
+        }
+
+        .history-tables-label {
+            color: var(--text-muted);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .history-tables {
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--accent-primary);
+            background: var(--accent-primary-dim);
+            padding: 1px 6px;
+            border-radius: 3px;
+            font-size: 0.625rem;
+            max-width: 180px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .history-error-badge {
+            color: var(--accent-error);
+            font-weight: 500;
+        }
+
+        /* ============================================
+           MAIN CONTENT
+           ============================================ */
+        .main-content {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        /* Query Editor */
+        .query-editor-panel {
+            flex-shrink: 0;
+        }
+
+        .query-tabs {
+            display: flex;
+            gap: 4px;
+            padding: 0 20px;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            overflow-x: auto;
+            scroll-behavior: smooth;
+            scrollbar-width: thin;
+        }
+
+        .query-tabs::-webkit-scrollbar {
+            height: 4px;
+        }
+
+        .query-tab {
+            padding: 12px 16px;
+            background: transparent;
+            border: none;
+            border-bottom: 2px solid transparent;
+            color: var(--text-secondary);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.15s;
+            white-space: nowrap;
+        }
+
+        .query-tab:hover {
+            color: var(--text-primary);
+        }
+
+        .query-tab.active {
+            color: var(--accent-primary);
+            border-bottom-color: var(--accent-primary);
+        }
+
+        .query-tab .close-tab {
+            width: 14px;
+            height: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 3px;
+            opacity: 0;
+            transition: all 0.15s;
+        }
+
+        .query-tab:hover .close-tab {
+            opacity: 1;
+        }
+
+        .query-tab .close-tab:hover {
+            background: var(--accent-error-dim);
+            color: var(--accent-error);
+        }
+
+        .add-tab-btn {
+            padding: 12px;
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .add-tab-btn:hover {
+            color: var(--accent-primary);
+        }
+
+        .add-tab-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .query-editor-container {
+            padding: 0;
+        }
+
+        #sqlEditor {
+            width: 100%;
+            min-height: 180px;
+            padding: 16px 20px;
+            background: var(--bg-input);
+            border: none;
+            color: var(--text-primary);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.875rem;
+            line-height: 1.6;
+            resize: vertical;
+            outline: none;
+        }
+
+        #sqlEditor::placeholder {
+            color: var(--text-muted);
+        }
+
+        .editor-toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 20px;
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border-color);
+        }
+
+        .editor-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .editor-info {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.6875rem;
+            color: var(--text-muted);
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 10px 16px;
+            border-radius: 6px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8125rem;
+            font-weight: 500;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.15s;
+            border: 1px solid transparent;
+        }
+
+        .btn svg {
+            width: 14px;
+            height: 14px;
+        }
+
+        .btn-primary {
+            background: var(--accent-primary);
+            color: var(--bg-primary);
+            border-color: var(--accent-primary);
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border-color: var(--border-color);
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            border-color: var(--accent-primary);
+            background: var(--bg-card-hover);
+        }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 0.75rem;
+        }
+
+        .btn-danger {
+            background: var(--accent-error);
+            color: white;
+            border-color: var(--accent-error);
+        }
+
+        .btn-danger:hover {
+            opacity: 0.9;
+        }
+
+        /* Metrics Grid */
+        .metrics-panel .panel-content {
+            padding: 16px 20px;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 12px;
+        }
+
+        .metric-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .metric-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.625rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .metric-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .metric-unit {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            font-weight: 400;
+        }
+
+        .metric-card.success .metric-value {
+            color: var(--accent-success);
+        }
+
+        .metric-card.error .metric-value {
+            color: var(--accent-error);
+        }
+
+        /* Results Panel */
+        .results-panel {
+            flex: 1;
+            min-height: 300px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .view-toggle {
+            display: flex;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .view-toggle button {
+            padding: 6px 12px;
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.6875rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .view-toggle button:hover {
+            color: var(--text-primary);
+        }
+
+        .view-toggle button.active {
+            background: var(--accent-primary);
+            color: var(--bg-primary);
+        }
+
+        .results-content {
+            flex: 1;
+            overflow: auto;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            min-height: 200px;
+        }
+
+        .results-table-wrapper {
+            overflow: auto;
+            flex: 1;
+            max-height: calc(100vh - 500px);
+            min-height: 200px;
+        }
+
+        .results-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8125rem;
+        }
+
+        .results-table th {
+            position: sticky;
+            top: 0;
+            background: var(--bg-secondary);
+            border-bottom: 2px solid var(--border-color);
+            padding: 12px 16px;
+            text-align: left;
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 600;
+            font-size: 0.75rem;
+            white-space: nowrap;
+            z-index: 10;
+        }
+
+        .results-table th .type-badge {
+            font-weight: 400;
+            font-size: 0.625rem;
+            color: var(--text-muted);
+            background: var(--bg-card);
+            padding: 2px 6px;
+            border-radius: 3px;
+            margin-left: 8px;
+        }
+
+        .results-table td {
+            padding: 10px 16px;
+            border-bottom: 1px solid var(--border-color);
+            font-family: 'JetBrains Mono', monospace;
+            max-width: 300px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .results-table tr:nth-child(even) {
+            background: var(--bg-secondary);
+        }
+
+        .results-table tr:hover {
+            background: var(--bg-card-hover);
+        }
+
+        .cell-null {
+            color: var(--text-muted);
+            font-style: italic;
+        }
+
+        .cell-blob {
+            color: var(--accent-warning);
+        }
+
+        .results-footer {
+            padding: 12px 20px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--bg-secondary);
+        }
+
+        .results-info {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .export-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        /* Chart Container */
+        .chart-container {
+            padding: 20px;
+            display: none;
+        }
+
+        .chart-container.active {
+            display: block;
+        }
+
+        .chart-wrapper {
+            position: relative;
+            height: 300px;
+        }
+
+        /* Error Display */
+        .error-display {
+            padding: 20px;
+            background: var(--accent-error-dim);
+            border: 1px solid var(--accent-error);
+            border-radius: 8px;
+            margin: 20px;
+        }
+
+        .error-display h4 {
+            color: var(--accent-error);
+            font-size: 0.875rem;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .error-display h4 svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        .error-display pre {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8125rem;
+            color: var(--text-primary);
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        /* ============================================
+           LOADING OVERLAY
+           ============================================ */
+        .loading-overlay {
+            position: fixed;
+            inset: 0;
+            background: var(--bg-primary);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+
+        .loading-overlay.hidden {
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        .loading-spinner {
+            width: 48px;
+            height: 48px;
+            border: 3px solid var(--border-color);
+            border-top-color: var(--accent-primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 24px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .loading-error {
+            text-align: center;
+            max-width: 400px;
+        }
+
+        .loading-error h3 {
+            color: var(--accent-error);
+            margin-bottom: 12px;
+        }
+
+        .loading-error p {
+            color: var(--text-secondary);
+            margin-bottom: 16px;
+        }
+
+        .loading-error details {
+            text-align: left;
+            background: var(--bg-secondary);
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+        }
+
+        .loading-error details summary {
+            cursor: pointer;
+            color: var(--text-muted);
+            font-size: 0.8125rem;
+        }
+
+        .loading-error details pre {
+            margin-top: 8px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--accent-error);
+            white-space: pre-wrap;
+        }
+
+        /* ============================================
+           MODALS
+           ============================================ */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.2s, visibility 0.2s;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .modal-header svg {
+            width: 24px;
+            height: 24px;
+            color: var(--accent-primary);
+        }
+
+        .modal-header h3 {
+            font-size: 1.125rem;
+            color: var(--text-primary);
+        }
+
+        .modal-body {
+            margin-bottom: 20px;
+        }
+
+        .modal-body p {
+            font-size: 0.9375rem;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+
+        /* License Card */
+        .license-card {
+            margin-top: 20px;
+            padding: 16px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-left: 3px solid var(--text-muted);
+            border-radius: 8px;
+        }
+
+        .license-card h4 {
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .license-card h4 svg {
+            width: 14px;
+            height: 14px;
+        }
+
+        .license-content {
+            font-size: 0.8125rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .license-content ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .license-content li {
+            margin-bottom: 8px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .license-content li:last-child {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+
+        .license-content a {
+            color: var(--accent-primary);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .license-content a:hover {
+            text-decoration: underline;
+        }
+
+        .license-content span {
+            display: block;
+            font-size: 0.6875rem;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        /* Shortcuts Modal */
+        .shortcuts-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .shortcut-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+        }
+
+        .shortcut-keys {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            background: var(--bg-secondary);
+            padding: 4px 8px;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+        }
+
+        .shortcut-desc {
+            font-size: 0.8125rem;
+            color: var(--text-secondary);
+        }
+
+        /* ============================================
+           TOAST NOTIFICATIONS
+           ============================================ */
+        .toast-container {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            z-index: 1001;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .toast {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px 16px;
+            font-size: 0.875rem;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: var(--shadow-lg);
+            animation: slideIn 0.3s ease;
+        }
+
+        .toast.success {
+            border-color: var(--accent-success);
+        }
+
+        .toast.error {
+            border-color: var(--accent-error);
+        }
+
+        .toast.warning {
+            border-color: var(--accent-warning);
+        }
+
+        .toast svg {
+            width: 16px;
+            height: 16px;
+            flex-shrink: 0;
+        }
+
+        .toast.success svg { color: var(--accent-success); }
+        .toast.error svg { color: var(--accent-error); }
+        .toast.warning svg { color: var(--accent-warning); }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        /* ============================================
+           MOBILE WARNING
+           ============================================ */
+        .mobile-warning {
+            display: none;
+            background: var(--accent-warning-dim);
+            border: 1px solid var(--accent-warning);
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-bottom: 16px;
+            font-size: 0.8125rem;
+            color: var(--accent-warning);
+        }
+
+        @media (max-width: 768px) {
+            .mobile-warning {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+
+            .mobile-warning svg {
+                width: 20px;
+                height: 20px;
+                flex-shrink: 0;
+            }
+        }
+
+        /* ============================================
+           FOOTER
+           ============================================ */
+        footer {
+            margin-top: 32px;
+            padding: 24px 0;
+            border-top: 1px solid var(--border-color);
+            text-align: center;
+        }
+
+        .footer-content {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .footer-content a {
+            color: var(--accent-primary);
+            text-decoration: none;
+        }
+
+        .footer-content a:hover {
+            text-decoration: underline;
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+            margin-top: 8px;
+        }
+
+        /* ============================================
+           CONFIRMATION DIALOG
+           ============================================ */
+        .confirm-dialog {
+            text-align: center;
+        }
+
+        .confirm-dialog .icon {
+            width: 48px;
+            height: 48px;
+            margin: 0 auto 16px;
+            background: var(--accent-warning-dim);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .confirm-dialog .icon svg {
+            width: 24px;
+            height: 24px;
+            color: var(--accent-warning);
+        }
+
+        /* Sheet Selector */
+        .sheet-selector {
+            margin-top: 12px;
+        }
+
+        .sheet-selector label {
+            display: block;
+            font-size: 0.8125rem;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .sheet-selector select {
+            width: 100%;
+            padding: 10px 12px;
+            background: var(--bg-input);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.875rem;
+        }
+
+        /* Collapsible */
+        .collapsible-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            padding: 12px 0;
+        }
+
+        .collapsible-header svg {
+            transition: transform 0.2s;
+        }
+
+        .collapsible.expanded .collapsible-header svg {
+            transform: rotate(180deg);
+        }
+
+        .collapsible-content {
+            display: none;
+        }
+
+        .collapsible.expanded .collapsible-content {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+        <div class="loading-text" id="loadingText">Initializing DuckDB...</div>
+    </div>
+
+    <div class="container">
+        <!-- Mobile Warning -->
+        <div class="mobile-warning">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/>
+                <line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+            <span>For the best experience, use a desktop browser with screen width ≥1024px.</span>
+        </div>
+
+        <!-- Header -->
+        <header>
+            <div class="header-content">
+                <div class="header-left">
+                    <a href="../tools.html" class="back-link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="19" y1="12" x2="5" y2="12"/>
+                            <polyline points="12 19 5 12 12 5"/>
+                        </svg>
+                        Back to Tools
+                    </a>
+                </div>
+                <div class="header-right">
+                    <label class="experimental-toggle" title="Enable experimental mode for files >50MB">
+                        <input type="checkbox" id="experimentalToggle" onchange="toggleExperimentalMode()">
+                        <span>Experimental</span>
+                    </label>
+                    <div class="theme-toggle">
+                        <button data-theme="light" onclick="setTheme('light')" aria-label="Light theme">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="5"/>
+                                <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+                            </svg>
+                        </button>
+                        <button data-theme="dark" onclick="setTheme('dark')" aria-label="Dark theme">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <button class="help-btn" onclick="showShortcutsModal()" aria-label="Show keyboard shortcuts">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+                            <line x1="12" y1="17" x2="12.01" y2="17"/>
+                        </svg>
+                        <span>Shortcuts</span>
+                    </button>
+                </div>
+            </div>
+            <div class="tool-header">
+                <div class="tool-icon-header">
+                    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+                        <ellipse cx="12" cy="6" rx="8" ry="3"/>
+                        <path d="M4 6v6c0 1.657 3.582 3 8 3s8-1.343 8-3V6"/>
+                        <path d="M4 12v6c0 1.657 3.582 3 8 3s8-1.343 8-3v-6"/>
+                    </svg>
+                </div>
+                <div>
+                    <h1>DuckDB Playground</h1>
+                    <p class="tagline">// BROWSER-BASED SQL ANALYTICS</p>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Layout -->
+        <main class="main-layout">
+            <!-- Sidebar -->
+            <aside class="sidebar">
+                <!-- Schema Explorer -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <h2>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                            </svg>
+                            Schema Explorer
+                        </h2>
+                        <span class="subtitle" id="tableCount">0 tables</span>
+                    </div>
+                    <div class="panel-content">
+                        <div class="schema-explorer" id="schemaExplorer">
+                            <div class="empty-state" id="schemaEmptyState">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <ellipse cx="12" cy="6" rx="8" ry="3"/>
+                                    <path d="M4 6v6c0 1.657 3.582 3 8 3s8-1.343 8-3V6"/>
+                                    <path d="M4 12v6c0 1.657 3.582 3 8 3s8-1.343 8-3v-6"/>
+                                </svg>
+                                <p>No tables loaded yet.</p>
+                                <p style="font-size: 0.75rem;">Import a file or load sample data to get started.</p>
+                            </div>
+                            <div id="schemaTableList"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- File Import -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <h2>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                <polyline points="17 8 12 3 7 8"/>
+                                <line x1="12" y1="3" x2="12" y2="15"/>
+                            </svg>
+                            Import File
+                        </h2>
+                    </div>
+                    <div class="panel-content">
+                        <div class="file-drop-zone" id="fileDropZone" onclick="document.getElementById('fileInput').click()" tabindex="0" role="button" aria-label="Drop file here or click to browse">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                <polyline points="17 8 12 3 7 8"/>
+                                <line x1="12" y1="3" x2="12" y2="15"/>
+                            </svg>
+                            <p>Drop file here or click to browse</p>
+                            <p class="formats">CSV, JSON, Parquet, Excel</p>
+                        </div>
+                        <input type="file" id="fileInput" accept=".csv,.json,.jsonl,.ndjson,.parquet,.xlsx,.xls" style="display: none;" onchange="handleFileSelect(this.files)">
+                    </div>
+                </div>
+
+                <!-- Sample Data -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <h2>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="3" width="7" height="7"/>
+                                <rect x="14" y="3" width="7" height="7"/>
+                                <rect x="14" y="14" width="7" height="7"/>
+                                <rect x="3" y="14" width="7" height="7"/>
+                            </svg>
+                            Sample Data
+                        </h2>
+                    </div>
+                    <div class="panel-content">
+                        <div class="dropdown" id="sampleDropdown">
+                            <button class="dropdown-trigger" onclick="toggleDropdown('sampleDropdown')">
+                                <span>Load Sample Dataset</span>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="6 9 12 15 18 9"/>
+                                </svg>
+                            </button>
+                            <div class="dropdown-menu">
+                                <div class="dropdown-item" onclick="loadSampleData('employees')">
+                                    <span>Employees</span>
+                                    <span class="badge">50 rows</span>
+                                </div>
+                                <div class="dropdown-item" onclick="loadSampleData('sales')">
+                                    <span>Sales</span>
+                                    <span class="badge">200 rows</span>
+                                </div>
+                                <div class="dropdown-item" onclick="loadSampleData('weather')">
+                                    <span>Weather</span>
+                                    <span class="badge">365 rows</span>
+                                </div>
+                                <div class="dropdown-item" onclick="loadSampleData('all')" style="border-top: 1px solid var(--border-color); margin-top: 4px; padding-top: 12px;">
+                                    <span>Load All Samples</span>
+                                    <span class="badge">615 rows</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Session Controls -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <h2>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                                <polyline points="17 21 17 13 7 13 7 21"/>
+                                <polyline points="7 3 7 8 15 8"/>
+                            </svg>
+                            Session
+                        </h2>
+                    </div>
+                    <div class="panel-content">
+                        <div class="session-controls">
+                            <button class="btn btn-secondary btn-sm" onclick="saveSession()">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                                    <polyline points="17 21 17 13 7 13 7 21"/>
+                                    <polyline points="7 3 7 8 15 8"/>
+                                </svg>
+                                Save
+                            </button>
+                            <button class="btn btn-secondary btn-sm" onclick="document.getElementById('sessionInput').click()">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                    <polyline points="7 10 12 15 17 10"/>
+                                    <line x1="12" y1="15" x2="12" y2="3"/>
+                                </svg>
+                                Load
+                            </button>
+                        </div>
+                        <input type="file" id="sessionInput" accept=".duckdb-session.zip" style="display: none;" onchange="loadSession(this.files)">
+                    </div>
+                </div>
+
+                <!-- Query History -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <h2>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"/>
+                                <polyline points="12 6 12 12 16 14"/>
+                            </svg>
+                            History
+                        </h2>
+                        <button class="btn btn-sm btn-secondary" onclick="clearHistory()" style="padding: 4px 8px; font-size: 0.625rem;">Clear</button>
+                    </div>
+                    <div class="panel-content">
+                        <div class="history-list" id="historyList">
+                            <div class="empty-state" style="padding: 16px;">
+                                <p style="font-size: 0.75rem;">No queries yet.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Main Content -->
+            <div class="main-content">
+                <!-- Query Editor -->
+                <div class="panel query-editor-panel">
+                    <div class="query-tabs" id="queryTabs">
+                        <!-- Tabs rendered dynamically -->
+                    </div>
+                    <div class="query-editor-container">
+                        <textarea id="sqlEditor" placeholder="-- Write your SQL here&#10;SELECT * FROM your_table LIMIT 100;" spellcheck="false" aria-label="SQL Editor"></textarea>
+                    </div>
+                    <div class="editor-toolbar">
+                        <div class="editor-actions">
+                            <button class="btn btn-primary" id="runQueryBtn" onclick="runQuery()">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polygon points="5 3 19 12 5 21 5 3"/>
+                                </svg>
+                                Run Query
+                            </button>
+                            <button class="btn btn-secondary" id="cancelQueryBtn" onclick="cancelQuery()" style="display: none;">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="3" y="3" width="18" height="18" rx="2"/>
+                                </svg>
+                                Cancel
+                            </button>
+                            <button class="btn btn-secondary" onclick="clearResults()">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="3 6 5 6 21 6"/>
+                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                                </svg>
+                                Clear
+                            </button>
+                        </div>
+                        <div class="editor-info">
+                            <span id="editorShortcut">Shift+Enter to run</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Metrics -->
+                <div class="panel metrics-panel" id="metricsPanel" style="display: none;">
+                    <div class="panel-content">
+                        <div class="metrics-grid">
+                            <div class="metric-card" id="metricTime">
+                                <div class="metric-label">Execution Time</div>
+                                <div class="metric-value">—<span class="metric-unit">ms</span></div>
+                            </div>
+                            <div class="metric-card" id="metricRows">
+                                <div class="metric-label">Rows</div>
+                                <div class="metric-value">—</div>
+                            </div>
+                            <div class="metric-card" id="metricStatus">
+                                <div class="metric-label">Status</div>
+                                <div class="metric-value">—</div>
+                            </div>
+                            <div class="metric-card" id="metricMemory">
+                                <div class="metric-label">Memory</div>
+                                <div class="metric-value">—<span class="metric-unit">MB</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Results -->
+                <div class="panel results-panel" id="resultsPanel">
+                    <div class="panel-header results-header">
+                        <h2>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="3" width="18" height="18" rx="2"/>
+                                <line x1="3" y1="9" x2="21" y2="9"/>
+                                <line x1="9" y1="21" x2="9" y2="9"/>
+                            </svg>
+                            Results
+                        </h2>
+                        <div class="view-toggle" id="viewToggle" style="display: none;">
+                            <button class="active" data-view="table" onclick="switchView('table')">Table</button>
+                            <button data-view="chart" onclick="switchView('chart')">Chart</button>
+                        </div>
+                    </div>
+                    <div class="results-content" id="resultsContent">
+                        <div class="empty-state" id="resultsEmptyState">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="3" width="18" height="18" rx="2"/>
+                                <line x1="3" y1="9" x2="21" y2="9"/>
+                                <line x1="9" y1="21" x2="9" y2="9"/>
+                            </svg>
+                            <p>Run a query to see results</p>
+                        </div>
+                        <div class="results-table-wrapper" id="resultsTableWrapper" style="display: none;"></div>
+                        <div class="chart-container" id="chartContainer">
+                            <div class="chart-wrapper">
+                                <canvas id="resultsChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="error-display" id="errorDisplay" style="display: none;"></div>
+                    </div>
+                    <div class="results-footer" id="resultsFooter" style="display: none;">
+                        <div class="results-info" id="resultsInfo">Showing 0 rows</div>
+                        <div class="export-buttons">
+                            <button class="btn btn-sm btn-secondary" onclick="exportResults('csv')">CSV</button>
+                            <button class="btn btn-sm btn-secondary" onclick="exportResults('json')">JSON</button>
+                            <button class="btn btn-sm btn-secondary" onclick="exportResults('parquet')">Parquet</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer>
+            <div class="footer-content">
+                <p>© 2025 Tools Hub — DuckDB WASM v1.29.0</p>
+                <div class="footer-links">
+                    <a href="https://duckdb.org/docs/api/wasm/overview" target="_blank">DuckDB Docs</a>
+                    <a href="#" onclick="showAboutModal(); return false;">About</a>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Modals -->
+    <!-- Shortcuts Modal -->
+    <div class="modal-overlay" id="shortcutsModal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="2" y="4" width="20" height="16" rx="2"/>
+                    <path d="M6 8h.001M10 8h.001M14 8h.001M18 8h.001M8 12h.001M12 12h.001M16 12h.001M6 16h12"/>
+                </svg>
+                <h3>Keyboard Shortcuts</h3>
+            </div>
+            <div class="modal-body">
+                <div class="shortcuts-grid">
+                    <div class="shortcut-item">
+                        <span class="shortcut-desc">Run query</span>
+                        <span class="shortcut-keys">Shift+Enter</span>
+                    </div>
+                    <div class="shortcut-item">
+                        <span class="shortcut-desc">Save session</span>
+                        <span class="shortcut-keys">Ctrl+S</span>
+                    </div>
+                    <div class="shortcut-item">
+                        <span class="shortcut-desc">Clear results</span>
+                        <span class="shortcut-keys">Ctrl+L</span>
+                    </div>
+                    <div class="shortcut-item">
+                        <span class="shortcut-desc">Cancel query</span>
+                        <span class="shortcut-keys">Escape</span>
+                    </div>
+                    <div class="shortcut-item">
+                        <span class="shortcut-desc">Tab 1-8</span>
+                        <span class="shortcut-keys">Ctrl+1-8</span>
+                    </div>
+                    <div class="shortcut-item">
+                        <span class="shortcut-desc">Show help</span>
+                        <span class="shortcut-keys">Ctrl+/</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-primary" onclick="closeModal('shortcutsModal')">Got it</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirm Modal -->
+    <div class="modal-overlay" id="confirmModal">
+        <div class="modal-card">
+            <div class="modal-body confirm-dialog">
+                <div class="icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                        <line x1="12" y1="9" x2="12" y2="13"/>
+                        <line x1="12" y1="17" x2="12.01" y2="17"/>
+                    </svg>
+                </div>
+                <h3 id="confirmTitle">Confirm Action</h3>
+                <p id="confirmMessage">Are you sure?</p>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeModal('confirmModal')">Cancel</button>
+                <button class="btn btn-danger" id="confirmBtn" onclick="confirmAction()">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Table Name Modal -->
+    <div class="modal-overlay" id="tableNameModal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="18" height="18" rx="2"/>
+                    <line x1="3" y1="9" x2="21" y2="9"/>
+                    <line x1="9" y1="21" x2="9" y2="9"/>
+                </svg>
+                <h3>Table Already Exists</h3>
+            </div>
+            <div class="modal-body">
+                <p>Table '<span id="existingTableName"></span>' already exists. What would you like to do?</p>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeModal('tableNameModal')">Cancel</button>
+                <button class="btn btn-secondary" onclick="handleTableCollision('rename')">Rename</button>
+                <button class="btn btn-primary" onclick="handleTableCollision('replace')">Replace</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sheet Selector Modal -->
+    <div class="modal-overlay" id="sheetModal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                    <line x1="16" y1="13" x2="8" y2="13"/>
+                    <line x1="16" y1="17" x2="8" y2="17"/>
+                    <polyline points="10 9 9 9 8 9"/>
+                </svg>
+                <h3>Select Sheet to Import</h3>
+            </div>
+            <div class="modal-body">
+                <div class="sheet-selector">
+                    <label for="sheetSelect">Excel file contains multiple sheets:</label>
+                    <select id="sheetSelect"></select>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeModal('sheetModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="importSelectedSheet()">Import</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- About Modal -->
+    <div class="modal-overlay" id="aboutModal">
+        <div class="modal-card" style="max-width: 500px;">
+            <div class="modal-header">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="12" y1="16" x2="12" y2="12"/>
+                    <line x1="12" y1="8" x2="12.01" y2="8"/>
+                </svg>
+                <h3>About DuckDB Playground</h3>
+            </div>
+            <div class="modal-body">
+                <p>A browser-based SQL playground powered by DuckDB-WASM. Execute SQL queries against imported data files entirely client-side with no server dependencies.</p>
+                <p style="margin-top: 12px;"><strong>Features:</strong></p>
+                <ul style="margin-left: 20px; color: var(--text-secondary); font-size: 0.875rem;">
+                    <li>Import CSV, JSON, Parquet, and Excel files</li>
+                    <li>Write and execute SQL queries</li>
+                    <li>Export results in multiple formats</li>
+                    <li>Save and load sessions</li>
+                    <li>Basic charting capabilities</li>
+                </ul>
+                <p style="margin-top: 12px; font-size: 0.8125rem; color: var(--text-muted);">
+                    Version 1.0.0 • DuckDB WASM v1.29.0
+                </p>
+                
+                <!-- Open Source Licenses -->
+                <div class="license-card">
+                    <h4>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <polyline points="14 2 14 8 20 8"/>
+                            <line x1="16" y1="13" x2="8" y2="13"/>
+                            <line x1="16" y1="17" x2="8" y2="17"/>
+                            <polyline points="10 9 9 9 8 9"/>
+                        </svg>
+                        Open Source Licenses
+                    </h4>
+                    <div class="license-content">
+                        <ul>
+                            <li>
+                                <a href="https://github.com/duckdb/duckdb-wasm" target="_blank" rel="noopener">DuckDB-WASM</a> — MIT License
+                                <span>© DuckDB Contributors</span>
+                            </li>
+                            <li>
+                                <a href="https://github.com/chartjs/Chart.js" target="_blank" rel="noopener">Chart.js</a> — MIT License
+                                <span>© Chart.js Contributors</span>
+                            </li>
+                            <li>
+                                <a href="https://github.com/SheetJS/sheetjs" target="_blank" rel="noopener">SheetJS</a> — Apache 2.0
+                                <span>© SheetJS LLC</span>
+                            </li>
+                            <li>
+                                <a href="https://github.com/101arrowz/fflate" target="_blank" rel="noopener">fflate</a> — MIT License
+                                <span>© Arjun Barrett</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-primary" onclick="closeModal('aboutModal')">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Main JavaScript -->
+    <script type="module">
+        // ============================================
+        // DuckDB-WASM INITIALIZATION
+        // ============================================
+        import * as duckdb from 'https://cdn.jsdelivr.net/npm/@duckdb/duckdb-wasm@1.29.0/+esm';
+
+        // State Management
+        const STATE = {
+            db: null,
+            conn: null,
+            tables: [],
+            queryTabs: [{ id: 'tab-1', name: 'Query 1', sql: '' }],
+            activeTabId: 'tab-1',
+            isQueryRunning: false,
+            currentResult: null,
+            queryHistory: [],
+            experimentalMode: false,
+            theme: 'dark',
+            isInitialized: false,
+            initError: null,
+            pendingFile: null,
+            pendingSheet: null,
+            confirmCallback: null
+        };
+
+        // Make STATE and functions available globally
+        window.STATE = STATE;
+
+        // ============================================
+        // INITIALIZATION
+        // ============================================
+        
+        // Helper to create a worker from a URL using Blob (bypasses CORS issues)
+        async function createWorkerFromURL(url) {
+            const response = await fetch(url);
+            const blob = await response.blob();
+            const blobURL = URL.createObjectURL(blob);
+            return new Worker(blobURL);
+        }
+        
+        async function initDuckDB() {
+            try {
+                updateLoadingText('Loading DuckDB bundles...');
+                
+                // Get bundles from jsdelivr
+                const JSDELIVR_BUNDLES = duckdb.getJsDelivrBundles();
+                
+                // Select appropriate bundle
+                updateLoadingText('Selecting optimal bundle...');
+                const bundle = await duckdb.selectBundle(JSDELIVR_BUNDLES);
+                
+                // Create worker using Blob URL to avoid CORS issues
+                updateLoadingText('Creating worker...');
+                const worker = await createWorkerFromURL(bundle.mainWorker);
+                const logger = new duckdb.ConsoleLogger();
+                
+                // Instantiate database
+                updateLoadingText('Instantiating DuckDB...');
+                STATE.db = new duckdb.AsyncDuckDB(logger, worker);
+                await STATE.db.instantiate(bundle.mainModule, bundle.pthreadWorker);
+                
+                // Create connection
+                updateLoadingText('Creating connection...');
+                STATE.conn = await STATE.db.connect();
+                
+                STATE.isInitialized = true;
+                hideLoadingOverlay();
+                
+                showToast('DuckDB initialized successfully', 'success');
+                
+                // Clear stale schema state - DuckDB memory is fresh on each page load
+                STATE.tables = [];
+                renderSchema();
+                
+                // Load saved state (tabs, history, settings - but not tables)
+                loadSavedState();
+                renderQueryTabs();
+                
+                // Refresh schema from actual DuckDB state (will be empty on fresh load)
+                await refreshSchema();
+                
+            } catch (error) {
+                console.error('DuckDB init error:', error);
+                STATE.initError = error;
+                showInitError(error);
+            }
+        }
+
+        // Check if DuckDB connection is still healthy
+        async function checkConnectionHealth() {
+            if (!STATE.conn || !STATE.isInitialized) {
+                return false;
+            }
+            try {
+                await STATE.conn.query('SELECT 1');
+                return true;
+            } catch (e) {
+                console.error('Connection health check failed:', e);
+                return false;
+            }
+        }
+
+        // Reconnect if connection is stale
+        async function ensureConnection() {
+            const isHealthy = await checkConnectionHealth();
+            if (!isHealthy) {
+                showToast('Reconnecting to database...', 'warning');
+                try {
+                    if (STATE.conn) {
+                        try { await STATE.conn.close(); } catch (e) {}
+                    }
+                    STATE.conn = await STATE.db.connect();
+                    // Tables are lost, refresh schema
+                    STATE.tables = [];
+                    await refreshSchema();
+                    showToast('Reconnected successfully', 'success');
+                    return true;
+                } catch (e) {
+                    showToast('Failed to reconnect. Please refresh the page.', 'error');
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        function updateLoadingText(text) {
+            document.getElementById('loadingText').textContent = text;
+        }
+
+        function hideLoadingOverlay() {
+            document.getElementById('loadingOverlay').classList.add('hidden');
+        }
+
+        function showInitError(error) {
+            const overlay = document.getElementById('loadingOverlay');
+            overlay.innerHTML = `
+                <div class="loading-error">
+                    <h3>Failed to Initialize DuckDB</h3>
+                    <p>There was an error starting the database engine. This may be due to browser compatibility issues.</p>
+                    <details>
+                        <summary>Technical Details</summary>
+                        <pre>${error.message}\n${error.stack || ''}</pre>
+                    </details>
+                    <button class="btn btn-primary" onclick="location.reload()">
+                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="23 4 23 10 17 10"/>
+                            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+                        </svg>
+                        Retry
+                    </button>
+                    <p style="margin-top: 16px; font-size: 0.75rem;">
+                        <a href="https://duckdb.org/docs/api/wasm/overview" target="_blank" style="color: var(--accent-primary);">
+                            Check browser compatibility →
+                        </a>
+                    </p>
+                </div>
+            `;
+        }
+
+        // ============================================
+        // FILE IMPORT
+        // ============================================
+        const FILE_SIZE_LIMIT = 50 * 1024 * 1024; // 50MB
+        const EXPERIMENTAL_SIZE_LIMIT = 500 * 1024 * 1024; // 500MB
+
+        window.handleFileSelect = async function(files) {
+            if (!files || files.length === 0) return;
+            
+            const file = files[0];
+            await importFile(file);
+            
+            // Reset input
+            document.getElementById('fileInput').value = '';
+        };
+
+        async function importFile(file) {
+            const maxSize = STATE.experimentalMode ? EXPERIMENTAL_SIZE_LIMIT : FILE_SIZE_LIMIT;
+            
+            if (file.size > maxSize) {
+                const limitMB = Math.round(maxSize / 1024 / 1024);
+                showToast(`File exceeds ${limitMB}MB limit. ${STATE.experimentalMode ? 'Consider using desktop DuckDB.' : 'Enable experimental mode for larger files.'}`, 'error');
+                return;
+            }
+
+            if (file.size > FILE_SIZE_LIMIT && STATE.experimentalMode) {
+                showToast('Large file detected. This may affect browser performance.', 'warning');
+            }
+
+            const extension = file.name.split('.').pop().toLowerCase();
+            
+            try {
+                // Handle Excel files specially
+                if (extension === 'xlsx' || extension === 'xls') {
+                    await handleExcelFile(file);
+                    return;
+                }
+
+                const tableName = sanitizeTableName(file.name);
+                
+                // Check for collision
+                if (STATE.tables.find(t => t.name === tableName)) {
+                    STATE.pendingFile = { file, tableName, extension };
+                    document.getElementById('existingTableName').textContent = tableName;
+                    showModal('tableNameModal');
+                    return;
+                }
+
+                await doImport(file, tableName, extension);
+                
+            } catch (error) {
+                console.error('Import error:', error);
+                showToast(`Failed to import: ${error.message}`, 'error');
+            }
+        }
+
+        async function doImport(file, tableName, extension) {
+            showToast(`Importing ${file.name}...`, 'info');
+            
+            const fileBuffer = await file.arrayBuffer();
+            await STATE.db.registerFileBuffer(file.name, new Uint8Array(fileBuffer));
+            
+            let readFunction;
+            switch (extension) {
+                case 'csv':
+                    readFunction = `read_csv_auto('${file.name}')`;
+                    break;
+                case 'json':
+                case 'jsonl':
+                case 'ndjson':
+                    readFunction = `read_json_auto('${file.name}')`;
+                    break;
+                case 'parquet':
+                    readFunction = `read_parquet('${file.name}')`;
+                    break;
+                default:
+                    throw new Error(`Unsupported format: ${extension}`);
+            }
+            
+            await STATE.conn.query(`
+                CREATE TABLE "${tableName}" AS 
+                SELECT * FROM ${readFunction}
+            `);
+            
+            // Clean up virtual FS
+            await STATE.db.dropFile(file.name);
+            
+            await refreshSchema();
+            showToast(`Imported '${tableName}' successfully`, 'success');
+        }
+
+        async function handleExcelFile(file) {
+            const arrayBuffer = await file.arrayBuffer();
+            const workbook = XLSX.read(arrayBuffer);
+            
+            if (workbook.SheetNames.length > 1) {
+                // Multiple sheets - show selector
+                STATE.pendingFile = { file, workbook };
+                const select = document.getElementById('sheetSelect');
+                select.innerHTML = workbook.SheetNames.map(name => 
+                    `<option value="${name}">${name}</option>`
+                ).join('');
+                showModal('sheetModal');
+            } else {
+                // Single sheet - import directly
+                await importExcelSheet(workbook, workbook.SheetNames[0], file.name);
+            }
+        }
+
+        window.importSelectedSheet = async function() {
+            const sheetName = document.getElementById('sheetSelect').value;
+            const { file, workbook } = STATE.pendingFile;
+            closeModal('sheetModal');
+            await importExcelSheet(workbook, sheetName, file.name);
+            STATE.pendingFile = null;
+        };
+
+        async function importExcelSheet(workbook, sheetName, filename) {
+            const worksheet = workbook.Sheets[sheetName];
+            const csv = XLSX.utils.sheet_to_csv(worksheet);
+            
+            const tableName = sanitizeTableName(sheetName || filename);
+            
+            // Check collision
+            if (STATE.tables.find(t => t.name === tableName)) {
+                STATE.pendingFile = { csv, tableName };
+                document.getElementById('existingTableName').textContent = tableName;
+                showModal('tableNameModal');
+                return;
+            }
+
+            await importCSVString(csv, tableName);
+        }
+
+        async function importCSVString(csv, tableName) {
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const tempFilename = `${tableName}_temp.csv`;
+            
+            await STATE.db.registerFileBuffer(tempFilename, new Uint8Array(await blob.arrayBuffer()));
+            
+            await STATE.conn.query(`
+                CREATE TABLE "${tableName}" AS 
+                SELECT * FROM read_csv_auto('${tempFilename}')
+            `);
+            
+            await STATE.db.dropFile(tempFilename);
+            
+            await refreshSchema();
+            showToast(`Imported '${tableName}' successfully`, 'success');
+        }
+
+        window.handleTableCollision = async function(action) {
+            closeModal('tableNameModal');
+            const { file, tableName, extension, csv } = STATE.pendingFile;
+            
+            if (action === 'replace') {
+                await STATE.conn.query(`DROP TABLE IF EXISTS "${tableName}"`);
+                if (csv) {
+                    await importCSVString(csv, tableName);
+                } else {
+                    await doImport(file, tableName, extension);
+                }
+            } else {
+                // Rename
+                const newName = ensureUniqueName(tableName);
+                if (csv) {
+                    await importCSVString(csv, newName);
+                } else {
+                    await doImport(file, newName, extension);
+                }
+            }
+            
+            STATE.pendingFile = null;
+        };
+
+        function sanitizeTableName(filename) {
+            let name = filename
+                .replace(/\.[^.]+$/, '')
+                .replace(/[^a-zA-Z0-9_]/g, '_')
+                .replace(/^[0-9]/, '_$&')
+                .toLowerCase()
+                .substring(0, 63);
+            
+            return name || 'table';
+        }
+
+        function ensureUniqueName(baseName) {
+            let name = baseName;
+            let counter = 2;
+            while (STATE.tables.find(t => t.name === name)) {
+                name = `${baseName}_${counter}`;
+                counter++;
+            }
+            return name;
+        }
+
+        // ============================================
+        // SCHEMA EXPLORER
+        // ============================================
+        async function refreshSchema() {
+            const result = await STATE.conn.query(`
+                SELECT table_name 
+                FROM information_schema.tables 
+                WHERE table_schema = 'main'
+            `);
+            
+            const tableNames = result.toArray().map(row => row.table_name);
+            
+            STATE.tables = [];
+            for (const name of tableNames) {
+                const columnsResult = await STATE.conn.query(`
+                    SELECT column_name, data_type 
+                    FROM information_schema.columns 
+                    WHERE table_name = '${name}' AND table_schema = 'main'
+                `);
+                
+                const columns = columnsResult.toArray().map(row => ({
+                    name: row.column_name,
+                    type: row.data_type
+                }));
+                
+                STATE.tables.push({
+                    name,
+                    columns,
+                    rowCount: null // Lazy load
+                });
+            }
+            
+            renderSchema();
+        }
+
+        function renderSchema() {
+            const tableList = document.getElementById('schemaTableList');
+            const emptyState = document.getElementById('schemaEmptyState');
+            const tableCount = document.getElementById('tableCount');
+            
+            if (STATE.tables.length === 0) {
+                emptyState.style.display = 'flex';
+                tableList.innerHTML = '';
+                tableCount.textContent = '0 tables';
+                return;
+            }
+            
+            emptyState.style.display = 'none';
+            tableCount.textContent = `${STATE.tables.length} table${STATE.tables.length !== 1 ? 's' : ''}`;
+            
+            tableList.innerHTML = STATE.tables.map(table => `
+                <div class="table-item" data-table="${escapeHtml(table.name)}" tabindex="0" role="button" aria-expanded="false" onclick="toggleTableExpand(this)" onkeydown="handleTableKeydown(event, this)">
+                    <div class="table-header">
+                        <span class="table-name">${escapeHtml(table.name)}</span>
+                        <div class="table-meta">
+                            <span class="row-count">${table.rowCount !== null ? formatNumber(table.rowCount) + ' rows' : '? rows'}</span>
+                            <div class="table-actions" onclick="event.stopPropagation()">
+                                <button class="table-action-btn" onclick="previewTable('${escapeHtml(table.name)}')" title="Preview" aria-label="Preview table ${escapeHtml(table.name)}">👁</button>
+                                <button class="table-action-btn danger" onclick="confirmDropTable('${escapeHtml(table.name)}')" title="Drop" aria-label="Drop table ${escapeHtml(table.name)}">×</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="column-list">
+                        ${table.columns.map(col => `
+                            <div class="column-item">
+                                <span class="column-name">${escapeHtml(col.name)}</span>
+                                <span class="column-type">${escapeHtml(col.type)}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        window.handleTableKeydown = function(event, element) {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                toggleTableExpand(element);
+            }
+        };
+
+        window.toggleTableExpand = async function(element) {
+            const wasExpanded = element.classList.contains('expanded');
+            element.classList.toggle('expanded');
+            element.setAttribute('aria-expanded', !wasExpanded);
+            
+            if (!wasExpanded) {
+                const tableName = element.dataset.table;
+                const table = STATE.tables.find(t => t.name === tableName);
+                
+                if (table && table.rowCount === null) {
+                    // Lazy load row count
+                    try {
+                        const result = await STATE.conn.query(`SELECT COUNT(*) as cnt FROM "${tableName}"`);
+                        const count = result.toArray()[0].cnt;
+                        table.rowCount = Number(count);
+                        
+                        const rowCountEl = element.querySelector('.row-count');
+                        if (rowCountEl) {
+                            rowCountEl.textContent = formatNumber(table.rowCount) + ' rows';
+                        }
+                    } catch (e) {
+                        console.error('Error counting rows:', e);
+                    }
+                }
+            }
+        };
+
+        window.previewTable = function(tableName) {
+            const editor = document.getElementById('sqlEditor');
+            editor.value = `SELECT * FROM "${tableName}" LIMIT 100;`;
+            runQuery();
+        };
+
+        window.confirmDropTable = function(tableName) {
+            STATE.confirmCallback = async () => {
+                await STATE.conn.query(`DROP TABLE "${tableName}"`);
+                await refreshSchema();
+                showToast(`Dropped table '${tableName}'`, 'success');
+            };
+            document.getElementById('confirmTitle').textContent = 'Drop Table';
+            document.getElementById('confirmMessage').textContent = `Are you sure you want to drop table '${tableName}'? This cannot be undone.`;
+            showModal('confirmModal');
+        };
+
+        window.confirmAction = async function() {
+            closeModal('confirmModal');
+            if (STATE.confirmCallback) {
+                await STATE.confirmCallback();
+                STATE.confirmCallback = null;
+            }
+        };
+
+        // ============================================
+        // QUERY EXECUTION
+        // ============================================
+        
+        // Extract table names from SQL query
+        function extractTableNames(sql) {
+            const tables = new Set();
+            
+            // Normalize whitespace
+            const normalizedSql = sql.replace(/\s+/g, ' ').trim();
+            
+            // Match FROM clause tables
+            const fromRegex = /\bFROM\s+["']?(\w+)["']?/gi;
+            let match;
+            while ((match = fromRegex.exec(normalizedSql)) !== null) {
+                tables.add(match[1].toLowerCase());
+            }
+            
+            // Match JOIN tables
+            const joinRegex = /\bJOIN\s+["']?(\w+)["']?/gi;
+            while ((match = joinRegex.exec(normalizedSql)) !== null) {
+                tables.add(match[1].toLowerCase());
+            }
+            
+            // Match INSERT INTO
+            const insertRegex = /\bINSERT\s+INTO\s+["']?(\w+)["']?/gi;
+            while ((match = insertRegex.exec(normalizedSql)) !== null) {
+                tables.add(match[1].toLowerCase());
+            }
+            
+            // Match UPDATE
+            const updateRegex = /\bUPDATE\s+["']?(\w+)["']?/gi;
+            while ((match = updateRegex.exec(normalizedSql)) !== null) {
+                tables.add(match[1].toLowerCase());
+            }
+            
+            // Match DELETE FROM
+            const deleteRegex = /\bDELETE\s+FROM\s+["']?(\w+)["']?/gi;
+            while ((match = deleteRegex.exec(normalizedSql)) !== null) {
+                tables.add(match[1].toLowerCase());
+            }
+            
+            // Match CREATE TABLE
+            const createRegex = /\bCREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?["']?(\w+)["']?/gi;
+            while ((match = createRegex.exec(normalizedSql)) !== null) {
+                tables.add(match[1].toLowerCase());
+            }
+            
+            // Match DROP TABLE
+            const dropRegex = /\bDROP\s+TABLE\s+(?:IF\s+EXISTS\s+)?["']?(\w+)["']?/gi;
+            while ((match = dropRegex.exec(normalizedSql)) !== null) {
+                tables.add(match[1].toLowerCase());
+            }
+            
+            return Array.from(tables);
+        }
+        
+        window.runQuery = async function() {
+            if (STATE.isQueryRunning || !STATE.isInitialized) return;
+            
+            const sql = document.getElementById('sqlEditor').value.trim();
+            if (!sql) {
+                showToast('Please enter a query', 'warning');
+                return;
+            }
+            
+            // Check connection health before running
+            const isConnected = await ensureConnection();
+            if (!isConnected) {
+                return;
+            }
+            
+            STATE.isQueryRunning = true;
+            updateRunButton(true);
+            
+            const startTime = performance.now();
+            const tables = extractTableNames(sql);
+            
+            try {
+                const result = await STATE.conn.query(sql);
+                const endTime = performance.now();
+                const duration = endTime - startTime;
+                
+                STATE.currentResult = result;
+                
+                const rowCount = result.numRows;
+                
+                // Add to history with table names
+                addToHistory({
+                    sql,
+                    tables,
+                    timestamp: Date.now(),
+                    durationMs: duration,
+                    rowCount
+                });
+                
+                // Update metrics
+                showMetrics({
+                    time: duration,
+                    rows: rowCount,
+                    status: 'OK'
+                });
+                
+                // Display results
+                displayResults(result);
+                
+                // Refresh schema in case of DDL
+                if (/^\s*(CREATE|DROP|ALTER|INSERT|UPDATE|DELETE)/i.test(sql)) {
+                    await refreshSchema();
+                }
+                
+            } catch (error) {
+                const endTime = performance.now();
+                const duration = endTime - startTime;
+                
+                addToHistory({
+                    sql,
+                    tables,
+                    timestamp: Date.now(),
+                    durationMs: duration,
+                    error: error.message
+                });
+                
+                showMetrics({
+                    time: duration,
+                    rows: 0,
+                    status: 'ERROR'
+                });
+                
+                showError(error);
+            } finally {
+                STATE.isQueryRunning = false;
+                updateRunButton(false);
+            }
+        };
+
+        window.cancelQuery = function() {
+            showToast('Query cancellation requested', 'warning');
+        };
+
+        function updateRunButton(running) {
+            const runBtn = document.getElementById('runQueryBtn');
+            const cancelBtn = document.getElementById('cancelQueryBtn');
+            
+            if (running) {
+                runBtn.disabled = true;
+                runBtn.innerHTML = `
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" class="spin">
+                        <circle cx="12" cy="12" r="10"/>
+                        <path d="M12 6v6l4 2"/>
+                    </svg>
+                    Running...
+                `;
+                cancelBtn.style.display = 'inline-flex';
+            } else {
+                runBtn.disabled = false;
+                runBtn.innerHTML = `
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="5 3 19 12 5 21 5 3"/>
+                    </svg>
+                    Run Query
+                `;
+                cancelBtn.style.display = 'none';
+            }
+        }
+
+        // ============================================
+        // RESULTS DISPLAY
+        // ============================================
+        function displayResults(result) {
+            const wrapper = document.getElementById('resultsTableWrapper');
+            const emptyState = document.getElementById('resultsEmptyState');
+            const errorDisplay = document.getElementById('errorDisplay');
+            const footer = document.getElementById('resultsFooter');
+            const resultsInfo = document.getElementById('resultsInfo');
+            const viewToggle = document.getElementById('viewToggle');
+            
+            errorDisplay.style.display = 'none';
+            
+            const rows = result.toArray();
+            const schema = result.schema;
+            const columnNames = schema.fields.map(f => f.name);
+            const columnTypes = schema.fields.map(f => f.type.toString());
+            
+            if (rows.length === 0) {
+                wrapper.style.display = 'none';
+                emptyState.style.display = 'flex';
+                emptyState.innerHTML = `
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <path d="M16 12H8"/>
+                    </svg>
+                    <p>Query executed successfully. No rows returned.</p>
+                `;
+                footer.style.display = 'none';
+                viewToggle.style.display = 'none';
+                return;
+            }
+            
+            emptyState.style.display = 'none';
+            wrapper.style.display = 'block';
+            footer.style.display = 'flex';
+            
+            const maxDisplay = 1000;
+            const displayRows = rows.slice(0, maxDisplay);
+            const truncated = rows.length > maxDisplay;
+            
+            resultsInfo.textContent = truncated 
+                ? `Showing ${formatNumber(maxDisplay)} of ${formatNumber(rows.length)} rows`
+                : `${formatNumber(rows.length)} row${rows.length !== 1 ? 's' : ''}`;
+            
+            // Build table HTML
+            let html = '<table class="results-table" role="grid"><thead><tr>';
+            
+            for (let i = 0; i < columnNames.length; i++) {
+                html += `<th>${escapeHtml(columnNames[i])}<span class="type-badge">${escapeHtml(columnTypes[i])}</span></th>`;
+            }
+            
+            html += '</tr></thead><tbody>';
+            
+            // Create a map of column name to type for formatting
+            const columnTypeMap = {};
+            for (let i = 0; i < columnNames.length; i++) {
+                columnTypeMap[columnNames[i]] = columnTypes[i];
+            }
+            
+            for (const row of displayRows) {
+                html += '<tr>';
+                for (const col of columnNames) {
+                    const value = row[col];
+                    const colType = columnTypeMap[col];
+                    html += `<td>${formatCellValue(value, colType)}</td>`;
+                }
+                html += '</tr>';
+            }
+            
+            html += '</tbody></table>';
+            wrapper.innerHTML = html;
+            
+            // Check if chartable
+            const chartable = isChartable(columnNames, columnTypes, rows.length);
+            viewToggle.style.display = chartable ? 'flex' : 'none';
+        }
+
+        function formatCellValue(value, colType = '') {
+            if (value === null || value === undefined) {
+                return '<span class="cell-null">NULL</span>';
+            }
+            
+            if (value instanceof Uint8Array) {
+                const size = value.length;
+                const sizeStr = size < 1024 ? `${size}B` : `${(size/1024).toFixed(1)}KB`;
+                return `<span class="cell-blob">[BLOB: ${sizeStr}]</span>`;
+            }
+            
+            if (typeof value === 'boolean') {
+                return value ? 'true' : 'false';
+            }
+            
+            // Handle date/time types based on column type
+            const colTypeLower = colType.toLowerCase();
+            
+            // Check if this is a date/timestamp type
+            if (colTypeLower.includes('date') || colTypeLower.includes('timestamp') || colTypeLower.includes('time')) {
+                try {
+                    let dateObj;
+                    
+                    if (value instanceof Date) {
+                        dateObj = value;
+                    } else if (typeof value === 'bigint') {
+                        // BigInt timestamp - convert to number
+                        dateObj = new Date(Number(value));
+                    } else if (typeof value === 'number') {
+                        // Number timestamp (milliseconds)
+                        dateObj = new Date(value);
+                    } else if (typeof value === 'string') {
+                        // Already a string, just return it
+                        return escapeHtml(value);
+                    } else {
+                        // Unknown format, stringify
+                        return escapeHtml(String(value));
+                    }
+                    
+                    // Format based on type
+                    if (colTypeLower.includes('timestamp')) {
+                        // Full timestamp with time
+                        return escapeHtml(dateObj.toISOString().replace('T', ' ').replace('Z', ''));
+                    } else if (colTypeLower.includes('date')) {
+                        // Date only (YYYY-MM-DD)
+                        return escapeHtml(dateObj.toISOString().split('T')[0]);
+                    } else if (colTypeLower.includes('time') && !colTypeLower.includes('timestamp')) {
+                        // Time only
+                        return escapeHtml(dateObj.toISOString().split('T')[1].replace('Z', ''));
+                    }
+                    
+                    return escapeHtml(dateObj.toISOString());
+                } catch (e) {
+                    // If date parsing fails, fall through to default handling
+                    console.warn('Date formatting error:', e, value);
+                }
+            }
+            
+            if (typeof value === 'bigint') {
+                return formatNumber(Number(value));
+            }
+            
+            if (typeof value === 'number') {
+                // Check for reasonable number range (not a timestamp)
+                if (Number.isInteger(value) && Math.abs(value) < 1e15) {
+                    return formatNumber(value);
+                }
+                // Floating point
+                if (!Number.isInteger(value)) {
+                    return formatNumber(value);
+                }
+                return formatNumber(value);
+            }
+            
+            if (value instanceof Date) {
+                return escapeHtml(value.toISOString().split('T')[0]);
+            }
+            
+            const str = String(value);
+            if (str.length > 200) {
+                return `<span title="${escapeHtml(str)}">${escapeHtml(str.substring(0, 200))}...</span>`;
+            }
+            
+            return escapeHtml(str);
+        }
+
+        function showError(error) {
+            const errorDisplay = document.getElementById('errorDisplay');
+            const wrapper = document.getElementById('resultsTableWrapper');
+            const emptyState = document.getElementById('resultsEmptyState');
+            const footer = document.getElementById('resultsFooter');
+            const viewToggle = document.getElementById('viewToggle');
+            
+            wrapper.style.display = 'none';
+            emptyState.style.display = 'none';
+            footer.style.display = 'none';
+            viewToggle.style.display = 'none';
+            
+            let errorType = 'Query Error';
+            if (error.message.includes('syntax')) errorType = 'Syntax Error';
+            if (error.message.includes('does not exist')) errorType = 'Table Not Found';
+            if (error.message.includes('column')) errorType = 'Column Error';
+            
+            errorDisplay.style.display = 'block';
+            errorDisplay.innerHTML = `
+                <h4>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="15" y1="9" x2="9" y2="15"/>
+                        <line x1="9" y1="9" x2="15" y2="15"/>
+                    </svg>
+                    ${errorType}
+                </h4>
+                <pre>${escapeHtml(error.message)}</pre>
+            `;
+        }
+
+        window.clearResults = function() {
+            STATE.currentResult = null;
+            document.getElementById('resultsTableWrapper').style.display = 'none';
+            document.getElementById('resultsTableWrapper').innerHTML = '';
+            document.getElementById('errorDisplay').style.display = 'none';
+            document.getElementById('resultsEmptyState').style.display = 'flex';
+            document.getElementById('resultsEmptyState').innerHTML = `
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="18" height="18" rx="2"/>
+                    <line x1="3" y1="9" x2="21" y2="9"/>
+                    <line x1="9" y1="21" x2="9" y2="9"/>
+                </svg>
+                <p>Run a query to see results</p>
+            `;
+            document.getElementById('resultsFooter').style.display = 'none';
+            document.getElementById('metricsPanel').style.display = 'none';
+            document.getElementById('viewToggle').style.display = 'none';
+        };
+
+        // ============================================
+        // METRICS
+        // ============================================
+        function showMetrics(data) {
+            const panel = document.getElementById('metricsPanel');
+            panel.style.display = 'block';
+            
+            const timeCard = document.getElementById('metricTime');
+            const rowsCard = document.getElementById('metricRows');
+            const statusCard = document.getElementById('metricStatus');
+            const memoryCard = document.getElementById('metricMemory');
+            
+            timeCard.querySelector('.metric-value').innerHTML = `${data.time.toFixed(2)}<span class="metric-unit">ms</span>`;
+            rowsCard.querySelector('.metric-value').textContent = formatNumber(data.rows);
+            
+            statusCard.classList.remove('success', 'error');
+            if (data.status === 'OK') {
+                statusCard.classList.add('success');
+                statusCard.querySelector('.metric-value').innerHTML = '✓ OK';
+            } else {
+                statusCard.classList.add('error');
+                statusCard.querySelector('.metric-value').innerHTML = '✗ Error';
+            }
+            
+            // Memory (Chrome only)
+            if (performance.memory) {
+                const usedMB = (performance.memory.usedJSHeapSize / 1024 / 1024).toFixed(1);
+                memoryCard.querySelector('.metric-value').innerHTML = `${usedMB}<span class="metric-unit">MB</span>`;
+            } else {
+                memoryCard.querySelector('.metric-value').innerHTML = '—';
+            }
+        }
+
+        // ============================================
+        // QUERY TABS
+        // ============================================
+        function renderQueryTabs() {
+            const tabsContainer = document.getElementById('queryTabs');
+            
+            let html = STATE.queryTabs.map(tab => `
+                <button class="query-tab ${tab.id === STATE.activeTabId ? 'active' : ''}" 
+                        data-tab-id="${tab.id}"
+                        onclick="switchTab('${tab.id}')"
+                        ondblclick="renameTab('${tab.id}')">
+                    <span>${escapeHtml(tab.name)}</span>
+                    ${STATE.queryTabs.length > 1 ? `
+                        <span class="close-tab" onclick="event.stopPropagation(); closeTab('${tab.id}')">×</span>
+                    ` : ''}
+                </button>
+            `).join('');
+            
+            html += `
+                <button class="add-tab-btn" onclick="addTab()" ${STATE.queryTabs.length >= 8 ? 'disabled' : ''} title="Add new tab">
+                    +
+                </button>
+            `;
+            
+            tabsContainer.innerHTML = html;
+        }
+
+        window.switchTab = function(tabId) {
+            // Save current tab's SQL
+            const currentTab = STATE.queryTabs.find(t => t.id === STATE.activeTabId);
+            if (currentTab) {
+                currentTab.sql = document.getElementById('sqlEditor').value;
+            }
+            
+            STATE.activeTabId = tabId;
+            
+            // Load new tab's SQL
+            const newTab = STATE.queryTabs.find(t => t.id === tabId);
+            if (newTab) {
+                document.getElementById('sqlEditor').value = newTab.sql;
+            }
+            
+            renderQueryTabs();
+            saveTabs();
+        };
+
+        window.addTab = function() {
+            if (STATE.queryTabs.length >= 8) return;
+            
+            const newId = `tab-${Date.now()}`;
+            STATE.queryTabs.push({
+                id: newId,
+                name: `Query ${STATE.queryTabs.length + 1}`,
+                sql: ''
+            });
+            
+            switchTab(newId);
+        };
+
+        window.closeTab = function(tabId) {
+            if (STATE.queryTabs.length <= 1) return;
+            
+            const index = STATE.queryTabs.findIndex(t => t.id === tabId);
+            STATE.queryTabs.splice(index, 1);
+            
+            if (STATE.activeTabId === tabId) {
+                STATE.activeTabId = STATE.queryTabs[Math.max(0, index - 1)].id;
+                const newTab = STATE.queryTabs.find(t => t.id === STATE.activeTabId);
+                document.getElementById('sqlEditor').value = newTab.sql;
+            }
+            
+            renderQueryTabs();
+            saveTabs();
+        };
+
+        window.renameTab = function(tabId) {
+            const tab = STATE.queryTabs.find(t => t.id === tabId);
+            const newName = prompt('Enter new tab name:', tab.name);
+            if (newName && newName.trim()) {
+                tab.name = newName.trim().substring(0, 20);
+                renderQueryTabs();
+                saveTabs();
+            }
+        };
+
+        // ============================================
+        // QUERY HISTORY
+        // ============================================
+        function addToHistory(entry) {
+            STATE.queryHistory.unshift(entry);
+            if (STATE.queryHistory.length > 50) {
+                STATE.queryHistory.pop();
+            }
+            renderHistory();
+            saveHistory();
+        }
+
+        function renderHistory() {
+            const list = document.getElementById('historyList');
+            
+            if (STATE.queryHistory.length === 0) {
+                list.innerHTML = `
+                    <div class="empty-state" style="padding: 16px; min-height: auto;">
+                        <p style="font-size: 0.75rem;">No queries yet.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            list.innerHTML = STATE.queryHistory.slice(0, 20).map((entry, index) => {
+                // Format table names if present
+                const tableDisplay = entry.tables && entry.tables.length > 0 
+                    ? `<div class="history-tables-row"><span class="history-tables-label">Tables:</span> <span class="history-tables">${entry.tables.map(t => escapeHtml(t)).join(', ')}</span></div>`
+                    : '';
+                
+                // Format result info
+                const resultInfo = entry.error 
+                    ? `<span class="history-error-badge">Error</span>`
+                    : `<span>${entry.durationMs.toFixed(0)}ms</span><span>${formatNumber(entry.rowCount || 0)} rows</span>`;
+                
+                return `
+                    <div class="history-item ${entry.error ? 'error' : ''}" data-history-index="${index}" role="button" tabindex="0">
+                        <div class="history-sql">${escapeHtml(entry.sql.substring(0, 80))}${entry.sql.length > 80 ? '...' : ''}</div>
+                        ${tableDisplay}
+                        <div class="history-meta">
+                            <span>${formatRelativeTime(entry.timestamp)}</span>
+                            <span class="history-results">${resultInfo}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            // Add event listeners using delegation
+            list.querySelectorAll('.history-item[data-history-index]').forEach(item => {
+                const handler = () => {
+                    const index = parseInt(item.dataset.historyIndex);
+                    const entry = STATE.queryHistory[index];
+                    if (entry) {
+                        document.getElementById('sqlEditor').value = entry.sql;
+                    }
+                };
+                item.addEventListener('click', handler);
+                item.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        handler();
+                    }
+                });
+            });
+        }
+
+        window.loadFromHistory = function(index) {
+            const entry = STATE.queryHistory[index];
+            if (entry) {
+                document.getElementById('sqlEditor').value = entry.sql;
+            }
+        };
+
+        window.clearHistory = function() {
+            STATE.queryHistory = [];
+            renderHistory();
+            saveHistory();
+            showToast('History cleared', 'success');
+        };
+
+        // ============================================
+        // EXPORT
+        // ============================================
+        window.exportResults = async function(format) {
+            if (!STATE.currentResult) {
+                showToast('No results to export', 'warning');
+                return;
+            }
+            
+            const sql = document.getElementById('sqlEditor').value;
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-').substring(0, 19);
+            const filename = `query_result_${timestamp}.${format}`;
+            
+            try {
+                let copyFormat;
+                let mimeType;
+                
+                switch (format) {
+                    case 'csv':
+                        copyFormat = 'csv, HEADER true';
+                        mimeType = 'text/csv';
+                        break;
+                    case 'json':
+                        copyFormat = 'json';
+                        mimeType = 'application/json';
+                        break;
+                    case 'parquet':
+                        copyFormat = 'parquet';
+                        mimeType = 'application/octet-stream';
+                        break;
+                }
+                
+                await STATE.conn.query(`COPY (${sql}) TO '${filename}' (FORMAT ${copyFormat})`);
+                const buffer = await STATE.db.copyFileToBuffer(filename);
+                
+                downloadBlob(buffer, filename, mimeType);
+                
+                await STATE.db.dropFile(filename);
+                
+                showToast(`Exported as ${format.toUpperCase()}`, 'success');
+                
+            } catch (error) {
+                console.error('Export error:', error);
+                showToast(`Export failed: ${error.message}`, 'error');
+            }
+        };
+
+        function downloadBlob(data, filename, mimeType) {
+            const blob = new Blob([data], { type: mimeType });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // ============================================
+        // SESSION SAVE/LOAD
+        // ============================================
+        window.saveSession = async function() {
+            if (STATE.tables.length === 0) {
+                showToast('No tables to save', 'warning');
+                return;
+            }
+            
+            showToast('Saving session...', 'info');
+            
+            try {
+                const files = {};
+                
+                // Export tables as Parquet
+                for (const table of STATE.tables) {
+                    const filename = `${table.name}.parquet`;
+                    await STATE.conn.query(`COPY "${table.name}" TO '${filename}' (FORMAT parquet)`);
+                    const buffer = await STATE.db.copyFileToBuffer(filename);
+                    files[`tables/${filename}`] = new Uint8Array(buffer);
+                    await STATE.db.dropFile(filename);
+                }
+                
+                // Save current tab SQL
+                const currentTab = STATE.queryTabs.find(t => t.id === STATE.activeTabId);
+                if (currentTab) {
+                    currentTab.sql = document.getElementById('sqlEditor').value;
+                }
+                
+                // Create manifest
+                const manifest = {
+                    version: '1.0',
+                    created: new Date().toISOString(),
+                    application: 'DuckDB Playground',
+                    settings: {
+                        experimentalMode: STATE.experimentalMode,
+                        theme: STATE.theme
+                    },
+                    tables: STATE.tables.map(t => t.name)
+                };
+                
+                files['manifest.json'] = new TextEncoder().encode(JSON.stringify(manifest, null, 2));
+                
+                // Save queries
+                const queriesData = {
+                    tabs: STATE.queryTabs,
+                    activeTabId: STATE.activeTabId
+                };
+                files['queries/tabs.json'] = new TextEncoder().encode(JSON.stringify(queriesData, null, 2));
+                
+                // Create ZIP
+                const zip = fflate.zipSync(files);
+                
+                const timestamp = new Date().toISOString().replace(/[:.]/g, '-').substring(0, 19);
+                downloadBlob(zip, `session_${timestamp}.duckdb-session.zip`, 'application/zip');
+                
+                showToast('Session saved', 'success');
+                
+            } catch (error) {
+                console.error('Save session error:', error);
+                showToast(`Failed to save: ${error.message}`, 'error');
+            }
+        };
+
+        window.loadSession = async function(files) {
+            if (!files || files.length === 0) return;
+            
+            const file = files[0];
+            document.getElementById('sessionInput').value = '';
+            
+            STATE.confirmCallback = async () => {
+                showToast('Loading session...', 'info');
+                
+                try {
+                    const arrayBuffer = await file.arrayBuffer();
+                    const unzipped = fflate.unzipSync(new Uint8Array(arrayBuffer));
+                    
+                    // Read manifest
+                    const manifestData = new TextDecoder().decode(unzipped['manifest.json']);
+                    const manifest = JSON.parse(manifestData);
+                    
+                    // Drop existing tables
+                    for (const table of STATE.tables) {
+                        await STATE.conn.query(`DROP TABLE IF EXISTS "${table.name}"`);
+                    }
+                    
+                    // Import tables
+                    for (const tableName of manifest.tables) {
+                        const parquetData = unzipped[`tables/${tableName}.parquet`];
+                        if (parquetData) {
+                            const tempFile = `${tableName}_import.parquet`;
+                            await STATE.db.registerFileBuffer(tempFile, parquetData);
+                            await STATE.conn.query(`CREATE TABLE "${tableName}" AS SELECT * FROM read_parquet('${tempFile}')`);
+                            await STATE.db.dropFile(tempFile);
+                        }
+                    }
+                    
+                    // Restore queries
+                    const queriesData = new TextDecoder().decode(unzipped['queries/tabs.json']);
+                    const queries = JSON.parse(queriesData);
+                    STATE.queryTabs = queries.tabs;
+                    STATE.activeTabId = queries.activeTabId;
+                    
+                    // Restore settings
+                    if (manifest.settings) {
+                        STATE.experimentalMode = manifest.settings.experimentalMode || false;
+                        document.getElementById('experimentalToggle').checked = STATE.experimentalMode;
+                        
+                        if (manifest.settings.theme) {
+                            setTheme(manifest.settings.theme);
+                        }
+                    }
+                    
+                    await refreshSchema();
+                    renderQueryTabs();
+                    
+                    const activeTab = STATE.queryTabs.find(t => t.id === STATE.activeTabId);
+                    if (activeTab) {
+                        document.getElementById('sqlEditor').value = activeTab.sql;
+                    }
+                    
+                    showToast('Session loaded', 'success');
+                    
+                } catch (error) {
+                    console.error('Load session error:', error);
+                    showToast(`Failed to load: ${error.message}`, 'error');
+                }
+            };
+            
+            document.getElementById('confirmTitle').textContent = 'Load Session';
+            document.getElementById('confirmMessage').textContent = 'This will replace your current session. All unsaved work will be lost. Continue?';
+            showModal('confirmModal');
+        };
+
+        // ============================================
+        // SAMPLE DATA
+        // ============================================
+        window.loadSampleData = async function(dataset) {
+            closeAllDropdowns();
+            
+            const datasets = {
+                employees: generateEmployeesData(),
+                sales: generateSalesData(),
+                weather: generateWeatherData()
+            };
+            
+            showToast('Loading sample data...', 'info');
+            
+            try {
+                if (dataset === 'all') {
+                    for (const [name, data] of Object.entries(datasets)) {
+                        await createSampleTable(name, data);
+                    }
+                    showToast('Loaded all sample datasets', 'success');
+                } else {
+                    await createSampleTable(dataset, datasets[dataset]);
+                    showToast(`Loaded '${dataset}' table`, 'success');
+                }
+                
+                await refreshSchema();
+                
+            } catch (error) {
+                console.error('Sample data error:', error);
+                showToast(`Failed to load: ${error.message}`, 'error');
+            }
+        };
+
+        async function createSampleTable(name, data) {
+            // Drop if exists
+            await STATE.conn.query(`DROP TABLE IF EXISTS "${name}"`);
+            
+            // Create table with appropriate schema
+            if (name === 'employees') {
+                await STATE.conn.query(`
+                    CREATE TABLE employees (
+                        id INTEGER PRIMARY KEY,
+                        name VARCHAR,
+                        department VARCHAR,
+                        salary DECIMAL(10,2),
+                        hire_date DATE
+                    )
+                `);
+            } else if (name === 'sales') {
+                await STATE.conn.query(`
+                    CREATE TABLE sales (
+                        order_id INTEGER PRIMARY KEY,
+                        product VARCHAR,
+                        quantity INTEGER,
+                        price DECIMAL(10,2),
+                        order_date DATE,
+                        region VARCHAR
+                    )
+                `);
+            } else if (name === 'weather') {
+                await STATE.conn.query(`
+                    CREATE TABLE weather (
+                        date DATE PRIMARY KEY,
+                        city VARCHAR,
+                        temp_high INTEGER,
+                        temp_low INTEGER,
+                        precipitation DECIMAL(4,2)
+                    )
+                `);
+            }
+            
+            // Insert data
+            for (const row of data) {
+                const values = Object.values(row).map(v => 
+                    typeof v === 'string' ? `'${v.replace(/'/g, "''")}'` : v
+                ).join(', ');
+                await STATE.conn.query(`INSERT INTO "${name}" VALUES (${values})`);
+            }
+        }
+
+        function generateEmployeesData() {
+            const departments = ['Engineering', 'Sales', 'Marketing', 'HR', 'Finance'];
+            const firstNames = ['Alice', 'Bob', 'Carol', 'David', 'Eve', 'Frank', 'Grace', 'Henry', 'Ivy', 'Jack'];
+            const lastNames = ['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis', 'Rodriguez', 'Martinez'];
+            
+            const data = [];
+            for (let i = 1; i <= 50; i++) {
+                const firstName = firstNames[Math.floor(Math.random() * firstNames.length)];
+                const lastName = lastNames[Math.floor(Math.random() * lastNames.length)];
+                data.push({
+                    id: i,
+                    name: `${firstName} ${lastName}`,
+                    department: departments[Math.floor(Math.random() * departments.length)],
+                    salary: (40000 + Math.floor(Math.random() * 80000)).toFixed(2),
+                    hire_date: `2020-${String(Math.floor(Math.random() * 12) + 1).padStart(2, '0')}-${String(Math.floor(Math.random() * 28) + 1).padStart(2, '0')}`
+                });
+            }
+            return data;
+        }
+
+        function generateSalesData() {
+            const products = ['Widget A', 'Widget B', 'Gadget Pro', 'Gadget Lite', 'Tool X', 'Tool Y', 'Device Alpha', 'Device Beta'];
+            const regions = ['North', 'South', 'East', 'West', 'Central'];
+            
+            const data = [];
+            for (let i = 1; i <= 200; i++) {
+                const month = String(Math.floor(Math.random() * 12) + 1).padStart(2, '0');
+                const day = String(Math.floor(Math.random() * 28) + 1).padStart(2, '0');
+                data.push({
+                    order_id: i,
+                    product: products[Math.floor(Math.random() * products.length)],
+                    quantity: Math.floor(Math.random() * 20) + 1,
+                    price: (9.99 + Math.random() * 90).toFixed(2),
+                    order_date: `2024-${month}-${day}`,
+                    region: regions[Math.floor(Math.random() * regions.length)]
+                });
+            }
+            return data;
+        }
+
+        function generateWeatherData() {
+            const cities = ['New York', 'Los Angeles', 'Chicago', 'Houston', 'Phoenix'];
+            const data = [];
+            
+            // Use UTC to avoid DST issues
+            const startTime = Date.UTC(2024, 0, 1); // Jan 1, 2024 UTC
+            const msPerDay = 24 * 60 * 60 * 1000;
+            
+            for (let i = 0; i < 365; i++) {
+                const date = new Date(startTime + (i * msPerDay));
+                const year = date.getUTCFullYear();
+                const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+                const day = String(date.getUTCDate()).padStart(2, '0');
+                const dateStr = `${year}-${month}-${day}`;
+                
+                // Seasonal temperature variation
+                const dayOfYear = i;
+                const seasonalTemp = 15 * Math.sin((dayOfYear - 80) * 2 * Math.PI / 365);
+                const baseTemp = 60 + seasonalTemp;
+                
+                data.push({
+                    date: dateStr,
+                    city: cities[Math.floor(Math.random() * cities.length)],
+                    temp_high: Math.floor(baseTemp + Math.random() * 15),
+                    temp_low: Math.floor(baseTemp - 10 + Math.random() * 10),
+                    precipitation: (Math.random() * 2).toFixed(2)
+                });
+            }
+            return data;
+        }
+
+        // ============================================
+        // CHARTING
+        // ============================================
+        let chartInstance = null;
+
+        function isChartable(columnNames, columnTypes, rowCount) {
+            if (rowCount > 1000 || rowCount === 0) return false;
+            
+            const numericCount = columnTypes.filter(t => 
+                t.includes('INT') || t.includes('DECIMAL') || t.includes('FLOAT') || t.includes('DOUBLE')
+            ).length;
+            
+            const hasTextOrDate = columnTypes.some(t => 
+                t.includes('VARCHAR') || t.includes('DATE') || t.includes('TIME')
+            );
+            
+            return numericCount >= 1 && numericCount <= 3 && hasTextOrDate;
+        }
+
+        window.switchView = function(view) {
+            document.querySelectorAll('#viewToggle button').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.view === view);
+            });
+            
+            const tableWrapper = document.getElementById('resultsTableWrapper');
+            const chartContainer = document.getElementById('chartContainer');
+            
+            if (view === 'table') {
+                tableWrapper.style.display = 'block';
+                chartContainer.classList.remove('active');
+            } else {
+                tableWrapper.style.display = 'none';
+                chartContainer.classList.add('active');
+                renderChart();
+            }
+        };
+
+        function renderChart() {
+            if (!STATE.currentResult) return;
+            
+            const rows = STATE.currentResult.toArray();
+            const schema = STATE.currentResult.schema;
+            const columnNames = schema.fields.map(f => f.name);
+            const columnTypes = schema.fields.map(f => f.type.toString());
+            
+            // Find label column (text/date) and value columns (numeric)
+            let labelCol = null;
+            const valueCols = [];
+            
+            for (let i = 0; i < columnNames.length; i++) {
+                const type = columnTypes[i];
+                if (!labelCol && (type.includes('VARCHAR') || type.includes('DATE'))) {
+                    labelCol = columnNames[i];
+                } else if (type.includes('INT') || type.includes('DECIMAL') || type.includes('FLOAT') || type.includes('DOUBLE')) {
+                    valueCols.push(columnNames[i]);
+                }
+            }
+            
+            if (!labelCol || valueCols.length === 0) return;
+            
+            const labels = rows.map(r => String(r[labelCol]));
+            const datasets = valueCols.slice(0, 3).map((col, i) => ({
+                label: col,
+                data: rows.map(r => Number(r[col]) || 0),
+                backgroundColor: [
+                    'rgba(6, 182, 212, 0.7)',
+                    'rgba(34, 197, 94, 0.7)',
+                    'rgba(234, 179, 8, 0.7)'
+                ][i],
+                borderColor: [
+                    'rgb(6, 182, 212)',
+                    'rgb(34, 197, 94)',
+                    'rgb(234, 179, 8)'
+                ][i],
+                borderWidth: 1
+            }));
+            
+            // Determine chart type
+            const isDateColumn = columnTypes[columnNames.indexOf(labelCol)]?.includes('DATE');
+            const chartType = isDateColumn ? 'line' : 'bar';
+            
+            if (chartInstance) {
+                chartInstance.destroy();
+            }
+            
+            const ctx = document.getElementById('resultsChart').getContext('2d');
+            chartInstance = new Chart(ctx, {
+                type: chartType,
+                data: { labels, datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: getComputedStyle(document.body).getPropertyValue('--text-primary')
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: { color: getComputedStyle(document.body).getPropertyValue('--text-secondary') },
+                            grid: { color: getComputedStyle(document.body).getPropertyValue('--border-color') }
+                        },
+                        y: {
+                            ticks: { color: getComputedStyle(document.body).getPropertyValue('--text-secondary') },
+                            grid: { color: getComputedStyle(document.body).getPropertyValue('--border-color') }
+                        }
+                    }
+                }
+            });
+        }
+
+        // ============================================
+        // THEME
+        // ============================================
+        window.setTheme = function(theme) {
+            STATE.theme = theme;
+            document.documentElement.setAttribute('data-theme', theme);
+            
+            document.querySelectorAll('.theme-toggle button').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.theme === theme);
+            });
+            
+            localStorage.setItem('duckdb_playground_theme', theme);
+            
+            // Update chart if visible
+            if (chartInstance) {
+                renderChart();
+            }
+        };
+
+        function loadTheme() {
+            const saved = localStorage.getItem('duckdb_playground_theme');
+            if (saved) {
+                setTheme(saved);
+            } else if (window.matchMedia('(prefers-color-scheme: light)').matches) {
+                setTheme('light');
+            } else {
+                setTheme('dark');
+            }
+        }
+
+        // ============================================
+        // EXPERIMENTAL MODE
+        // ============================================
+        window.toggleExperimentalMode = function() {
+            STATE.experimentalMode = document.getElementById('experimentalToggle').checked;
+            localStorage.setItem('duckdb_playground_settings', JSON.stringify({ experimentalMode: STATE.experimentalMode }));
+            
+            if (STATE.experimentalMode) {
+                showToast('Experimental mode enabled. Large files (up to 500MB) now allowed.', 'warning');
+            } else {
+                showToast('Experimental mode disabled', 'info');
+            }
+        };
+
+        // ============================================
+        // LOCAL STORAGE
+        // ============================================
+        function saveTabs() {
+            const currentTab = STATE.queryTabs.find(t => t.id === STATE.activeTabId);
+            if (currentTab) {
+                currentTab.sql = document.getElementById('sqlEditor').value;
+            }
+            localStorage.setItem('duckdb_playground_tabs', JSON.stringify({
+                tabs: STATE.queryTabs,
+                activeTabId: STATE.activeTabId
+            }));
+        }
+
+        function saveHistory() {
+            localStorage.setItem('duckdb_playground_history', JSON.stringify(STATE.queryHistory));
+        }
+
+        function loadSavedState() {
+            // Load tabs
+            try {
+                const tabsData = localStorage.getItem('duckdb_playground_tabs');
+                if (tabsData) {
+                    const parsed = JSON.parse(tabsData);
+                    if (parsed.tabs && parsed.tabs.length > 0) {
+                        STATE.queryTabs = parsed.tabs;
+                        STATE.activeTabId = parsed.activeTabId || parsed.tabs[0].id;
+                    }
+                }
+            } catch (e) {
+                console.warn('Failed to load tabs:', e);
+            }
+            
+            // Load history
+            try {
+                const historyData = localStorage.getItem('duckdb_playground_history');
+                if (historyData) {
+                    STATE.queryHistory = JSON.parse(historyData);
+                }
+            } catch (e) {
+                console.warn('Failed to load history:', e);
+            }
+            
+            // Load settings
+            try {
+                const settings = localStorage.getItem('duckdb_playground_settings');
+                if (settings) {
+                    const parsed = JSON.parse(settings);
+                    STATE.experimentalMode = parsed.experimentalMode || false;
+                    document.getElementById('experimentalToggle').checked = STATE.experimentalMode;
+                }
+            } catch (e) {
+                console.warn('Failed to load settings:', e);
+            }
+            
+            // Set editor content
+            const activeTab = STATE.queryTabs.find(t => t.id === STATE.activeTabId);
+            if (activeTab) {
+                document.getElementById('sqlEditor').value = activeTab.sql;
+            }
+            
+            renderHistory();
+        }
+
+        // Watch for storage changes in other tabs
+        window.addEventListener('storage', (e) => {
+            if (e.key && e.key.startsWith('duckdb_playground_')) {
+                showToast('Session modified in another tab. Refresh to sync.', 'warning');
+            }
+        });
+
+        // ============================================
+        // UTILITIES
+        // ============================================
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        function formatNumber(num) {
+            if (num === null || num === undefined) return '—';
+            return num.toLocaleString();
+        }
+
+        function formatRelativeTime(timestamp) {
+            const now = Date.now();
+            const diff = now - timestamp;
+            
+            if (diff < 60000) return 'Just now';
+            if (diff < 3600000) return `${Math.floor(diff / 60000)} min ago`;
+            if (diff < 86400000) return `${Math.floor(diff / 3600000)} hr ago`;
+            if (diff < 604800000) return `${Math.floor(diff / 86400000)} days ago`;
+            
+            return new Date(timestamp).toLocaleDateString();
+        }
+
+        window.showToast = function(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            
+            const icons = {
+                success: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>',
+                error: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>',
+                warning: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+                info: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>'
+            };
+            
+            toast.innerHTML = `${icons[type] || icons.info}<span>${message}</span>`;
+            container.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.style.animation = 'slideIn 0.3s ease reverse';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        };
+
+        window.showModal = function(modalId) {
+            document.getElementById(modalId).classList.add('active');
+        };
+
+        window.closeModal = function(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        };
+
+        window.showShortcutsModal = function() {
+            showModal('shortcutsModal');
+        };
+
+        window.showAboutModal = function() {
+            showModal('aboutModal');
+        };
+
+        window.toggleDropdown = function(dropdownId) {
+            const dropdown = document.getElementById(dropdownId);
+            const menu = dropdown.querySelector('.dropdown-menu');
+            menu.classList.toggle('active');
+        };
+
+        function closeAllDropdowns() {
+            document.querySelectorAll('.dropdown-menu').forEach(menu => {
+                menu.classList.remove('active');
+            });
+        }
+
+        // Close dropdowns on click outside
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.dropdown')) {
+                closeAllDropdowns();
+            }
+        });
+
+        // Close modals on click outside
+        document.querySelectorAll('.modal-overlay').forEach(overlay => {
+            overlay.addEventListener('click', (e) => {
+                if (e.target === overlay) {
+                    overlay.classList.remove('active');
+                }
+            });
+        });
+
+        // ============================================
+        // DRAG AND DROP
+        // ============================================
+        const dropZone = document.getElementById('fileDropZone');
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('drag-over');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('drag-over');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('drag-over');
+            
+            if (e.dataTransfer.files.length > 0) {
+                handleFileSelect(e.dataTransfer.files);
+            }
+        });
+
+        // Keyboard support for drop zone
+        dropZone.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                document.getElementById('fileInput').click();
+            }
+        });
+
+        // ============================================
+        // KEYBOARD SHORTCUTS
+        // ============================================
+        document.addEventListener('keydown', (e) => {
+            // Shift+Enter - Run query
+            if (e.shiftKey && e.key === 'Enter') {
+                e.preventDefault();
+                runQuery();
+                return;
+            }
+            
+            // Escape - Cancel query or close modal
+            if (e.key === 'Escape') {
+                if (STATE.isQueryRunning) {
+                    cancelQuery();
+                } else {
+                    document.querySelectorAll('.modal-overlay.active').forEach(modal => {
+                        modal.classList.remove('active');
+                    });
+                }
+                return;
+            }
+            
+            // Ctrl+/ - Show shortcuts
+            if (e.ctrlKey && e.key === '/') {
+                e.preventDefault();
+                showShortcutsModal();
+                return;
+            }
+            
+            // Ctrl+S - Save session
+            if (e.ctrlKey && e.key === 's') {
+                e.preventDefault();
+                saveSession();
+                return;
+            }
+            
+            // Ctrl+L - Clear results
+            if (e.ctrlKey && e.key === 'l') {
+                e.preventDefault();
+                clearResults();
+                return;
+            }
+            
+            // Ctrl+1-8 - Switch tabs
+            if (e.ctrlKey && e.key >= '1' && e.key <= '8') {
+                e.preventDefault();
+                const index = parseInt(e.key) - 1;
+                if (STATE.queryTabs[index]) {
+                    switchTab(STATE.queryTabs[index].id);
+                }
+                return;
+            }
+        });
+
+        // Tab key in editor inserts spaces
+        document.getElementById('sqlEditor').addEventListener('keydown', (e) => {
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                const editor = e.target;
+                const start = editor.selectionStart;
+                const end = editor.selectionEnd;
+                editor.value = editor.value.substring(0, start) + '  ' + editor.value.substring(end);
+                editor.selectionStart = editor.selectionEnd = start + 2;
+            }
+        });
+
+        // Auto-save tabs on editor change
+        document.getElementById('sqlEditor').addEventListener('input', () => {
+            saveTabs();
+        });
+
+        // Handle visibility change - refresh schema when tab becomes active
+        // This helps with stale state after tab has been in background
+        document.addEventListener('visibilitychange', async () => {
+            if (document.visibilityState === 'visible' && STATE.isInitialized) {
+                try {
+                    // Verify connection is still healthy
+                    const isHealthy = await checkConnectionHealth();
+                    if (isHealthy) {
+                        // Refresh schema to sync with actual DuckDB state
+                        await refreshSchema();
+                    } else {
+                        // Connection lost - clear stale schema display
+                        STATE.tables = [];
+                        renderSchema();
+                        showToast('Database connection was reset. Please reload your data.', 'warning');
+                    }
+                } catch (e) {
+                    console.error('Visibility change refresh error:', e);
+                }
+            }
+        });
+
+        // ============================================
+        // INITIALIZATION
+        // ============================================
+        loadTheme();
+        initDuckDB();
+    </script>
+</body>
+</html>
