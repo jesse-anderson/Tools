@@ -1,0 +1,16 @@
+{
+  "name": "dbscan_wasm",
+  "type": "module",
+  "description": "DBSCAN clustering with KD-tree acceleration, k-distance computation, and point classification",
+  "version": "0.3.0",
+  "files": [
+    "dbscan_wasm_bg.wasm",
+    "dbscan_wasm.js",
+    "dbscan_wasm.d.ts"
+  ],
+  "main": "dbscan_wasm.js",
+  "types": "dbscan_wasm.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}

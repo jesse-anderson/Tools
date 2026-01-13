@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Linear Regression | Tools Hub</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/shared.css">
+    <link rel="stylesheet" href="../css/linear_regression/styles.css">
+    <!-- Chart.js for visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <!-- SheetJS for Excel import -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <div class="header-left">
+                    <a href="../tools.html" class="back-link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M19 12H5M12 19l-7-7 7-7"/>
+                        </svg>
+                        Back to Tools
+                    </a>
+                </div>
+                <div class="header-right">
+                    <div class="theme-toggle">
+                        <button data-theme-toggle="light" title="Light mode">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="5"/>
+                                <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+                            </svg>
+                        </button>
+                        <button data-theme-toggle="dark" title="Dark mode">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div style="margin-top: 24px; display: flex; align-items: center; gap: 16px;">
+                <div class="tool-icon-header educational">
+                    <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 3v18h18"/>
+                        <path d="M7 16l4-8 4 4 5-9"/>
+                    </svg>
+                </div>
+                <div>
+                    <h1>Linear Regression</h1>
+                    <p class="tagline">// STATISTICAL ANALYSIS • DATA FITTING</p>
+                </div>
+            </div>
+        </header>
+
+        <main>
+            <div class="import-panel" style="margin-bottom: 24px; padding: 24px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px;">
+                <div class="panel-header">
+                    <div class="panel-title">
+                        <span class="panel-icon">
+                            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                <polyline points="14 2 14 8 20 8"/>
+                                <path d="M12 18v-6"/>
+                                <path d="M9 15l3 3 3-3"/>
+                            </svg>
+                        </span>
+                        <h2>Data Import</h2>
+                    </div>
+                </div>
+
+                <div class="file-drop-zone" id="fileDropZone" tabindex="0" role="button" aria-label="Drop file here or click to browse for CSV or Excel files">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="17 8 12 3 7 8"/>
+                        <line x1="12" y1="3" x2="12" y2="15"/>
+                    </svg>
+                    <p><strong>Drop file here</strong> or click to browse</p>
+                    <p class="formats">CSV, Excel (.xlsx, .xls), or paste from Excel</p>
+                </div>
+
+                <input type="file" id="fileInput" accept=".csv,.xlsx,.xls" style="display: none;">
+
+                <div class="selector-group" style="margin-top: 12px;">
+                    <label>Load Example Dataset</label>
+                    <div style="display: flex; gap: 8px;">
+                        <select id="exampleSelect" style="flex: 1;">
+                            <option value="simple">Simple X,Y (Basic)</option>
+                            <option value="housing" selected>Housing Prices (Multiple Regression)</option>
+                            <option value="singular">Singular Matrix (Unsolvable)</option>
+                            <option value="messy">Messy Data (Confounding Variable)</option>
+                        </select>
+                        <button class="tool-btn" id="loadExampleBtn" style="padding: 10px 16px;">
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                <polyline points="14 2 14 8 20 8"/>
+                                <line x1="12" y1="18" x2="12" y2="12"/>
+                                <line x1="9" y1="15" x2="15" y2="15"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <p id="exampleDescription" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 6px;">
+                        Demonstrates multiple regression with real-world relationships between price, square footage, bedrooms, and age.
+                    </p>
+                </div>
+
+                <div class="paste-area">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                        <label style="font-family: 'JetBrains Mono', monospace; font-size: 0.6875rem; color: var(--text-muted); text-transform: uppercase;">Or paste data from Excel</label>
+                        <button class="tool-btn" id="clearPasteBtn" aria-label="Clear pasted data" style="padding: 4px 12px; font-size: 0.75rem;">Clear</button>
+                    </div>
+                    <textarea id="pasteArea" aria-label="Paste Excel or CSV data here" placeholder="Paste Excel/CSV data here...
+
+Example:
+X1,X2,Y
+1,2,3.5
+2,3,5.2
+3,4,6.8"></textarea>
+                </div>
+
+                <div id="dataPreview" style="display: none;">
+                    <div class="section-header">Data Preview</div>
+                    <div class="table-container">
+                        <table class="data-table" id="previewTable">
+                            <!-- Populated dynamically -->
+                        </table>
+                    </div>
+                    <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 8px;">
+                        Showing first 10 rows of <span id="totalRows">0</span> total rows
+                    </p>
+                </div>
+            </div>
+
+            <div class="calculator-layout">
+            <aside class="sidebar">
+                <div class="panel-header">
+                    <h2>Variables</h2>
+                </div>
+
+                <div class="column-selectors" id="columnSelectors">
+                    <p style="color: var(--text-muted); font-size: 0.875rem; font-style: italic;">
+                        Import data to select variables
+                    </p>
+                </div>
+
+                <button class="tool-btn primary" id="runRegressionBtn" style="width: 100%; margin-top: 16px; padding: 12px; font-size: 0.9375rem; display: none;" aria-label="Run linear regression analysis">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" style="display: inline-block; vertical-align: text-bottom;">
+                        <polygon points="5 3 19 12 5 21 5 3"/>
+                    </svg>
+                    Run Regression
+                </button>
+
+                <div style="margin-top: 24px;">
+                    <div class="collapsible-header collapsed" id="disclaimerToggle" aria-expanded="false" role="button" tabindex="0" style="padding: 8px 0; border-bottom: 1px solid var(--border-color);">
+                        <span class="title" style="color: var(--accent-warning); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">
+                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 6px; vertical-align: text-bottom;">
+                                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                                <line x1="12" y1="9" x2="12" y2="13"/>
+                                <line x1="12" y1="17" x2="12.01" y2="17"/>
+                            </svg>
+                            Professional Use Disclaimer
+                        </span>
+                        <svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="6 9 12 15 18 9"/>
+                        </svg>
+                    </div>
+                    <div class="collapsible-content collapsed" id="disclaimerContent">
+                        <div class="disclaimer-warning" style="margin-top: 12px; border: none; background: transparent; padding: 0;">
+                            <p><strong>FOR EDUCATIONAL & RESEARCH PURPOSES.</strong> This tool provides statistical calculations using Ordinary Least Squares (OLS) regression. Results should be validated using professional statistical software.</p>
+                            <p><strong>ASSUMPTIONS NOT CHECKED.</strong> This tool does not verify linearity, normality, homoscedasticity, independence, or multicollinearity. Violating these assumptions may invalidate results.</p>
+                            <p><strong>NO PROFESSIONAL ADVICE.</strong> Consult a statistician for research design, hypothesis testing, and interpretation. This tool is not a substitute for professional statistical analysis.</p>
+                            <p><strong>LIMITATION OF LIABILITY.</strong> The creators assume NO LIABILITY for errors or outcomes. Users must validate all calculations and interpretations.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel-header" style="margin-top: 32px;">
+                    <h2>Statistics</h2>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="value" id="rSquared">-</div>
+                        <div class="label">R²</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="value" id="adjRSquared">-</div>
+                        <div class="label">Adj R²</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="value" id="fStat">-</div>
+                        <div class="label">F-Stat</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="value" id="pValue">-</div>
+                        <div class="label">p-value</div>
+                    </div>
+                </div>
+
+                <div class="equation-box">
+                    <div class="chart-title">Regression Equation</div>
+                    <div class="equation" id="equation">y = β₀ + β₁x₁ + ... + βₖxₖ</div>
+                </div>
+            </aside>
+
+            <div class="calculator-panel">
+                <div id="resultsSection" style="display: none;">
+                    <div class="section-header">
+                        <span>Scatter Plot</span>
+                    </div>
+
+                    <div class="chart-container">
+                        <div class="chart-title" id="mainChartTitle">Scatter Plot with Regression Line</div>
+                        <div class="chart-wrapper">
+                            <canvas id="mainChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="chart-container">
+                        <div class="chart-title">Residuals vs Fitted Values</div>
+                        <div class="chart-wrapper">
+                            <canvas id="residualsChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="chart-container">
+                        <div class="chart-title">Normal Q-Q Plot (Residuals)</div>
+                        <div class="chart-wrapper">
+                            <canvas id="qqChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="section-header">Coefficients</div>
+                    <div style="overflow-x: auto;">
+                        <table class="coefficients-table" id="coefficientsTable">
+                            <thead>
+                                <tr>
+                                    <th>Variable</th>
+                                    <th>Coefficient</th>
+                                    <th>Std Error</th>
+                                    <th>t-stat</th>
+                                    <th>p-value</th>
+                                    <th>95% CI Lower</th>
+                                    <th>95% CI Upper</th>
+                                </tr>
+                            </thead>
+                            <tbody id="coefficientsBody">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- VIF Table (Multicollinearity Detection) -->
+                    <div id="vifNote" style="display: none; margin-top: 24px;">
+                        <div class="section-header" style="margin: 24px 0 12px;">
+                            <span>Multicollinearity Check (VIF)</span>
+                        </div>
+                        <p style="font-size: 0.875rem; color: var(--text-secondary); line-height: 1.6;">
+                            <strong>Variance Inflation Factor (VIF)</strong> is used to detect multicollinearity between predictor variables.
+                            VIF analysis requires at least <strong>two predictor variables</strong>. For simple regression (one predictor),
+                            multicollinearity is not a concern since there's only one independent variable.
+                        </p>
+                        <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 8px;">
+                            Tip: Add another predictor variable to enable VIF analysis.
+                        </p>
+                    </div>
+
+                    <div id="vifSection" style="display: none; margin-top: 24px;">
+                        <div class="section-header" style="margin: 24px 0 12px;">
+                            <span>Multicollinearity Check (VIF)</span>
+                        </div>
+                        <table class="vif-table">
+                            <thead>
+                                <tr>
+                                    <th>Variable</th>
+                                    <th>VIF</th>
+                                    <th>R²</th>
+                                    <th>Interpretation</th>
+                                </tr>
+                            </thead>
+                            <tbody id="vifBody">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                        <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 8px;">
+                            <strong>VIF</strong> = Variance Inflation Factor. VIF > 5 suggests moderate multicollinearity; VIF > 10 indicates high multicollinearity.
+                        </p>
+                    </div>
+
+                    <div class="collapsible-header" id="residualsToggle" aria-expanded="true" role="button" tabindex="0">
+                        <span class="title">Residuals Table</span>
+                        <svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="6 9 12 15 18 9"/>
+                        </svg>
+                    </div>
+                    <div class="collapsible-content" id="residualsContent">
+                        <div class="table-container" style="max-height: 200px;">
+                            <table class="data-table" id="residualsTable">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Actual</th>
+                                        <th>Predicted</th>
+                                        <th>Residual</th>
+                                        <th>Std. Residual</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="residualsBody">
+                                    <!-- Populated dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="export-buttons">
+                        <button class="tool-btn" id="exportPngBtn">
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                <polyline points="7 10 12 15 17 10"/>
+                                <line x1="12" y1="15" x2="12" y2="3"/>
+                            </svg>
+                            Export Charts (PNG)
+                        </button>
+                        <button class="tool-btn" id="exportCsvBtn">
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                <polyline points="7 10 12 15 17 10"/>
+                                <line x1="12" y1="15" x2="12" y2="3"/>
+                            </svg>
+                            Export Results (CSV)
+                        </button>
+                    </div>
+
+                    <div class="section-header" style="margin-top: 32px;">
+                        <span>What is Linear Regression?</span>
+                    </div>
+
+                    <div class="collapsible-header collapsed" id="helpToggle" aria-expanded="false" role="button" tabindex="0">
+                        <span class="title">Click to expand explanation of metrics and concepts</span>
+                        <svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="6 9 12 15 18 9"/>
+                        </svg>
+                    </div>
+                    <div class="collapsible-content collapsed" id="helpContent">
+                        <div style="padding: 16px; background: var(--bg-secondary); border-radius: 8px; font-size: 0.875rem; line-height: 1.7;">
+                            <div style="margin-bottom: 20px;">
+                                <h4 style="color: var(--accent-educational); margin-bottom: 8px;">What is Linear Regression?</h4>
+                                <p style="margin: 0; color: var(--text-secondary);">
+                                    Linear regression is a statistical method used to model the relationship between a dependent variable (Y) and one or more independent variables (X). It finds the best-fitting straight line (or hyperplane for multiple predictors) that minimizes the sum of squared differences between observed and predicted values.
+                                </p>
+                                <p style="margin: 8px 0 0; color: var(--text-secondary);">
+                                    <strong>Simple regression:</strong> One predictor (y = mx + b)<br>
+                                    <strong>Multiple regression:</strong> Multiple predictors (y = b + m₁x₁ + m₂x₂ + ... + mₖxₖ)
+                                </p>
+                            </div>
+
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
+                                <div>
+                                    <h5 style="color: var(--text-primary); margin-bottom: 8px;">Model Fit Statistics</h5>
+                                    <dl style="margin: 0; color: var(--text-secondary);">
+                                        <dt style="font-weight: 600; color: var(--text-primary);">R² (R-squared)</dt>
+                                        <dd style="margin: 0 0 12px;">Proportion of variance in Y explained by the model. Range: 0 to 1. Higher = better fit.</dd>
+
+                                        <dt style="font-weight: 600; color: var(--text-primary);">Adjusted R²</dt>
+                                        <dd style="margin: 0 0 12px;">R² adjusted for the number of predictors. Penalizes adding useless variables. Use this when comparing models with different numbers of predictors.</dd>
+
+                                        <dt style="font-weight: 600; color: var(--text-primary);">F-statistic</dt>
+                                        <dd style="margin: 0 0 12px;">Tests whether the model as a whole is significant. Compares your model to a model with no predictors.</dd>
+
+                                        <dt style="font-weight: 600; color: var(--text-primary);">p-value (Model)</dt>
+                                        <dd style="margin: 0;">Probability of getting these results if no variables actually predict Y. &lt; 0.05 means the model is statistically significant.</dd>
+                                    </dl>
+                                </div>
+
+                                <div>
+                                    <h5 style="color: var(--text-primary); margin-bottom: 8px;">Coefficient Statistics</h5>
+                                    <dl style="margin: 0; color: var(--text-secondary);">
+                                        <dt style="font-weight: 600; color: var(--text-primary);">Coefficient (m or b)</dt>
+                                        <dd style="margin: 0 0 12px;">The estimated effect of each variable on Y. For continuous X: change in Y for a 1-unit increase in X.</dd>
+
+                                        <dt style="font-weight: 600; color: var(--text-primary);">Std Error</dt>
+                                        <dd style="margin: 0 0 12px;">Precision of the coefficient estimate. Smaller = more precise.</dd>
+
+                                        <dt style="font-weight: 600; color: var(--text-primary);">t-stat</dt>
+                                        <dd style="margin: 0 0 12px;">Coefficient divided by its standard error. Larger absolute values indicate more significant predictors.</dd>
+
+                                        <dt style="font-weight: 600; color: var(--text-primary);">p-value (Coefficient)</dt>
+                                        <dd style="margin: 0 0 12px;">Tests if the coefficient is significantly different from zero. &lt; 0.05 means the variable contributes to predicting Y.</dd>
+
+                                        <dt style="font-weight: 600; color: var(--text-primary);">95% CI</dt>
+                                        <dd style="margin: 0;">95% Confidence Interval. We're 95% confident the true coefficient lies within this range.</dd>
+                                    </dl>
+                                </div>
+
+                                <div>
+                                    <h5 style="color: var(--text-primary); margin-bottom: 8px;">Residuals Diagnostics</h5>
+                                    <dl style="margin: 0; color: var(--text-secondary);">
+                                        <dt style="font-weight: 600; color: var(--text-primary);">Residual</dt>
+                                        <dd style="margin: 0 0 12px;">Difference between actual and predicted values (Y - Ŷ). Should be randomly scattered around zero.</dd>
+
+                                        <dt style="font-weight: 600; color: var(--text-primary);">Standardized Residual</dt>
+                                        <dd style="margin: 0 0 12px;">Residual divided by its standard deviation. Values &gt; 2 or &lt; -2 may indicate outliers.</dd>
+
+                                        <dt style="font-weight: 600; color: var(--text-primary);">MSE (Mean Squared Error)</dt>
+                                        <dd style="margin: 0 0 12px;">Average squared difference between observed and predicted values. Lower = better predictions.</dd>
+
+                                        <dt style="font-weight: 600; color: var(--text-primary);">Standard Error</dt>
+                                        <dd style="margin: 0;">Standard deviation of the residuals. Typical prediction error in same units as Y.</dd>
+                                    </dl>
+                                </div>
+
+                                <div>
+                                    <h5 style="color: var(--text-primary); margin-bottom: 8px;">Significance Codes</h5>
+                                    <dl style="margin: 0; color: var(--text-secondary);">
+                                        <dt style="font-weight: 600; color: var(--text-primary);">*** p &lt; 0.001</dt>
+                                        <dd style="margin: 0 0 8px;">Very strong evidence against null hypothesis</dd>
+
+                                        <dt style="font-weight: 600; color: var(--text-primary);">** p &lt; 0.01</dt>
+                                        <dd style="margin: 0 0 8px;">Strong evidence against null hypothesis</dd>
+
+                                        <dt style="font-weight: 600; color: var(--text-primary);">* p &lt; 0.05</dt>
+                                        <dd style="margin: 0 0 8px;">Moderate evidence against null hypothesis</dd>
+
+                                        <dt style="font-weight: 600; color: var(--text-primary);">(no stars)</dt>
+                                        <dd style="margin: 0;">Not statistically significant at p &lt; 0.05 level</dd>
+                                    </dl>
+                                </div>
+
+                                <div>
+                                    <h5 style="color: var(--text-primary); margin-bottom: 8px;">Confidence Band vs Prediction Interval</h5>
+                                    <dl style="margin: 0; color: var(--text-secondary);">
+                                        <dt style="font-weight: 600; color: var(--text-primary);">Confidence Band (Mean Response)</dt>
+                                        <dd style="margin: 0 0 12px;">The shaded region on the scatter plot shows where the <strong>mean</strong> of Y is likely to fall for a given X. Narrower band = more precise estimate of the regression line. Use this for estimating average values.</dd>
+
+                                        <dt style="font-weight: 600; color: var(--text-primary);">Prediction Interval (Individual Values)</dt>
+                                        <dd style="margin: 0;">Wider interval that accounts for both uncertainty in the regression line AND the natural variation of individual data points. Use this for predicting individual future observations. (Not shown on chart - would be ~2-3x wider)</dd>
+                                    </dl>
+                                </div>
+                            </div>
+
+                            <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border-color);">
+                                <h5 style="color: var(--text-primary); margin-bottom: 8px;">Assumptions of Linear Regression</h5>
+                                <ul style="margin: 0; padding-left: 20px; color: var(--text-secondary);">
+                                    <li><strong>Linearity:</strong> Relationship between X and Y is linear</li>
+                                    <li><strong>Independence:</strong> Observations are independent of each other</li>
+                                    <li><strong>Homoscedasticity:</strong> Residuals have constant variance at all levels of X</li>
+                                    <li><strong>Normality:</strong> Residuals are approximately normally distributed</li>
+                                    <li><strong>No multicollinearity:</strong> Predictors are not highly correlated with each other</li>
+                                </ul>
+                            </div>
+
+                            <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border-color);">
+                                <h5 style="color: var(--text-primary); margin-bottom: 8px;">Multicollinearity & VIF Explained</h5>
+                                <p style="margin: 0 0 8px 0; color: var(--text-secondary);">
+                                    <strong>Multicollinearity</strong> occurs when predictor variables are highly correlated with each other. This can make it difficult to determine the individual effect of each predictor.
+                                </p>
+                                <p style="margin: 0 0 8px 0; color: var(--text-secondary);">
+                                    <strong>VIF (Variance Inflation Factor)</strong> measures how much the variance of a coefficient is inflated due to multicollinearity:
+                                </p>
+                                <ul style="margin: 0; padding-left: 20px; color: var(--text-secondary);">
+                                    <li><strong>VIF = 1:</strong> No correlation</li>
+                                    <li><strong>1 &lt; VIF ≤ 5:</strong> Low multicollinearity (acceptable)</li>
+                                    <li><strong>5 &lt; VIF ≤ 10:</strong> Moderate multicollinearity (review variables)</li>
+                                    <li><strong>VIF &gt; 10:</strong> High multicollinearity (consider removing redundant variables)</li>
+                                    <li><strong>VIF = ∞:</strong> Perfect multicollinearity (one variable is a linear combination of others)</li>
+                                </ul>
+                                <p style="margin: 8px 0 0 0; color: var(--text-secondary);">
+                                    <strong>What to do:</strong> If VIF is high, consider removing one of the correlated variables or combining them into a single predictor.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="license-card">
+                    <h4>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <polyline points="14 2 14 8 20 8"/>
+                            <path d="M9 13v-1h6v1"/>
+                            <path d="M11 17h2"/>
+                        </svg>
+                        Third-Party Licenses
+                    </h4>
+                    <div class="license-content">
+                        <ul>
+                            <li>
+                                <a href="https://www.chartjs.org/" target="_blank" rel="noopener">Chart.js</a> — MIT License
+                                <span>© Chart.js Contributors</span>
+                            </li>
+                            <li>
+                                <a href="https://sheetjs.com/" target="_blank" rel="noopener">SheetJS (XLSX)</a> — Apache 2.0 License
+                                <span>© SheetJS LLC</span>
+                            </li>
+                            <li>
+                                <a href="https://nalgebra.org/" target="_blank" rel="noopener">nalgebra</a> — Apache 2.0 License
+                                <span>Rust linear algebra library</span>
+                            </li>
+                            <li>
+                                <a href="https://github.com/statrs-dev/statrs" target="_blank" rel="noopener">statrs</a> — MIT License
+                                <span>Rust statistical computation library</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+        <footer>
+            <div class="footer-content">
+                <p class="footer-text">© 2025 Tools Hub — Built for engineers and developers</p>
+                <nav class="footer-links">
+                    <a href="../tools.html">All Tools</a>
+                </nav>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Sheet Selector Modal -->
+    <div class="modal-overlay" id="sheetModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Select Sheet</h3>
+                <button class="modal-close" id="closeSheetModal">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="selector-group">
+                    <label>Available Sheets</label>
+                    <select id="sheetSelect"></select>
+                </div>
+                <div class="sheet-preview" id="sheetPreview">
+                    Select a sheet to preview
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="tool-btn" id="cancelSheetBtn">Cancel</button>
+                <button class="tool-btn primary" id="confirmSheetBtn">Import Sheet</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/shared.js"></script>
+    <script type="module" src="../js/linear_regression/logic.js"></script>
+</body>
+</html>

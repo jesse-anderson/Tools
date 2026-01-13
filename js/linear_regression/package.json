@@ -1,0 +1,15 @@
+{
+  "name": "linear_regression_wasm",
+  "type": "module",
+  "version": "0.1.0",
+  "files": [
+    "linear_regression_wasm_bg.wasm",
+    "linear_regression_wasm.js",
+    "linear_regression_wasm.d.ts"
+  ],
+  "main": "linear_regression_wasm.js",
+  "types": "linear_regression_wasm.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}

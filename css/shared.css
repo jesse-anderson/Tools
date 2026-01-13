@@ -505,6 +505,11 @@ header {
     color: var(--accent-success);
 }
 
+.tool-status.critical {
+    background: var(--accent-error-dim);
+    color: var(--accent-error);
+}
+
 .tool-name {
     font-size: 1.0625rem;
     font-weight: 600;
@@ -776,6 +781,72 @@ footer {
 
 .animate-in {
     animation: fadeInUp 0.4s ease forwards;
+}
+
+/* Tool Page Header */
+.header-left,
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8125rem;
+    color: var(--text-secondary);
+    text-decoration: none;
+    padding: 8px 12px;
+    border-radius: 6px;
+    transition: all 0.15s ease;
+}
+
+.back-link:hover {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+.back-link svg {
+    width: 16px;
+    height: 16px;
+}
+
+.tool-icon-header {
+    width: 56px;
+    height: 56px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+}
+
+.tool-icon-header.engineering {
+    background: var(--accent-engineering-dim);
+    color: var(--accent-engineering);
+}
+
+.tool-icon-header.it {
+    background: var(--accent-it-dim);
+    color: var(--accent-it);
+}
+
+.tool-icon-header.general {
+    background: var(--accent-general-dim);
+    color: var(--accent-general);
+}
+
+.tool-icon-header.biochemical {
+    background: var(--accent-biochemical-dim);
+    color: var(--accent-biochemical);
+}
+
+.tool-icon-header.educational {
+    background: var(--accent-educational-dim);
+    color: var(--accent-educational);
 }
 
 /* Responsive */

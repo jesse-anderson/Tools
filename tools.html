@@ -421,6 +421,28 @@
                             <span class="tool-tag">measurement</span>
                         </div>
                     </a>
+<!-- As much as I'd like for this to work, the chart needs to be fixed up, the UI is crap, and the overall feel of the plotting is no good right now.
+ I can't put it out there, so for now its gonna be a locked out tool. Psychrometry is killing me. -->
+                    <a href="tools/psychrometric-calculator.html" class="tool-card engineering">
+                        <div class="tool-card-header">
+                            <div class="tool-icon engineering">
+                                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"/>
+                                    <path d="M2 20h20"/>
+                                    <path d="M12 20v-6"/>
+                                    <circle cx="12" cy="10" r="2"/>
+                                </svg>
+                            </div>
+                            <span class="tool-status critical">Needs Comprehensive Review - Broken</span>
+                        </div>
+                        <h3 class="tool-name">Psychrometric Calculator</h3>
+                        <p class="tool-description">Calculate moist air properties (Tdb, Twb, Tdp, RH, humidity ratio, enthalpy, specific volume) using ASHRAE equations with interactive psychrometric chart.</p>
+                        <div class="tool-tags">
+                            <span class="tool-tag">hvac</span>
+                            <span class="tool-tag">thermodynamics</span>
+                            <span class="tool-tag">moist air</span>
+                        </div>
+                    </a>
                 </div>
             </section>
 
@@ -505,6 +527,26 @@
                         </div>
                     </a>
 
+                    <a href="tools/face-blur.html" class="tool-card it">
+                        <div class="tool-card-header">
+                            <div class="tool-icon it">
+                                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="8" r="4"/>
+                                    <path d="M6 20v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/>
+                                    <line x1="2" y1="2" x2="22" y2="22"/>
+                                </svg>
+                            </div>
+                            <span class="tool-status active">Active</span>
+                        </div>
+                        <h3 class="tool-name">Face Blur</h3>
+                        <p class="tool-description">Privacy-focused face blurring using MediaPipe. Oval-shaped face regions from 468 landmarks, 7 blur modes, manual draw mode, and undo/redo support.</p>
+                        <div class="tool-tags">
+                            <span class="tool-tag">privacy</span>
+                            <span class="tool-tag">MediaPipe</span>
+                            <span class="tool-tag">face detection</span>
+                        </div>
+                    </a>
+
                     <a href="tools/markdown-preview.html" class="tool-card it">
                         <div class="tool-card-header">
                             <div class="tool-icon it">
@@ -530,7 +572,7 @@
 
             <section class="category-section">
                 <div class="category-header">
-                    <div class="category-indicator educational"></div>
+                    <div class="category-indicator it"></div>
                     <h2 class="category-title">Database Tools</h2>
                     <span class="category-count">-- tools</span>
                     <div class="collapse-icon">
@@ -540,9 +582,9 @@
                     </div>
                 </div>
                 <div class="tools-grid">
-                    <a href="tools/duckdb-playground.html" class="tool-card educational">
+                    <a href="tools/duckdb-playground.html" class="tool-card it">
                         <div class="tool-card-header">
-                            <div class="tool-icon educational">
+                            <div class="tool-icon it">
                                 <svg viewBox="0 0 24 24" width="24" height="24" fill="red" stroke="currentColor" stroke-width="2">
                                     <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/>
                                 </svg>
@@ -557,7 +599,29 @@
                             <span class="tool-tag">data</span>
                         </div>
                     </a>
-                
+
+                    <a href="tools/sqlite-viewer.html" class="tool-card it">
+                        <div class="tool-card-header">
+                            <div class="tool-icon it">
+                                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 7.5V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3.5"/>
+                                    <path d="M16 2v4"/>
+                                    <path d="M8 2v4"/>
+                                    <path d="M3 10h18"/>
+                                    <rect x="15" y="14" width="6" height="8" rx="1"/>
+                                </svg>
+                            </div>
+                            <span class="tool-status active">Active</span>
+                        </div>
+                        <h3 class="tool-name">SQLite Viewer</h3>
+                        <p class="tool-description">Browser-based SQLite database viewer using sql.js WASM. Browse tables, view schemas, execute queries, and export results—all client-side with no server uploads.</p>
+                        <div class="tool-tags">
+                            <span class="tool-tag">SQL</span>
+                            <span class="tool-tag">SQLite</span>
+                            <span class="tool-tag">WASM</span>
+                        </div>
+                    </a>
+
             </section>
 
             <!-- General Utilities -->
@@ -802,6 +866,26 @@
                             <span class="tool-tag">rust</span>
                             <span class="tool-tag">wasm</span>
                             <span class="tool-tag">DBSCAN</span>
+                        </div>
+                    </a>
+
+                    <a href="tools/linear-regression.html" class="tool-card educational">
+                        <div class="tool-card-header">
+                            <div class="tool-icon educational">
+                                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M3 3v18h18"/>
+                                    <path d="M7 16l4-8 4 4 5-9"/>
+                                </svg>
+                            </div>
+                            <span class="tool-status coming">Under Review</span>
+                        </div>
+                        <h3 class="tool-name">Linear Regression</h3>
+                        <p class="tool-description">Simple and multiple OLS regression with multicollinearity detection (VIF). Upload CSV/Excel data, paste from clipboard, or use built-in examples. Output includes coefficients, R², F-stat, p-values, 95% CI, residuals table, and interactive charts (scatter, Q-Q plot, residuals).</p>
+                        <div class="tool-tags">
+                            <span class="tool-tag">regression</span>
+                            <span class="tool-tag">statistics</span>
+                            <span class="tool-tag">OLS</span>
+                            <span class="tool-tag">visualization</span>
                         </div>
                     </a>
                 </div>

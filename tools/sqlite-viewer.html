@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SQLite Viewer | Tools Hub</title>
+
+    <!--
+    ============================================
+    SQLite Browser Viewer v1.0.0
+    ============================================
+    Dependencies (pinned versions):
+    - sql.js: 1.10.3 (SQLite compiled to WebAssembly)
+        https://sql.js.org/
+        BSD 3-Clause License: https://github.com/sql-js/sql.js/blob/master/LICENSE
+
+    Last Updated: January 2025
+    ============================================
+    -->
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/shared.css">
+    <link rel="stylesheet" href="../css/sqlite_viewer/sqlite_viewer.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <div class="header-left">
+                    <a href="../tools.html" class="back-link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="19" y1="12" x2="5" y2="12"/>
+                            <polyline points="12 19 5 12 12 5"/>
+                        </svg>
+                        Back to Tools
+                    </a>
+                </div>
+                <div class="header-right">
+                    <div class="theme-toggle">
+                        <button data-theme-toggle="light" title="Light mode">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="5"/>
+                                <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+                            </svg>
+                        </button>
+                        <button data-theme-toggle="dark" title="Dark mode">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div style="margin-top: 24px; display: flex; align-items: center; gap: 16px;">
+                <div class="tool-icon-header it">
+                    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 7.5V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3.5"/>
+                        <path d="M16 2v4"/>
+                        <path d="M8 2v4"/>
+                        <path d="M3 10h18"/>
+                        <rect x="15" y="14" width="6" height="8" rx="1"/>
+                    </svg>
+                </div>
+                <div>
+                    <h1>SQLite Viewer</h1>
+                    <p class="tagline">// BROWSE • QUERY • EXPORT</p>
+                </div>
+            </div>
+            <div style="margin-top: 12px;">
+                <span class="privacy-badge local-only" title="All data processing happens in your browser. Nothing is sent to any server.">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                    </svg>
+                    100% Local • No Server • Privacy First
+                </span>
+            </div>
+        </header>
+
+        <main>
+            <div class="calculator-layout">
+                <div class="calculator-panel">
+                    <div class="panel-header">
+                        <div style="display: flex; justify-content: space-between; align-items: start;">
+                            <div>
+                                <h2>Database Browser</h2>
+                                <p>Upload a SQLite database file to explore tables, run queries, and export results.</p>
+                            </div>
+                            <span class="privacy-badge" style="flex-shrink: 0;" title="All processing happens locally in your browser.">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                                </svg>
+                                Private & Local
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="error-banner" id="errorBanner">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <line x1="12" y1="8" x2="12" y2="12"/>
+                            <line x1="12" y1="16" x2="12.01" y2="16"/>
+                        </svg>
+                        <span id="errorText"></span>
+                    </div>
+
+                    <!-- File Upload Area -->
+                    <div class="upload-area" id="uploadArea">
+                        <input type="file" id="fileInput" accept=".db,.sqlite,.sqlite3" style="display: none;">
+                        <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <polyline points="17 8 12 3 7 8"/>
+                            <line x1="12" y1="3" x2="12" y2="15"/>
+                        </svg>
+                        <p class="upload-text">Drop your SQLite file here</p>
+                        <p class="upload-subtext">or click to browse (.db, .sqlite, .sqlite3)</p>
+                        <div style="display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 12px; font-family: 'JetBrains Mono', monospace; font-size: 0.6875rem; color: var(--accent-success);">
+                            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                            </svg>
+                            <span>Secure: Your file never leaves your browser</span>
+                        </div>
+                    </div>
+
+                    <!-- File Info -->
+                    <div class="file-info" id="fileInfo">
+                        <div class="file-icon">
+                            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                <polyline points="14 2 14 8 20 8"/>
+                                <path d="M12 18v-6"/>
+                                <path d="M9 15l3 3 3-3"/>
+                            </svg>
+                        </div>
+                        <div class="file-details">
+                            <p class="file-name" id="fileName">database.db</p>
+                            <p class="file-size" id="fileSize">0 KB</p>
+                        </div>
+                        <button class="close-file" id="closeFile" title="Close database">
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="18" y1="6" x2="6" y2="18"/>
+                                <line x1="6" y1="6" x2="18" y2="18"/>
+                            </svg>
+                        </button>
+                    </div>
+
+                    <!-- Database Content (hidden until file loaded) -->
+                    <div id="dbContent" style="display: none; flex-direction: column; flex: 1;">
+                        <div class="tabs">
+                            <button class="tab active" data-tab="tables">Tables</button>
+                            <button class="tab" data-tab="schema">Schema</button>
+                            <button class="tab" data-tab="query">Query</button>
+                        </div>
+
+                        <!-- Tables Tab -->
+                        <div class="tab-content active" id="tablesTab">
+                            <div class="tables-list" id="tablesList">
+                                <!-- Tables will be populated here -->
+                            </div>
+                        </div>
+
+                        <!-- Schema Tab -->
+                        <div class="tab-content" id="schemaTab">
+                            <div class="schema-container" id="schemaContainer">
+                                <div class="schema-nav">
+                                    <button class="schema-nav-btn active" data-schema-view="columns">Columns</button>
+                                    <button class="schema-nav-btn" data-schema-view="indexes">Indexes</button>
+                                    <button class="schema-nav-btn" data-schema-view="foreign-keys">Foreign Keys</button>
+                                    <button class="schema-nav-btn" data-schema-view="triggers">Triggers</button>
+                                </div>
+                                <div class="schema-view" id="schemaView">
+                                    <div class="empty-state">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <rect x="3" y="3" width="18" height="18" rx="2"/>
+                                            <line x1="3" y1="9" x2="21" y2="9"/>
+                                            <line x1="9" y1="21" x2="9" y2="9"/>
+                                        </svg>
+                                        <p>Select a table to view its schema</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Query Tab -->
+                        <div class="tab-content" id="queryTab">
+                            <div class="query-container">
+                                <textarea class="query-editor" id="queryEditor" placeholder="SELECT * FROM sqlite_master WHERE type='table';" spellcheck="false"></textarea>
+                                <div class="query-actions">
+                                    <div class="templates-dropdown">
+                                        <button class="templates-btn" id="templatesBtn">
+                                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                                                <rect x="3" y="3" width="6" height="6"/>
+                                                <rect x="15" y="3" width="6" height="6"/>
+                                                <rect x="3" y="15" width="6" height="6"/>
+                                                <rect x="15" y="15" width="6" height="6"/>
+                                            </svg>
+                                            Templates
+                                            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2">
+                                                <polyline points="6 9 12 15 18 9"/>
+                                            </svg>
+                                        </button>
+                                        <div class="templates-menu" id="templatesMenu">
+                                            <div class="templates-menu-title">Basic Queries</div>
+                                            <div class="template-item" data-template="select-all">
+                                                <div class="template-name">Select All</div>
+                                                <div class="template-desc">SELECT * FROM table_name</div>
+                                            </div>
+                                            <div class="template-item" data-template="select-where">
+                                                <div class="template-name">Select with Filter</div>
+                                                <div class="template-desc">SELECT * FROM table WHERE condition</div>
+                                            </div>
+                                            <div class="template-item" data-template="select-join">
+                                                <div class="template-name">Inner Join</div>
+                                                <div class="template-desc">JOIN two tables on common column</div>
+                                            </div>
+                                            <div class="template-item" data-template="select-group">
+                                                <div class="template-name">Group & Aggregate</div>
+                                                <div class="template-desc">GROUP BY with COUNT/SUM/AVG</div>
+                                            </div>
+                                            <div class="template-item" data-template="insert">
+                                                <div class="template-name">Insert Row</div>
+                                                <div class="template-desc">INSERT INTO table VALUES (...)</div>
+                                            </div>
+                                            <div class="template-item" data-template="update">
+                                                <div class="template-name">Update Rows</div>
+                                                <div class="template-desc">UPDATE table SET ... WHERE ...</div>
+                                            </div>
+                                            <div class="template-item" data-template="delete">
+                                                <div class="template-name">Delete Rows</div>
+                                                <div class="template-desc">DELETE FROM table WHERE ...</div>
+                                            </div>
+                                            <div class="template-item" data-template="create-table">
+                                                <div class="template-name">Create Table</div>
+                                                <div class="template-desc">CREATE TABLE with columns</div>
+                                            </div>
+                                            <div class="template-item" data-template="explain">
+                                                <div class="template-name">Explain Query Plan</div>
+                                                <div class="template-desc">EXPLAIN QUERY PLAN SELECT ...</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <button class="tool-btn primary" id="runQuery">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <polygon points="5 3 19 12 5 21 5 3"/>
+                                        </svg>
+                                        Run Query
+                                    </button>
+                                    <button class="tool-btn" id="clearQuery">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <polyline points="3 6 5 6 21 6"/>
+                                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                                        </svg>
+                                        Clear
+                                    </button>
+                                    <div class="export-dropdown" style="margin-left: auto;">
+                                        <button class="tool-btn" id="exportResults">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                                <polyline points="7 10 12 15 17 10"/>
+                                                <line x1="12" y1="15" x2="12" y2="3"/>
+                                            </svg>
+                                            Export
+                                            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2">
+                                                <polyline points="6 9 12 15 18 9"/>
+                                            </svg>
+                                        </button>
+                                        <div class="export-menu" id="exportMenu">
+                                            <div class="export-option" data-export="csv">
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                                    <polyline points="14 2 14 8 20 8"/>
+                                                </svg>
+                                                Export as CSV
+                                            </div>
+                                            <div class="export-option" data-export="json">
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                                    <polyline points="14 2 14 8 20 8"/>
+                                                </svg>
+                                                Export as JSON
+                                            </div>
+                                            <div class="export-option" data-export="insert">
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                                    <polyline points="14 2 14 8 20 8"/>
+                                                </svg>
+                                                Generate INSERTs
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="results-container" id="resultsContainer">
+                                    <div class="empty-state">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <rect x="3" y="3" width="18" height="18" rx="2"/>
+                                            <path d="M3 9h18"/>
+                                            <path d="M9 21V9"/>
+                                        </svg>
+                                        <p>Run a query to see results</p>
+                                    </div>
+                                </div>
+                                <div class="results-info" id="resultsInfo" style="display: none;">
+                                    <span class="results-count"><span id="rowCount">0</span> rows returned</span>
+                                    <span style="color: var(--text-muted);" id="queryTime">0ms</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Table Data View (hidden by default) -->
+                    <div id="tableView" style="display: none; flex-direction: column; flex: 1;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+                            <button class="tool-btn" id="backToTables">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="15 18 9 12 15 6"/>
+                                </svg>
+                                Back to Tables
+                            </button>
+                            <h3 style="font-family: 'JetBrains Mono', monospace; font-size: 1rem; color: var(--accent-it);" id="currentTableName">table_name</h3>
+                            <div style="display: flex; gap: 8px;">
+                                <button class="tool-btn" id="viewSchemaBtn" title="View table schema">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <rect x="3" y="3" width="18" height="18" rx="2"/>
+                                        <path d="M3 9h18"/>
+                                        <path d="M9 21V9"/>
+                                    </svg>
+                                    Schema
+                                </button>
+                                <div class="export-dropdown">
+                                    <button class="tool-btn" id="exportTableBtn">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                            <polyline points="7 10 12 15 17 10"/>
+                                            <line x1="12" y1="15" x2="12" y2="3"/>
+                                        </svg>
+                                        Export
+                                        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2">
+                                            <polyline points="6 9 12 15 18 9"/>
+                                        </svg>
+                                    </button>
+                                    <div class="export-menu" id="tableExportMenu">
+                                        <div class="export-option" data-table-export="csv">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                                <polyline points="14 2 14 8 20 8"/>
+                                            </svg>
+                                            Export as CSV
+                                        </div>
+                                        <div class="export-option" data-table-export="json">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                                <polyline points="14 2 14 8 20 8"/>
+                                            </svg>
+                                            Export as JSON
+                                        </div>
+                                        <div class="export-option" data-table-export="insert">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                                <polyline points="14 2 14 8 20 8"/>
+                                            </svg>
+                                            Generate INSERTs
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="results-container" id="tableResults">
+                            <!-- Table data will be populated here -->
+                        </div>
+                        <div class="results-info">
+                            <span class="results-count"><span id="tableRowCount">0</span> rows</span>
+                        </div>
+                    </div>
+                </div>
+
+                <aside class="sidebar">
+                    <!-- Privacy Shield -->
+                    <div class="privacy-shield" style="margin-bottom: 16px;" title="All SQL processing happens locally in your browser using WebAssembly. Your data never leaves this device.">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                        </svg>
+                        <div>
+                            <div style="font-weight: 600;">100% Local Processing</div>
+                            <div style="font-size: 0.7rem; opacity: 0.8;">No data sent to any server</div>
+                        </div>
+                    </div>
+
+                    <div class="sidebar-card">
+                        <h3>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                <polyline points="7 10 12 15 17 10"/>
+                                <line x1="12" y1="15" x2="12" y2="3"/>
+                            </svg>
+                            Database Actions
+                        </h3>
+                        <button class="tool-btn" id="exportDbBtn" style="width: 100%; justify-content: center;" disabled>
+                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                <polyline points="7 10 12 15 17 10"/>
+                                <line x1="12" y1="15" x2="12" y2="3"/>
+                            </svg>
+                            Export Database (.db)
+                        </button>
+                    </div>
+
+                    <div class="sidebar-card">
+                        <h3>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"/>
+                                <line x1="12" y1="16" x2="12" y2="12"/>
+                                <line x1="12" y1="8" x2="12.01" y2="8"/>
+                            </svg>
+                            Database Info
+                        </h3>
+                        <div class="info-list">
+                            <div class="info-item">
+                                <span class="info-label">SQLite Version</span>
+                                <span class="info-value" id="sqliteVersion">-</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Tables</span>
+                                <span class="info-value" id="tableCount">0</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Views</span>
+                                <span class="info-value" id="viewCount">0</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">File Size</span>
+                                <span class="info-value" id="dbFileSize">0 KB</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Table Statistics (hidden by default, shown when table is selected) -->
+                    <div class="sidebar-card" id="tableStatsCard" style="display: none;">
+                        <h3>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M3 3v18h18"/>
+                                <path d="M18 17V9"/>
+                                <path d="M13 17V5"/>
+                                <path d="M8 17v-3"/>
+                            </svg>
+                            Table Statistics
+                        </h3>
+                        <div class="table-stats-grid">
+                            <div class="stat-box">
+                                <div class="stat-value" id="statRowCount">-</div>
+                                <div class="stat-label">Rows</div>
+                            </div>
+                            <div class="stat-box">
+                                <div class="stat-value" id="statColumnCount">-</div>
+                                <div class="stat-label">Columns</div>
+                            </div>
+                        </div>
+                        <div class="columns-list" id="columnsStatsList">
+                            <!-- Column stats will be populated here -->
+                        </div>
+                    </div>
+
+                    <div class="sidebar-card">
+                        <h3>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+                            </svg>
+                            Saved Queries
+                        </h3>
+                        <div class="saved-queries" id="savedQueries">
+                            <p style="font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: var(--text-muted); font-style: italic;">No saved queries</p>
+                        </div>
+                        <div class="save-query-form">
+                            <input type="text" class="save-query-input" id="saveQueryName" placeholder="Name this query..." maxlength="30">
+                            <button class="save-query-btn" id="saveQueryBtn">Save</button>
+                        </div>
+                    </div>
+
+                    <div class="sidebar-card">
+                        <h3>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 8v4l3 3"/>
+                                <circle cx="12" cy="12" r="9"/>
+                            </svg>
+                            Query History
+                        </h3>
+                        <div class="query-history" id="queryHistory">
+                            <p style="font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: var(--text-muted); font-style: italic;">No queries yet</p>
+                        </div>
+                    </div>
+
+                    <div class="critical-warning">
+                        <div class="warning-title">
+                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                                <line x1="12" y1="9" x2="12" y2="13"/>
+                                <line x1="12" y1="17" x2="12.01" y2="17"/>
+                            </svg>
+                            Data Safety & Limitations
+                        </div>
+                        <div class="warning-text">
+                            <p><strong>Local-Only Processing.</strong> This tool runs entirely in your browser using WebAssembly. Your database files are never uploaded to any server. You remain in full control of your data.</p>
+                            <p><strong>No Warranty for Data Loss.</strong> This tool is provided for convenience and inspection. Always maintain backups of important databases. The creators assume NO LIABILITY for lost or corrupted data.</p>
+                            <p><strong>Not for Production Systems.</strong> This viewer is intended for development, testing, and analysis. It is NOT a replacement for proper database admin tools in production environments.</p>
+                            <p><strong>File Size Limitations.</strong> Large databases (>100MB) may cause browser crashes or instability. Consider desktop tools like DB Browser for SQLite for production workloads.</p>
+                        </div>
+                    </div>
+
+                    <div class="sidebar-card">
+                        <h3>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                <polyline points="14 2 14 8 20 8"/>
+                                <line x1="16" y1="13" x2="8" y2="13"/>
+                                <line x1="16" y1="17" x2="8" y2="17"/>
+                                <polyline points="10 9 9 9 8 9"/>
+                            </svg>
+                            Library Attributions
+                        </h3>
+                        <button class="attributions-btn" id="openAttributions">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                <polyline points="14 2 14 8 20 8"/>
+                                <line x1="16" y1="13" x2="8" y2="13"/>
+                                <line x1="16" y1="17" x2="8" y2="17"/>
+                                <polyline points="10 9 9 9 8 9"/>
+                            </svg>
+                            View Licenses
+                        </button>
+                    </div>
+                </aside>
+            </div>
+        </main>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+        <p class="loading-text" id="loadingText">Loading database...</p>
+    </div>
+
+    <!-- Attributions Modal -->
+    <div class="modal-overlay" id="attributionsModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                        <polyline points="14 2 14 8 20 8"/>
+                        <line x1="16" y1="13" x2="8" y2="13"/>
+                        <line x1="16" y1="17" x2="8" y2="17"/>
+                        <polyline points="10 9 9 9 8 9"/>
+                    </svg>
+                    Attributions & Licenses
+                </h2>
+                <button class="modal-close" id="closeAttributions">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-content">
+                <h3 style="font-size: 0.875rem; color: var(--text-primary); margin-bottom: 12px;">Core Libraries</h3>
+
+                <div class="library-item">
+                    <div class="library-name">
+                        SQLite
+                        <span class="library-version">Public Domain</span>
+                    </div>
+                    <p class="library-description">
+                        The most widely deployed SQL database engine in the world. All SQL processing happens locally in your browser via WebAssembly.
+                    </p>
+                    <div class="library-license">
+                        <span>License:</span>
+                        <a href="https://www.sqlite.org/copyright.html" target="_blank" rel="noopener">
+                            Public Domain (Dedicated to the Public Domain)
+                            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                                <polyline points="15 3 21 3 21 9"/>
+                                <line x1="10" y1="14" x2="21" y2="3"/>
+                            </svg>
+                        </a>
+                        <span>•</span>
+                        <a href="https://www.sqlite.org/" target="_blank" rel="noopener">
+                            Website
+                            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                                <polyline points="15 3 21 3 21 9"/>
+                                <line x1="10" y1="14" x2="21" y2="3"/>
+                            </svg>
+                        </a>
+                    </div>
+                </div>
+
+                <div class="library-item">
+                    <div class="library-name">
+                        sql.js
+                        <span class="library-version">v1.10.3</span>
+                    </div>
+                    <p class="library-description">
+                        SQLite compiled to WebAssembly (Emscripten). Enables running SQL queries entirely in the browser without any server-side processing.
+                    </p>
+                    <div class="library-license">
+                        <span>License:</span>
+                        <a href="https://github.com/sql-js/sql.js/blob/master/LICENSE" target="_blank" rel="noopener">
+                            BSD 3-Clause License
+                            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                                <polyline points="15 3 21 3 21 9"/>
+                                <line x1="10" y1="14" x2="21" y2="3"/>
+                            </svg>
+                        </a>
+                        <span>•</span>
+                        <a href="https://sql.js.org/" target="_blank" rel="noopener">
+                            Website
+                            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                                <polyline points="15 3 21 3 21 9"/>
+                                <line x1="10" y1="14" x2="21" y2="3"/>
+                            </svg>
+                        </a>
+                    </div>
+                </div>
+
+                <h3 style="font-size: 0.875rem; color: var(--text-primary); margin: 20px 0 12px 0;">Fonts & Typography</h3>
+
+                <div class="library-item">
+                    <div class="library-name">
+                        JetBrains Mono
+                        <span class="library-version">Font</span>
+                    </div>
+                    <p class="library-description">
+                        Monospace typeface designed for developers. Used throughout the application for code, data, and technical labels.
+                    </p>
+                    <div class="library-license">
+                        <span>License:</span>
+                        <a href="https://fonts.google.com/attribution" target="_blank" rel="noopener">
+                            SIL Open Font License 1.1
+                            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                                <polyline points="15 3 21 3 21 9"/>
+                                <line x1="10" y1="14" x2="21" y2="3"/>
+                            </svg>
+                        </a>
+                    </div>
+                </div>
+
+                <div class="library-item">
+                    <div class="library-name">
+                        Space Grotesk
+                        <span class="library-version">Font</span>
+                    </div>
+                    <p class="library-description">
+                        Grotesque sans-serif typeface used for headings and UI elements.
+                    </p>
+                    <div class="library-license">
+                        <span>License:</span>
+                        <a href="https://fonts.google.com/attribution" target="_blank" rel="noopener">
+                            SIL Open Font License 1.1
+                            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                                <polyline points="15 3 21 3 21 9"/>
+                                <line x1="10" y1="14" x2="21" y2="3"/>
+                            </svg>
+                        </a>
+                    </div>
+                </div>
+
+                <h3 style="font-size: 0.875rem; color: var(--text-primary); margin: 20px 0 12px 0;">Infrastructure</h3>
+
+                <div class="library-item">
+                    <div class="library-name">
+                        Cloudflare CDN
+                        <span class="library-version">cdnjs</span>
+                    </div>
+                    <p class="library-description">
+                        Content Delivery Network for hosting the sql.js WebAssembly file. Serves resources from edge locations worldwide.
+                    </p>
+                    <div class="library-license">
+                        <span>Service:</span>
+                        <a href="https://cdnjs.com/" target="_blank" rel="noopener">
+                            cdnjs.com
+                            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                                <polyline points="15 3 21 3 21 9"/>
+                                <line x1="10" y1="14" x2="21" y2="3"/>
+                            </svg>
+                        </a>
+                    </div>
+                </div>
+
+                <div class="library-item">
+                    <div class="library-name">
+                        Google Fonts
+                        <span class="library-version">API</span>
+                    </div>
+                    <p class="library-description">
+                        Font delivery service for JetBrains Mono and Space Grotesk typefaces.
+                    </p>
+                    <div class="library-license">
+                        <span>Service:</span>
+                        <a href="https://fonts.google.com/" target="_blank" rel="noopener">
+                            fonts.google.com
+                            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                                <polyline points="15 3 21 3 21 9"/>
+                                <line x1="10" y1="14" x2="21" y2="3"/>
+                            </svg>
+                        </a>
+                    </div>
+                </div>
+
+                <p style="font-size: 0.75rem; color: var(--text-muted); text-align: center; padding-top: 8px; border-top: 1px solid var(--border-color); margin-top: 16px;">
+                    This tool is built with gratitude for these open-source projects and services.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Unsaved Changes Confirmation Modal -->
+    <div class="modal-overlay" id="confirmModal">
+        <div class="modal" style="max-width: 450px;">
+            <div class="modal-header">
+                <h2 class="modal-title">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: #ef4444;">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                        <line x1="12" y1="9" x2="12" y2="13"/>
+                        <line x1="12" y1="17" x2="12.01" y2="17"/>
+                    </svg>
+                    Unsaved Changes
+                </h2>
+            </div>
+            <div class="modal-content">
+                <p style="color: var(--text-secondary); font-size: 0.9375rem; line-height: 1.6; margin-bottom: 20px;">
+                    You have unsaved changes to this database. If you close it without exporting, all modifications will be lost.
+                </p>
+                <div style="display: flex; gap: 12px;">
+                    <button class="tool-btn" id="confirmCancel" style="flex: 1; justify-content: center;">
+                        Cancel
+                    </button>
+                    <button class="tool-btn primary" id="confirmClose" style="flex: 1; justify-content: center; background: var(--accent-error); border-color: var(--accent-error);">
+                        Close Anyway
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Shared JS -->
+    <script src="../js/shared.js"></script>
+
+    <!-- sql.js - SQLite compiled to WebAssembly -->
+    <!-- BSD 3-Clause License: https://github.com/sql-js/sql.js/blob/master/LICENSE -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/sql-wasm.js"></script>
+
+    <!-- Tool-Specific JS -->
+    <script src="../js/sqlite_viewer/sqlite_viewer.js"></script>
+</body>
+</html>

@@ -1,0 +1,3440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Psychrometric Calculator | Tools Hub</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/shared.css">
+    <link rel="stylesheet" href="../css/psychrometric/styles.css">
+</head>
+<body>
+
+    <!-- ========================================
+         DEVELOPMENT MODE MODAL
+         Set DEV_MODE to false to disable
+         ======================================== -->
+    <div id="devModal" style="
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.85);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 99999;
+        font-family: 'Space Grotesk', sans-serif;
+    ">
+        <div style="
+            background: var(--bg-card, #1e1e1e);
+            border: 1px solid var(--border-color, #333);
+            border-radius: 12px;
+            padding: 32px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        ">
+            <div style="
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                margin-bottom: 20px;
+            ">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                    <line x1="12" y1="9" x2="12" y2="13"/>
+                    <line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+                <h2 style="margin: 0; font-size: 1.5rem; color: var(--text-primary, #e0e0e0);">Under Development</h2>
+            </div>
+
+            <p style="
+                margin: 0 0 16px 0;
+                color: var(--text-secondary, #a0a0a0);
+                line-height: 1.6;
+            ">
+                This tool is currently <strong>under active development</strong> and is provided for testing and evaluation purposes only.
+            </p>
+
+            <p style="
+                margin: 0 0 24px 0;
+                color: var(--text-secondary, #a0a0a0);
+                line-height: 1.6;
+            ">
+                Interactivity has been disabled as calculations may not be fully accurate or validated against ASHRAE standards.
+            </p>
+
+            <div style="
+                background: var(--bg-secondary, #2a2a2a);
+                border-left: 3px solid #f59e0b;
+                padding: 16px;
+                border-radius: 4px;
+                margin-bottom: 24px;
+            ">
+                <p style="margin: 0; font-size: 0.875rem; color: var(--text-muted, #808080);">
+                    <strong>Note:</strong> This tool uses PsychroLib v2.5.0 for psychrometric calculations. Results are being validated against published ASHRAE data.
+                </p>
+            </div>
+
+            <div id="devPasswordSection" style="margin-bottom: 16px;">
+                <label style="display: block; margin-bottom: 8px; color: var(--text-secondary, #a0a0a0); font-size: 0.875rem;">
+                    Developer Access (optional):
+                </label>
+                <input type="password" id="devPassword" placeholder="Enter password to continue..." style="
+                    width: 100%;
+                    padding: 12px;
+                    background: var(--bg-input, #333);
+                    border: 1px solid var(--border-color, #444);
+                    border-radius: 6px;
+                    color: var(--text-primary, #e0e0e0);
+                    font-family: 'JetBrains Mono', monospace;
+                    font-size: 0.875rem;
+                    box-sizing: border-box;
+                ">
+                <p id="devPasswordError" style="
+                    margin: 8px 0 0 0;
+                    color: #ef4444;
+                    font-size: 0.8125rem;
+                    display: none;
+                ">Incorrect password</p>
+            </div>
+
+            <div style="display: flex; gap: 12px;">
+                <button id="devUnlockBtn" style="
+                    flex: 1;
+                    padding: 12px 24px;
+                    background: var(--accent-engineering, #f59e0b);
+                    color: #000;
+                    border: none;
+                    border-radius: 6px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    font-family: 'Space Grotesk', sans-serif;
+                    font-size: 0.875rem;
+                ">Continue to Tool</button>
+            </div>
+
+            <p style="
+                margin: 20px 0 0 0;
+                font-size: 0.75rem;
+                color: var(--text-muted, #606060);
+                text-align: center;
+            ">For questions or feedback, please contact the developer.</p>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Header -->
+        <header>
+            <div class="header-content">
+                <div class="header-left">
+                    <a href="../tools.html" class="back-link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="19" y1="12" x2="5" y2="12"/>
+                            <polyline points="12 19 5 12 12 5"/>
+                        </svg>
+                        Back to Tools
+                    </a>
+                </div>
+
+                <div class="header-right">
+                    <div class="theme-toggle">
+                        <button data-theme-toggle="light" title="Light mode">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="5"/>
+                                <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+                            </svg>
+                        </button>
+                        <button data-theme-toggle="dark" title="Dark mode">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div style="margin-top: 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;">
+                <div style="display: flex; align-items: center; gap: 16px;">
+                    <div class="tool-icon-header engineering">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"/>
+                            <path d="M2 20h20"/>
+                            <path d="M12 20v-6"/>
+                            <circle cx="12" cy="10" r="2"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h1>Psychrometric Calculator</h1>
+                        <p class="tagline">// MOIST AIR PROPERTIES • HVAC • THERMODYNAMICS</p>
+                    </div>
+                </div>
+
+                <div class="status-badges">
+                    <span class="status-badge ok" id="statusBadge">● Unsaturated</span>
+                    <span class="status-badge">ASHRAE 2017/2021</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Layout -->
+        <div class="main-layout">
+            <!-- Chart Panel (Left) -->
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-title">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="3" width="18" height="18" rx="2"/>
+                            <path d="M3 9h18M9 21V9"/>
+                        </svg>
+                        Psychrometric Chart
+                    </div>
+                    <div class="chart-legend">
+                        <div class="legend-item">
+                            <span class="legend-line saturation"></span>
+                            <span>Saturation (100% RH)</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-line rh"></span>
+                            <span>Constant RH</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-line enthalpy"></span>
+                            <span>Enthalpy</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-line volume"></span>
+                            <span>Volume</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-line point"></span>
+                            <span>Current State</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="chart-area">
+                    <div class="chart-toolbar">
+                        <div class="toolbar">
+                            <button class="tool-btn" onclick="resetView()">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                                Reset
+                            </button>
+                            <button class="tool-btn" onclick="exportPng()">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                                Export PNG
+                            </button>
+                            <button class="tool-btn" onclick="exportResults()">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="14 2 14 10 22 10"/><polyline points="9 12 12 15 15 12"/><path d="M2 15l3 3 3-3"/></svg>
+                                Export Data
+                            </button>
+                            <button class="tool-btn audit-btn" onclick="showCalculationTrail()">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                                Calculation Trail
+                            </button>
+                            <button class="tool-btn validation-btn" onclick="validateCalculator()">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                                Verify
+                            </button>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="psychoCanvas"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Controls Panel (Right) -->
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-title">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="3"/>
+                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                        </svg>
+                        Controls
+                    </div>
+                </div>
+                <div class="panel-body">
+                    <!-- Disclaimer Box -->
+                    <div class="disclaimer-box">
+                        <div class="disclaimer-title">
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"/>
+                                <line x1="12" y1="8" x2="12" y2="12"/>
+                                <line x1="12" y1="16" x2="12.01" y2="16"/>
+                            </svg>
+                            Professional Engineering Tool — Disclaimer of Liability
+                        </div>
+                        <div class="disclaimer-text">
+                            <p><strong>FOR ENGINEERING AND EDUCATIONAL USE ONLY.</strong> This tool calculates moist air properties using ASHRAE standard equations. Results are theoretical and assume ideal gas behavior.</p>
+                            <p><strong>NO WARRANTY.</strong> This software is provided "AS IS" without warranty of any kind, express or implied, including warranties of merchantability, fitness for a particular purpose, or accuracy. The entire risk as to quality and performance is with you.</p>
+                            <p><strong>ASSUMPTION OF RISK.</strong> Psychrometric calculations are sensitive to input accuracy, atmospheric pressure, and measurement errors. Do not use for safety-critical systems without independent verification. Incorrect inputs or edge cases may produce misleading results.</p>
+                            <p><strong>VERIFICATION REQUIRED.</strong> Always cross-check critical calculations against ASHRAE Handbook charts, published tables, or validated software. This tool does not account for all real-world effects (contaminants, non-ideal gas behavior, aerosols).</p>
+                        </div>
+                    </div>
+
+                    <!-- Unit Toggle -->
+                    <div class="section">
+                        <div class="section-header">Units</div>
+                        <div class="unit-toggle">
+                            <button class="active" data-unit="si">SI (°C, kPa)</button>
+                            <button data-unit="ip">IP (°F, psi)</button>
+                        </div>
+                        <div style="margin-top: 8px; font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: var(--text-muted);">
+                            Pressure: <span id="pressureUnitDisplay">kPa</span>
+                        </div>
+                    </div>
+
+                    <!-- Input Mode Selection -->
+                    <div class="section">
+                        <div class="section-header">Input Mode</div>
+                        <div class="mode-toggle">
+                            <button class="active" data-mode="tdb_rh">Tdb + RH</button>
+                            <button data-mode="tdb_twb">Tdb + Twb</button>
+                            <button data-mode="tdb_tdp">Tdb + Tdp</button>
+                            <button data-mode="tdb_w">Tdb + W</button>
+                        </div>
+                    </div>
+
+                    <!-- Input Parameters -->
+                    <div class="section">
+                        <div class="section-header">Input Parameters</div>
+                        <div class="input-grid">
+                            <div class="field">
+                                <label>Dry Bulb (Tdb) <span class="value-sub" id="labelUnitTdb">°C</span></label>
+                                <input type="number" id="inputTdb" value="25" step="0.1" placeholder="25">
+                            </div>
+                            <div class="field" id="fieldInput2">
+                                <label id="labelInput2">Relative Humidity (%)</label>
+                                <input type="number" id="input2" value="50" step="0.1" placeholder="50">
+                            </div>
+                            <div class="field">
+                                <label>Atmospheric Pressure <span class="value-sub" id="labelUnitPressure">kPa</span></label>
+                                <input type="number" id="inputPressure" value="101.325" step="0.001" placeholder="101.325">
+                            </div>
+                        </div>
+                        <div class="toolbar" style="margin-top: 12px;">
+                            <button class="tool-btn primary" id="calculateBtn">Calculate</button>
+                            <button class="tool-btn" id="resetInputBtn">Reset</button>
+                        </div>
+                    </div>
+
+                    <!-- Chart Overlays -->
+                    <div class="section">
+                        <div class="section-header">Chart Overlays</div>
+                        <div class="toggle-grid">
+                            <label class="toggle-item">
+                                <input type="checkbox" id="toggleSaturation" checked>
+                                <span class="toggle-box"><svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12"></polyline></svg></span>
+                                <span class="toggle-label">Saturation</span>
+                            </label>
+                            <label class="toggle-item">
+                                <input type="checkbox" id="toggleRH" checked>
+                                <span class="toggle-box"><svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12"></polyline></svg></span>
+                                <span class="toggle-label">RH Lines</span>
+                            </label>
+                            <label class="toggle-item">
+                                <input type="checkbox" id="toggleWetBulb" checked>
+                                <span class="toggle-box"><svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12"></polyline></svg></span>
+                                <span class="toggle-label">Wet Bulb</span>
+                            </label>
+                            <label class="toggle-item">
+                                <input type="checkbox" id="toggleEnthalpy" checked>
+                                <span class="toggle-box"><svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12"></polyline></svg></span>
+                                <span class="toggle-label">Enthalpy</span>
+                            </label>
+                            <label class="toggle-item">
+                                <input type="checkbox" id="toggleVolume">
+                                <span class="toggle-box"><svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12"></polyline></svg></span>
+                                <span class="toggle-label">Volume</span>
+                            </label>
+                            <label class="toggle-item">
+                                <input type="checkbox" id="toggleGrid" checked>
+                                <span class="toggle-box"><svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12"></polyline></svg></span>
+                                <span class="toggle-label">Grid</span>
+                            </label>
+                            <label class="toggle-item">
+                                <input type="checkbox" id="toggleGuides" checked>
+                                <span class="toggle-box"><svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12"></polyline></svg></span>
+                                <span class="toggle-label">Guides</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Current Values -->
+                    <div class="section">
+                        <div class="section-header">Current Properties</div>
+                        <div class="values-card">
+                            <div class="values-header">
+                                <span class="status-dot" id="statusDot"></span>
+                                <span id="stateLabel">Unsaturated Air</span>
+                            </div>
+                            <div class="values-body">
+                                <div class="value-row">
+                                    <span class="value-name">Dry Bulb (Tdb)</span>
+                                    <span class="value-number" id="valTdb">25.00 <span class="value-sub" id="unitTdb">°C</span></span>
+                                </div>
+                                <div class="value-row">
+                                    <span class="value-name">Wet Bulb (Twb)</span>
+                                    <span class="value-number" id="valTwb">18.52 <span class="value-sub" id="unitTwb">°C</span></span>
+                                </div>
+                                <div class="value-row">
+                                    <span class="value-name">Dew Point (Tdp)</span>
+                                    <span class="value-number" id="valTdp">13.87 <span class="value-sub" id="unitTdp">°C</span></span>
+                                </div>
+                                <div class="value-row">
+                                    <span class="value-name">Rel. Humidity (RH)</span>
+                                    <span class="value-number" id="valRH">50.0 %</span>
+                                </div>
+                                <div class="value-row">
+                                    <span class="value-name">Humidity Ratio (W)</span>
+                                    <span class="value-number" id="valW">9.95 <span class="value-sub" id="unitW">g/kg</span></span>
+                                </div>
+                                <div class="value-row">
+                                    <span class="value-name">Enthalpy (h)</span>
+                                    <span class="value-number" id="valH">50.44 <span class="value-sub" id="unitH">kJ/kg</span></span>
+                                </div>
+                                <div class="value-row">
+                                    <span class="value-name">Specific Volume (v)</span>
+                                    <span class="value-number" id="valV">0.856 <span class="value-sub" id="unitV">m³/kg</span></span>
+                                </div>
+                                <div class="value-row">
+                                    <span class="value-name">Sat. Vapor Press</span>
+                                    <span class="value-number muted" id="valPws">3.169 <span class="value-sub" id="unitPws">kPa</span></span>
+                                </div>
+                                <div class="value-row">
+                                    <span class="value-name">Part. Vapor Press</span>
+                                    <span class="value-number muted" id="valPw">1.585 <span class="value-sub" id="unitPw">kPa</span></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Calculation Details Foldable -->
+                    <div class="section">
+                        <button class="foldable-header" id="calcFoldableBtn">
+                            <div class="foldable-title">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                                </svg>
+                                <span>Calculation Details</span>
+                            </div>
+                            <svg class="foldable-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="6 9 12 15 18 9"></polyline>
+                            </svg>
+                        </button>
+                        <div class="foldable-content" id="calcFoldableContent">
+                            <div class="calc-section">
+                                <div class="calc-header">Input Parameters</div>
+                                <div class="calc-row">
+                                    <span class="calc-label">Dry Bulb Temperature</span>
+                                    <span class="calc-value" id="calcTdb">25.0 °C</span>
+                                </div>
+                                <div class="calc-row">
+                                    <span class="calc-label">Relative Humidity</span>
+                                    <span class="calc-value" id="calcInput2">50.0 %</span>
+                                </div>
+                                <div class="calc-row">
+                                    <span class="calc-label">Atmospheric Pressure</span>
+                                    <span class="calc-value" id="calcPressure">101.325 <span class="calc-small" id="calcUnitPressure">kPa</span></span>
+                                </div>
+                            </div>
+
+                            <div class="calc-section">
+                                <div class="calc-header">Primary Calculations</div>
+                                <div class="calc-equation" id="calcEquation1">
+                                    <div class="eq-name">Saturation Vapor Pressure (ASHRAE Ch.1, Eq. 5)</div>
+                                    <div class="eq-formula" id="eqFormula1">ln(Pws) = C/T + D + E·T + F·T² + G·ln(T)</div>
+                                </div>
+                                <div class="calc-row">
+                                    <span class="calc-label">Pws (at Tdb)</span>
+                                    <span class="calc-value" id="calcPws">3.169 <span class="calc-small" id="calcUnitPws">kPa</span></span>
+                                </div>
+                                <div class="calc-row">
+                                    <span class="calc-label">Pw (partial)</span>
+                                    <span class="calc-value" id="calcPw">1.585 <span class="calc-small" id="calcUnitPw">kPa</span></span>
+                                </div>
+                                <div class="calc-row">
+                                    <span class="calc-label">Humidity Ratio (W)</span>
+                                    <span class="calc-value calc-result" id="calcW">0.00995 <span class="calc-small" id="calcUnitW">kg/kg</span></span>
+                                </div>
+                                <div class="calc-row">
+                                    <span class="calc-label">Dew Point (Tdp)</span>
+                                    <span class="calc-value" id="calcTdp">13.87 <span class="calc-small" id="calcUnitTdp">°C</span></span>
+                                </div>
+                            </div>
+
+                            <div class="calc-section">
+                                <div class="calc-header">Energy Properties</div>
+                                <div class="calc-equation">
+                                    <div class="eq-name">Specific Enthalpy (ASHRAE Eq. 30)</div>
+                                    <div class="eq-formula">h = 1.006·Tdb + W·(2501 + 1.86·Tdb)</div>
+                                </div>
+                                <div class="calc-row">
+                                    <span class="calc-label">Enthalpy (h)</span>
+                                    <span class="calc-value calc-result" id="calcH">50.44 <span class="calc-small" id="calcUnitH">kJ/kg</span></span>
+                                </div>
+                                <div class="calc-row">
+                                    <span class="calc-label">Wet Bulb (Twb)</span>
+                                    <span class="calc-value" id="calcTwb">18.52 <span class="calc-small" id="calcUnitTwb">°C</span></span>
+                                </div>
+                            </div>
+
+                            <!-- Nested foldable for step-by-step -->
+                            <button class="nested-foldable-header" id="stepsBtn">
+                                <span>📐 Show Step-by-Step Derivation</span>
+                                <svg class="nested-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="6 9 12 15 18 9"></polyline>
+                                </svg>
+                            </button>
+                            <div class="nested-foldable-content" id="stepsContent">
+                                <div class="steps-container" id="stepsContainer">
+                                    <!-- Populated dynamically -->
+                                </div>
+                            </div>
+
+                            <div class="calc-section">
+                                <div class="calc-header">Physical Properties</div>
+                                <div class="calc-row">
+                                    <span class="calc-label">Specific Volume (v)</span>
+                                    <span class="calc-value" id="calcV">0.856 <span class="calc-small" id="calcUnitV">m³/kg</span></span>
+                                </div>
+                                <div class="calc-row">
+                                    <span class="calc-label">Air Density (ρ)</span>
+                                    <span class="calc-value" id="calcRho">1.168 <span class="calc-small" id="calcUnitRho">kg/m³</span></span>
+                                </div>
+                                <div class="calc-row">
+                                    <span class="calc-label">Degree of Saturation (μ)</span>
+                                    <span class="calc-value" id="calcMu">0.502</span>
+                                </div>
+                            </div>
+
+                            <div class="calc-section">
+                                <div class="calc-header">Solver Details</div>
+                                <div class="calc-row">
+                                    <span class="calc-label">Dew Point Solver</span>
+                                    <span class="calc-value calc-small">Newton-Raphson</span>
+                                </div>
+                                <div class="calc-row">
+                                    <span class="calc-label">Wet Bulb Solver</span>
+                                    <span class="calc-value calc-small">Bisection Method</span>
+                                </div>
+                                <div class="calc-row">
+                                    <span class="calc-label">Iterations (Twb)</span>
+                                    <span class="calc-value" id="calcIterations">7</span>
+                                </div>
+                            </div>
+
+                            <div class="calc-section" id="calcWarningSection" style="display: none;">
+                                <div class="calc-header">⚠️ Warnings</div>
+                                <div class="calc-warning" id="calcWarning"></div>
+                            </div>
+
+                            <div class="calc-section">
+                                <div class="calc-header">Validation Checks</div>
+                                <div class="calc-row">
+                                    <span class="calc-label">Tdp ≤ Twb ≤ Tdb</span>
+                                    <span class="calc-value calc-success" id="calcCheck1">✓ Pass</span>
+                                </div>
+                                <div class="calc-row">
+                                    <span class="calc-label">0% ≤ RH ≤ 100%</span>
+                                    <span class="calc-value calc-success" id="calcCheck2">✓ Pass</span>
+                                </div>
+                                <div class="calc-row">
+                                    <span class="calc-label">Pressure in valid range</span>
+                                    <span class="calc-value calc-success" id="calcCheck3">✓ Pass</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Info Buttons -->
+                    <div class="info-buttons">
+                        <button class="info-btn" data-modal="directions">Directions</button>
+                        <button class="info-btn" data-modal="details">Details</button>
+                        <button class="info-btn" data-modal="examples">Examples</button>
+                        <button class="info-btn" data-modal="assumptions">Assumptions</button>
+                        <button class="info-btn" data-modal="techref">Tech Ref</button>
+                        <button class="info-btn" data-modal="about">About</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="disclaimer-container">
+        <div class="disclaimer-content">
+            <strong>Engineering Disclaimer:</strong> This tool is provided for educational and informational purposes only. While algorithms are based on ASHRAE Fundamentals Handbook (2017/2021) equations, the software is provided "as is" without warranty of any kind, express or implied. The authors assume no liability for errors, omissions, or damages resulting from the use of this tool. Users must verify all critical calculations against standard engineering references.
+        </div>
+    </div>
+
+    <footer>
+        <div class="footer-content">
+            <p class="footer-text">© 2025 Tools Hub — Built for engineers</p>
+            <nav class="footer-links">
+                <a href="../tools.html">All Tools</a>
+                <a href="#">Report Issue</a>
+            </nav>
+        </div>
+    </footer>
+
+    <!-- Modal -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title" id="modalTitle">Title</h2>
+                <button class="modal-close" id="modalClose">×</button>
+            </div>
+            <div class="modal-body" id="modalBody"></div>
+        </div>
+    </div>
+
+    <script src="../js/shared.js"></script>
+    <script src="../js/psychrometric_chart/psychrolib.js"></script>
+    <script>
+    /* ========================================
+       PSYCHROMETRIC CALCULATOR
+       ASHRAE Fundamentals Handbook (2017/2021)
+       Chapter 1: Psychrometrics
+       ======================================== */
+
+    // ========================================
+    // DEVELOPMENT MODE
+    // Set DEV_MODE to false to disable the modal
+    // ========================================
+    const DEV_MODE = true;
+    const DEV_PASSWORD = 'jesse';
+
+    // Development mode modal handler (runs immediately)
+    (function() {
+        const modal = document.getElementById('devModal');
+        const passwordInput = document.getElementById('devPassword');
+        const unlockBtn = document.getElementById('devUnlockBtn');
+        const errorMsg = document.getElementById('devPasswordError');
+
+        if (!DEV_MODE || !modal) {
+            if (modal) modal.remove();
+            return;
+        }
+
+        // Function to unlock and continue
+        function unlockTool() {
+            modal.style.opacity = '0';
+            modal.style.transition = 'opacity 0.3s ease';
+            setTimeout(() => modal.remove(), 300);
+        }
+
+        // Check password
+        function checkPassword() {
+            if (passwordInput.value === DEV_PASSWORD) {
+                errorMsg.style.display = 'none';
+                unlockTool();
+            } else {
+                errorMsg.style.display = 'block';
+                passwordInput.style.borderColor = '#ef4444';
+            }
+        }
+
+        // Event listeners
+        unlockBtn.addEventListener('click', checkPassword);
+
+        // Allow Enter key to submit password
+        passwordInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                checkPassword();
+            }
+        });
+
+        // Clear error on input
+        passwordInput.addEventListener('input', function() {
+            errorMsg.style.display = 'none';
+            passwordInput.style.borderColor = 'var(--border-color, #444)';
+        });
+
+        // Focus password field on load
+        passwordInput.focus();
+    })();
+
+    // ========================================
+    // CONFIGURATION
+    // ========================================
+    const CONFIG = {
+        // Chart ranges (SI units: °C, g/kg)
+        Tdb: { min: -10, max: 60 },
+        W: { min: 0, max: 35 },
+        pressure: {
+            min: 50,      // kPa
+            max: 150,     // kPa
+            seaLevel: 101.325
+        },
+        solver: {
+            dewPoint: 1e-4,         // K tolerance
+            wetBulb: 1e-6,          // kJ/kg enthalpy tolerance
+            maxIterations: 100
+        },
+        colors: {
+            saturation: '#f59e0b',
+            rhLine: 'rgba(6, 182, 212, 0.5)',
+            enthalpy: 'rgba(34, 197, 94, 0.6)',
+            volume: 'rgba(139, 92, 246, 0.5)',
+            point: '#ef4444',
+            grid: 'rgba(91, 99, 115, 0.3)',
+            guide: 'rgba(245, 158, 11, 0.5)'
+        }
+    };
+
+    // Current unit system
+    let units = 'si'; // 'si' or 'ip'
+    let inputMode = 'tdb_rh';
+    let currentState = null;
+
+    // ========================================
+    // PSYCHROLIB WRAPPER
+    // Uses PsychroLib (v2.5.0) for all ASHRAE calculations
+    // https://github.com/psychrometrics/psychrolib
+    // ========================================
+
+    // Initialize PsychroLib with SI units (all calculations internal SI)
+    const psychrolib = new Psychrometrics();
+    psychrolib.SetUnitSystem(psychrolib.SI);
+
+    // ASHRAE constants (for display/formula purposes, calculations use PsychroLib)
+    const ASHRAE = {
+        MW_ratio: 0.621945,
+        R: { air: 0.2871, vapor: 0.4615 },
+        cp: { air: 1.006, vapor: 1.86, water: 4.186 },
+        h_fg_0: 2501
+    };
+
+    // ========================================
+    // VALIDATION REFERENCE DATA
+    // ========================================
+    // Reference values computed using PsychroLib v2.5.0
+    // PsychroLib is the canonical implementation of ASHRAE Fundamentals equations
+    const REFERENCE_DATA = [
+        {
+            name: 'Comfort Room Conditions',
+            input: { Tdb: 25, RH: 50, Pa: 101.325 },
+            expected: { Twb: 17.89, Tdp: 13.86, W: 9.881, h: 50.32, v: 0.858 },
+            tolerance: { Twb: 0.01, Tdp: 0.01, W: 0.01, h: 0.1, v: 0.001 }
+        },
+        {
+            name: 'Warm & Humid',
+            input: { Tdb: 30, RH: 70, Pa: 101.325 },
+            expected: { Twb: 25.50, Tdp: 23.93, W: 18.795, h: 78.24, v: 0.885 },
+            tolerance: { Twb: 0.01, Tdp: 0.01, W: 0.01, h: 0.1, v: 0.001 }
+        },
+        {
+            name: 'Cool & Dry',
+            input: { Tdb: 20, RH: 30, Pa: 101.325 },
+            expected: { Twb: 10.85, Tdp: 1.91, W: 4.337, h: 31.13, v: 0.836 },
+            tolerance: { Twb: 0.01, Tdp: 0.01, W: 0.01, h: 0.1, v: 0.001 }
+        }
+    ];
+
+    // ========================================
+    // PSYCHROLIB-BASED PSYCHROMETRIC FUNCTIONS
+    // All calculations use PsychroLib (v2.5.0)
+    // https://github.com/psychrometrics/psychrolib
+    // ========================================
+    const PSY = {
+        // ========== Unit Conversion Functions ==========
+        // These are kept as-is since they're simple conversions
+
+        // Convert between Celsius and Kelvin
+        CtoK(C) { return C + 273.15; },
+        KtoC(K) { return K - 273.15; },
+
+        // Convert between Celsius and Fahrenheit
+        CtoF(C) { return C * 9/5 + 32; },
+        FtoC(F) { return (F - 32) * 5/9; },
+
+        // Convert kPa to psi (and vice versa)
+        kPaToPsi(kPa) { return kPa * 0.145038; },
+        psiTokPa(psi) { return psi / 0.145038; },
+
+        // Convert g/kg to kg/kg (and vice versa)
+        gkgToKgkg(gkg) { return gkg / 1000; },
+        kgkgToGkg(kgkg) { return kgkg * 1000; },
+
+        // Convert kJ/kg to Btu/lb (and vice versa)
+        kJkgToBtulb(kJkg) { return kJkg * 0.429923; },
+        BtulbTokJkg(Btulb) { return Btulb / 0.429923; },
+
+        // Convert m³/kg to ft³/lb (and vice versa)
+        m3kgToFt3lb(m3kg) { return m3kg * 16.0185; },
+        ft3lbTom3kg(ft3lb) { return ft3lb / 16.0185; },
+
+        // ========== PsychroLib Wrapper Functions ==========
+        // PsychroLib uses Pa for pressure and J/kg for enthalpy (SI mode)
+        // Our interface uses kPa for pressure and kJ/kg for enthalpy
+        // These wrappers handle the unit conversions transparently
+
+        /**
+         * Calculate saturation vapor pressure using PsychroLib
+         * @param {number} T_C - Temperature in Celsius
+         * @returns {number} Pws in kPa
+         */
+        Pws(T_C) {
+            // PsychroLib GetSatVapPres returns Pa in SI mode
+            const Pws_Pa = psychrolib.GetSatVapPres(T_C);
+            return Pws_Pa / 1000; // Convert Pa to kPa
+        },
+
+        /**
+         * Calculate humidity ratio from vapor pressure using PsychroLib
+         * @param {number} Pw - Partial vapor pressure (kPa)
+         * @param {number} Pa - Atmospheric pressure (kPa)
+         * @returns {number} W in kg/kg
+         */
+        W_from_Pw(Pw, Pa) {
+            // Convert kPa to Pa for PsychroLib
+            const Pw_Pa = Pw * 1000;
+            const Pa_Pa = Pa * 1000;
+            return psychrolib.GetHumRatioFromVapPres(Pw_Pa, Pa_Pa);
+        },
+
+        /**
+         * Calculate vapor pressure from humidity ratio using PsychroLib
+         * @param {number} W - Humidity ratio (kg/kg)
+         * @param {number} Pa - Atmospheric pressure (kPa)
+         * @returns {number} Pw in kPa
+         */
+        Pw_from_W(W, Pa) {
+            const Pa_Pa = Pa * 1000;
+            const Pw_Pa = psychrolib.GetVapPresFromHumRatio(W, Pa_Pa);
+            return Pw_Pa / 1000; // Convert Pa to kPa
+        },
+
+        /**
+         * Calculate relative humidity from vapor pressure using PsychroLib
+         * @param {number} Pw - Partial vapor pressure (kPa)
+         * @param {number} T_C - Dry bulb temperature (°C)
+         * @returns {number} RH in %
+         */
+        RH_from_Pw(Pw, T_C) {
+            const Pw_Pa = Pw * 1000;
+            // PsychroLib returns RH as 0-1, convert to 0-100
+            return psychrolib.GetRelHumFromVapPres(T_C, Pw_Pa) * 100;
+        },
+
+        /**
+         * Calculate specific enthalpy using PsychroLib
+         * @param {number} T_C - Dry bulb temperature (°C)
+         * @param {number} W - Humidity ratio (kg/kg)
+         * @returns {number} h in kJ/kg_da
+         */
+        h(T_C, W) {
+            // PsychroLib returns J/kg, convert to kJ/kg
+            const h_Jpkg = psychrolib.GetMoistAirEnthalpy(T_C, W);
+            return h_Jpkg / 1000;
+        },
+
+        /**
+         * Calculate specific volume using PsychroLib
+         * @param {number} T_C - Dry bulb temperature (°C)
+         * @param {number} W - Humidity ratio (kg/kg)
+         * @param {number} Pa - Atmospheric pressure (kPa)
+         * @returns {number} v in m³/kg_da
+         */
+        v(T_C, W, Pa) {
+            if (Pa <= 0) Pa = 101.325;
+            const Pa_Pa = Pa * 1000;
+            return psychrolib.GetMoistAirVolume(T_C, W, Pa_Pa);
+        },
+
+        /**
+         * Calculate air density using PsychroLib
+         * @param {number} T_C - Dry bulb temperature (°C)
+         * @param {number} W - Humidity ratio (kg/kg)
+         * @param {number} Pa - Atmospheric pressure (kPa)
+         * @returns {number} ρ in kg/m³
+         */
+        rho(T_C, W, Pa) {
+            if (Pa <= 0) Pa = 101.325;
+            const Pa_Pa = Pa * 1000;
+            return psychrolib.GetMoistAirDensity(T_C, W, Pa_Pa);
+        },
+
+        /**
+         * Calculate dew point temperature from vapor pressure using PsychroLib
+         * @param {number} Pw - Partial vapor pressure (kPa)
+         * @returns {number} Tdp in °C
+         */
+        Tdp_from_Pw(Pw) {
+            const Pw_Pa = Pw * 1000;
+            // Need a reasonable Tdb for PsychroLib - use Tdp = Pws^(-1)(Pw)
+            // PsychroLib's GetTDewPointFromVapPres needs Tdb as initial guess
+            // For dew point, any Tdb >= Tdp will work; use a reasonable guess
+            const Tdb_guess = Math.max(Pw * 10 - 20, 0); // Rough approximation
+            return psychrolib.GetTDewPointFromVapPres(Tdb_guess, Pw_Pa);
+        },
+
+        /**
+         * Solve for wet bulb temperature using PsychroLib
+         * @param {number} h_target - Target enthalpy (kJ/kg)
+         * @param {number} W_target - Target humidity ratio (kg/kg)
+         * @param {number} Pa - Atmospheric pressure (kPa)
+         * @returns {object} { Twb, iterations, log, converged, warning }
+         */
+        Twb_from_hW(h_target, W_target, Pa) {
+            // PsychroLib's GetTWetBulbFromHumRatio uses bisection internally
+            const Pa_Pa = Pa * 1000;
+            const h_Jpkg = h_target * 1000; // Convert to J/kg
+
+            // PsychroLib doesn't have a direct "from enthalpy" function
+            // We need to iterate or use the relationship between h, W, and Twb
+            // Use PsychroLib's GetTWetBulbFromHumRatio which finds Twb for a given W
+
+            // First, we need to find Twb such that the enthalpy at Twb (saturated) equals h_target
+            // At Twb, air is saturated, so Ws(Twb) is the humidity ratio at saturation
+            // h(Twb, Ws(Twb)) should equal h_target
+
+            // Use bisection to find Twb
+            const Pw = this.Pw_from_W(W_target, Pa);
+            const Tdp = this.Tdp_from_Pw(Pw);
+
+            let T_lower = Math.max(Tdp - 5, -60);
+            let T_upper = 60;
+
+            // Get saturation enthalpy at bounds
+            const Ws_lower = psychrolib.GetSatHumRatio(T_lower, Pa_Pa);
+            const h_lower = psychrolib.GetMoistAirEnthalpy(T_lower, Ws_lower) / 1000;
+
+            const Ws_upper = psychrolib.GetSatHumRatio(T_upper, Pa_Pa);
+            const h_upper = psychrolib.GetMoistAirEnthalpy(T_upper, Ws_upper) / 1000;
+
+            // Expand upper bound if needed
+            let safetyCounter = 0;
+            let h_upper_curr = h_upper;
+            let T_upper_curr = T_upper;
+            while (h_upper_curr < h_target && safetyCounter < 20) {
+                T_upper_curr += 10;
+                const Ws = psychrolib.GetSatHumRatio(T_upper_curr, Pa_Pa);
+                h_upper_curr = psychrolib.GetMoistAirEnthalpy(T_upper_curr, Ws) / 1000;
+                safetyCounter++;
+            }
+
+            if (h_upper_curr < h_target) {
+                return {
+                    Twb: T_upper_curr,
+                    iterations: 0,
+                    log: [],
+                    converged: false,
+                    warning: 'Target enthalpy exceeds saturation limit'
+                };
+            }
+
+            if (h_lower > h_target) {
+                return {
+                    Twb: T_lower,
+                    iterations: 0,
+                    log: [],
+                    converged: false,
+                    warning: 'Input indicates supersaturated air (RH > 100%)'
+                };
+            }
+
+            const iterationLog = [];
+            let Twb_result;
+            const tolerance = CONFIG.solver.wetBulb; // kJ/kg
+
+            for (let i = 0; i < CONFIG.solver.maxIterations; i++) {
+                const T_mid = (T_lower + T_upper) / 2;
+                const Ws_mid = psychrolib.GetSatHumRatio(T_mid, Pa_Pa);
+                const h_mid = psychrolib.GetMoistAirEnthalpy(T_mid, Ws_mid) / 1000;
+
+                iterationLog.push({ i: i + 1, T: T_mid, h: h_mid, delta: h_mid - h_target });
+
+                if (Math.abs(h_mid - h_target) < tolerance) {
+                    Twb_result = T_mid;
+                    return {
+                        Twb: Twb_result,
+                        iterations: i + 1,
+                        log: iterationLog,
+                        converged: true
+                    };
+                }
+
+                if (h_mid > h_target) {
+                    T_upper = T_mid;
+                } else {
+                    T_lower = T_mid;
+                }
+            }
+
+            Twb_result = (T_lower + T_upper) / 2;
+            return {
+                Twb: Twb_result,
+                iterations: CONFIG.solver.maxIterations,
+                log: iterationLog,
+                converged: false,
+                warning: 'Maximum iterations reached'
+            };
+        },
+
+        /**
+         * Main solver: calculate all properties from Tdb and RH
+         * Uses PsychroLib's CalcPsychrometricsFromRelHum function
+         * Returns: [HumRatio, TWetBulb, TDewPoint, VapPres, MoistAirEnthalpy, MoistAirVolume, DegreeOfSaturation]
+         * @param {number} Tdb - Dry bulb temperature (°C)
+         * @param {number} RH - Relative humidity (%)
+         * @param {number} Pa - Atmospheric pressure (kPa)
+         * @returns {object} All psychrometric properties
+         */
+        solve_Tdb_RH(Tdb, RH, Pa) {
+            const Pa_Pa = Pa * 1000;
+            const RH_fraction = RH / 100;
+
+            // Use PsychroLib's comprehensive calculation function
+            // Returns: [HumRatio, TWetBulb, TDewPoint, VapPres, MoistAirEnthalpy, MoistAirVolume, DegreeOfSaturation]
+            const [W, Twb, Tdp, Pw_Pa, h_Jpkg, v, mu] =
+                psychrolib.CalcPsychrometricsFromRelHum(Tdb, RH_fraction, Pa_Pa);
+
+            // Convert units back to our interface
+            const Pws_Pa = psychrolib.GetSatVapPres(Tdb);
+            const Pws = Pws_Pa / 1000;
+            const Pw = Pw_Pa / 1000;
+            const h = h_Jpkg / 1000;
+
+            // Calculate density
+            const rho = this.rho(Tdb, W, Pa);
+
+            // Validate state
+            const stateWarning = this.validateState(Tdb, Twb, Tdp, RH, Pa);
+
+            return {
+                Tdb,
+                Twb,
+                Tdp,
+                RH,
+                W,
+                h,
+                v,
+                rho,
+                Pws,
+                Pw,
+                mu,
+                iterations: 0,  // PsychroLib handles iteration internally
+                Twb_log: [],
+                Twb_converged: true,
+                valid: true,
+                warning: stateWarning
+            };
+        },
+
+        /**
+         * Main solver: calculate all properties from Tdb and Twb
+         * Uses PsychroLib's CalcPsychrometricsFromTWetBulb function
+         * @param {number} Tdb - Dry bulb temperature (°C)
+         * @param {number} Twb - Wet bulb temperature (°C)
+         * @param {number} Pa - Atmospheric pressure (kPa)
+         * @returns {object} All psychrometric properties
+         */
+        solve_Tdb_Twb(Tdb, Twb, Pa) {
+            const Pa_Pa = Pa * 1000;
+
+            // Use PsychroLib's comprehensive calculation function
+            const [W, Tdp, RH, Pw_Pa, h_Jpkg, v, mu] =
+                psychrolib.CalcPsychrometricsFromTWetBulb(Tdb, Twb, Pa_Pa);
+
+            // Convert units back to our interface
+            const Pws_Pa = psychrolib.GetSatVapPres(Tdb);
+            const Pws = Pws_Pa / 1000;
+            const Pw = Pw_Pa / 1000;
+            const h = h_Jpkg / 1000;
+            const RH_pct = RH * 100;
+
+            // Calculate density
+            const rho = this.rho(Tdb, W, Pa);
+
+            return {
+                Tdb,
+                Twb,
+                Tdp,
+                RH: RH_pct,
+                W,
+                h,
+                v,
+                rho,
+                Pws,
+                Pw,
+                mu,
+                iterations: 0,
+                valid: true,
+                warning: this.validateState(Tdb, Twb, Tdp, RH_pct, Pa)
+            };
+        },
+
+        /**
+         * Main solver: calculate all properties from Tdb and Tdp
+         * Uses PsychroLib's CalcPsychrometricsFromTDewPoint function
+         * @param {number} Tdb - Dry bulb temperature (°C)
+         * @param {number} Tdp - Dew point temperature (°C)
+         * @param {number} Pa - Atmospheric pressure (kPa)
+         * @returns {object} All psychrometric properties
+         */
+        solve_Tdb_Tdp(Tdb, Tdp, Pa) {
+            const Pa_Pa = Pa * 1000;
+
+            // Use PsychroLib's comprehensive calculation function
+            const [W, Twb, RH, Pw_Pa, h_Jpkg, v, mu] =
+                psychrolib.CalcPsychrometricsFromTDewPoint(Tdb, Tdp, Pa_Pa);
+
+            // Convert units back to our interface
+            const Pws_Pa = psychrolib.GetSatVapPres(Tdb);
+            const Pws = Pws_Pa / 1000;
+            const Pw = Pw_Pa / 1000;
+            const h = h_Jpkg / 1000;
+            const RH_pct = RH * 100;
+
+            // Calculate density
+            const rho = this.rho(Tdb, W, Pa);
+
+            // Validate state
+            const stateWarning = this.validateState(Tdb, Twb, Tdp, RH_pct, Pa);
+
+            return {
+                Tdb,
+                Twb,
+                Tdp,
+                RH: RH_pct,
+                W,
+                h,
+                v,
+                rho,
+                Pws,
+                Pw,
+                mu,
+                iterations: 0,
+                Twb_log: [],
+                Twb_converged: true,
+                valid: true,
+                warning: stateWarning
+            };
+        },
+
+        /**
+         * Main solver: calculate all properties from Tdb and W
+         * @param {number} Tdb - Dry bulb temperature (°C)
+         * @param {number} W - Humidity ratio (kg/kg)
+         * @param {number} Pa - Atmospheric pressure (kPa)
+         * @returns {object} All psychrometric properties
+         */
+        solve_Tdb_W(Tdb, W, Pa) {
+            const Pa_Pa = Pa * 1000;
+
+            // Calculate Pw from W
+            const Pw_Pa = psychrolib.GetVapPresFromHumRatio(W, Pa_Pa);
+            const Pws_Pa = psychrolib.GetSatVapPres(Tdb);
+
+            // Calculate RH
+            const RH_fraction = psychrolib.GetRelHumFromVapPres(Tdb, Pw_Pa);
+            const RH = RH_fraction * 100;
+
+            // Calculate Tdp
+            const Tdp = psychrolib.GetTDewPointFromVapPres(Tdb, Pw_Pa);
+
+            // Calculate enthalpy
+            const h_Jpkg = psychrolib.GetMoistAirEnthalpy(Tdb, W);
+            const h = h_Jpkg / 1000;
+
+            // Calculate wet bulb
+            const Twb_result = this.Twb_from_hW(h, W, Pa);
+
+            // Calculate specific volume
+            const v = psychrolib.GetMoistAirVolume(Tdb, W, Pa_Pa);
+
+            // Calculate density
+            const rho = psychrolib.GetMoistAirDensity(Tdb, W, Pa_Pa);
+
+            // Calculate degree of saturation
+            const Ws = psychrolib.GetSatHumRatio(Tdb, Pa_Pa);
+            const mu = psychrolib.GetDegreeOfSaturation(Tdb, W, Pa_Pa);
+
+            // Convert pressures to kPa
+            const Pws = Pws_Pa / 1000;
+            const Pw = Pw_Pa / 1000;
+
+            // Validate state
+            const stateWarning = this.validateState(Tdb, Twb_result.Twb, Tdp, RH, Pa);
+            const allWarnings = [Twb_result.warning, stateWarning].filter(w => w).join('; ') || null;
+
+            return {
+                Tdb,
+                Twb: Twb_result.Twb,
+                Tdp,
+                RH,
+                W,
+                h,
+                v,
+                rho,
+                Pws,
+                Pw,
+                mu,
+                iterations: Twb_result.iterations,
+                Twb_log: Twb_result.log,
+                Twb_converged: Twb_result.converged,
+                valid: true,
+                warning: allWarnings
+            };
+        },
+
+        /**
+         * Validate psychrometric state
+         */
+        validateState(Tdb, Twb, Tdp, RH, Pa = 101.325) {
+            const warnings = [];
+
+            // Temperature validation
+            if (Tdb < -60 || Tdb > 60) {
+                warnings.push('Tdb outside valid range (-60 to 60°C)');
+            }
+
+            if (RH > 100.1) {
+                warnings.push('RH > 100%: Supersaturated conditions (fog possible)');
+            }
+
+            if (RH < 0) {
+                warnings.push('RH < 0%: Physically impossible state');
+            }
+
+            if (Tdp > Tdb + 0.5) {
+                warnings.push('Tdp > Tdb: Physically impossible state');
+            }
+
+            if (Twb > Tdb + 0.5) {
+                warnings.push('Twb > Tdb: Physically impossible state');
+            }
+
+            if (Tdp > Twb + 0.5) {
+                warnings.push('Tdp > Twb: Physically impossible state');
+            }
+
+            // Pressure validation
+            if (Pa < 50) {
+                warnings.push('Pressure < 50 kPa: Outside typical atmospheric range (high altitude > 5000m)');
+            } else if (Pa > 150) {
+                warnings.push('Pressure > 150 kPa: Outside typical atmospheric range (below 3000m depth)');
+            }
+
+            return warnings.length > 0 ? warnings.join('; ') : null;
+        }
+    };
+
+    // ========================================
+    // CANVAS & CHART RENDERING
+    // ========================================
+    const CHART = {
+        canvas: null,
+        ctx: null,
+        chartArea: null,
+
+        init() {
+            this.canvas = document.getElementById('psychoCanvas');
+            this.ctx = this.canvas.getContext('2d');
+            this.resize();
+            window.addEventListener('resize', () => {
+                this.resize();
+                this.draw();
+            });
+        },
+
+        resize() {
+            const container = this.canvas.parentElement;
+            const dpr = window.devicePixelRatio || 1;
+            const rect = container.getBoundingClientRect();
+
+            this.canvas.width = rect.width * dpr;
+            this.canvas.height = rect.height * dpr;
+            this.canvas.style.width = rect.width + 'px';
+            this.canvas.style.height = rect.height + 'px';
+
+            this.ctx.scale(dpr, dpr);
+
+            const padding = { top: 40, right: 60, bottom: 70, left: 70 };
+            this.chartArea = {
+                x: padding.left,
+                y: padding.top,
+                width: rect.width - padding.left - padding.right,
+                height: rect.height - padding.top - padding.bottom
+            };
+        },
+
+        // Convert Tdb to canvas x coordinate
+        TdbToX(Tdb) {
+            const range = CONFIG.Tdb.max - CONFIG.Tdb.min;
+            const ratio = (Tdb - CONFIG.Tdb.min) / range;
+            return this.chartArea.x + ratio * this.chartArea.width;
+        },
+
+        // Convert canvas x to Tdb
+        xToTdb(x) {
+            const ratio = (x - this.chartArea.x) / this.chartArea.width;
+            return CONFIG.Tdb.min + ratio * (CONFIG.Tdb.max - CONFIG.Tdb.min);
+        },
+
+        // Convert W to canvas y coordinate
+        WToY(W) {
+            const range = CONFIG.W.max - CONFIG.W.min;
+            const ratio = (W - CONFIG.W.min) / range;
+            return this.chartArea.y + this.chartArea.height - ratio * this.chartArea.height;
+        },
+
+        // Convert canvas y to W
+        yToW(y) {
+            const ratio = (this.chartArea.y + this.chartArea.height - y) / this.chartArea.height;
+            return CONFIG.W.min + ratio * (CONFIG.W.max - CONFIG.W.min);
+        },
+
+        draw() {
+            const ctx = this.ctx;
+            const { x, y, width, height } = this.chartArea;
+
+            // Clear canvas
+            ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+            // Draw background
+            ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--bg-primary').trim();
+            ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+            // Draw grid if enabled
+            if (document.getElementById('toggleGrid').checked) {
+                this.drawGrid();
+            }
+
+            // Draw constant RH lines if enabled
+            if (document.getElementById('toggleRH').checked) {
+                this.drawRHLines();
+            }
+
+            // Draw saturation curve
+            if (document.getElementById('toggleSaturation').checked) {
+                this.drawSaturation();
+            }
+
+            // Draw enthalpy lines if enabled
+            if (document.getElementById('toggleEnthalpy').checked) {
+                this.drawEnthalpyLines();
+            }
+
+            // Draw volume lines if enabled
+            if (document.getElementById('toggleVolume').checked) {
+                this.drawVolumeLines();
+            }
+
+            // Draw wet bulb lines (always shown if enabled)
+            if (document.getElementById('toggleWetBulb') && document.getElementById('toggleWetBulb').checked) {
+                this.drawWetBulbLines();
+            }
+
+            // Draw current state point
+            if (currentState) {
+                this.drawStatePoint();
+            }
+
+            // Draw axes labels
+            this.drawAxes();
+        },
+
+        drawGrid() {
+            const ctx = this.ctx;
+            ctx.strokeStyle = CONFIG.colors.grid;
+            ctx.lineWidth = 1;
+
+            // Vertical lines (dry bulb)
+            for (let T = CONFIG.Tdb.min; T <= CONFIG.Tdb.max; T += 5) {
+                const x = this.TdbToX(T);
+                ctx.beginPath();
+                ctx.moveTo(x, this.chartArea.y);
+                ctx.lineTo(x, this.chartArea.y + this.chartArea.height);
+                ctx.stroke();
+            }
+
+            // Horizontal lines (humidity ratio)
+            for (let W = 0; W <= CONFIG.W.max; W += 5) {
+                const y = this.WToY(W);
+                ctx.beginPath();
+                ctx.moveTo(this.chartArea.x, y);
+                ctx.lineTo(this.chartArea.x + this.chartArea.width, y);
+                ctx.stroke();
+            }
+        },
+
+        drawSaturation() {
+            const ctx = this.ctx;
+            const Pa = parseFloat(document.getElementById('inputPressure').value) || 101.325;
+
+            ctx.strokeStyle = CONFIG.colors.saturation;
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+
+            let started = false;
+            for (let T = CONFIG.Tdb.min; T <= CONFIG.Tdb.max; T += 0.5) {
+                const Pws = PSY.Pws(T);
+                const W = PSY.W_from_Pw(Pws, Pa) * 1000; // Convert to g/kg
+
+                if (W <= CONFIG.W.max) {
+                    const x = this.TdbToX(T);
+                    const y = this.WToY(W);
+                    if (!started) {
+                        ctx.moveTo(x, y);
+                        started = true;
+                    } else {
+                        ctx.lineTo(x, y);
+                    }
+                }
+            }
+            ctx.stroke();
+
+            // Label
+            ctx.fillStyle = CONFIG.colors.saturation;
+            ctx.font = 'bold 11px JetBrains Mono';
+            ctx.fillText('100% RH', this.TdbToX(CONFIG.Tdb.min) + 10, this.WToY(CONFIG.W.max) - 10);
+        },
+
+        drawRHLines() {
+            const ctx = this.ctx;
+            const Pa = parseFloat(document.getElementById('inputPressure').value) || 101.325;
+
+            const RHValues = [10, 20, 30, 40, 50, 60, 70, 80, 90];
+
+            ctx.strokeStyle = CONFIG.colors.rhLine;
+            ctx.lineWidth = 1.5;
+
+            RHValues.forEach(RH => {
+                ctx.beginPath();
+                let started = false;
+
+                for (let T = CONFIG.Tdb.min; T <= CONFIG.Tdb.max; T += 1) {
+                    const Pws = PSY.Pws(T);
+                    const Pw = (RH / 100) * Pws;
+                    const W = PSY.W_from_Pw(Pw, Pa) * 1000;
+
+                    if (W <= CONFIG.W.max && W >= 0) {
+                        const x = this.TdbToX(T);
+                        const y = this.WToY(W);
+                        if (!started) {
+                            ctx.moveTo(x, y);
+                            started = true;
+                        } else {
+                            ctx.lineTo(x, y);
+                        }
+                    }
+                }
+                ctx.stroke();
+
+                // Label
+                const labelT = CONFIG.Tdb.min + 2;
+                const labelPws = PSY.Pws(labelT);
+                const labelPw = (RH / 100) * labelPws;
+                const labelW = PSY.W_from_Pw(labelPw, Pa) * 1000;
+                if (labelW < CONFIG.W.max) {
+                    ctx.fillStyle = CONFIG.colors.rhLine;
+                    ctx.font = '10px JetBrains Mono';
+                    ctx.fillText(RH + '%', this.TdbToX(labelT), this.WToY(labelW) - 3);
+                }
+            });
+        },
+
+        drawEnthalpyLines() {
+            const ctx = this.ctx;
+            const Pa = parseFloat(document.getElementById('inputPressure').value) || 101.325;
+
+            const hValues = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 120, 140]; // kJ/kg
+
+            ctx.strokeStyle = CONFIG.colors.enthalpy;
+            ctx.setLineDash([5, 5]);
+            ctx.lineWidth = 1.5;
+
+            hValues.forEach(h => {
+                ctx.beginPath();
+                let started = false;
+
+                for (let T = CONFIG.Tdb.min; T <= CONFIG.Tdb.max; T += 1) {
+                    // Use PsychroLib to find W for given h and T
+                    // h = 1.006*T + W*(2501 + 1.86*T)
+                    // W = (h - 1.006*T) / (2501 + 1.86*T)
+                    // PsychroLib uses: 1.006, 2501.0, 1.86 exactly
+                    const W = (h - 1.006 * T) / (2501.0 + 1.86 * T) * 1000;
+
+                    if (W >= 0 && W <= CONFIG.W.max) {
+                        const x = this.TdbToX(T);
+                        const y = this.WToY(W);
+                        if (!started) {
+                            ctx.moveTo(x, y);
+                            started = true;
+                        } else {
+                            ctx.lineTo(x, y);
+                        }
+                    }
+                }
+                ctx.stroke();
+            });
+
+            ctx.setLineDash([]);
+
+            // Label
+            ctx.fillStyle = CONFIG.colors.enthalpy;
+            ctx.font = '10px JetBrains Mono';
+            ctx.fillText('h = const', this.TdbToX(52), this.WToY(5));
+        },
+
+        drawVolumeLines() {
+            const ctx = this.ctx;
+            const Pa = parseFloat(document.getElementById('inputPressure').value) || 101.325;
+
+            const vValues = [0.78, 0.80, 0.82, 0.84, 0.86, 0.88, 0.90, 0.92, 0.94, 0.96]; // m³/kg
+
+            ctx.strokeStyle = CONFIG.colors.volume;
+            ctx.setLineDash([2, 4]);
+            ctx.lineWidth = 1.5;
+
+            // PsychroLib uses R_DA_SI = 287.042 J/(kg·K) and MW ratio factor = 1.607858
+            // For our calculation in kPa, convert: R_DA_SI_kJ = 0.287042 kJ/(kg·K)
+            const R_DA_kJ = 0.287042; // kJ/(kg·K) - PsychroLib's exact value
+            const MW_FACTOR = 1.607858; // PsychroLib's exact value
+
+            vValues.forEach(v => {
+                ctx.beginPath();
+                let started = false;
+
+                for (let T = CONFIG.Tdb.min; T <= CONFIG.Tdb.max; T += 1) {
+                    // PsychroLib formula: v = R_DA_SI * T(K) * (1 + 1.607858 * W) / Pressure(Pa)
+                    // Solving for W: W = (v * P / (R_DA_SI * T(K)) - 1) / 1.607858
+                    // Note: R_DA_SI is in J/(kg·K), so divide by 1000 for kJ
+
+                    const T_K = PSY.CtoK(T);
+                    const Pa_Pa = Pa * 1000; // Convert kPa to Pa for PsychroLib formula
+                    const W = (v * Pa_Pa / (287.042 * T_K) - 1) / MW_FACTOR * 1000;
+
+                    if (W >= 0 && W <= CONFIG.W.max) {
+                        const x = this.TdbToX(T);
+                        const y = this.WToY(W);
+                        if (!started) {
+                            ctx.moveTo(x, y);
+                            started = true;
+                        } else {
+                            ctx.lineTo(x, y);
+                        }
+                    }
+                }
+                ctx.stroke();
+            });
+
+            ctx.setLineDash([]);
+
+            // Label
+            ctx.fillStyle = CONFIG.colors.volume;
+            ctx.font = '10px JetBrains Mono';
+            ctx.fillText('v = const', this.TdbToX(52), this.WToY(12));
+        },
+
+        drawWetBulbLines() {
+            const ctx = this.ctx;
+            const Pa = parseFloat(document.getElementById('inputPressure').value) || 101.325;
+            const Pa_Pa = Pa * 1000;
+
+            // Wet bulb values to draw (in °C)
+            const TwbValues = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50];
+
+            ctx.strokeStyle = '#64748b'; // Cool gray color
+            ctx.setLineDash([3, 3]);
+            ctx.lineWidth = 1.5;
+
+            TwbValues.forEach(Twb => {
+                ctx.beginPath();
+                let started = false;
+
+                for (let T = CONFIG.Tdb.min; T <= CONFIG.Tdb.max; T += 1) {
+                    // For each Tdb, find the W that gives the target Twb
+                    // Use PsychroLib's GetTWetBulbFromHumRatio in reverse
+                    // We need to find W such that GetTWetBulbFromHumRatio(T, W, Pa) = Twb
+                    // This is iterative, so we use a bisection approach
+
+                    // Binary search for W
+                    let W_min = 0;
+                    let W_max = 0.04; // 40 g/kg in kg/kg
+                    let W_found = null;
+                    const tolerance = 0.0001; // kg/kg
+
+                    for (let iter = 0; iter < 20; iter++) {
+                        const W_mid = (W_min + W_max) / 2;
+                        const Twb_calc = psychrolib.GetTWetBulbFromHumRatio(T, W_mid, Pa_Pa);
+
+                        if (Math.abs(Twb_calc - Twb) < 0.05) {
+                            W_found = W_mid;
+                            break;
+                        }
+
+                        if (Twb_calc > Twb) {
+                            W_max = W_mid;
+                        } else {
+                            W_min = W_mid;
+                        }
+                    }
+
+                    if (W_found !== null) {
+                        const W_gkg = W_found * 1000;
+                        if (W_gkg >= 0 && W_gkg <= CONFIG.W.max) {
+                            const x = this.TdbToX(T);
+                            const y = this.WToY(W_gkg);
+                            if (!started) {
+                                ctx.moveTo(x, y);
+                                started = true;
+                            } else {
+                                ctx.lineTo(x, y);
+                            }
+                        }
+                    }
+                }
+                ctx.stroke();
+            });
+
+            ctx.setLineDash([]);
+
+            // Label
+            ctx.fillStyle = '#64748b';
+            ctx.font = '10px JetBrains Mono';
+            ctx.fillText('Twb = const', this.TdbToX(10), this.WToY(32));
+        },
+
+        drawStatePoint() {
+            const ctx = this.ctx;
+
+            // Validate currentState before drawing
+            if (!currentState ||
+                !isFinite(currentState.Tdb) ||
+                !isFinite(currentState.W) ||
+                currentState.Tdb < CONFIG.Tdb.min - 10 ||
+                currentState.Tdb > CONFIG.Tdb.max + 10 ||
+                currentState.W < 0 ||
+                currentState.W > CONFIG.W.max / 1000 + 0.01) {
+                // Invalid state - skip drawing the point
+                return;
+            }
+
+            const x = this.TdbToX(currentState.Tdb);
+            const y = this.WToY(currentState.W * 1000);
+
+            // Draw guide lines if enabled
+            if (document.getElementById('toggleGuides').checked) {
+                ctx.strokeStyle = CONFIG.colors.guide;
+                ctx.lineWidth = 1;
+                ctx.setLineDash([4, 4]);
+
+                // Vertical line to Tdb axis
+                ctx.beginPath();
+                ctx.moveTo(x, this.chartArea.y);
+                ctx.lineTo(x, this.chartArea.y + this.chartArea.height);
+                ctx.stroke();
+
+                // Horizontal line to W axis
+                ctx.beginPath();
+                ctx.moveTo(this.chartArea.x, y);
+                ctx.lineTo(this.chartArea.x + this.chartArea.width, y);
+                ctx.stroke();
+
+                ctx.setLineDash([]);
+            }
+
+            // Draw point
+            ctx.fillStyle = CONFIG.colors.point;
+            ctx.beginPath();
+            ctx.arc(x, y, 8, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Draw white border
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Label
+            ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--text-primary').trim();
+            ctx.font = 'bold 11px JetBrains Mono';
+            ctx.fillText(
+                `(${currentState.Tdb.toFixed(1)}°C, ${(currentState.W * 1000).toFixed(1)} g/kg)`,
+                x + 12,
+                y - 12
+            );
+        },
+
+        drawAxes() {
+            const ctx = this.ctx;
+            const { x, y, width, height } = this.chartArea;
+            const isIP = units === 'ip';
+
+            ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--text-secondary').trim();
+            ctx.font = '12px JetBrains Mono';
+            ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--border-color').trim();
+            ctx.lineWidth = 2;
+
+            // X axis
+            ctx.beginPath();
+            ctx.moveTo(x, y + height);
+            ctx.lineTo(x + width, y + height);
+            ctx.stroke();
+
+            // Y axis
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            ctx.lineTo(x, y + height);
+            ctx.stroke();
+
+            // X axis labels
+            ctx.textAlign = 'center';
+            ctx.font = '12px JetBrains Mono';
+            for (let T = CONFIG.Tdb.min; T <= CONFIG.Tdb.max; T += 10) {
+                const xPos = this.TdbToX(T);
+                const labelValue = isIP ? Math.round(PSY.CtoF(T)) : T;
+                const labelUnit = isIP ? '°F' : '°C';
+                ctx.fillText(labelValue + labelUnit, xPos, y + height + 20);
+            }
+
+            // X axis title
+            ctx.font = 'bold 13px JetBrains Mono';
+            const xTitle = isIP ? 'Dry Bulb Temperature (°F)' : 'Dry Bulb Temperature (°C)';
+            ctx.fillText(xTitle, x + width / 2, y + height + 45);
+
+            // Y axis labels
+            ctx.textAlign = 'right';
+            ctx.font = '12px JetBrains Mono';
+            for (let W = 0; W <= CONFIG.W.max; W += 5) {
+                const yPos = this.WToY(W);
+                const labelUnit = isIP ? ' lb/lb' : ' g/kg';
+                // In IP mode, g/kg converts to same numeric value as lb/lb
+                ctx.fillText(W + labelUnit, x - 10, yPos + 4);
+            }
+
+            // Y axis title
+            ctx.save();
+            ctx.translate(20, y + height / 2);
+            ctx.rotate(-Math.PI / 2);
+            ctx.textAlign = 'center';
+            ctx.font = 'bold 13px JetBrains Mono';
+            const yTitle = isIP ? 'Humidity Ratio (lb/lb dry air)' : 'Humidity Ratio (g/kg dry air)';
+            ctx.fillText(yTitle, 0, 0);
+            ctx.restore();
+        }
+    };
+
+    // ========================================
+    // UI UPDATE FUNCTIONS
+    // ========================================
+    function updateDisplay(state) {
+        const isIP = units === 'ip';
+
+        // Update calculation detail unit labels (these are separate elements not affected by innerHTML updates)
+        const calcUnits = {
+            calcUnitPressure: isIP ? 'psi' : 'kPa',
+            calcUnitPws: isIP ? 'psi' : 'kPa',
+            calcUnitPw: isIP ? 'psi' : 'kPa',
+            calcUnitW: isIP ? 'lb/lb' : 'kg/kg',
+            calcUnitTdp: isIP ? '°F' : '°C',
+            calcUnitH: isIP ? 'Btu/lb' : 'kJ/kg',
+            calcUnitTwb: isIP ? '°F' : '°C',
+            calcUnitV: isIP ? 'ft³/lb' : 'm³/kg',
+            calcUnitRho: isIP ? 'lb/ft³' : 'kg/m³'
+        };
+
+        for (const [id, value] of Object.entries(calcUnits)) {
+            const el = document.getElementById(id);
+            if (el) el.textContent = value;
+        }
+
+        const pressureEl = document.getElementById('pressureUnitDisplay');
+        if (pressureEl) pressureEl.textContent = isIP ? 'psi' : 'kPa';
+
+        // Format values based on unit system
+        const formatValue = (value, siUnit) => {
+            if (siUnit === 'temp') {
+                return isIP ? PSY.CtoF(value).toFixed(2) : value.toFixed(2);
+            } else if (siUnit === 'pressure') {
+                return isIP ? PSY.kPaToPsi(value).toFixed(4) : value.toFixed(3);
+            } else if (siUnit === 'W') {
+                // Humidity ratio
+                if (isIP) {
+                    // Convert kg/kg to lb/lb (same numeric value, just different unit label)
+                    return value.toFixed(6);
+                } else {
+                    return (value * 1000).toFixed(2); // g/kg
+                }
+            } else if (siUnit === 'h') {
+                return isIP ? PSY.kJkgToBtulb(value).toFixed(2) : value.toFixed(2);
+            } else if (siUnit === 'v') {
+                return isIP ? PSY.m3kgToFt3lb(value).toFixed(3) : value.toFixed(3);
+            } else if (siUnit === 'rho') {
+                if (isIP) {
+                    // kg/m³ to lb/ft³: 1 kg/m³ = 0.06243 lb/ft³
+                    return (value * 0.06243).toFixed(4);
+                }
+                return value.toFixed(3);
+            }
+            return value;
+        };
+
+        // Update current state values (innerHTML updates include the unit labels)
+        document.getElementById('valTdb').innerHTML = formatValue(state.Tdb, 'temp') + ' <span class="value-sub">' + (isIP ? '°F' : '°C') + '</span>';
+        document.getElementById('valTwb').innerHTML = formatValue(state.Twb, 'temp') + ' <span class="value-sub">' + (isIP ? '°F' : '°C') + '</span>';
+        document.getElementById('valTdp').innerHTML = formatValue(state.Tdp, 'temp') + ' <span class="value-sub">' + (isIP ? '°F' : '°C') + '</span>';
+        document.getElementById('valRH').textContent = state.RH.toFixed(1) + ' %';
+        document.getElementById('valW').innerHTML = formatValue(state.W, 'W') + ' <span class="value-sub">' + (isIP ? 'lb/lb' : 'g/kg') + '</span>';
+        document.getElementById('valH').innerHTML = formatValue(state.h, 'h') + ' <span class="value-sub">' + (isIP ? 'Btu/lb' : 'kJ/kg') + '</span>';
+        document.getElementById('valV').innerHTML = formatValue(state.v, 'v') + ' <span class="value-sub">' + (isIP ? 'ft³/lb' : 'm³/kg') + '</span>';
+        document.getElementById('valPws').innerHTML = formatValue(state.Pws, 'pressure') + ' <span class="value-sub muted">' + (isIP ? 'psi' : 'kPa') + '</span>';
+        document.getElementById('valPw').innerHTML = formatValue(state.Pw, 'pressure') + ' <span class="value-sub muted">' + (isIP ? 'psi' : 'kPa') + '</span>';
+
+        // Update calculation details
+        const Pa = parseFloat(document.getElementById('inputPressure').value);
+        document.getElementById('calcTdb').textContent = formatValue(state.Tdb, 'temp') + ' ' + (isIP ? '°F' : '°C');
+        document.getElementById('calcInput2').textContent = getInput2Label() + ': ' + getInput2Value();
+        document.getElementById('calcPressure').innerHTML = formatValue(Pa, 'pressure') + ' <span class="calc-small">' + (isIP ? 'psi' : 'kPa') + '</span>';
+
+        document.getElementById('calcPws').innerHTML = formatValue(state.Pws, 'pressure') + ' <span class="calc-small">' + (isIP ? 'psi' : 'kPa') + '</span>';
+        document.getElementById('calcPw').innerHTML = formatValue(state.Pw, 'pressure') + ' <span class="calc-small">' + (isIP ? 'psi' : 'kPa') + '</span>';
+        document.getElementById('calcW').innerHTML = formatValue(state.W, 'W') + ' <span class="calc-small">' + (isIP ? 'lb/lb' : 'kg/kg') + '</span>';
+        document.getElementById('calcTdp').textContent = formatValue(state.Tdp, 'temp') + ' ' + (isIP ? '°F' : '°C');
+        document.getElementById('calcH').innerHTML = formatValue(state.h, 'h') + ' <span class="calc-small">' + (isIP ? 'Btu/lb' : 'kJ/kg') + '</span>';
+        document.getElementById('calcTwb').textContent = formatValue(state.Twb, 'temp') + ' ' + (isIP ? '°F' : '°C');
+        document.getElementById('calcV').innerHTML = formatValue(state.v, 'v') + ' <span class="calc-small">' + (isIP ? 'ft³/lb' : 'm³/kg') + '</span>';
+        document.getElementById('calcRho').innerHTML = formatValue(state.rho, 'rho') + ' <span class="calc-small">' + (isIP ? 'lb/ft³' : 'kg/m³') + '</span>';
+        document.getElementById('calcMu').textContent = state.mu.toFixed(3);
+        document.getElementById('calcIterations').textContent = state.iterations;
+
+        // Update validation checks
+        const check1 = state.Tdp <= state.Twb + 0.5 && state.Twb <= state.Tdb + 0.5;
+        const check2 = state.RH >= 0 && state.RH <= 100.1;
+        const check3 = Pa >= CONFIG.pressure.min && Pa <= CONFIG.pressure.max;
+
+        document.getElementById('calcCheck1').textContent = check1 ? '✓ Pass' : '✗ Fail';
+        document.getElementById('calcCheck1').className = 'calc-value ' + (check1 ? 'calc-success' : '');
+        document.getElementById('calcCheck2').textContent = check2 ? '✓ Pass' : '✗ Fail';
+        document.getElementById('calcCheck2').className = 'calc-value ' + (check2 ? 'calc-success' : '');
+        document.getElementById('calcCheck3').textContent = check3 ? '✓ Pass' : '✗ Fail';
+        document.getElementById('calcCheck3').className = 'calc-value ' + (check3 ? 'calc-success' : '');
+
+        // Update status
+        const statusBadge = document.getElementById('statusBadge');
+        const statusDot = document.getElementById('statusDot');
+        const stateLabel = document.getElementById('stateLabel');
+
+        if (state.RH >= 99.5) {
+            statusBadge.textContent = '● Saturated';
+            statusBadge.className = 'status-badge warn';
+            statusDot.className = 'status-dot warn';
+            stateLabel.textContent = 'Saturated (RH ≈ 100%)';
+        } else {
+            statusBadge.textContent = '● Unsaturated';
+            statusBadge.className = 'status-badge ok';
+            statusDot.className = 'status-dot';
+            stateLabel.textContent = `Unsaturated (${state.RH.toFixed(1)}% RH)`;
+        }
+
+        // Update warning if present
+        const warningSection = document.getElementById('calcWarningSection');
+        const warning = document.getElementById('calcWarning');
+        if (state.warning) {
+            warningSection.style.display = 'block';
+            warning.textContent = state.warning;
+        } else {
+            warningSection.style.display = 'none';
+        }
+
+        // Update step-by-step content
+        updateStepsContent(state);
+    }
+
+    function formatTemp(T) {
+        if (units === 'ip') {
+            return PSY.CtoF(T).toFixed(2) + ' °F';
+        }
+        return T.toFixed(2) + ' °C';
+    }
+
+    function getInput2Label() {
+        const labels = {
+            'tdb_rh': 'RH',
+            'tdb_twb': 'Twb',
+            'tdb_tdp': 'Tdp',
+            'tdb_w': 'W'
+        };
+        return labels[inputMode];
+    }
+
+    function getInput2Value() {
+        const input2 = document.getElementById('input2');
+        const val = parseFloat(input2.value) || 0;
+        switch(inputMode) {
+            case 'tdb_rh':
+                return input2.value + ' %';
+            case 'tdb_twb':
+                return formatTemp(val);
+            case 'tdb_tdp':
+                return formatTemp(val);
+            case 'tdb_w':
+                return input2.value + (units === 'ip' ? ' lb/lb' : ' g/kg');
+        }
+    }
+
+    function updateStepsContent(state) {
+        const container = document.getElementById('stepsContent');
+        const Pa = parseFloat(document.getElementById('inputPressure').value);
+
+        // Build step content based on current input mode
+        let step2Content = '';
+        let step1Content = '';
+
+        if (inputMode === 'tdb_rh') {
+            // Mode: Tdb + RH
+            step1Content = `
+                <div class="step-group">
+                    <div class="step-group-title">Step 1: Calculate Saturation Pressure</div>
+                    <div class="step-item">
+                        <span class="step-num">1.1</span>
+                        <div class="step-content">
+                            <div class="step-desc">Convert dry bulb to Kelvin</div>
+                            <div class="step-math">T(K) = ${state.Tdb}°C + 273.15 = ${PSY.CtoK(state.Tdb).toFixed(2)} K</div>
+                        </div>
+                    </div>
+                    <div class="step-item">
+                        <span class="step-num">1.2</span>
+                        <div class="step-content">
+                            <div class="step-desc">Apply ASHRAE Eq. 5: ln(Pws) = C/T + D + E·T + F·T² + G·T³ + H·ln(T)</div>
+                            <div class="step-math">Pws(Tdb) = ${state.Pws.toFixed(3)} kPa</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            step2Content = `
+                <div class="step-group">
+                    <div class="step-group-title">Step 2: Calculate Vapor Pressure & Humidity Ratio</div>
+                    <div class="step-item">
+                        <span class="step-num">2.1</span>
+                        <div class="step-content">
+                            <div class="step-desc">Calculate partial vapor pressure</div>
+                            <div class="step-math">Pw = RH/100 × Pws = ${(state.RH/100).toFixed(4)} × ${state.Pws.toFixed(3)} = ${state.Pw.toFixed(3)} kPa</div>
+                        </div>
+                    </div>
+                    <div class="step-item highlight">
+                        <span class="step-num">2.2</span>
+                        <div class="step-content">
+                            <div class="step-desc">Calculate humidity ratio: W = 0.621945 × Pw / (Pa - Pw)</div>
+                            <div class="step-math">W = 0.621945 × ${state.Pw.toFixed(3)} / (${Pa.toFixed(3)} - ${state.Pw.toFixed(3)}) = ${(state.W * 1000).toFixed(3)} g/kg</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        } else if (inputMode === 'tdb_twb') {
+            // Mode: Tdb + Twb
+            step1Content = `
+                <div class="step-group">
+                    <div class="step-group-title">Step 1: Calculate Saturation at Wet Bulb</div>
+                    <div class="step-item">
+                        <span class="step-num">1.1</span>
+                        <div class="step-content">
+                            <div class="step-desc">Convert wet bulb to Kelvin</div>
+                            <div class="step-math">Twb(K) = ${state.Twb}°C + 273.15 = ${PSY.CtoK(state.Twb).toFixed(2)} K</div>
+                        </div>
+                    </div>
+                    <div class="step-item">
+                        <span class="step-num">1.2</span>
+                        <div class="step-content">
+                            <div class="step-desc">Apply ASHRAE Eq. 5 at Twb</div>
+                            <div class="step-math">Pws(Twb) = ${PSY.Pws(state.Twb).toFixed(3)} kPa</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            step2Content = `
+                <div class="step-group">
+                    <div class="step-group-title">Step 2: Energy Balance & Humidity Ratio</div>
+                    <div class="step-item">
+                        <span class="step-num">2.1</span>
+                        <div class="step-content">
+                            <div class="step-desc">Calculate enthalpy at saturation (Twb, 100% RH)</div>
+                            <div class="step-math">h_sat = 1.006×${state.Twb} + Ws×(2501 + 1.86×${state.Twb}) = ${state.h.toFixed(2)} kJ/kg</div>
+                        </div>
+                    </div>
+                    <div class="step-item highlight">
+                        <span class="step-num">2.2</span>
+                        <div class="step-content">
+                            <div class="step-desc">Solve for W at Tdb using energy balance: h = 1.006·Tdb + W·(2501 + 1.86·Tdb)</div>
+                            <div class="step-math">W = (h - 1.006×${state.Tdb}) / (2501 + 1.86×${state.Tdb}) = ${(state.W * 1000).toFixed(3)} g/kg</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        } else if (inputMode === 'tdb_tdp') {
+            // Mode: Tdb + Tdp
+            step1Content = `
+                <div class="step-group">
+                    <div class="step-group-title">Step 1: Calculate Saturation Pressure</div>
+                    <div class="step-item">
+                        <span class="step-num">1.1</span>
+                        <div class="step-content">
+                            <div class="step-desc">Calculate Pws at dew point (Tdp, RH = 100%)</div>
+                            <div class="step-math">Pws(Tdp) = ${PSY.Pws(state.Tdp).toFixed(3)} kPa = Pw</div>
+                        </div>
+                    </div>
+                    <div class="step-item">
+                        <span class="step-num">1.2</span>
+                        <div class="step-content">
+                            <div class="step-desc">Calculate Pws at dry bulb temperature</div>
+                            <div class="step-math">Pws(Tdb) = ${state.Pws.toFixed(3)} kPa</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            step2Content = `
+                <div class="step-group">
+                    <div class="step-group-title">Step 2: Calculate Humidity Ratio & RH</div>
+                    <div class="step-item">
+                        <span class="step-num">2.1</span>
+                        <div class="step-content">
+                            <div class="step-desc">Calculate humidity ratio from Pw (at Tdp)</div>
+                            <div class="step-math">W = 0.621945 × ${state.Pw.toFixed(3)} / (${Pa.toFixed(3)} - ${state.Pw.toFixed(3)}) = ${(state.W * 1000).toFixed(3)} g/kg</div>
+                        </div>
+                    </div>
+                    <div class="step-item highlight">
+                        <span class="step-num">2.2</span>
+                        <div class="step-content">
+                            <div class="step-desc">Calculate relative humidity</div>
+                            <div class="step-math">RH = 100 × Pw / Pws(Tdb) = 100 × ${state.Pw.toFixed(3)} / ${state.Pws.toFixed(3)} = ${state.RH.toFixed(1)}%</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        } else if (inputMode === 'tdb_w') {
+            // Mode: Tdb + W
+            step1Content = `
+                <div class="step-group">
+                    <div class="step-group-title">Step 1: Calculate Saturation Pressure</div>
+                    <div class="step-item">
+                        <span class="step-num">1.1</span>
+                        <div class="step-content">
+                            <div class="step-desc">Convert dry bulb to Kelvin</div>
+                            <div class="step-math">T(K) = ${state.Tdb}°C + 273.15 = ${PSY.CtoK(state.Tdb).toFixed(2)} K</div>
+                        </div>
+                    </div>
+                    <div class="step-item">
+                        <span class="step-num">1.2</span>
+                        <div class="step-content">
+                            <div class="step-desc">Apply ASHRAE Eq. 5: ln(Pws) = C/T + D + E·T + F·T² + G·T³ + H·ln(T)</div>
+                            <div class="step-math">Pws(Tdb) = ${state.Pws.toFixed(3)} kPa</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            step2Content = `
+                <div class="step-group">
+                    <div class="step-group-title">Step 2: Calculate Vapor Pressure & RH</div>
+                    <div class="step-item">
+                        <span class="step-num">2.1</span>
+                        <div class="step-content">
+                            <div class="step-desc">Calculate partial vapor pressure from W: Pw = W·Pa / (0.621945 + W)</div>
+                            <div class="step-math">Pw = ${state.W.toFixed(6)} × ${Pa.toFixed(3)} / (0.621945 + ${state.W.toFixed(6)}) = ${state.Pw.toFixed(3)} kPa</div>
+                        </div>
+                    </div>
+                    <div class="step-item highlight">
+                        <span class="step-num">2.2</span>
+                        <div class="step-content">
+                            <div class="step-desc">Calculate relative humidity</div>
+                            <div class="step-math">RH = 100 × Pw / Pws(Tdb) = 100 × ${state.Pw.toFixed(3)} / ${state.Pws.toFixed(3)} = ${state.RH.toFixed(1)}%</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        container.innerHTML = `
+            <div class="steps-container">
+                ${step1Content}
+
+                ${step2Content}
+
+                <div class="step-group">
+                    <div class="step-group-title">Step 3: Calculate Dew Point</div>
+                    <div class="step-item">
+                        <span class="step-num">3.1</span>
+                        <div class="step-content">
+                            <div class="step-desc">Invert ASHRAE Eq. 5 using Newton-Raphson</div>
+                            <div class="step-math">Tdp = ${state.Tdp.toFixed(2)}°C (found by Pws(Tdp) = Pw = ${state.Pw.toFixed(3)} kPa)</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="step-group">
+                    <div class="step-group-title">Step 4: Calculate Enthalpy</div>
+                    <div class="step-item highlight">
+                        <span class="step-num">4.1</span>
+                        <div class="step-content">
+                            <div class="step-desc">Apply ASHRAE Eq. 30: h = 1.006·Tdb + W·(2501 + 1.86·Tdb)</div>
+                            <div class="step-math">h = 1.006×${state.Tdb} + ${(state.W*1000).toFixed(2)}×(2501 + 1.86×${state.Tdb})/1000 = ${state.h.toFixed(2)} kJ/kg</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="step-group">
+                    <div class="step-group-title">Step 5: Calculate Wet Bulb (Iterative)</div>
+                    <div class="step-item">
+                        <span class="step-num">5.1</span>
+                        <div class="step-content">
+                            <div class="step-desc">Use bisection method to solve energy balance at Twb</div>
+                            <div class="step-math">h(Twb, Ws(Twb)) = h(Tdb, W) = ${state.h.toFixed(2)} kJ/kg</div>
+                        </div>
+                    </div>
+                    <div class="step-item result">
+                        <span class="step-num">5.2</span>
+                        <div class="step-content">
+                            <div class="step-desc">Converged after ${state.iterations} iterations</div>
+                            <div class="step-math">Twb = ${state.Twb.toFixed(2)}°C</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="step-group">
+                    <div class="step-group-title">Step 6: Calculate Specific Volume</div>
+                    <div class="step-item">
+                        <span class="step-num">6.1</span>
+                        <div class="step-content">
+                            <div class="step-desc">Apply: v = Ra·T(K)·(1 + 1.6078·W) / Pa</div>
+                            <div class="step-math">v = 0.2871 × ${PSY.CtoK(state.Tdb).toFixed(2)} × (1 + 1.6078×${state.W.toFixed(5)}) / ${Pa.toFixed(3)} = ${state.v.toFixed(3)} m³/kg</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    // ========================================
+    // CALCULATION FUNCTION
+    // ========================================
+    function calculate() {
+        let Tdb = parseFloat(document.getElementById('inputTdb').value);
+        let input2 = parseFloat(document.getElementById('input2').value);
+        let Pa = parseFloat(document.getElementById('inputPressure').value);
+
+        if (isNaN(Tdb) || isNaN(input2) || isNaN(Pa)) {
+            return;
+        }
+
+        // Input validation ranges (SI units for internal validation)
+        const VALID_RANGES = {
+            Tdb: { min: -60, max: 60 },      // °C - ASHRAE Eq. 5/6 valid range
+            Pa: { min: 50, max: 150 },      // kPa - typical atmospheric range
+            RH: { min: 0, max: 99.9 },      // % - capped at 99.9% for numerical stability
+            Twb: { min: -60, max: 60 },     // °C
+            Tdp: { min: -60, max: 60 },     // °C
+            W: { min: 0, max: 0.05 }        // kg/kg (0 to 50 g/kg)
+        };
+
+        // Clear previous error
+        const errorEl = document.getElementById('calculationError');
+        if (errorEl) errorEl.remove();
+
+        // Convert from IP to SI if needed
+        let Tdb_SI = Tdb;
+        let input2_SI = input2;
+        let Pa_SI = Pa;
+
+        if (units === 'ip') {
+            Tdb_SI = PSY.FtoC(Tdb);  // °F to °C
+            Pa_SI = PSY.psiTokPa(Pa);  // psi to kPa
+            // input2 depends on the mode
+            if (inputMode === 'tdb_twb' || inputMode === 'tdb_tdp') {
+                input2_SI = PSY.FtoC(input2);  // °F to °C
+            }
+            // For tdb_rh (RH) and tdb_w (W), no conversion needed
+        }
+
+        // Validate temperature range
+        if (Tdb_SI < VALID_RANGES.Tdb.min || Tdb_SI > VALID_RANGES.Tdb.max) {
+            showCalculationError(`Temperature out of range (${VALID_RANGES.Tdb.min} to ${VALID_RANGES.Tdb.max}°C). Enter a value within this range.`);
+            return;
+        }
+
+        // Validate pressure range
+        if (Pa_SI < VALID_RANGES.Pa.min || Pa_SI > VALID_RANGES.Pa.max) {
+            showCalculationError(`Pressure out of range (${VALID_RANGES.Pa.min} to ${VALID_RANGES.Pa.max} kPa). Enter a value within typical atmospheric range.`);
+            return;
+        }
+
+        // Mode-specific validation
+        if (inputMode === 'tdb_rh') {
+            if (input2 < VALID_RANGES.RH.min || input2 > VALID_RANGES.RH.max) {
+                showCalculationError(`Relative humidity must be between ${VALID_RANGES.RH.min}% and ${VALID_RANGES.RH.max}% (capped for numerical stability).`);
+                return;
+            }
+        } else if (inputMode === 'tdb_twb') {
+            if (input2_SI < VALID_RANGES.Twb.min || input2_SI > VALID_RANGES.Twb.max) {
+                showCalculationError(`Wet bulb temperature out of range (${VALID_RANGES.Twb.min} to ${VALID_RANGES.Twb.max}°C).`);
+                return;
+            }
+            // Check physical constraint: Twb cannot exceed Tdb
+            if (input2_SI > Tdb_SI + 0.5) {
+                showCalculationError(`Wet bulb temperature (${input2_SI.toFixed(1)}°C) cannot exceed dry bulb temperature (${Tdb_SI.toFixed(1)}°C).`);
+                return;
+            }
+        } else if (inputMode === 'tdb_tdp') {
+            if (input2_SI < VALID_RANGES.Tdp.min || input2_SI > VALID_RANGES.Tdp.max) {
+                showCalculationError(`Dew point temperature out of range (${VALID_RANGES.Tdp.min} to ${VALID_RANGES.Tdp.max}°C).`);
+                return;
+            }
+            // Check physical constraint: Tdp cannot exceed Tdb
+            if (input2_SI > Tdb_SI + 0.5) {
+                showCalculationError(`Dew point temperature (${input2_SI.toFixed(1)}°C) cannot exceed dry bulb temperature (${Tdb_SI.toFixed(1)}°C).`);
+                return;
+            }
+        } else if (inputMode === 'tdb_w') {
+            const W_SI = units === 'ip' ? input2 : input2 / 1000;
+            if (W_SI < VALID_RANGES.W.min || W_SI > VALID_RANGES.W.max) {
+                const maxDisplay = units === 'ip' ? VALID_RANGES.W.max : VALID_RANGES.W.max * 1000;
+                const unitDisplay = units === 'ip' ? 'lb/lb' : 'g/kg';
+                showCalculationError(`Humidity ratio out of range (0 to ${maxDisplay} ${unitDisplay}).`);
+                return;
+            }
+        }
+
+        // Proceed with calculation using validated SI values
+        let result;
+        switch(inputMode) {
+            case 'tdb_rh':
+                result = PSY.solve_Tdb_RH(Tdb_SI, input2, Pa_SI);
+                break;
+            case 'tdb_twb':
+                result = PSY.solve_Tdb_Twb(Tdb_SI, input2_SI, Pa_SI);
+                break;
+            case 'tdb_tdp':
+                result = PSY.solve_Tdb_Tdp(Tdb_SI, input2_SI, Pa_SI);
+                break;
+            case 'tdb_w':
+                // In SI mode, input is g/kg (divide by 1000 for kg/kg)
+                // In IP mode, input is lb/lb (already in correct form, same as kg/kg numerically)
+                const W_input = units === 'ip' ? input2 : input2 / 1000;
+                result = PSY.solve_Tdb_W(Tdb_SI, W_input, Pa_SI);
+                break;
+        }
+
+        currentState = result;
+        updateDisplay(result);
+        CHART.draw();
+    }
+
+    // Helper function to show calculation error
+    function showCalculationError(message) {
+        // Remove existing error if any
+        const existingError = document.getElementById('calculationError');
+        if (existingError) existingError.remove();
+
+        // Create error element
+        const errorEl = document.createElement('div');
+        errorEl.id = 'calculationError';
+        errorEl.className = 'calculation-error';
+        errorEl.innerHTML = `
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M8 0C3.6 0 0 3.6 0 8s3.6 8 8 8 8-3.6 8-8-3.6-8-8-8zm0 14c-3.3 0-6-2.7-6-6s2.7-6 6-6 6 2.7 6 6-2.7 6-6 6zm.5-9h-1v4h1V5zm0 5h-1v1h1v-1z"/>
+            </svg>
+            <span>${message}</span>
+        `;
+
+        // Insert error above the controls/results panel (second panel, not chart)
+        const panels = document.querySelectorAll('.panel');
+        const controlsPanel = panels.length > 1 ? panels[1] : panels[0];
+        const controlsHeader = controlsPanel ? controlsPanel.querySelector('.panel-header') : null;
+        if (controlsHeader && controlsPanel) {
+            controlsPanel.insertBefore(errorEl, controlsHeader);
+        }
+    }
+
+    // ========================================
+    // EVENT HANDLERS
+    // ========================================
+    function initEventListeners() {
+        // Calculate button
+        document.getElementById('calculateBtn').addEventListener('click', calculate);
+
+        // Reset button
+        document.getElementById('resetInputBtn').addEventListener('click', () => {
+            const inputTdb = document.getElementById('inputTdb');
+            const input2 = document.getElementById('input2');
+            const inputPressure = document.getElementById('inputPressure');
+
+            if (units === 'ip') {
+                inputTdb.value = 77;  // 25°C = 77°F
+                inputPressure.value = 14.696;  // 101.325 kPa ≈ 14.696 psi
+            } else {
+                inputTdb.value = 25;
+                inputPressure.value = 101.325;
+            }
+
+            // Set input2 based on mode and units
+            if (inputMode === 'tdb_rh') {
+                input2.value = 50;  // RH %
+            } else if (inputMode === 'tdb_twb') {
+                input2.value = units === 'ip' ? 65.3 : 18;  // 18°C ≈ 65.3°F
+            } else if (inputMode === 'tdb_tdp') {
+                input2.value = units === 'ip' ? 56.97 : 14;  // 14°C ≈ 57.2°F
+            } else if (inputMode === 'tdb_w') {
+                input2.value = units === 'ip' ? 0.01 : 10;  // lb/lb or g/kg
+            }
+
+            calculate();
+        });
+
+        // Input mode toggle
+        document.querySelectorAll('.mode-toggle button').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.mode-toggle button').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                inputMode = btn.dataset.mode;
+
+                // Update input 2 label and placeholder
+                const label = document.getElementById('labelInput2');
+                const input2 = document.getElementById('input2');
+                const isIP = units === 'ip';
+
+                switch(inputMode) {
+                    case 'tdb_rh':
+                        label.textContent = 'Relative Humidity (%)';
+                        input2.placeholder = '50';
+                        input2.value = 50;
+                        break;
+                    case 'tdb_twb':
+                        label.textContent = 'Wet Bulb (' + (isIP ? '°F' : '°C') + ')';
+                        input2.placeholder = isIP ? '65' : '18';
+                        input2.value = isIP ? '65.3' : '18';
+                        break;
+                    case 'tdb_tdp':
+                        label.textContent = 'Dew Point (' + (isIP ? '°F' : '°C') + ')';
+                        input2.placeholder = isIP ? '57' : '14';
+                        input2.value = isIP ? '56.97' : '14';
+                        break;
+                    case 'tdb_w':
+                        label.textContent = 'Humidity Ratio (' + (isIP ? 'lb/lb' : 'g/kg') + ')';
+                        input2.placeholder = isIP ? '0.01' : '10';
+                        input2.value = isIP ? '0.01' : '10';
+                        break;
+                }
+
+                calculate();
+            });
+        });
+
+        // Unit toggle
+        document.querySelectorAll('.unit-toggle button').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const newUnit = btn.dataset.unit;
+                const oldUnit = units;
+                const isIP = newUnit === 'ip';
+
+                document.querySelectorAll('.unit-toggle button').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                units = newUnit;
+
+                // Update input labels
+                document.getElementById('labelUnitTdb').textContent = isIP ? '°F' : '°C';
+                document.getElementById('labelUnitPressure').textContent = isIP ? 'psi' : 'kPa';
+
+                // Update input2 label based on current mode
+                const labelInput2 = document.getElementById('labelInput2');
+                if (inputMode === 'tdb_twb') {
+                    labelInput2.textContent = 'Wet Bulb (' + (isIP ? '°F' : '°C') + ')';
+                } else if (inputMode === 'tdb_tdp') {
+                    labelInput2.textContent = 'Dew Point (' + (isIP ? '°F' : '°C') + ')';
+                } else if (inputMode === 'tdb_w') {
+                    labelInput2.textContent = 'Humidity Ratio (' + (isIP ? 'lb/lb' : 'g/kg') + ')';
+                }
+
+                // Convert input values when switching units
+                const inputTdb = document.getElementById('inputTdb');
+                const input2 = document.getElementById('input2');
+                const inputPressure = document.getElementById('inputPressure');
+
+                if (oldUnit === 'si' && newUnit === 'ip') {
+                    // SI to IP: convert current values
+                    inputTdb.value = PSY.CtoF(parseFloat(inputTdb.value)).toFixed(1);
+                    inputPressure.value = PSY.kPaToPsi(parseFloat(inputPressure.value)).toFixed(3);
+
+                    // input2 depends on mode
+                    if (inputMode === 'tdb_twb' || inputMode === 'tdb_tdp') {
+                        input2.value = PSY.CtoF(parseFloat(input2.value)).toFixed(1);
+                    } else if (inputMode === 'tdb_w') {
+                        // g/kg to lb/lb
+                        input2.value = (parseFloat(input2.value) / 1000).toFixed(5);
+                        input2.placeholder = '0.01';
+                    }
+                    // RH doesn't need conversion
+
+                } else if (oldUnit === 'ip' && newUnit === 'si') {
+                    // IP to SI: convert current values
+                    inputTdb.value = PSY.FtoC(parseFloat(inputTdb.value)).toFixed(1);
+                    inputPressure.value = PSY.psiTokPa(parseFloat(inputPressure.value)).toFixed(3);
+
+                    // input2 depends on mode
+                    if (inputMode === 'tdb_twb' || inputMode === 'tdb_tdp') {
+                        input2.value = PSY.FtoC(parseFloat(input2.value)).toFixed(1);
+                    } else if (inputMode === 'tdb_w') {
+                        // lb/lb to g/kg
+                        input2.value = (parseFloat(input2.value) * 1000).toFixed(1);
+                        input2.placeholder = '10';
+                    }
+                    // RH doesn't need conversion
+                }
+
+                calculate();
+            });
+        });
+
+        // Chart overlay toggles
+        ['toggleSaturation', 'toggleRH', 'toggleWetBulb', 'toggleEnthalpy', 'toggleVolume', 'toggleGrid', 'toggleGuides'].forEach(id => {
+            document.getElementById(id).addEventListener('change', () => CHART.draw());
+        });
+
+        // Calculation details foldable
+        document.getElementById('calcFoldableBtn').addEventListener('click', function() {
+            this.classList.toggle('active');
+            document.getElementById('calcFoldableContent').classList.toggle('active');
+        });
+
+        // Steps foldable
+        document.getElementById('stepsBtn').addEventListener('click', function() {
+            this.classList.toggle('active');
+            document.getElementById('stepsContent').classList.toggle('active');
+        });
+
+        // Info buttons - modal
+        document.querySelectorAll('.info-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                showModal(btn.dataset.modal);
+            });
+        });
+
+        // Modal close
+        document.getElementById('modalClose').addEventListener('click', closeModal);
+        document.getElementById('modalOverlay').addEventListener('click', (e) => {
+            if (e.target.id === 'modalOverlay') closeModal();
+        });
+
+        // Enter key to calculate
+        document.querySelectorAll('input').forEach(input => {
+            input.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') calculate();
+            });
+        });
+    }
+
+    // ========================================
+    // MODAL CONTENT
+    // ========================================
+    const MODAL_CONTENTS = {
+        directions: {
+            title: 'How to Use This Tool',
+            html: `
+                <h3>Getting Started</h3>
+                <p>The <strong>Psychrometric Calculator</strong> computes moist air properties essential for HVAC design, building science, and meteorology. Given any two independent properties, all other properties can be calculated.</p>
+
+                <h3>Choosing Your Input Mode</h3>
+                <table>
+                    <tr><th>Mode</th><th>Use When You Have...</th><th>Common Application</th></tr>
+                    <tr><td><strong>Tdb + Twb</strong></td><td>Sling psychrometer or aspirated psychrometer readings</td><td>Field measurements, HVAC commissioning</td></tr>
+                    <tr><td><strong>Tdb + RH</strong></td><td>Thermostat with humidity sensor, weather data</td><td>Building automation, weather stations</td></tr>
+                    <tr><td><strong>Tdb + Tdp</strong></td><td>Dew point sensor or meteorological forecast</td><td>Condensation risk assessment</td></tr>
+                    <tr><td><strong>Tdb + W</strong></td><td>Humidity ratio from process calculation</td><td>Industrial drying, mixing air streams</td></tr>
+                </table>
+
+                <h3>Understanding the Results</h3>
+                <ul>
+                    <li><strong>Dry Bulb (Tdb):</strong> Actual air temperature measured by a standard thermometer</li>
+                    <li><strong>Wet Bulb (Twb):</strong> Temperature indicated by a thermometer with a wetted wick; represents adiabatic saturation temperature</li>
+                    <li><strong>Dew Point (Tdp):</strong> Temperature at which water vapor begins to condense; Tdp ≤ Twb ≤ Tdb always</li>
+                    <li><strong>Relative Humidity (RH):</strong> Ratio of actual moisture to maximum possible at current Tdb; 100% = saturation</li>
+                    <li><strong>Humidity Ratio (W):</strong> Mass of water vapor per mass of dry air; independent of temperature</li>
+                    <li><strong>Enthalpy (h):</strong> Total energy content (sensible + latent) per kg of dry air</li>
+                </ul>
+
+                <h3>Pressure Setting</h3>
+                <p>Default is <strong>101.325 kPa</strong> (standard atmospheric pressure at sea level). Adjust for altitude:</p>
+                <ul>
+                    <li>Denver (1600 m): ~83 kPa</li>
+                    <li>Mexico City (2240 m): ~77 kPa</li>
+                </ul>
+
+                <div class="warning-box">
+                    <strong>⚠️ Important:</strong> At altitudes above 500m, pressure corrections significantly affect W and h calculations. Always verify your site pressure.
+                </div>
+
+                <h3>Quick Checks</h3>
+                <ul>
+                    <li><strong>Tdp ≤ Twb ≤ Tdb</strong> — Violation indicates measurement error</li>
+                    <li><strong>RH at Tdp = 100%</strong> — By definition of dew point</li>
+                    <li><strong>Enthalpy increases</strong> with both Tdb and humidity</li>
+                </ul>
+            `
+        },
+
+        details: {
+            title: 'Equations & Technical Details',
+            html: `
+                <h3>Calculation Engine: PsychroLib</h3>
+                <p>This calculator uses <strong>PsychroLib v2.5.0</strong>, the open-source Python and JavaScript library implementing ASHRAE psychrometric equations. PsychroLib is the canonical implementation of:</p>
+                <ul>
+                    <li>ASHRAE Handbook — Fundamentals (2017) Chapter 1</li>
+                    <li>All psychrometric property calculations</li>
+                    <li>Both SI and IP unit systems</li>
+                </ul>
+                <p><a href="https://github.com/psychrometrics/psychrolib" target="_blank" rel="noopener">github.com/psychrometrics/psychrolib</a> — Licensed under MIT License</p>
+
+                <h3>Psychrometric Properties Defined</h3>
+                <table>
+                    <tr><th>Symbol</th><th>Property</th><th>Physical Meaning</th><th>Typical Range</th></tr>
+                    <tr><td><strong>Tdb</strong></td><td>Dry Bulb Temperature</td><td>Sensible temperature of air-vapor mixture</td><td>-10°C to 50°C</td></tr>
+                    <tr><td><strong>Twb</strong></td><td>Wet Bulb Temperature</td><td>Temperature at adiabatic saturation</td><td>Tdp ≤ Twb ≤ Tdb</td></tr>
+                    <tr><td><strong>Tdp</strong></td><td>Dew Point Temperature</td><td>Temperature where condensation begins</td><td>Tdp ≤ Tdb</td></tr>
+                    <tr><td><strong>RH</strong></td><td>Relative Humidity</td><td>Actual vapor pressure / saturation pressure</td><td>0% to 100%</td></tr>
+                    <tr><td><strong>W</strong></td><td>Humidity Ratio (Mixing Ratio)</td><td>kg water vapor per kg dry air</td><td>0 to 30 g/kg</td></tr>
+                    <tr><td><strong>h</strong></td><td>Specific Enthalpy</td><td>Total energy (sensible + latent) per kg dry air</td><td>-10 to 150 kJ/kg</td></tr>
+                    <tr><td><strong>v</strong></td><td>Specific Volume</td><td>Volume per kg of dry air</td><td>0.75 to 0.95 m³/kg</td></tr>
+                </table>
+
+                <h3>Key ASHRAE Equations (via PsychroLib)</h3>
+
+                <p><strong>1. Saturation Vapor Pressure (ASHRAE Ch.1, Eq. 5 & 6):</strong>
+                <div class="equation">Eq. 5 (water): ln(Pws) = C/T + D + E·T + F·T² + G·T³ + H·ln(T)</div>
+                <div class="equation">Eq. 6 (ice): ln(Pws) = C/T + D + E·T + F·T² + G·T³ + H·T⁴ + I·ln(T)</div>
+                <p>Valid for: Eq. 5 (water): 0°C to 200°C | Eq. 6 (ice): -100°C to 0°C</p>
+
+                <p><strong>2. Humidity Ratio (Dalton's Law):</strong>
+                <div class="equation">W = 0.621945 × Pw / (Pa - Pw)</div>
+
+                <p><strong>3. Specific Enthalpy (ASHRAE Eq. 30):</strong>
+                <div class="equation">h = 1.006×Tdb + W×(2501 + 1.86×Tdb)</div>
+
+                <p><strong>4. Specific Volume (Ideal Gas Law):</strong>
+                <div class="equation">v = Ra·T(K)·(1 + 1.6078×W) / Pa</div>
+
+                <p><strong>5. Wet Bulb Temperature:</strong>
+                <div class="equation">h(Tdb, W) = h(Twb, Ws(Twb))</div>
+                <p>Solved iteratively using PsychroLib's bisection method</p>
+
+                <h3>Constants Used</h3>
+                <table>
+                    <tr><th>Constant</th><th>Value</th><th>Unit</th><th>Description</th></tr>
+                    <tr><td>MW_ratio</td><td>0.621945</td><td>—</td><td>Mw/Ma (18.015/28.965)</td></tr>
+                    <tr><td>R_a</td><td>0.2871</td><td>kJ/(kg·K)</td><td>Dry air gas constant</td></tr>
+                    <tr><td>cp_air</td><td>1.006</td><td>kJ/(kg·K)</td><td>Specific heat of dry air</td></tr>
+                    <tr><td>cp_vapor</td><td>1.86</td><td>kJ/(kg·K)</td><td>Specific heat of water vapor</td></tr>
+                    <tr><td>h_fg_0°C</td><td>2501</td><td>kJ/kg</td><td>Latent heat at 0°C</td></tr>
+                </table>
+
+                <h3>Unit Conversions</h3>
+                <table>
+                    <tr><th>Property</th><th>SI</th><th>IP (Imperial)</th><th>Conversion</th></tr>
+                    <tr><td>Temperature</td><td>°C</td><td>°F</td><td>°F = °C × 9/5 + 32</td></tr>
+                    <tr><td>Pressure</td><td>kPa</td><td>psi</td><td>psi = kPa × 0.145038</td></tr>
+                    <tr><td>Humidity Ratio</td><td>g/kg or kg/kg</td><td>lb/lb</td><td>Same numeric value</td></tr>
+                    <tr><td>Enthalpy</td><td>kJ/kg</td><td>Btu/lb</td><td>Btu/lb = kJ/kg × 0.429923</td></tr>
+                    <tr><td>Specific Volume</td><td>m³/kg</td><td>ft³/lb</td><td>ft³/lb = m³/kg × 16.0185</td></tr>
+                </table>
+            `
+        },
+
+        assumptions: {
+            title: 'Assumptions & Limitations',
+            html: `
+                <h3>Calculation Engine</h3>
+                <p>This calculator uses <strong>PsychroLib v2.5.0</strong>, the authoritative open-source implementation of ASHRAE psychrometric equations. All calculations inherit PsychroLib's assumptions and limitations.</p>
+
+                <h3>When Is This Calculator Valid?</h3>
+                <p>The psychrometric equations are based on the ideal gas model with empirical corrections. Understanding these limits is critical for accurate results.</p>
+
+                <h3>Physical Assumptions</h3>
+                <table>
+                    <tr><th>Assumption</th><th>What It Means</th><th>Limits</th></tr>
+                    <tr><td><strong>Ideal gas behavior</strong></td><td>Air and water vapor follow PV = nRT</td><td>Breaks down above ~10 atm</td></tr>
+                    <tr><td><strong>Dalton's Law</strong></td><td>Partial pressures sum to total pressure</td><td>Valid for typical HVAC conditions</td></tr>
+                    <tr><td><strong>Air-water vapor mixture</strong></td><td>Only dry air + water vapor; no other gases</td><td>Contaminants not modeled</td></tr>
+                    <tr><td><strong>No liquid water entrainment</strong></td><td>Fog or mist not carried in air stream</td><td>If RH=100% and cooling further, fog forms</td></tr>
+                </table>
+
+                <h3>Temperature Range</h3>
+                <ul>
+                    <li><strong>Equation 5 (water):</strong> 0°C to 200°C — Saturation over liquid water</li>
+                    <li><strong>Equation 6 (ice):</strong> -100°C to 0°C — Saturation over ice</li>
+                    <li><strong>Transition at 0°C:</strong> PsychroLib uses Eq. 5 above 0°C, Eq. 6 below 0°C</li>
+                </ul>
+
+                <div class="warning-box">
+                    <strong>⚠️ Sub-zero Dew Point:</strong> When Tdp < 0°C, saturation is over ICE not water. This affects the Pws calculation and results in slightly different humidity ratios than extrapolating liquid water equations.
+                </div>
+
+                <h3>Accuracy Expectations</h3>
+                <p>Per PsychroLib documentation (based on ASHRAE validation):</p>
+                <table>
+                    <tr><th>Property</th><th>Expected Accuracy</th></tr>
+                    <tr><td>Pws (saturation pressure)</td><td>±0.1% within 0-100°C</td></tr>
+                    <tr><td>W (humidity ratio)</td><td>±0.5%</td></tr>
+                    <tr><td>Twb (wet bulb)</td><td>±0.1°C (PsychroLib solver)</td></tr>
+                    <tr><td>h (enthalpy)</td><td>±0.3 kJ/kg</td></tr>
+                </table>
+
+                <h3>Common Pitfalls</h3>
+                <ul>
+                    <li><strong>Altitude effects:</strong> At 1500m, pressure is ~84 kPa — significantly affects W calculation</li>
+                    <li><strong>Sensor errors:</strong> Cheap RH sensors can be ±5% — propagates to all derived properties</li>
+                    <li><strong>Wet bulb measurement:</strong> Sling psychrometer requires proper airspeed (>3 m/s) over wick</li>
+                </ul>
+
+                <h3>PsychroLib Notes</h3>
+                <p>PsychroLib implements the 2017 ASHRAE Handbook - Fundamentals equations. The library is maintained by the ASHRAE psychrometrics community and validated against published ASHRAE data.</p>
+            `
+        },
+
+        techref: {
+            title: 'Technical References',
+            html: `
+                <h3>Calculation Engine</h3>
+                <table>
+                    <tr><th>Source</th><th>License</th><th>Link</th></tr>
+                    <tr><td><strong>PsychroLib v2.5.0</strong><br>The ASHRAE Psychrometrics Library</td>
+                    <td><a href="https://opensource.org/licenses/MIT" target="_blank" rel="noopener">MIT License</a><br>Free to use, modify, distribute</td>
+                    <td><a href="https://github.com/psychrometrics/psychrolib" target="_blank" rel="noopener">github.com/psychrometrics/psychrolib</a></td></tr>
+                </table>
+
+                <h3>Primary Sources (via PsychroLib)</h3>
+                <table>
+                    <tr><th>Source</th><th>Relevance</th></tr>
+                    <tr><td><strong>ASHRAE Handbook — Fundamentals</strong><br>2017, 2021 editions<br>Chapter 1: Psychrometrics</td><td>Authoritative source for all equations implemented in PsychroLib. Eqs. 5, 6 for Pws; Eq. 30 for h; Eq. 37 for Twb.</td></tr>
+                    <tr><td><strong>W. P. Jones</strong><br>Air Conditioning Engineering, 2012</td><td>Practical applications and worked examples.</td></tr>
+                </table>
+
+                <h3>Key PsychroLib Functions Used</h3>
+                <table>
+                    <tr><th>Function</th><th>Purpose</th></tr>
+                    <tr><td>GetSatVapPres()</td><td>Saturation vapor pressure (ASHRAE Eq. 5/6)</td></tr>
+                    <tr><td>GetHumRatioFromVapPres()</td><td>Convert vapor pressure to humidity ratio</td></tr>
+                    <tr><td>GetTDewPointFromVapPres()</td><td>Dew point from vapor pressure (Newton-Raphson)</td></tr>
+                    <tr><td>GetTWetBulbFromHumRatio()</td><td>Wet bulb from humidity ratio (bisection)</td></tr>
+                    <tr><td>GetMoistAirEnthalpy()</td><td>Specific enthalpy (ASHRAE Eq. 30)</td></tr>
+                    <tr><td>GetMoistAirVolume()</td><td>Specific volume (ideal gas law)</td></tr>
+                    <tr><td>CalcPsychrometricsFromRelHum()</td><td>Full properties from Tdb + RH</td></tr>
+                    <tr><td>CalcPsychrometricsFromTWetBulb()</td><td>Full properties from Tdb + Twb</td></tr>
+                    <tr><td>CalcPsychrometricsFromTDewPoint()</td><td>Full properties from Tdb + Tdp</td></tr>
+                </table>
+
+                <h3>Constants Used (from PsychroLib)</h3>
+                <table>
+                    <tr><th>Constant</th><th>Value</th><th>Unit</th><th>Source</th></tr>
+                    <tr><td>R_a (dry air gas constant)</td><td>0.2871</td><td>kJ/(kg·K)</td><td>CODATA 2018</td></tr>
+                    <tr><td>MW_ratio</td><td>0.621945</td><td>—</td><td>IUPAC atomic weights</td></tr>
+                    <tr><td>cp_air</td><td>1.006</td><td>kJ/(kg·K)</td><td>ASHRAE Ch.1</td></tr>
+                    <tr><td>cp_vapor</td><td>1.86</td><td>kJ/(kg·K)</td><td>ASHRAE Ch.1</td></tr>
+                    <tr><td>h_fg_0°C</td><td>2501</td><td>kJ/kg</td><td>IAPWS-95</td></tr>
+                </table>
+
+                <h3>Validation Data (PsychroLib v2.5.0)</h3>
+                <table>
+                    <tr><th>Tdb (°C)</th><th>RH (%)</th><th>Twb (°C)</th><th>Tdp (°C)</th><th>W (g/kg)</th><th>h (kJ/kg)</th></tr>
+                    <tr><td>25</td><td>50</td><td>17.89</td><td>13.86</td><td>9.88</td><td>50.32</td></tr>
+                    <tr><td>30</td><td>70</td><td>25.50</td><td>23.93</td><td>18.80</td><td>78.24</td></tr>
+                    <tr><td>20</td><td>30</td><td>10.85</td><td>1.91</td><td>4.34</td><td>31.13</td></tr>
+                </table>
+                <p style="font-size: 0.8125rem; color: var(--text-muted);">All values computed using PsychroLib's SI mode, converted to display units.</p>
+            `
+        },
+
+        examples: {
+            title: 'Worked Examples',
+            html: `
+                <h3>Example 1: Comfort Room Conditions</h3>
+                <p><strong>Given:</strong> Tdb = 25°C, RH = 50%, Pa = 101.325 kPa (sea level)</p>
+                <p style="font-size: 0.8125rem; color: var(--text-muted);">Calculated using PsychroLib v2.5.0</p>
+
+                <h4>Step 1: Calculate Saturation Pressure at Tdb</h4>
+                <p>Using ASHRAE Eq. 5: ln(Pws) = C/T + D + E·T + F·T² + G·T³ + H·ln(T)</p>
+                <p>At Tdb = 25°C (298.15 K):</p>
+                <div class="equation">Pws = 3.169 kPa</div>
+
+                <h4>Step 2: Calculate Partial Vapor Pressure</h4>
+                <div class="equation">Pw = RH/100 × Pws = 0.50 × 3.169 = 1.585 kPa</div>
+
+                <h4>Step 3: Calculate Humidity Ratio</h4>
+                <div class="equation">W = 0.621945 × Pw / (Pa - Pw) = 0.621945 × 1.585 / (101.325 - 1.585)</div>
+                <div class="equation">W = 0.00988 kg/kg = 9.88 g/kg</div>
+
+                <h4>Step 4: Calculate Dew Point</h4>
+                <p>Solve Pws(Tdp) = Pw using Newton-Raphson:</p>
+                <div class="equation">Tdp = 13.86°C</div>
+
+                <h4>Step 5: Calculate Enthalpy (ASHRAE Eq. 30)</h4>
+                <div class="equation">h = 1.006×Tdb + W×(2501 + 1.86×Tdb)</div>
+                <div class="equation">h = 1.006×25 + 0.00988×(2501 + 1.86×25)</div>
+                <div class="equation">h = 25.15 + 0.00988×2547.5 = 25.15 + 25.17 = 50.32 kJ/kg</div>
+
+                <h4>Step 6: Calculate Wet Bulb (PsychroLib Solver)</h4>
+                <p>PsychroLib uses bisection to solve h(Twb, Ws(Twb)) = h(Tdb, W) = 50.32 kJ/kg:</p>
+                <div class="equation">Twb = 17.89°C</div>
+
+                <h4>Results Summary</h4>
+                <table>
+                    <tr><th>Property</th><th>Value</th></tr>
+                    <tr><td>Tdb</td><td>25.00°C</td></tr>
+                    <tr><td>Twb</td><td>17.89°C</td></tr>
+                    <tr><td>Tdp</td><td>13.86°C</td></tr>
+                    <tr><td>RH</td><td>50.0%</td></tr>
+                    <tr><td>W</td><td>9.88 g/kg</td></tr>
+                    <tr><td>h</td><td>50.32 kJ/kg</td></tr>
+                    <tr><td>v</td><td>0.858 m³/kg</td></tr>
+                </table>
+
+                <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 24px 0;">
+
+                <h3>Example 2: Winter Outdoor Air</h3>
+                <p><strong>Given:</strong> Tdb = 5°C, RH = 80%, Pa = 101.325 kPa</p>
+                <p style="font-size: 0.8125rem; color: var(--text-muted);">Calculated using PsychroLib v2.5.0</p>
+
+                <h4>Step 1: Saturation Pressure at 5°C</h4>
+                <div class="equation">Pws(5°C) = 0.873 kPa</div>
+
+                <h4>Step 2: Partial Vapor Pressure</h4>
+                <div class="equation">Pw = 0.80 × 0.873 = 0.698 kPa</div>
+
+                <h4>Step 3: Humidity Ratio</h4>
+                <div class="equation">W = 0.621945 × 0.698 / (101.325 - 0.698) = 0.00430 kg/kg = 4.30 g/kg</div>
+
+                <h4>Step 4: Dew Point</h4>
+                <div class="equation">Tdp = 1.62°C</div>
+
+                <h4>Step 5: Enthalpy</h4>
+                <div class="equation">h = 1.006×5 + 0.00430×(2501 + 1.86×5) = 5.03 + 10.82 = 15.85 kJ/kg</div>
+
+                <h4>Step 6: Wet Bulb</h4>
+                <div class="equation">Twb = 4.23°C</div>
+
+                <h4>Results Summary</h4>
+                <table>
+                    <tr><th>Property</th><th>Value</th></tr>
+                    <tr><td>Tdb</td><td>5.00°C</td></tr>
+                    <tr><td>Twb</td><td>4.23°C</td></tr>
+                    <tr><td>Tdp</td><td>1.62°C</td></tr>
+                    <tr><td>RH</td><td>80.0%</td></tr>
+                    <tr><td>W</td><td>4.30 g/kg</td></tr>
+                    <tr><td>h</td><td>15.85 kJ/kg</td></tr>
+                    <tr><td>v</td><td>0.793 m³/kg</td></tr>
+                </table>
+
+                <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 24px 0;">
+
+                <h3>Example 3: High Humidity (Tropical)</h3>
+                <p><strong>Given:</strong> Tdb = 32°C, RH = 85%, Pa = 101.325 kPa</p>
+                <p style="font-size: 0.8125rem; color: var(--text-muted);">Calculated using PsychroLib v2.5.0</p>
+
+                <h4>Step 1: Saturation Pressure at 32°C</h4>
+                <div class="equation">Pws(32°C) = 4.756 kPa</div>
+
+                <h4>Step 2: Partial Vapor Pressure</h4>
+                <div class="equation">Pw = 0.85 × 4.756 = 4.043 kPa</div>
+
+                <h4>Step 3: Humidity Ratio</h4>
+                <div class="equation">W = 0.621945 × 4.043 / (101.325 - 4.043) = 0.0259 kg/kg = 25.9 g/kg</div>
+
+                <h4>Step 4: Dew Point</h4>
+                <div class="equation">Tdp = 29.23°C</div>
+
+                <h4>Step 5: Enthalpy</h4>
+                <div class="equation">h = 1.006×32 + 0.0259×(2501 + 1.86×32) = 32.19 + 67.15 = 99.34 kJ/kg</div>
+
+                <h4>Step 6: Wet Bulb</h4>
+                <div class="equation">Twb = 30.12°C</div>
+
+                <h4>Results Summary</h4>
+                <table>
+                    <tr><th>Property</th><th>Value</th></tr>
+                    <tr><td>Tdb</td><td>32.00°C</td></tr>
+                    <tr><td>Twb</td><td>30.12°C</td></tr>
+                    <tr><td>Tdp</td><td>29.23°C</td></tr>
+                    <tr><td>RH</td><td>85.0%</td></tr>
+                    <tr><td>W</td><td>25.9 g/kg</td></tr>
+                    <tr><td>h</td><td>99.34 kJ/kg</td></tr>
+                    <tr><td>v</td><td>0.913 m³/kg</td></tr>
+                </table>
+
+                <div class="warning-box">
+                    <strong>Note:</strong> The narrow spread between Tdb (32°C), Twb (30.1°C), and Tdp (29.2°C) indicates very humid air. Air conditioning in such conditions requires significant latent cooling.
+                </div>
+            `
+        },
+
+        about: {
+            title: 'About This Tool',
+            html: `
+                <h3>Psychrometric Calculator</h3>
+                <p><strong>Version:</strong> 1.1.0</p>
+                <p><strong>Category:</strong> HVAC / Building Science / Engineering Calculators</p>
+
+                <h3>Purpose</h3>
+                <p>This calculator was created to fill a gap in freely available, accurate psychrometric tools. Most online psychrometric calculators either:</p>
+                <ul>
+                    <li>Use outdated equations (pre-2001 ASHRAE)</li>
+                    <li>Lack proper documentation of assumptions</li>
+                    <li>Have limited input modes</li>
+                    <li>Don't show calculation steps</li>
+                </ul>
+
+                <h3>Features</h3>
+                <ul>
+                    <li><strong>4 input modes</strong> — Choose any two independent properties</li>
+                    <li><strong>10+ output properties</strong> — Complete psychrometric state</li>
+                    <li><strong>Interactive chart</strong> — Visual representation on psychrometric diagram</li>
+                    <li><strong>Step-by-step calculations</strong> — Full transparency of methods</li>
+                    <li><strong>Altitude correction</strong> — Adjustable atmospheric pressure</li>
+                </ul>
+
+                <h3>Calculation Engine</h3>
+                <p>This calculator uses <strong>PsychroLib v2.5.0</strong>, the authoritative open-source implementation of ASHRAE psychrometric equations. PsychroLib is maintained by the ASHRAE psychrometrics community and implements all equations from the 2017 ASHRAE Handbook — Fundamentals, Chapter 1.</p>
+                <ul>
+                    <li><a href="https://github.com/psychrometrics/psychrolib" target="_blank" rel="noopener">github.com/psychrometrics/psychrolib</a></li>
+                    <li>License: MIT (free to use, modify, distribute)</li>
+                    <li>Validated against published ASHRAE data</li>
+                </ul>
+
+                <h3>Implementation Notes</h3>
+                <ul>
+                    <li>PsychroLib for all ASHRAE equation calculations</li>
+                    <li>Runs entirely in the browser (no server calls)</li>
+                    <li>Responsive design for mobile and desktop</li>
+                    <li>Custom wrapper for unit conversions (kPa ↔ Pa, kJ/kg ↔ J/kg)</li>
+                </ul>
+
+                <h3>License</h3>
+                <p>GPL-3.0 — Free to use, modify, and distribute.</p>
+
+                <h3>Third-Party Licenses & Attribution</h3>
+                <p>This tool incorporates the following third-party resources:</p>
+                <table>
+                    <tr><th>Resource</th><th>License</th><th>Source</th></tr>
+                    <tr>
+                        <td><strong>PsychroLib v2.5.0</strong><br>ASHRAE Psychrometrics Library</td>
+                        <td><a href="https://opensource.org/licenses/MIT" target="_blank" rel="noopener">MIT License</a><br>Free to use, modify, distribute</td>
+                        <td><a href="https://github.com/psychrometrics/psychrolib" target="_blank" rel="noopener">github.com/psychrometrics/psychrolib</a></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Google Fonts</strong><br>• JetBrains Mono<br>• Space Grotesk</td>
+                        <td><a href="https://scripts.sil.org/OFL" target="_blank" rel="noopener">Open Font License (OFL) 1.1</a><br>Free to use, embed, and distribute</td>
+                        <td><a href="https://fonts.google.com" target="_blank" rel="noopener">fonts.googleapis.com</a></td>
+                    </tr>
+                    <tr>
+                        <td><strong>ASHRAE Equations</strong><br>Saturation pressure (Eq. 5/6),<br>Enthalpy (Eq. 30)</td>
+                        <td>ASHRAE Handbook — Fundamentals<br>© ASHRAE — Used under fair use<br>for educational purposes</td>
+                        <td><a href="https://www.ashrae.org" target="_blank" rel="noopener">ashrae.org</a></td>
+                    </tr>
+                </table>
+                <p style="font-size: 0.8125rem; color: var(--text-muted); margin-top: 8px;">
+                    This tool is not affiliated with, endorsed by, or sponsored by ASHRAE, Google, PsychroLib authors, or any font foundry.
+                    All trademarks are property of their respective owners.
+                </p>
+
+                <div class="warning-box">
+                    <h3>Disclaimer & Limitation of Liability</h3>
+                    <p><strong>NO WARRANTY.</strong> This tool is provided "AS IS" without warranty of any kind, express or implied. The authors assume NO LIABILITY for errors, omissions, or damages resulting from use of this tool.</p>
+                    <p><strong>USER ASSUMES ALL RISK.</strong> Psychrometric calculations involve complex thermodynamics. Input errors, sensor inaccuracies, or edge cases in the equations may produce incorrect results. This tool does not account for all real-world effects (aerosols, contaminants, non-ideal gas behavior at extreme pressures).</p>
+                    <p><strong>VERIFY CRITICAL CALCULATIONS.</strong> For safety-critical systems, life-support applications, or any use where failure could cause harm, you MUST verify all results against ASHRAE Handbook charts, published tables, or validated engineering software.</p>
+                    <p><strong>NOT PROFESSIONAL ADVICE.</strong> This tool does not constitute professional engineering advice. Consult a qualified professional engineer for HVAC design, building science applications, or any project requiring certified calculations.</p>
+                </div>
+            `
+        }
+    };
+
+    function showModal(key) {
+        const content = MODAL_CONTENTS[key];
+        document.getElementById('modalTitle').textContent = content.title;
+        document.getElementById('modalBody').innerHTML = content.html;
+        document.getElementById('modalOverlay').classList.add('active');
+    }
+
+    function closeModal() {
+        document.getElementById('modalOverlay').classList.remove('active');
+    }
+
+    // ========================================
+    // UTILITY FUNCTIONS
+    // ========================================
+    function resetView() {
+        const inputTdb = document.getElementById('inputTdb');
+        const input2 = document.getElementById('input2');
+        const inputPressure = document.getElementById('inputPressure');
+
+        // Set default values based on current unit system
+        if (units === 'ip') {
+            inputTdb.value = 77;  // 25°C = 77°F
+            inputPressure.value = 14.696;  // 101.325 kPa ≈ 14.696 psi
+        } else {
+            inputTdb.value = 25;  // °C
+            inputPressure.value = 101.325;  // kPa
+        }
+
+        // Set input2 based on current mode and units
+        if (inputMode === 'tdb_rh') {
+            input2.value = 50;  // RH % (same in both units)
+        } else if (inputMode === 'tdb_twb') {
+            input2.value = units === 'ip' ? 65.3 : 18;  // 18°C ≈ 65.3°F
+        } else if (inputMode === 'tdb_tdp') {
+            input2.value = units === 'ip' ? 56.97 : 14;  // 14°C ≈ 57.2°F
+        } else if (inputMode === 'tdb_w') {
+            input2.value = units === 'ip' ? 0.01 : 10;  // lb/lb or g/kg
+        }
+
+        calculate();
+    }
+
+    function exportPng() {
+        const link = document.createElement('a');
+        link.download = 'psychrometric-chart.png';
+        link.href = CHART.canvas.toDataURL('image/png');
+        link.click();
+    }
+
+    // ========================================
+    // RESULTS EXPORT FUNCTION
+    // ========================================
+    function exportResults() {
+        if (!currentState) {
+            alert('No calculation results to export. Please perform a calculation first.');
+            return;
+        }
+
+        const isIP = units === 'ip';
+        const timestamp = new Date().toISOString();
+        const dateStr = new Date().toLocaleString();
+
+        // Get input values
+        const inputTdb = parseFloat(document.getElementById('inputTdb').value);
+        const input2 = parseFloat(document.getElementById('input2').value);
+        const inputPa = parseFloat(document.getElementById('inputPressure').value);
+
+        // Build CSV content
+        let csv = 'Psychrometric Calculator Results\n';
+        csv += `Generated: ${dateStr}\n`;
+        csv += `Tool: Psychrometric Calculator v1.0.0\n`;
+        csv += `Equations: ASHRAE 2017/2021 Fundamentals\n`;
+        csv += '\n';
+
+        // Input section
+        csv += '=== INPUT PARAMETERS ===\n';
+        csv += `Input Mode,${inputMode}\n`;
+        csv += `Dry Bulb Temperature,${currentState.Tdb.toFixed(4)} ${isIP ? '°F' : '°C'}\n`;
+        if (inputMode === 'tdb_rh') csv += `Relative Humidity,${currentState.RH.toFixed(2)} %\n`;
+        else if (inputMode === 'tdb_twb') csv += `Wet Bulb Temperature,${currentState.Twb.toFixed(4)} ${isIP ? '°F' : '°C'}\n`;
+        else if (inputMode === 'tdb_tdp') csv += `Dew Point Temperature,${currentState.Tdp.toFixed(4)} ${isIP ? '°F' : '°C'}\n`;
+        else if (inputMode === 'tdb_w') csv += `Humidity Ratio,${(currentState.W * 1000).toFixed(4)} ${isIP ? 'lb/lb' : 'g/kg'}\n`;
+        csv += `Atmospheric Pressure,${inputPa.toFixed(3)} ${isIP ? 'psi' : 'kPa'}\n`;
+        csv += '\n';
+
+        // Results section
+        csv += '=== CALCULATED PROPERTIES ===\n';
+        csv += `Property,Value,Unit (${isIP ? 'IP' : 'SI'})\n`;
+        csv += `Dry Bulb Temperature,${currentState.Tdb.toFixed(4)},${isIP ? '°F' : '°C'}\n`;
+        csv += `Wet Bulb Temperature,${currentState.Twb.toFixed(4)},${isIP ? '°F' : '°C'}\n`;
+        csv += `Dew Point Temperature,${currentState.Tdp.toFixed(4)},${isIP ? '°F' : '°C'}\n`;
+        csv += `Relative Humidity,${currentState.RH.toFixed(2)},%\n`;
+        csv += `Humidity Ratio,${(currentState.W * 1000).toFixed(4)},${isIP ? 'lb/lb' : 'g/kg'}\n`;
+        csv += `Humidity Ratio (kg/kg),${currentState.W.toFixed(6)},kg/kg\n`;
+        csv += `Specific Enthalpy,${currentState.h.toFixed(3)},${isIP ? 'Btu/lb' : 'kJ/kg'}\n`;
+        csv += `Specific Volume,${currentState.v.toFixed(4)},${isIP ? 'ft³/lb' : 'm³/kg'}\n`;
+        csv += `Air Density,${currentState.rho.toFixed(4)},${isIP ? 'lb/ft³' : 'kg/m³'}\n`;
+        csv += `Saturation Vapor Pressure,${currentState.Pws.toFixed(4)},kPa\n`;
+        csv += `Partial Vapor Pressure,${currentState.Pw.toFixed(4)},kPa\n`;
+        csv += `Degree of Saturation,${(currentState.mu * 100).toFixed(2)},%\n`;
+        csv += '\n';
+
+        // Solver info
+        csv += '=== SOLVER INFORMATION ===\n';
+        csv += `Wet Bulb Iterations,${currentState.iterations}\n`;
+        csv += `Wet Bulb Converged,${currentState.Twb_converged !== undefined ? currentState.Twb_converged : 'N/A'}\n`;
+        if (currentState.warning) csv += `Warning,${currentState.warning}\n`;
+        csv += '\n';
+
+        csv += '=== DISCLAIMER ===\n';
+        csv += 'These results are for engineering and educational use only.\n';
+        csv += 'Verify critical calculations against ASHRAE Handbook charts or tables.\n';
+        csv += 'This tool is provided "AS IS" without warranty of any kind.\n';
+
+        // Download CSV
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        const TdbStr = currentState.Tdb.toFixed(0).replace('.', '-');
+        link.download = `psychrometric-results_${TdbStr}_${isIP ? 'IP' : 'SI'}_${timestamp.slice(0,10)}.csv`;
+        link.click();
+        URL.revokeObjectURL(link.href);
+    }
+
+    // ========================================
+    // CALCULATION TRAIL VISUALIZER
+    // ========================================
+    function showCalculationTrail() {
+        if (!currentState) {
+            alert('No calculation results to display. Please perform a calculation first.');
+            return;
+        }
+
+        const isIP = units === 'ip';
+        const Pa = parseFloat(document.getElementById('inputPressure').value);
+
+        // Generate calculation trail HTML
+        const trailHTML = generateCalculationTrail(currentState, Pa, inputMode, isIP);
+
+        // Create modal
+        const modal = document.createElement('div');
+        modal.id = 'calcTrailModal';
+        modal.className = 'validation-modal';
+        modal.innerHTML = `
+            <div class="validation-content" style="max-width: 900px;">
+                <div class="validation-header">
+                    <h2>
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent-primary)" stroke-width="2">
+                            <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/>
+                            <line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/>
+                            <line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
+                        </svg>
+                        Calculation Trail
+                    </h2>
+                    <button class="validation-close" onclick="document.getElementById('calcTrailModal').remove()">×</button>
+                </div>
+                <p class="validation-summary" style="display: flex; justify-content: space-between; align-items: center;">
+                    <span>Step-by-step calculation audit for verification</span>
+                    <button class="trail-copy-btn" onclick="copyCalculationTrail()">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                        Copy Trail
+                    </button>
+                </p>
+                <div class="validation-results" id="trailContent">
+                    ${trailHTML}
+                </div>
+                <div class="validation-footer">
+                    <button class="validation-btn" onclick="document.getElementById('calcTrailModal').remove()">Close</button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+        modal.classList.add('active');
+    }
+
+    function generateCalculationTrail(state, Pa, mode, isIP) {
+        const T_K = PSY.CtoK(state.Tdb);
+
+        let html = `
+            <div class="calc-trail-section">
+                <h4>1. SATURATION PRESSURE AT DRY BULB</h4>
+                <div class="calc-step">
+                    <div class="step-formula">ln(Pws) = C/T + D + E·T + F·T² + G·T³ + H·ln(T)</div>
+                    <div class="step-inputs">T = ${state.Tdb}°C = ${T_K.toFixed(2)} K</div>
+                    <div class="step-calc">
+                        <div class="step-row">
+                            <span class="step-label">Coefficients (${state.Tdb >= 0 ? 'water (Eq. 5)' : 'ice (Eq. 6)'}):</span>
+                            <span class="step-value">C=${-5800.2206}, D=${state.Tdb >= 0 ? '1.3914993' : '6.3925247'}, ...</span>
+                        </div>
+                        <div class="step-row">
+                            <span class="step-label">Pws(Tdb):</span>
+                            <span class="step-result">${state.Pws.toFixed(4)} kPa</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="calc-trail-section">
+                <h4>2. VAPOR PRESSURE & HUMIDITY RATIO</h4>
+                <div class="calc-step">
+                    ${mode === 'tdb_rh' ? `
+                    <div class="step-row">
+                        <span class="step-formula">Pw = RH/100 × Pws</span>
+                    </div>
+                    <div class="step-calc">
+                        <div class="step-row">
+                            <span class="step-input">RH = ${state.RH.toFixed(1)}%</span>
+                            <span class="step-input">Pws = ${state.Pws.toFixed(4)} kPa</span>
+                        </div>
+                        <div class="step-row">
+                            <span class="step-label">Pw = ${(state.RH/100).toFixed(4)} × ${state.Pws.toFixed(4)} =</span>
+                            <span class="step-result">${state.Pw.toFixed(4)} kPa</span>
+                        </div>
+                    </div>
+                    ` : mode === 'tdb_w' ? `
+                    <div class="step-row">
+                        <span class="step-formula">Pw = W × Pa / (0.621945 + W)</span>
+                    </div>
+                    <div class="step-calc">
+                        <div class="step-row">
+                            <span class="step-input">W = ${(state.W * 1000).toFixed(2)} g/kg = ${state.W.toFixed(6)} kg/kg</span>
+                            <span class="step-input">Pa = ${Pa.toFixed(3)} kPa</span>
+                        </div>
+                        <div class="step-row">
+                            <span class="step-label">Pw = ${state.W.toFixed(6)} × ${Pa.toFixed(3)} / (0.621945 + ${state.W.toFixed(6)}) =</span>
+                            <span class="step-result">${state.Pw.toFixed(4)} kPa</span>
+                        </div>
+                    </div>
+                    ` : mode === 'tdb_tdp' ? `
+                    <div class="step-row">
+                        <span class="step-formula">Pw = Pws(Tdp) [at dew point, RH = 100%]</span>
+                    </div>
+                    <div class="step-calc">
+                        <div class="step-row">
+                            <span class="step-input">Tdp = ${state.Tdp.toFixed(2)}°C</span>
+                        </div>
+                        <div class="step-row">
+                            <span class="step-label">Pws(${state.Tdp.toFixed(1)}°C) = Pw =</span>
+                            <span class="step-result">${state.Pw.toFixed(4)} kPa</span>
+                        </div>
+                    </div>
+                    ` : `
+                    <div class="step-row">
+                        <span class="step-formula">Energy balance at Twb → find W</span>
+                    </div>
+                    <div class="step-calc">
+                        <div class="step-row">
+                            <span class="step-input">Twb = ${state.Twb.toFixed(2)}°C (saturated)</span>
+                        </div>
+                        <div class="step-row">
+                            <span class="step-label">W from energy balance:</span>
+                            <span class="step-result">${(state.W * 1000).toFixed(2)} g/kg</span>
+                        </div>
+                    </div>
+                    `}
+                </div>
+                <div class="calc-step">
+                    <div class="step-row">
+                        <span class="step-formula">W = 0.621945 × Pw / (Pa - Pw)</span>
+                    </div>
+                    <div class="step-calc">
+                        <div class="step-row">
+                            <span class="step-input">Pw = ${state.Pw.toFixed(4)} kPa</span>
+                            <span class="step-input">Pa = ${Pa.toFixed(3)} kPa</span>
+                        </div>
+                        <div class="step-row">
+                            <span class="step-label">W = 0.621945 × ${state.Pw.toFixed(4)} / (${Pa.toFixed(3)} - ${state.Pw.toFixed(4)}) =</span>
+                            <span class="step-result">${state.W.toFixed(6)} kg/kg = ${(state.W * 1000).toFixed(2)} g/kg</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="calc-trail-section">
+                <h4>3. RELATIVE HUMIDITY</h4>
+                <div class="calc-step">
+                    <div class="step-row">
+                        <span class="step-formula">RH = 100 × Pw / Pws</span>
+                    </div>
+                    <div class="step-calc">
+                        <div class="step-row">
+                            <span class="step-input">Pw = ${state.Pw.toFixed(4)} kPa</span>
+                            <span class="step-input">Pws = ${state.Pws.toFixed(4)} kPa</span>
+                        </div>
+                        <div class="step-row">
+                            <span class="step-label">RH = 100 × ${state.Pw.toFixed(4)} / ${state.Pws.toFixed(4)} =</span>
+                            <span class="step-result">${state.RH.toFixed(2)}%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="calc-trail-section">
+                <h4>4. SPECIFIC ENTHALPY (ASHRAE Eq. 30)</h4>
+                <div class="calc-step">
+                    <div class="step-row">
+                        <span class="step-formula">h = 1.006×Tdb + W×(2501 + 1.86×Tdb)</span>
+                    </div>
+                    <div class="step-calc">
+                        <div class="step-row">
+                            <span class="step-input">Tdb = ${state.Tdb}°C</span>
+                            <span class="step-input">W = ${state.W.toFixed(6)} kg/kg</span>
+                        </div>
+                        <div class="step-row">
+                            <span class="step-label">Sensible: 1.006 × ${state.Tdb} = ${(1.006 * state.Tdb).toFixed(2)} kJ/kg</span>
+                        </div>
+                        <div class="step-row">
+                            <span class="step-label">Latent term: ${state.W.toFixed(6)} × (2501 + 1.86×${state.Tdb}) = ${(state.W * (2501 + 1.86 * state.Tdb)).toFixed(2)} kJ/kg</span>
+                        </div>
+                        <div class="step-row">
+                            <span class="step-label">h = ${(1.006 * state.Tdb).toFixed(2)} + ${(state.W * (2501 + 1.86 * state.Tdb)).toFixed(2)} =</span>
+                            <span class="step-result">${state.h.toFixed(2)} kJ/kg ${isIP ? `(${(state.h * 0.429923).toFixed(2)} Btu/lb)` : ''}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="calc-trail-section">
+                <h4>5. SPECIFIC VOLUME (Ideal Gas Law)</h4>
+                <div class="calc-step">
+                    <div class="step-row">
+                        <span class="step-formula">v = Ra × T(K) × (1 + 1.6078×W) / Pa</span>
+                    </div>
+                    <div class="step-calc">
+                        <div class="step-row">
+                            <span class="step-input">Ra = 0.2871 kJ/(kg·K)</span>
+                            <span class="step-input">T(K) = ${T_K.toFixed(2)} K</span>
+                            <span class="step-input">W = ${state.W.toFixed(6)}</span>
+                            <span class="step-input">Pa = ${Pa.toFixed(3)} kPa</span>
+                        </div>
+                        <div class="step-row">
+                            <span class="step-label">T(K) × (1 + 1.6078×W) = ${T_K.toFixed(2)} × ${(1 + 1.6078 * state.W).toFixed(6)} = ${(T_K * (1 + 1.6078 * state.W)).toFixed(2)}</span>
+                        </div>
+                        <div class="step-row">
+                            <span class="step-label">v = 0.2871 × ${(T_K * (1 + 1.6078 * state.W)).toFixed(2)} / ${Pa.toFixed(3)} =</span>
+                            <span class="step-result">${state.v.toFixed(4)} m³/kg ${isIP ? `(${(state.v * 16.0185).toFixed(4)} ft³/lb)` : ''}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="calc-trail-section">
+                <h4>6. AIR DENSITY</h4>
+                <div class="calc-step">
+                    <div class="step-row">
+                        <span class="step-formula">ρ = 1/v</span>
+                    </div>
+                    <div class="step-calc">
+                        <div class="step-row">
+                            <span class="step-label">ρ = 1 / ${state.v.toFixed(4)} =</span>
+                            <span class="step-result">${state.rho.toFixed(4)} kg/m³</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="calc-trail-section">
+                <h4>7. DEW POINT TEMPERATURE (Newton-Raphson)</h4>
+                <div class="calc-step">
+                    <div class="step-row">
+                        <span class="step-formula">Solve: Pws(Tdp) = Pw</span>
+                    </div>
+                    <div class="step-calc">
+                        <div class="step-row">
+                            <span class="step-input">Target Pw = ${state.Pw.toFixed(4)} kPa</span>
+                        </div>
+                        <div class="step-row">
+                            <span class="step-label">Iterative inversion using Newton-Raphson method</span>
+                        </div>
+                        <div class="step-row">
+                            <span class="step-result">Tdp = ${state.Tdp.toFixed(2)}°C ${isIP ? `(${PSY.CtoF(state.Tdp).toFixed(2)}°F)` : ''}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="calc-trail-section">
+                <h4>8. WET BULB TEMPERATURE (Energy Balance)</h4>
+                <div class="calc-step">
+                    <div class="step-row">
+                        <span class="step-formula">Solve: h(Twb, Ws(Twb)) = h(Tdb, W) [bisection method]</span>
+                    </div>
+                    <div class="step-calc">
+                        <div class="step-row">
+                            <span class="step-input">Target enthalpy h = ${state.h.toFixed(2)} kJ/kg</span>
+                        </div>
+                        <div class="step-row">
+                            <span class="step-label">Find Twb where saturated air enthalpy equals target</span>
+                        </div>
+                        <div class="step-row">
+                            <span class="step-result">Twb = ${state.Twb.toFixed(2)}°C (converged in ${state.iterations} iterations)</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="calc-trail-section">
+                <h4>9. DEGREE OF SATURATION</h4>
+                <div class="calc-step">
+                    <div class="step-row">
+                        <span class="step-formula">μ = W / Ws</span>
+                    </div>
+                    <div class="step-calc">
+                        <div class="step-row">
+                            <span class="step-input">W = ${(state.W * 1000).toFixed(2)} g/kg</span>
+                            <span class="step-input">Ws = ${(state.Pws * 0.621945 / (Pa - state.Pws) * 1000).toFixed(2)} g/kg</span>
+                        </div>
+                        <div class="step-row">
+                            <span class="step-label">μ = ${(state.W * 1000).toFixed(2)} / ${(state.Pws * 0.621945 / (Pa - state.Pws) * 1000).toFixed(2)} =</span>
+                            <span class="step-result">${(state.mu * 100).toFixed(2)}%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        return html;
+    }
+
+    function copyCalculationTrail() {
+        const trailContent = document.getElementById('trailContent');
+        if (!trailContent) return;
+
+        // Get text content
+        const text = trailContent.innerText;
+
+        // Copy to clipboard
+        navigator.clipboard.writeText(text).then(() => {
+            const btn = document.querySelector('.trail-copy-btn');
+            if (btn) {
+                const originalText = btn.innerHTML;
+                btn.innerHTML = `
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent-success)" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+                    Copied!
+                `;
+                setTimeout(() => btn.innerHTML = originalText, 2000);
+            }
+        }).catch(err => {
+            alert('Failed to copy: ' + err);
+        });
+    }
+
+    // ========================================
+    // INITIALIZATION
+    // ========================================
+    function validateCalculator() {
+        const results = [];
+        let allPassed = true;
+
+        // Run each test case
+        REFERENCE_DATA.forEach((testCase, index) => {
+            const result = PSY.solve_Tdb_RH(testCase.input.Tdb, testCase.input.RH, testCase.input.Pa);
+
+            // Compare each property against expected value
+            const checks = {
+                Twb: {
+                    actual: result.Twb,
+                    expected: testCase.expected.Twb,
+                    tolerance: testCase.tolerance.Twb,
+                    passed: Math.abs(result.Twb - testCase.expected.Twb) <= testCase.tolerance.Twb
+                },
+                Tdp: {
+                    actual: result.Tdp,
+                    expected: testCase.expected.Tdp,
+                    tolerance: testCase.tolerance.Tdp,
+                    passed: Math.abs(result.Tdp - testCase.expected.Tdp) <= testCase.tolerance.Tdp
+                },
+                W: {
+                    actual: result.W * 1000, // Convert to g/kg
+                    expected: testCase.expected.W,
+                    tolerance: testCase.tolerance.W,
+                    passed: Math.abs(result.W * 1000 - testCase.expected.W) <= testCase.tolerance.W
+                },
+                h: {
+                    actual: result.h,
+                    expected: testCase.expected.h,
+                    tolerance: testCase.tolerance.h,
+                    passed: Math.abs(result.h - testCase.expected.h) <= testCase.tolerance.h
+                },
+                v: {
+                    actual: result.v,
+                    expected: testCase.expected.v,
+                    tolerance: testCase.tolerance.v,
+                    passed: Math.abs(result.v - testCase.expected.v) <= testCase.tolerance.v
+                }
+            };
+
+            const testPassed = Object.values(checks).every(c => c.passed);
+            if (!testPassed) allPassed = false;
+
+            results.push({
+                name: testCase.name,
+                input: testCase.input,
+                checks: checks,
+                passed: testPassed,
+                converged: result.Twb_converged,
+                warning: result.warning
+            });
+        });
+
+        // Display results
+        showValidationResults(results, allPassed);
+    }
+
+    function showValidationResults(results, allPassed) {
+        // Remove existing validation modal if any
+        const existingModal = document.getElementById('validationModal');
+        if (existingModal) existingModal.remove();
+
+        // Create modal
+        const modal = document.createElement('div');
+        modal.id = 'validationModal';
+        modal.className = 'validation-modal';
+        modal.innerHTML = `
+            <div class="validation-content">
+                <div class="validation-header">
+                    <h2>
+                        ${allPassed
+                            ? '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg> Validation Passed'
+                            : '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="3"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg> Validation Failed'}
+                    </h2>
+                    <button class="validation-close" onclick="document.getElementById('validationModal').remove()">×</button>
+                </div>
+                <p class="validation-summary">${allPassed
+                    ? 'All test cases passed within specified tolerances.'
+                    : 'One or more test cases failed. Check details below.'}</p>
+                <div class="validation-results">
+                    ${results.map((r, i) => `
+                        <div class="validation-test ${r.passed ? 'passed' : 'failed'}">
+                            <div class="validation-test-header">
+                                <span class="validation-test-name">${r.name}</span>
+                                <span class="validation-test-status">${r.passed ? '✓ PASSED' : '✗ FAILED'}</span>
+                            </div>
+                            <div class="validation-test-inputs">Input: Tdb = ${r.input.Tdb}°C, RH = ${r.input.RH}%, Pa = ${r.input.Pa} kPa</div>
+                            <table class="validation-table">
+                                <thead>
+                                    <tr>
+                                        <th>Property</th>
+                                        <th>Calculated</th>
+                                        <th>Expected</th>
+                                        <th>Difference</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${Object.entries(r.checks).map(([key, check]) => {
+                                        const diff = check.actual - check.expected;
+                                        const diffStr = (diff >= 0 ? '+' : '') + diff.toFixed(4);
+                                        const statusIcon = check.passed ? '✓' : '✗';
+                                        const statusClass = check.passed ? 'check-pass' : 'check-fail';
+                                        return `
+                                            <tr>
+                                                <td>${key}</td>
+                                                <td>${check.actual.toFixed(2)}</td>
+                                                <td>${check.expected.toFixed(2)}</td>
+                                                <td class="${statusClass}">${diffStr}</td>
+                                                <td class="${statusClass}">${statusIcon}</td>
+                                            </tr>
+                                        `;
+                                    }).join('')}
+                                </tbody>
+                            </table>
+                            ${r.warning ? `<div class="validation-warning">⚠ Warning: ${r.warning}</div>` : ''}
+                        </div>
+                    `).join('')}
+                </div>
+                <div class="validation-footer">
+                    <button class="validation-btn" onclick="document.getElementById('validationModal').remove()">Close</button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+        modal.classList.add('active');
+    }
+
+    // ========================================
+    // INITIALIZATION
+    // ========================================
+    document.addEventListener('DOMContentLoaded', () => {
+        CHART.init();
+        initEventListeners();
+        calculate(); // Initial calculation
+    });
+    </script>
+</body>
+</html>
