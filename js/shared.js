@@ -60,7 +60,9 @@ const ThemeManager = {
         document.querySelectorAll('[data-theme-toggle]').forEach(btn => {
             const btnTheme = btn.dataset.themeToggle;
             if (btnTheme === 'dark' || btnTheme === 'light') {
-                btn.classList.toggle('active', btnTheme === theme);
+                const isActive = btnTheme === theme;
+                btn.classList.toggle('active', isActive);
+                btn.setAttribute('aria-pressed', isActive.toString());
             }
         });
     }
@@ -68,21 +70,88 @@ const ThemeManager = {
 
 // Copy to Clipboard
 const Clipboard = {
+    /**
+     * Copy text to clipboard with fallback for older browsers
+     * @param {string} text - Text to copy
+     * @param {HTMLElement} feedbackElement - Optional element to show feedback
+     * @returns {Promise<boolean>} Success status
+     */
     async copy(text, feedbackElement = null) {
-        try {
-            await navigator.clipboard.writeText(text);
-            if (feedbackElement) {
-                const originalText = feedbackElement.textContent;
-                feedbackElement.textContent = 'Copied!';
-                setTimeout(() => {
-                    feedbackElement.textContent = originalText;
-                }, 1500);
+        // Try modern Clipboard API first
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            try {
+                await navigator.clipboard.writeText(text);
+                this.showFeedback(feedbackElement);
+                return true;
+            } catch (err) {
+                // Fall through to fallback method
+                console.warn('Clipboard API failed, trying fallback:', err);
             }
-            return true;
-        } catch (err) {
-            console.error('Failed to copy:', err);
-            return false;
         }
+
+        // Fallback: document.execCommand('copy')
+        return this.fallbackCopy(text, feedbackElement);
+    },
+
+    /**
+     * Fallback copy method using execCommand
+     * @param {string} text - Text to copy
+     * @param {HTMLElement} feedbackElement - Optional element to show feedback
+     * @returns {boolean} Success status
+     */
+    fallbackCopy(text, feedbackElement) {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        textarea.style.left = '-9999px';
+        textarea.style.top = '0';
+        textarea.setAttribute('readonly', '');
+        document.body.appendChild(textarea);
+
+        // Select text - iOS needs this range selection
+        if (navigator.userAgent.match(/ipad|iphone/i)) {
+            const range = document.createRange();
+            range.selectNodeContents(textarea);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            textarea.setSelectionRange(0, text.length);
+        } else {
+            textarea.select();
+        }
+
+        let success = false;
+        try {
+            success = document.execCommand('copy');
+            if (success) {
+                this.showFeedback(feedbackElement);
+            }
+        } catch (err) {
+            console.error('Fallback copy failed:', err);
+        }
+
+        document.body.removeChild(textarea);
+        return success;
+    },
+
+    /**
+     * Show visual feedback after successful copy
+     * @param {HTMLElement} element - Element to update with feedback
+     */
+    showFeedback(element) {
+        if (!element) return;
+
+        const originalText = element.textContent;
+        const originalClass = element.className;
+
+        // Add success indicator
+        element.textContent = 'Copied!';
+        element.classList.add('copy-success');
+
+        setTimeout(() => {
+            element.textContent = originalText;
+            element.classList.remove('copy-success');
+        }, 1500);
     }
 };
 

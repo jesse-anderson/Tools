@@ -3,212 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Engineering Sensors Database | Tools Hub</title>
+    <title>Sensors Reference | Tools Hub</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../css/shared.css">
-    <style>
-        /* Database Specific Styles */
-        .db-layout {
-            display: grid;
-            gap: 24px;
-            /* Full width layout */
-            max-width: 1400px;
-            margin: 0 auto;
-        }
-
-        .controls-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 16px;
-        }
-
-        .search-group {
-            flex: 1;
-            min-width: 300px;
-            position: relative;
-        }
-
-        .search-group input {
-            width: 100%;
-            padding: 12px 16px;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.9375rem;
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            color: var(--text-primary);
-            transition: all 0.2s ease;
-        }
-
-        .search-group input:focus {
-            border-color: var(--accent-engineering);
-            outline: none;
-            box-shadow: 0 0 0 2px var(--accent-engineering-dim);
-        }
-
-        .legend-group {
-            display: flex;
-            gap: 12px;
-            align-items: center;
-            font-size: 0.8125rem;
-            color: var(--text-secondary);
-            background: var(--bg-secondary);
-            padding: 8px 16px;
-            border-radius: 6px;
-            border: 1px solid var(--border-color);
-        }
-
-        /* Table Styles */
-        .table-container {
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.8125rem;
-        }
-
-        thead {
-            background: var(--bg-secondary);
-            border-bottom: 2px solid var(--border-color);
-        }
-
-        th {
-            text-align: left;
-            padding: 16px;
-            font-weight: 600;
-            color: var(--text-primary);
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            cursor: pointer;
-            user-select: none;
-            position: sticky;
-            top: 0;
-        }
-
-        th:hover {
-            color: var(--accent-engineering);
-            background: var(--accent-engineering-dim);
-        }
-
-        td {
-            padding: 14px 16px;
-            border-bottom: 1px solid var(--border-color);
-            color: var(--text-secondary);
-            vertical-align: middle;
-        }
-
-        tr:last-child td {
-            border-bottom: none;
-        }
-
-        tr:hover td {
-            background: var(--bg-secondary);
-            color: var(--text-primary);
-        }
-        /* Disclaimer Card */
-        .disclaimer-card {
-            border: 1px solid #f59e0b;
-            background: rgba(245, 158, 11, 0.05);
-        }
-        
-        .disclaimer-title {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            color: #d97706;
-            font-size: 0.75rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            margin-bottom: 12px;
-            font-family: 'JetBrains Mono', monospace;
-            border-bottom: 1px solid rgba(217, 119, 6, 0.2);
-            padding-bottom: 8px;
-        }
-        
-        .disclaimer-content {
-            font-size: 0.6875rem;
-            line-height: 1.4;
-            color: var(--text-secondary);
-            font-family: sans-serif;
-        }
-
-        .disclaimer-list { margin: 8px 0; padding-left: 16px; }
-        .disclaimer-list li { margin-bottom: 6px; }
-        .disclaimer-list strong { color: var(--text-primary); font-weight: 600; }
-        .disclaimer-footer { margin-top: 12px; font-style: italic; opacity: 0.8; border-top: 1px solid rgba(217, 119, 6, 0.2); padding-top: 8px; }
-
-        /* Category Header Row */
-        tr.category-row td {
-            background: var(--bg-secondary);
-            color: var(--accent-engineering);
-            font-family: 'Space Grotesk', sans-serif;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-            padding: 12px 16px;
-            font-size: 0.75rem;
-            border-top: 2px solid var(--border-color);
-        }
-
-        /* Logic Level Tags */
-        .logic-tag {
-            display: inline-block;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-size: 0.7rem;
-            font-weight: 600;
-            border: 1px solid transparent;
-        }
-        .logic-3v3 { background: rgba(59, 130, 246, 0.1); color: #3b82f6; border-color: rgba(59, 130, 246, 0.2); }
-        .logic-5v { background: rgba(239, 68, 68, 0.1); color: #ef4444; border-color: rgba(239, 68, 68, 0.2); }
-        .logic-ana { background: rgba(168, 85, 247, 0.1); color: #a855f7; border-color: rgba(168, 85, 247, 0.2); }
-
-        /* Cost Tags */
-        .cost-tag {
-            font-weight: 600;
-            padding: 2px 6px;
-            border-radius: 4px;
-            min-width: 30px;
-            text-align: center;
-            display: inline-block;
-        }
-        .cost-low { color: #10b981; background: rgba(16, 185, 129, 0.1); }
-        .cost-med { color: #f59e0b; background: rgba(245, 158, 11, 0.1); }
-        .cost-high { color: #ef4444; background: rgba(239, 68, 68, 0.1); }
-        .cost-extreme { color: #8b5cf6; background: rgba(139, 92, 246, 0.1); }
-
-        /* Datasheet Link */
-        .ds-btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            color: var(--text-muted);
-            text-decoration: none;
-            transition: color 0.2s;
-        }
-        .ds-btn:hover { color: var(--accent-engineering); }
-        .ds-btn svg { width: 14px; height: 14px; }
-
-        @media (max-width: 768px) {
-            .table-container { overflow-x: scroll; }
-            .controls-card { flex-direction: column; align-items: stretch; }
-        }
-    </style>
+    <link rel="stylesheet" href="../css/sensors_reference/sensor-database.css">
 </head>
 <body>
     <div class="container">
@@ -225,7 +25,7 @@
                 </div>
                 <div class="header-right">
                     <div class="theme-toggle">
-                        <button data-theme-toggle="light" title="Light mode">
+                        <button data-theme-toggle="light" aria-pressed="false" title="Light mode">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <circle cx="12" cy="12" r="5"/>
                                 <line x1="12" y1="1" x2="12" y2="3"/>
@@ -238,7 +38,7 @@
                                 <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
                             </svg>
                         </button>
-                        <button data-theme-toggle="dark" title="Dark mode">
+                        <button data-theme-toggle="dark" aria-pressed="false" title="Dark mode">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
                             </svg>
@@ -258,7 +58,14 @@
         <main class="db-layout">
             <div class="controls-card">
                 <div class="search-group">
-                    <input type="text" id="searchInput" onkeyup="filterTable()" placeholder="Filter by type, manufacturer, or model (e.g. 'NOx', 'Bosch', 'Vacuum')...">
+                    <input type="text" id="searchInput" placeholder="Search sensors (type, model, manufacturer, voltage...)" aria-label="Search sensors">
+                    <button type="button" id="clearSearch" class="clear-search-btn" aria-label="Clear search" title="Clear search">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"/>
+                            <line x1="6" y1="6" x2="18" y2="18"/>
+                        </svg>
+                    </button>
+                    <span id="resultsCount" class="results-count" aria-live="polite"></span>
                 </div>
                 <div class="legend-group">
                     <span>Est. Cost:</span>
@@ -273,10 +80,10 @@
                 <table id="sensorTable">
                     <thead>
                         <tr>
-                            <th onclick="sortTable(0)">Reading / Type</th>
-                            <th onclick="sortTable(1)">Sensor Model</th>
-                            <th onclick="sortTable(2)">Cost</th>
-                            <th onclick="sortTable(3)">Mfr</th>
+                            <th data-sort="0" aria-sort="none">Reading / Type <span class="sort-indicator"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 15 12 9 6 15"/></svg></span></th>
+                            <th data-sort="1" aria-sort="none">Sensor Model <span class="sort-indicator"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 15 12 9 6 15"/></svg></span></th>
+                            <th data-sort="2" aria-sort="none">Cost <span class="sort-indicator"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 15 12 9 6 15"/></svg></span></th>
+                            <th data-sort="3" aria-sort="none">Mfr <span class="sort-indicator"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 15 12 9 6 15"/></svg></span></th>
                             <th>Logic (Level)</th>
                             <th>Vin</th>
                             <th>Ref</th>
@@ -293,7 +100,7 @@
                             <td>SPEC Sensors</td>
                             <td><span class="logic-tag logic-3v3">UART (3.3V)</span></td>
                             <td>3.3V</td>
-                            <td><a href="https://www.google.com/search?q=SPEC+Sensors+DGS-NO2+datasheet+pdf" target="_blank" class="ds-btn">PDF ↗</a></td>
+                            <td><a href="https://www.google.com/search?q=SPEC+Sensors+DGS-NO2+datasheet+pdf" target="_blank" rel="noopener noreferrer" class="ds-btn">PDF ↗</a></td>
                         </tr>
                         <tr>
                             <td>Nitrogen Dioxide (Industrial)</td>
@@ -302,7 +109,7 @@
                             <td>Alphasense</td>
                             <td><span class="logic-tag logic-ana">Analog (nA)</span></td>
                             <td>Passive</td>
-                            <td><a href="https://www.google.com/search?q=Alphasense+NO2-B43F+datasheet+pdf" target="_blank" class="ds-btn">PDF ↗</a></td>
+                            <td><a href="https://www.google.com/search?q=Alphasense+NO2-B43F+datasheet+pdf" target="_blank" rel="noopener noreferrer" class="ds-btn">PDF ↗</a></td>
                         </tr>
                         <tr>
                             <td>Sulfur Dioxide (SO2)</td>
@@ -311,7 +118,7 @@
                             <td>Winsen</td>
                             <td><span class="logic-tag logic-3v3">UART (3V)</span></td>
                             <td>5.0V</td>
-                            <td><a href="https://www.google.com/search?q=Winsen+ZE03-SO2+datasheet+pdf" target="_blank" class="ds-btn">PDF ↗</a></td>
+                            <td><a href="https://www.google.com/search?q=Winsen+ZE03-SO2+datasheet+pdf" target="_blank" rel="noopener noreferrer" class="ds-btn">PDF ↗</a></td>
                         </tr>
                         <tr>
                             <td>Benzene / VOCs (PID)</td>
@@ -320,7 +127,7 @@
                             <td>Ion Science</td>
                             <td><span class="logic-tag logic-ana">Analog/Dig</span></td>
                             <td>3V - 3.6V</td>
-                            <td><a href="https://www.google.com/search?q=Ion+Science+MiniPID+2+datasheet+pdf" target="_blank" class="ds-btn">PDF ↗</a></td>
+                            <td><a href="https://www.google.com/search?q=Ion+Science+MiniPID+2+datasheet+pdf" target="_blank" rel="noopener noreferrer" class="ds-btn">PDF ↗</a></td>
                         </tr>
                         <tr>
                             <td>Ozone (O3)</td>
@@ -329,16 +136,16 @@
                             <td>SPEC Sensors</td>
                             <td><span class="logic-tag logic-ana">Analog (0–3V)</span></td>
                             <td>2.7V – 3.3V</td>
-                            <td><a href="https://www.google.com/search?q=SPEC+Sensors+ULPSM-O3+datasheet+pdf" target="_blank" class="ds-btn">PDF ↗</a></td>
+                            <td><a href="https://www.google.com/search?q=SPEC+Sensors+ULPSM-O3+datasheet+pdf" target="_blank" rel="noopener noreferrer" class="ds-btn">PDF ↗</a></td>
                         </tr>
                         <tr>
                             <td>H2S (Hydrogen Sulfide)</td>
                             <td>4H2S-100</td>
-                            <td><span class="cost-tag cost-high">$$</span></td>
+                            <td><span class="cost-tag cost-med">$$</span></td>
                             <td>Alphasense</td>
                             <td><span class="logic-tag logic-ana">Analog (nA)</span></td>
                             <td>Passive</td>
-                            <td><a href="https://www.google.com/search?q=Alphasense+4H2S-100+datasheet+pdf" target="_blank" class="ds-btn">PDF ↗</a></td>
+                            <td><a href="https://www.google.com/search?q=Alphasense+4H2S-100+datasheet+pdf" target="_blank" rel="noopener noreferrer" class="ds-btn">PDF ↗</a></td>
                         </tr>
                         <tr>
                             <td>Particulates (PM2.5/10)</td>
@@ -347,7 +154,7 @@
                             <td>Sensirion</td>
                             <td><span class="logic-tag logic-5v">UART/I2C (3.3/5V)</span></td>
                             <td>5.0V</td>
-                            <td><a href="https://www.google.com/search?q=Sensirion+SPS30+datasheet+pdf" target="_blank" class="ds-btn">PDF ↗</a></td>
+                            <td><a href="https://www.google.com/search?q=Sensirion+SPS30+datasheet+pdf" target="_blank" rel="noopener noreferrer" class="ds-btn">PDF ↗</a></td>
                         </tr>
                         <tr>
                             <td>Particulates (PM2.5/10)</td>
@@ -356,7 +163,7 @@
                             <td>Plantower</td>
                             <td><span class="logic-tag logic-3v3">UART (3.3V)</span></td>
                             <td>5.0V</td>
-                            <td><a href="https://www.google.com/search?q=Plantower+PMS7003+datasheet+pdf" target="_blank" class="ds-btn">PDF ↗</a></td>
+                            <td><a href="https://www.google.com/search?q=Plantower+PMS7003+datasheet+pdf" target="_blank" rel="noopener noreferrer" class="ds-btn">PDF ↗</a></td>
                         </tr>
                         <tr>
                             <td>CO2 (NDIR)</td>
@@ -365,7 +172,7 @@
                             <td>Sensirion</td>
                             <td><span class="logic-tag logic-3v3">I2C/UART (3.3V logic)</span></td>
                             <td>3.3/5.5V</td>
-                            <td><a href="https://www.google.com/search?q=Sensirion+SCD30+datasheet+pdf" target="_blank" class="ds-btn">PDF ↗</a></td>
+                            <td><a href="https://www.google.com/search?q=Sensirion+SCD30+datasheet+pdf" target="_blank" rel="noopener noreferrer" class="ds-btn">PDF ↗</a></td>
                         </tr>
                         <tr>
                             <td>CO2 (Photoacoustic)</td>
@@ -374,7 +181,7 @@
                             <td>Sensirion</td>
                             <td><span class="logic-tag logic-3v3">I2C (2.4-5V)</span></td>
                             <td>2.4V - 5.0V</td>
-                            <td><a href="https://www.google.com/search?q=Sensirion+SCD41+datasheet+pdf" target="_blank" class="ds-btn">PDF ↗</a></td>
+                            <td><a href="https://www.google.com/search?q=Sensirion+SCD41+datasheet+pdf" target="_blank" rel="noopener noreferrer" class="ds-btn">PDF ↗</a></td>
                         </tr>
 
                         <tr class="category-row"><td colspan="7">Pressure, Vacuum & Flow</td></tr>
@@ -386,7 +193,7 @@
                             <td>Honeywell</td>
                             <td><span class="logic-tag logic-3v3">I2C/SPI (3.3V)</span></td>
                             <td>3.3V or 5V</td>
-                            <td><a href="https://www.google.com/search?q=Honeywell+HSC+Series+Pressure+Sensor+datasheet" target="_blank" class="ds-btn">PDF ↗</a></td>
+                            <td><a href="https://www.google.com/search?q=Honeywell+HSC+Series+Pressure+Sensor+datasheet" target="_blank" rel="noopener noreferrer" class="ds-btn">PDF ↗</a></td>
                         </tr>
                         <tr>
                             <td>Differential Pressure</td>
@@ -395,7 +202,7 @@
                             <td>NXP</td>
                             <td><span class="logic-tag logic-ana">Analog (5V)</span></td>
                             <td>5.0V</td>
-                            <td><a href="https://www.google.com/search?q=NXP+MPX5010DP+datasheet+pdf" target="_blank" class="ds-btn">PDF ↗</a></td>
+                            <td><a href="https://www.google.com/search?q=NXP+MPX5010DP+datasheet+pdf" target="_blank" rel="noopener noreferrer" class="ds-btn">PDF ↗</a></td>
                         </tr>
                         <tr>
                             <td>Barometric (High Res)</td>
@@ -404,7 +211,7 @@
                             <td>Bosch</td>
                             <td><span class="logic-tag logic-3v3">I2C (1.8-3.6)</span></td>
                             <td>1.65V - 3.6V</td>
-                            <td><a href="https://www.google.com/search?q=Bosch+BMP390+datasheet+pdf" target="_blank" class="ds-btn">PDF ↗</a></td>
+                            <td><a href="https://www.google.com/search?q=Bosch+BMP390+datasheet+pdf" target="_blank" rel="noopener noreferrer" class="ds-btn">PDF ↗</a></td>
                         </tr>
                         <tr>
                             <td>Industrial Pressure</td>
@@ -413,7 +220,7 @@
                             <td>WIKA</td>
                             <td><span class="logic-tag logic-ana">4-20mA</span></td>
                             <td>8V - 30V</td>
-                            <td><a href="https://www.google.com/search?q=WIKA+A-10+pressure+transmitter+datasheet" target="_blank" class="ds-btn">PDF ↗</a></td>
+                            <td><a href="https://www.google.com/search?q=WIKA+A-10+pressure+transmitter+datasheet" target="_blank" rel="noopener noreferrer" class="ds-btn">PDF ↗</a></td>
                         </tr>
                         <tr>
                             <td>Gas Flow (Micro)</td>
@@ -422,7 +229,7 @@
                             <td>Sensirion</td>
                             <td><span class="logic-tag logic-3v3">I2C (3.3V)</span></td>
                             <td>3.3V</td>
-                            <td><a href="https://www.google.com/search?q=Sensirion+SDP810+datasheet+pdf" target="_blank" class="ds-btn">PDF ↗</a></td>
+                            <td><a href="https://www.google.com/search?q=Sensirion+SDP810+datasheet+pdf" target="_blank" rel="noopener noreferrer" class="ds-btn">PDF ↗</a></td>
                         </tr>
 
                         <tr class="category-row"><td colspan="7">Thermal & Humidity</td></tr>
@@ -434,7 +241,7 @@
                             <td>Bosch</td>
                             <td><span class="logic-tag logic-3v3">I2C (3.3V)</span></td>
                             <td>1.8V - 3.6V</td>
-                            <td><a href="https://www.google.com/search?q=Bosch+BME280+datasheet+pdf" target="_blank" class="ds-btn">PDF ↗</a></td>
+                            <td><a href="https://www.google.com/search?q=Bosch+BME280+datasheet+pdf" target="_blank" rel="noopener noreferrer" class="ds-btn">PDF ↗</a></td>
                         </tr>
                         <tr>
                             <td>Temp / Humid (Precision)</td>
@@ -443,7 +250,7 @@
                             <td>Sensirion</td>
                             <td><span class="logic-tag logic-3v3">I2C (3.3V)</span></td>
                             <td>1.1V - 3.6V</td>
-                            <td><a href="https://www.google.com/search?q=Sensirion+SHT40+datasheet+pdf" target="_blank" class="ds-btn">PDF ↗</a></td>
+                            <td><a href="https://www.google.com/search?q=Sensirion+SHT40+datasheet+pdf" target="_blank" rel="noopener noreferrer" class="ds-btn">PDF ↗</a></td>
                         </tr>
                         <tr>
                             <td>Temp (Waterproof)</td>
@@ -452,7 +259,7 @@
                             <td>Maxim</td>
                             <td><span class="logic-tag logic-5v">1-Wire (3-5V)</span></td>
                             <td>3.0V - 5.5V</td>
-                            <td><a href="https://www.google.com/search?q=DS18B20+datasheet+pdf" target="_blank" class="ds-btn">PDF ↗</a></td>
+                            <td><a href="https://www.google.com/search?q=DS18B20+datasheet+pdf" target="_blank" rel="noopener noreferrer" class="ds-btn">PDF ↗</a></td>
                         </tr>
                         <tr>
                             <td>Thermocouple Amp (K)</td>
@@ -461,7 +268,7 @@
                             <td>Maxim</td>
                             <td><span class="logic-tag logic-3v3">SPI (3.3V)</span></td>
                             <td>3.0V - 3.6V</td>
-                            <td><a href="https://www.google.com/search?q=MAX31855+datasheet+pdf" target="_blank" class="ds-btn">PDF ↗</a></td>
+                            <td><a href="https://www.google.com/search?q=MAX31855+datasheet+pdf" target="_blank" rel="noopener noreferrer" class="ds-btn">PDF ↗</a></td>
                         </tr>
                         <tr>
                             <td>Thermal Camera (IR)</td>
@@ -470,7 +277,7 @@
                             <td>Panasonic</td>
                             <td><span class="logic-tag logic-3v3">I2C (3.3V)</span></td>
                             <td>3.3V (Typ)</td>
-                            <td><a href="https://www.google.com/search?q=Panasonic+AMG8833+datasheet+pdf" target="_blank" class="ds-btn">PDF ↗</a></td>
+                            <td><a href="https://www.google.com/search?q=Panasonic+AMG8833+datasheet+pdf" target="_blank" rel="noopener noreferrer" class="ds-btn">PDF ↗</a></td>
                         </tr>
 
                         <tr class="category-row"><td colspan="7">Motion, Position, RPM & GPS</td></tr>
@@ -482,7 +289,7 @@
                             <td>Bosch</td>
                             <td><span class="logic-tag logic-3v3">I2C (3.3V)</span></td>
                             <td>2.4V - 3.6V</td>
-                            <td><a href="https://www.google.com/search?q=Bosch+BNO055+datasheet+pdf" target="_blank" class="ds-btn">PDF ↗</a></td>
+                            <td><a href="https://www.google.com/search?q=Bosch+BNO055+datasheet+pdf" target="_blank" rel="noopener noreferrer" class="ds-btn">PDF ↗</a></td>
                         </tr>
                         <tr>
                             <td>Distance (Ultrasonic)</td>
@@ -491,7 +298,7 @@
                             <td>Generic</td>
                             <td><span class="logic-tag logic-5v">Digital (5V)</span></td>
                             <td>5.0V</td>
-                            <td><a href="https://www.google.com/search?q=HC-SR04+datasheet+pdf" target="_blank" class="ds-btn">PDF ↗</a></td>
+                            <td><a href="https://www.google.com/search?q=HC-SR04+datasheet+pdf" target="_blank" rel="noopener noreferrer" class="ds-btn">PDF ↗</a></td>
                         </tr>
                         <tr>
                             <td>RPM (Hall Effect)</td>
@@ -500,7 +307,7 @@
                             <td>Littelfuse</td>
                             <td><span class="logic-tag logic-5v">Digital Sink</span></td>
                             <td>3.8V - 24V</td>
-                            <td><a href="https://www.google.com/search?q=Littelfuse+55100+datasheet+pdf" target="_blank" class="ds-btn">PDF ↗</a></td>
+                            <td><a href="https://www.google.com/search?q=Littelfuse+55100+datasheet+pdf" target="_blank" rel="noopener noreferrer" class="ds-btn">PDF ↗</a></td>
                         </tr>
                         <tr>
                             <td>GPS / GNSS</td>
@@ -509,7 +316,7 @@
                             <td>u-blox</td>
                             <td><span class="logic-tag logic-3v3">UART (3.3V)</span></td>
                             <td>2.7V - 3.6V</td>
-                            <td><a href="https://www.google.com/search?q=u-blox+NEO-M9N+datasheet+pdf" target="_blank" class="ds-btn">PDF ↗</a></td>
+                            <td><a href="https://www.google.com/search?q=u-blox+NEO-M9N+datasheet+pdf" target="_blank" rel="noopener noreferrer" class="ds-btn">PDF ↗</a></td>
                         </tr>
                         <tr>
                             <td>Linear Pos (LVDT)</td>
@@ -518,7 +325,7 @@
                             <td>TE Conn.</td>
                             <td><span class="logic-tag logic-ana">AC/Analog</span></td>
                             <td>Excitation</td>
-                            <td><a href="https://www.google.com/search?q=TE+Connectivity+LVDT+M-12+datasheet" target="_blank" class="ds-btn">PDF ↗</a></td>
+                            <td><a href="https://www.google.com/search?q=TE+Connectivity+LVDT+M-12+datasheet" target="_blank" rel="noopener noreferrer" class="ds-btn">PDF ↗</a></td>
                         </tr>
                     </tbody>
                 </table>
@@ -546,89 +353,11 @@
             </div>
         </main>
 
-        <footer>
-            <div class="footer-content">
-                <p class="footer-text">© 2025 Tools Hub — Built for engineers</p>
-                <nav class="footer-links">
-                    <a href="../tools.html">All Tools</a>
-                    <a href="#">Report Issue</a>
-                </nav>
-            </div>
-        </footer>
+        <footer data-footer></footer>
     </div>
 
     <script src="../js/shared.js"></script>
-    <script>
-        // Simple client-side search filter
-        function filterTable() {
-            const input = document.getElementById("searchInput");
-            const filter = input.value.toUpperCase();
-            const table = document.getElementById("sensorTable");
-            const tr = table.getElementsByTagName("tr");
-
-            for (let i = 1; i < tr.length; i++) {
-                // Skip category headers
-                if (tr[i].classList.contains("category-row")) continue;
-
-                let tds = tr[i].getElementsByTagName("td");
-                let found = false;
-                // Search first 4 columns (Type, Model, Cost, Mfr)
-                for (let j = 0; j < 4; j++) {
-                    if (tds[j]) {
-                        let txtValue = tds[j].textContent || tds[j].innerText;
-                        if (txtValue.toUpperCase().indexOf(filter) > -1) {
-                            found = true;
-                            break;
-                        }
-                    }
-                }
-                tr[i].style.display = found ? "" : "none";
-            }
-        }
-
-        // Column sorting
-        function sortTable(n) {
-            var table, rows, switching, i, x, y, shouldSwitch, dir, switchcount = 0;
-            table = document.getElementById("sensorTable");
-            switching = true;
-            dir = "asc"; 
-            
-            while (switching) {
-                switching = false;
-                rows = table.rows;
-                // Loop, skipping header
-                for (i = 1; i < (rows.length - 1); i++) {
-                    // Skip if current or next row is category header
-                    if (rows[i].classList.contains("category-row") || rows[i+1].classList.contains("category-row")) continue;
-
-                    shouldSwitch = false;
-                    x = rows[i].getElementsByTagName("TD")[n];
-                    y = rows[i + 1].getElementsByTagName("TD")[n];
-                    
-                    if (dir == "asc") {
-                        if (x.innerHTML.toLowerCase() > y.innerHTML.toLowerCase()) {
-                            shouldSwitch = true;
-                            break;
-                        }
-                    } else if (dir == "desc") {
-                        if (x.innerHTML.toLowerCase() < y.innerHTML.toLowerCase()) {
-                            shouldSwitch = true;
-                            break;
-                        }
-                    }
-                }
-                if (shouldSwitch) {
-                    rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
-                    switching = true;
-                    switchcount ++;      
-                } else {
-                    if (switchcount == 0 && dir == "asc") {
-                        dir = "desc";
-                        switching = true;
-                    }
-                }
-            }
-        }
-    </script>
+    <script src="../js/footer.js"></script>
+    <script src="../js/sensors_reference/sensor-database.js"></script>
 </body>
 </html>

@@ -1,0 +1,467 @@
+/* ============================================
+   Ohm's Law Calculator - Specific Styles
+   ============================================ */
+
+.calculator-layout {
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    gap: 24px;
+    min-height: calc(100vh - 300px);
+}
+
+/* Main Calculator Panel */
+.calculator-panel {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 32px;
+}
+
+.panel-header {
+    margin-bottom: 32px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.panel-header h2 {
+    font-size: 1.5rem;
+    margin-bottom: 8px;
+}
+
+.panel-header p {
+    color: var(--text-secondary);
+    font-size: 0.9375rem;
+}
+
+/* Input Grid */
+.input-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px;
+    margin-bottom: 32px;
+}
+
+.input-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 20px;
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.input-card:hover {
+    border-color: var(--border-hover);
+}
+
+.input-card.active {
+    border-color: var(--accent-engineering);
+    box-shadow: 0 0 0 3px var(--accent-engineering-dim);
+}
+
+.input-card.calculated {
+    background: var(--accent-engineering-dim);
+    border-color: var(--accent-engineering);
+}
+
+/* Error state for infinite/invalid values */
+.input-card.error {
+    border-color: var(--accent-error);
+    background: rgba(239, 68, 68, 0.1);
+}
+
+.input-card.error .input-symbol {
+    color: var(--accent-error);
+    border-color: var(--accent-error);
+}
+
+.input-card.error .input-field-wrapper input {
+    color: var(--accent-error);
+}
+
+.input-card.error .input-field-wrapper input::placeholder {
+    color: var(--accent-error);
+    opacity: 0.7;
+}
+
+.input-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
+.input-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.input-symbol {
+    width: 36px;
+    height: 36px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--accent-engineering);
+}
+
+.input-card.calculated .input-symbol {
+    background: var(--accent-engineering);
+    color: var(--bg-primary);
+    border-color: var(--accent-engineering);
+}
+
+.input-name {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.input-unit-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.lock-btn {
+    width: 32px;
+    height: 32px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-card);
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    transition: all 0.15s ease;
+}
+
+.lock-btn:hover {
+    border-color: var(--accent-engineering);
+    color: var(--accent-engineering);
+}
+
+.lock-btn.locked {
+    background: var(--accent-engineering);
+    border-color: var(--accent-engineering);
+    color: var(--bg-primary);
+}
+
+.lock-btn svg {
+    width: 16px;
+    height: 16px;
+}
+
+.input-field-wrapper {
+    display: flex;
+    gap: 8px;
+}
+
+.input-field-wrapper input {
+    flex: 1;
+    font-size: 1.5rem;
+    padding: 12px 16px;
+    text-align: right;
+    background: var(--bg-card);
+}
+
+.input-card.calculated .input-field-wrapper input {
+    background: transparent;
+    border-color: transparent;
+    color: var(--accent-engineering);
+    font-weight: 600;
+}
+
+.input-field-wrapper select {
+    width: 100px;
+    font-size: 0.875rem;
+    padding: 12px;
+    background: var(--bg-card);
+}
+
+.copy-btn {
+    width: 32px;
+    height: 32px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-card);
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    transition: all 0.15s ease;
+}
+
+.copy-btn:hover {
+    border-color: var(--accent-engineering);
+    color: var(--accent-engineering);
+}
+
+.copy-btn svg {
+    width: 16px;
+    height: 16px;
+}
+
+.copy-btn.copy-success {
+    border-color: var(--accent-success);
+    color: var(--accent-success);
+    background: var(--accent-success-dim);
+}
+
+/* Results Section */
+.results-section {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 24px;
+}
+
+.results-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.results-header h3 {
+    font-size: 1rem;
+    color: var(--text-primary);
+}
+
+.results-header svg {
+    width: 20px;
+    height: 20px;
+    color: var(--accent-engineering);
+}
+
+.formula-display {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+}
+
+.formula-item {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8125rem;
+    padding: 12px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.formula-item.active {
+    border-color: var(--accent-engineering);
+    background: var(--accent-engineering-dim);
+}
+
+.formula-left {
+    color: var(--text-secondary);
+}
+
+.formula-right {
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+/* Sidebar */
+.sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.sidebar-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 20px;
+}
+
+.sidebar-card h3 {
+    font-size: 0.875rem;
+    color: var(--text-primary);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.sidebar-card h3 svg {
+    width: 16px;
+    height: 16px;
+    color: var(--accent-engineering);
+}
+
+/* Power Wheel */
+.power-wheel {
+    position: relative;
+    width: 200px;
+    height: 200px;
+    margin: 0 auto 16px;
+}
+
+.wheel-center {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 60px;
+    height: 60px;
+    background: var(--accent-engineering);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    font-size: 0.875rem;
+    color: var(--bg-primary);
+}
+
+.wheel-segment {
+    position: absolute;
+    width: 70px;
+    height: 70px;
+    background: var(--bg-secondary);
+    border: 2px solid var(--border-color);
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-family: 'JetBrains Mono', monospace;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.wheel-segment:hover {
+    border-color: var(--accent-engineering);
+    background: var(--accent-engineering-dim);
+}
+
+.wheel-segment.active {
+    border-color: var(--accent-engineering);
+    background: var(--accent-engineering);
+    color: var(--bg-primary);
+}
+
+.wheel-segment .symbol {
+    font-size: 1.25rem;
+    font-weight: 700;
+}
+
+.wheel-segment .name {
+    font-size: 0.625rem;
+    text-transform: uppercase;
+    opacity: 0.7;
+}
+
+.wheel-segment.voltage { top: 0; left: 50%; transform: translateX(-50%); }
+.wheel-segment.current { top: 50%; right: 0; transform: translateY(-50%); }
+.wheel-segment.resistance { bottom: 0; left: 50%; transform: translateX(-50%); }
+.wheel-segment.power { top: 50%; left: 0; transform: translateY(-50%); }
+
+/* Formulas Reference */
+.formulas-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.formula-ref {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    padding: 10px 12px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    color: var(--text-secondary);
+    display: flex;
+    justify-content: space-between;
+}
+
+.formula-ref .var {
+    color: var(--accent-engineering);
+    font-weight: 600;
+}
+
+/* Quick Values */
+.quick-values {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+}
+
+.quick-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.6875rem;
+    padding: 8px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.quick-value:hover {
+    border-color: var(--accent-engineering);
+    background: var(--accent-engineering-dim);
+}
+
+.quick-value .val {
+    display: block;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.quick-value .desc {
+    color: var(--text-muted);
+}
+
+/* Mobile Responsive */
+@media (max-width: 1024px) {
+    .calculator-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .sidebar {
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
+
+    .sidebar-card {
+        flex: 1;
+        min-width: 280px;
+    }
+}
+
+@media (max-width: 640px) {
+    .input-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .calculator-panel {
+        padding: 20px;
+    }
+
+    .formula-display {
+        grid-template-columns: 1fr;
+    }
+
+    .input-field-wrapper input {
+        font-size: 1.25rem;
+    }
+}

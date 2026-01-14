@@ -1994,16 +1994,7 @@
             </div>
         </main>
 
-        <!-- Footer -->
-        <footer>
-            <div class="footer-content">
-                <p>© 2025 Tools Hub — DuckDB WASM v1.29.0</p>
-                <div class="footer-links">
-                    <a href="https://duckdb.org/docs/api/wasm/overview" target="_blank">DuckDB Docs</a>
-                    <a href="#" onclick="showAboutModal(); return false;">About</a>
-                </div>
-            </div>
-        </footer>
+        <footer data-footer></footer>
     </div>
 
     <!-- Modals -->
@@ -2187,6 +2178,10 @@
 
     <!-- Toast Container -->
     <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Shared JavaScript -->
+    <script src="../js/shared.js"></script>
+    <script src="../js/footer.js"></script>
 
     <!-- Main JavaScript -->
     <script type="module">

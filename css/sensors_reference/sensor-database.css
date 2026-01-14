@@ -1,0 +1,282 @@
+/* ============================================
+   Sensor Database - Specific Styles
+   ============================================ */
+
+.db-layout {
+    display: grid;
+    gap: 24px;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.controls-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.search-group {
+    flex: 1;
+    min-width: 300px;
+    position: relative;
+    padding-bottom: 8px;
+}
+
+.search-group input {
+    width: 100%;
+    padding: 12px 40px 12px 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.9375rem;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-primary);
+    transition: all 0.2s ease;
+}
+
+.search-group input:focus {
+    border-color: var(--accent-engineering);
+    outline: none;
+    box-shadow: 0 0 0 2px var(--accent-engineering-dim);
+}
+
+/* Clear Search Button */
+.clear-search-btn {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: transparent;
+    border-radius: 4px;
+    color: var(--text-muted);
+    cursor: pointer;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.clear-search-btn:hover {
+    color: var(--text-primary);
+    background: var(--bg-card);
+}
+
+.clear-search-btn.visible {
+    display: flex;
+}
+
+.clear-search-btn svg {
+    width: 16px;
+    height: 16px;
+}
+
+/* Results Count */
+.results-count {
+    position: absolute;
+    bottom: -20px;
+    left: 0;
+    font-size: 0.75rem;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text-muted);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.results-count.visible {
+    opacity: 1;
+}
+
+.legend-group {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    font-size: 0.8125rem;
+    color: var(--text-secondary);
+    background: var(--bg-secondary);
+    padding: 8px 16px;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+}
+
+/* Table Styles */
+.table-container {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8125rem;
+}
+
+thead {
+    background: var(--bg-secondary);
+    border-bottom: 2px solid var(--border-color);
+}
+
+th {
+    text-align: left;
+    padding: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    user-select: none;
+    position: sticky;
+    top: 0;
+}
+
+th:hover {
+    color: var(--accent-engineering);
+    background: var(--accent-engineering-dim);
+}
+
+/* Sort Indicators */
+th {
+    position: relative;
+    padding-right: 28px;
+}
+
+.sort-indicator {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    opacity: 0.3;
+    transition: opacity 0.2s;
+}
+
+th:hover .sort-indicator {
+    opacity: 0.6;
+}
+
+th.sort-asc .sort-indicator,
+th.sort-desc .sort-indicator {
+    opacity: 1;
+    color: var(--accent-engineering);
+}
+
+.sort-indicator svg {
+    width: 12px;
+    height: 12px;
+}
+
+td {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    vertical-align: middle;
+}
+
+tr:last-child td {
+    border-bottom: none;
+}
+
+tr:hover td {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+/* Disclaimer Card */
+.disclaimer-card {
+    border: 1px solid #f59e0b;
+    background: rgba(245, 158, 11, 0.05);
+}
+
+.disclaimer-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #d97706;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    border-bottom: 1px solid rgba(217, 119, 6, 0.2);
+    padding-bottom: 8px;
+}
+
+.disclaimer-content {
+    font-size: 0.6875rem;
+    line-height: 1.4;
+    color: var(--text-secondary);
+    font-family: sans-serif;
+}
+
+.disclaimer-list { margin: 8px 0; padding-left: 16px; }
+.disclaimer-list li { margin-bottom: 6px; }
+.disclaimer-list strong { color: var(--text-primary); font-weight: 600; }
+.disclaimer-footer { margin-top: 12px; font-style: italic; opacity: 0.8; border-top: 1px solid rgba(217, 119, 6, 0.2); padding-top: 8px; }
+
+/* Category Header Row */
+tr.category-row td {
+    background: var(--bg-secondary);
+    color: var(--accent-engineering);
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding: 12px 16px;
+    font-size: 0.75rem;
+    border-top: 2px solid var(--border-color);
+}
+
+/* Logic Level Tags */
+.logic-tag {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    border: 1px solid transparent;
+}
+.logic-3v3 { background: rgba(59, 130, 246, 0.1); color: #3b82f6; border-color: rgba(59, 130, 246, 0.2); }
+.logic-5v { background: rgba(239, 68, 68, 0.1); color: #ef4444; border-color: rgba(239, 68, 68, 0.2); }
+.logic-ana { background: rgba(168, 85, 247, 0.1); color: #a855f7; border-color: rgba(168, 85, 247, 0.2); }
+
+/* Cost Tags */
+.cost-tag {
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 4px;
+    min-width: 30px;
+    text-align: center;
+    display: inline-block;
+}
+.cost-low { color: #10b981; background: rgba(16, 185, 129, 0.1); }
+.cost-med { color: #f59e0b; background: rgba(245, 158, 11, 0.1); }
+.cost-high { color: #ef4444; background: rgba(239, 68, 68, 0.1); }
+.cost-extreme { color: #8b5cf6; background: rgba(139, 92, 246, 0.1); }
+
+/* Datasheet Link */
+.ds-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--text-muted);
+    text-decoration: none;
+    transition: color 0.2s;
+}
+.ds-btn:hover { color: var(--accent-engineering); }
+.ds-btn svg { width: 14px; height: 14px; }
+
+@media (max-width: 768px) {
+    .table-container { overflow-x: scroll; }
+    .controls-card { flex-direction: column; align-items: stretch; }
+}

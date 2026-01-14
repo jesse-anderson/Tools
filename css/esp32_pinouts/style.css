@@ -1,0 +1,719 @@
+/* ============================================================
+   ESP32 Pinouts (Fast Reference)
+   - Supports missing fields (no crashes)
+   - Supports multi-image per board
+   - Modal supports Fit and 1:1 modes for easy scrolling/inspection
+   ============================================================ */
+
+:root {
+    /* Colors */
+    --accent-esp: #24c6dc;
+    --accent-esp-dim: rgba(36, 198, 220, 0.14);
+
+    /* Spacing scale */
+    --esp-space-1: 6px;
+    --esp-space-2: 8px;
+    --esp-space-3: 10px;
+    --esp-space-4: 12px;
+    --esp-space-5: 14px;
+    --esp-space-6: 16px;
+    --esp-space-7: 18px;
+    --esp-space-8: 24px;
+
+    /* Border radius */
+    --esp-radius-sm: 10px;
+    --esp-radius-md: 12px;
+    --esp-radius-lg: 14px;
+    --esp-radius-xl: 16px;
+    --esp-radius-2xl: 18px;
+    --esp-radius-pill: 999px;
+
+    /* Transitions */
+    --esp-transition-fast: 0.15s ease;
+    --esp-transition-base: 0.18s ease;
+
+    /* Image thumbnails */
+    --esp-thumb-width: 92px;
+    --esp-thumb-height: 64px;
+
+    /* Layout */
+    --esp-sidebar-width: 320px;
+    --esp-card-min-height: 250px;
+    --esp-thumb-area-height: 140px;
+    --esp-modal-max-width: 1200px;
+    --esp-modal-max-height: 92vh;
+
+    /* Z-index */
+    --esp-z-modal: 9999;
+    --esp-z-toast: 10000;
+
+    /* Font sizes (monospace/text scale) */
+    --esp-font-xs: 0.6875rem;
+    --esp-font-sm: 0.7rem;
+    --esp-font-base: 0.75rem;
+    --esp-font-md: 0.875rem;
+    --esp-font-lg: 0.95rem;
+}
+
+.tool-icon-header.esp {
+    background: linear-gradient(135deg, var(--accent-esp), rgba(36, 198, 220, 0.55));
+    color: #0b0f14;
+    font-weight: 800;
+}
+
+.tagline {
+    font-family: "JetBrains Mono", monospace;
+    color: var(--text-muted);
+    font-size: 0.875rem;
+    margin-top: 6px;
+}
+
+/* Layout */
+.pinouts-layout {
+    display: grid;
+    grid-template-columns: var(--esp-sidebar-width) 1fr;
+    gap: var(--esp-space-8);
+    min-height: calc(100vh - 120px);
+}
+
+.panel {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--esp-radius-lg);
+    padding: var(--esp-space-7);
+    box-shadow: var(--shadow-sm);
+}
+
+.panel h2 {
+    font-size: 1rem;
+    margin: 0;
+    color: var(--text-primary);
+}
+
+.panel p {
+    margin: var(--esp-space-1) 0 0 0;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+/* Sidebar filters */
+.filters {
+    display: grid;
+    gap: var(--esp-space-4);
+    margin-top: var(--esp-space-5);
+}
+
+.field label {
+    display: block;
+    font-family: "JetBrains Mono", monospace;
+    font-size: var(--esp-font-base);
+    color: var(--text-muted);
+    margin-bottom: var(--esp-space-1);
+}
+
+.field input,
+.field select {
+    width: 100%;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    border-radius: var(--esp-radius-sm);
+    padding: var(--esp-space-3) var(--esp-space-4);
+    font-size: 0.9rem;
+    outline: none;
+}
+
+.chips-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--esp-space-2);
+    margin-top: var(--esp-space-4);
+}
+
+.chip {
+    font-family: "JetBrains Mono", monospace;
+    font-size: var(--esp-font-base);
+    padding: 7px var(--esp-space-3);
+    border-radius: var(--esp-radius-pill);
+    border: 1px solid var(--border-color);
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    cursor: pointer;
+    user-select: none;
+    transition: all var(--esp-transition-fast);
+}
+
+.chip:hover {
+    border-color: var(--accent-esp);
+    background: var(--accent-esp-dim);
+    color: var(--text-primary);
+}
+
+.chip.active {
+    border-color: var(--accent-esp);
+    background: var(--accent-esp-dim);
+    color: var(--text-primary);
+    box-shadow: 0 0 0 2px rgba(36, 198, 220, 0.12) inset;
+}
+
+/* Keyboard focus styles */
+.chip:focus {
+    outline: 2px solid var(--accent-esp);
+    outline-offset: 2px;
+}
+
+/* Only show focus ring on keyboard navigation, not mouse clicks */
+.chip:focus:not(:focus-visible) {
+    outline: none;
+    outline-offset: 0;
+}
+
+.chip:focus-visible {
+    outline: 2px solid var(--accent-esp);
+    outline-offset: 2px;
+}
+
+/* Grid */
+.grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--esp-space-6);
+}
+
+.pinout-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--esp-radius-xl);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    flex-direction: column;
+    min-height: var(--esp-card-min-height);
+}
+
+.pinout-thumb {
+    background: linear-gradient(180deg, rgba(36, 198, 220, 0.09), rgba(36, 198, 220, 0.02));
+    border-bottom: 1px solid var(--border-color);
+    height: var(--esp-thumb-area-height);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    cursor: pointer;
+}
+
+.pinout-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transform: scale(1.02);
+}
+
+.pinout-thumb:hover {
+    filter: brightness(1.05);
+}
+
+.pinout-thumb:focus {
+    outline: 2px solid var(--accent-esp);
+    outline-offset: -2px;
+}
+
+.pinout-body {
+    padding: var(--esp-space-5) var(--esp-space-5) var(--esp-space-4) var(--esp-space-5);
+    display: grid;
+    gap: var(--esp-space-3);
+    flex: 1;
+    min-width: 0; /* IMPORTANT for wrapping inside CSS grid/flex */
+}
+
+.pinout-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--esp-space-3);
+}
+
+.pinout-title {
+    font-size: var(--esp-font-lg);
+    margin: 0;
+    color: var(--text-primary);
+    line-height: 1.2;
+}
+
+.pinout-sub {
+    font-family: "JetBrains Mono", monospace;
+    font-size: var(--esp-font-base);
+    color: var(--text-muted);
+    margin-top: 4px;
+}
+
+.badge {
+    font-family: "JetBrains Mono", monospace;
+    font-size: var(--esp-font-sm);
+    border-radius: var(--esp-radius-pill);
+    padding: 6px var(--esp-space-3);
+    border: 1px solid var(--border-color);
+    background: rgba(36, 198, 220, 0.08);
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+
+.meta-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--esp-space-1);
+}
+
+.meta-pill {
+    font-family: "JetBrains Mono", monospace;
+    font-size: var(--esp-font-xs);
+    padding: 6px var(--esp-space-2);
+    border-radius: var(--esp-radius-sm);
+    border: 1px solid var(--border-color);
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+}
+
+.pinout-notes {
+    color: var(--text-secondary);
+    font-size: var(--esp-font-md);
+    line-height: 1.35;
+    margin: 0;
+}
+
+.pinout-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--esp-space-3);
+    margin-top: 2px;
+}
+
+.pinout-actions-left {
+    display: flex;
+    gap: var(--esp-space-2);
+    flex-wrap: wrap;
+}
+
+.mini-btn {
+    font-family: "JetBrains Mono", monospace;
+    font-size: var(--esp-font-base);
+    padding: 7px var(--esp-space-3);
+    border-radius: var(--esp-radius-sm);
+    border: 1px solid var(--border-color);
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: all var(--esp-transition-fast);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--esp-space-2);
+}
+
+.mini-btn:hover {
+    border-color: var(--accent-esp);
+    background: var(--accent-esp-dim);
+}
+
+.mini-btn.primary {
+    border-color: var(--accent-esp);
+    background: rgba(36, 198, 220, 0.18);
+}
+
+.mini-btn.disabled,
+.mini-btn[aria-disabled="true"] {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.source-line {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    border-top: 1px dashed var(--border-color);
+    padding-top: var(--esp-space-3);
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--esp-space-2) var(--esp-space-3);
+    overflow: hidden;
+}
+
+.source-line a {
+    color: var(--text-secondary);
+    text-decoration: none;
+    white-space: normal;
+    overflow-wrap: anywhere;   /* very effective for long words/URLs */
+    word-break: break-word;
+
+    /* Optional: make each link look like a small chip */
+    border: 1px solid var(--border-color);
+    background: var(--bg-secondary);
+    border-radius: var(--esp-radius-pill);
+    padding: 5px var(--esp-space-2);
+    line-height: 1.1;
+    display: inline-flex;
+    align-items: center;
+}
+
+.source-line a:hover {
+    color: var(--text-primary);
+    border-color: var(--accent-esp);
+    background: rgba(36, 198, 220, 0.10);
+    text-decoration: none;
+}
+
+/* Modal */
+.modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.55);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: var(--esp-space-7);
+    z-index: var(--esp-z-modal);
+}
+
+.modal.open {
+    display: flex;
+}
+
+.modal-card {
+    width: min(var(--esp-modal-max-width), 100%);
+    max-height: var(--esp-modal-max-height);
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--esp-radius-2xl);
+    box-shadow: var(--shadow-lg);
+    overflow: hidden;
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+}
+
+.modal-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--esp-space-5) var(--esp-space-6);
+    border-bottom: 1px solid var(--border-color);
+    gap: var(--esp-space-4);
+}
+
+.modal-title {
+    margin: 0;
+    font-size: 1rem;
+    color: var(--text-primary);
+}
+
+.modal-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--esp-space-2);
+    flex-wrap: wrap;
+}
+
+.modal-body {
+    display: grid;
+    grid-template-columns: 1.2fr 0.8fr;
+    gap: 0;
+    min-height: 0px;
+}
+
+.modal-viewer {
+    border-right: 1px solid var(--border-color);
+    background: rgba(36, 198, 220, 0.05);
+    position: relative;
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    min-height: 0;
+}
+
+.image-strip {
+    display: flex;
+    gap: var(--esp-space-3);
+    padding: var(--esp-space-4);
+    overflow-x: auto;
+    border-bottom: 1px solid var(--border-color);
+    background: rgba(0,0,0,0.05);
+}
+
+.image-thumb {
+    border: 1px solid var(--border-color);
+    border-radius: var(--esp-radius-sm);
+    overflow: hidden;
+    width: var(--esp-thumb-width);
+    height: var(--esp-thumb-height);
+    background: var(--bg-secondary);
+    cursor: pointer;
+    flex: 0 0 auto;
+    transition: all var(--esp-transition-fast);
+}
+
+.image-thumb:hover {
+    border-color: var(--accent-esp);
+}
+
+.image-thumb.active {
+    border-color: var(--accent-esp);
+    box-shadow: 0 0 0 2px rgba(36, 198, 220, 0.14) inset;
+}
+
+/* Keyboard focus styles */
+.image-thumb:focus {
+    outline: 2px solid var(--accent-esp);
+    outline-offset: 2px;
+}
+
+/* Only show focus ring on keyboard navigation, not mouse clicks */
+.image-thumb:focus:not(:focus-visible) {
+    outline: none;
+    outline-offset: 0;
+}
+
+.image-thumb:focus-visible {
+    outline: 2px solid var(--accent-esp);
+    outline-offset: 2px;
+}
+
+.image-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.viewer-stage {
+    overflow: auto;
+    min-height: 0;
+    padding: var(--esp-space-6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    image-rendering: auto;
+}
+
+/* Fit mode (default): image scales to viewer width/height */
+.modal-viewer.fit .viewer-stage img {
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+}
+
+/* Actual mode: image shows at its intrinsic size (scrollbars in stage) */
+.modal-viewer.actual .viewer-stage {
+    align-items: flex-start;
+    justify-content: flex-start;
+    cursor: grab;
+}
+
+.modal-viewer.actual .viewer-stage img {
+    max-width: none !important;
+    max-height: none !important;
+    width: auto !important;
+    height: auto !important;
+}
+
+.modal-viewer.actual .viewer-stage.dragging {
+    cursor: grabbing;
+}
+
+.viewer-stage img {
+    border: 1px solid var(--border-color);
+    border-radius: var(--esp-radius-lg);
+    background: var(--bg-secondary);
+    user-select: none;
+    -webkit-user-drag: none;
+}
+
+.zoom-stage {
+    transform-origin: 0 0;
+    will-change: transform;
+}
+
+.modal-viewer.fit .zoom-stage {
+    /* In fit mode, we don't apply scale transforms from JS.
+    Keep it neutral so the existing fit CSS works. */
+    transform: none !important;
+}
+
+.image-label {
+    padding: var(--esp-space-3) var(--esp-space-4);
+    border-top: 1px solid var(--border-color);
+    color: var(--text-muted);
+    font-family: "JetBrains Mono", monospace;
+    font-size: var(--esp-font-base);
+    display: flex;
+    justify-content: space-between;
+    gap: var(--esp-space-3);
+}
+
+.modal-side {
+    padding: var(--esp-space-5) var(--esp-space-6);
+    display: grid;
+    gap: var(--esp-space-5);
+    overflow: auto;
+}
+
+.section {
+    border: 1px solid var(--border-color);
+    border-radius: var(--esp-radius-lg);
+    background: var(--bg-secondary);
+    padding: var(--esp-space-4);
+}
+
+.section h3 {
+    font-size: 0.9rem;
+    margin: 0;
+    color: var(--text-primary);
+}
+
+.section p {
+    margin: var(--esp-space-1) 0 0 0;
+    color: var(--text-secondary);
+    font-size: var(--esp-font-md);
+    line-height: 1.45;
+    white-space: pre-wrap;
+}
+
+.doc-list {
+    display: grid;
+    gap: var(--esp-space-2);
+    margin-top: var(--esp-space-3);
+}
+
+.doc-link {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--esp-space-3);
+    text-decoration: none;
+    padding: var(--esp-space-3) var(--esp-space-3);
+    border-radius: var(--esp-radius-md);
+    border: 1px solid var(--border-color);
+    background: rgba(255,255,255,0.03);
+    transition: all var(--esp-transition-fast);
+}
+
+.doc-link:hover {
+    border-color: var(--accent-esp);
+    background: rgba(36, 198, 220, 0.10);
+}
+
+.doc-type {
+    font-family: "JetBrains Mono", monospace;
+    font-size: var(--esp-font-sm);
+    padding: 4px var(--esp-space-2);
+    border-radius: var(--esp-radius-pill);
+    border: 1px solid var(--border-color);
+    color: var(--text-muted);
+    background: rgba(0,0,0,0.06);
+    white-space: nowrap;
+}
+
+.doc-label {
+    color: var(--text-primary);
+    font-size: 0.85rem;
+    line-height: 1.2;
+    flex: 1;
+}
+
+.modal-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--esp-space-4);
+    padding: var(--esp-space-3) var(--esp-space-6);
+    border-top: 1px solid var(--border-color);
+    color: var(--text-muted);
+    font-family: "JetBrains Mono", monospace;
+    font-size: var(--esp-font-base);
+}
+
+.close-btn {
+    border: 1px solid var(--border-color);
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border-radius: var(--esp-radius-md);
+    padding: 8px var(--esp-space-3);
+    cursor: pointer;
+}
+
+.close-btn:hover {
+    border-color: var(--accent-esp);
+    background: rgba(36, 198, 220, 0.12);
+}
+
+/* Disclaimers */
+.disclaimer {
+    margin-top: var(--esp-space-5);
+    border: 1px dashed var(--border-color);
+    border-radius: var(--esp-radius-md);
+    padding: var(--esp-space-4);
+    background: rgba(255,255,255,0.03);
+}
+
+.disclaimer .title {
+    font-family: "JetBrains Mono", monospace;
+    color: var(--text-primary);
+    font-size: 0.8rem;
+    margin: 0 0 var(--esp-space-2) 0;
+}
+
+.disclaimer .body {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    line-height: 1.45;
+    margin: 0;
+}
+
+/* Toast */
+.toast {
+    position: fixed;
+    left: 50%;
+    bottom: var(--esp-space-6);
+    transform: translateX(-50%);
+    background: rgba(0,0,0,0.78);
+    color: white;
+    padding: var(--esp-space-3) var(--esp-space-4);
+    border-radius: var(--esp-radius-md);
+    font-family: "JetBrains Mono", monospace;
+    font-size: 0.8rem;
+    z-index: var(--esp-z-toast);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--esp-transition-base);
+}
+
+.toast.show {
+    opacity: 1;
+}
+
+/* Responsive */
+@media (max-width: 1100px) {
+    .pinouts-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .modal-body {
+        grid-template-columns: 1fr;
+    }
+
+    .modal-viewer {
+        border-right: none;
+        border-bottom: 1px solid var(--border-color);
+    }
+}
+
+@media (max-width: 640px) {
+    .grid {
+        grid-template-columns: 1fr;
+    }
+}

@@ -8,422 +8,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../css/shared.css">
-    <style>
-        /* Calculator Specific Styles */
-        .calculator-layout {
-            display: grid;
-            grid-template-columns: 1fr 320px;
-            gap: 24px;
-            min-height: calc(100vh - 300px);
-        }
-
-        /* Main Calculator Panel */
-        .calculator-panel {
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 32px;
-        }
-
-        .panel-header {
-            margin-bottom: 32px;
-            padding-bottom: 20px;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .panel-header h2 {
-            font-size: 1.5rem;
-            margin-bottom: 8px;
-        }
-
-        .panel-header p {
-            color: var(--text-secondary);
-            font-size: 0.9375rem;
-        }
-
-        /* Input Grid */
-        .input-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 24px;
-            margin-bottom: 32px;
-        }
-
-        .input-card {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            border-radius: 10px;
-            padding: 20px;
-            transition: all 0.2s ease;
-            position: relative;
-        }
-
-        .input-card:hover {
-            border-color: var(--border-hover);
-        }
-
-        .input-card.active {
-            border-color: var(--accent-engineering);
-            box-shadow: 0 0 0 3px var(--accent-engineering-dim);
-        }
-
-        .input-card.calculated {
-            background: var(--accent-engineering-dim);
-            border-color: var(--accent-engineering);
-        }
-
-        .input-card-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 12px;
-        }
-
-        .input-label {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .input-symbol {
-            width: 36px;
-            height: 36px;
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 1.125rem;
-            font-weight: 600;
-            color: var(--accent-engineering);
-        }
-
-        .input-card.calculated .input-symbol {
-            background: var(--accent-engineering);
-            color: var(--bg-primary);
-            border-color: var(--accent-engineering);
-        }
-
-        .input-name {
-            font-weight: 600;
-            color: var(--text-primary);
-        }
-
-        .input-unit-label {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.75rem;
-            color: var(--text-muted);
-        }
-
-        .lock-btn {
-            width: 32px;
-            height: 32px;
-            border: 1px solid var(--border-color);
-            background: var(--bg-card);
-            border-radius: 6px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--text-muted);
-            transition: all 0.15s ease;
-        }
-
-        .lock-btn:hover {
-            border-color: var(--accent-engineering);
-            color: var(--accent-engineering);
-        }
-
-        .lock-btn.locked {
-            background: var(--accent-engineering);
-            border-color: var(--accent-engineering);
-            color: var(--bg-primary);
-        }
-
-        .lock-btn svg {
-            width: 16px;
-            height: 16px;
-        }
-
-        .input-field-wrapper {
-            display: flex;
-            gap: 8px;
-        }
-
-        .input-field-wrapper input {
-            flex: 1;
-            font-size: 1.5rem;
-            padding: 12px 16px;
-            text-align: right;
-            background: var(--bg-card);
-        }
-
-        .input-card.calculated .input-field-wrapper input {
-            background: transparent;
-            border-color: transparent;
-            color: var(--accent-engineering);
-            font-weight: 600;
-        }
-
-        .input-field-wrapper select {
-            width: 100px;
-            font-size: 0.875rem;
-            padding: 12px;
-            background: var(--bg-card);
-        }
-
-        /* Results Section */
-        .results-section {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            border-radius: 10px;
-            padding: 24px;
-        }
-
-        .results-header {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 20px;
-        }
-
-        .results-header h3 {
-            font-size: 1rem;
-            color: var(--text-primary);
-        }
-
-        .results-header svg {
-            width: 20px;
-            height: 20px;
-            color: var(--accent-engineering);
-        }
-
-        .formula-display {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 12px;
-        }
-
-        .formula-item {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.8125rem;
-            padding: 12px;
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .formula-item.active {
-            border-color: var(--accent-engineering);
-            background: var(--accent-engineering-dim);
-        }
-
-        .formula-left {
-            color: var(--text-secondary);
-        }
-
-        .formula-right {
-            color: var(--text-primary);
-            font-weight: 500;
-        }
-
-        /* Sidebar */
-        .sidebar {
-            display: flex;
-            flex-direction: column;
-            gap: 24px;
-        }
-
-        .sidebar-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 20px;
-        }
-
-        .sidebar-card h3 {
-            font-size: 0.875rem;
-            color: var(--text-primary);
-            margin-bottom: 16px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .sidebar-card h3 svg {
-            width: 16px;
-            height: 16px;
-            color: var(--accent-engineering);
-        }
-
-        /* Power Wheel */
-        .power-wheel {
-            position: relative;
-            width: 200px;
-            height: 200px;
-            margin: 0 auto 16px;
-        }
-
-        .wheel-center {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 60px;
-            height: 60px;
-            background: var(--accent-engineering);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-family: 'JetBrains Mono', monospace;
-            font-weight: 700;
-            font-size: 0.875rem;
-            color: var(--bg-primary);
-        }
-
-        .wheel-segment {
-            position: absolute;
-            width: 70px;
-            height: 70px;
-            background: var(--bg-secondary);
-            border: 2px solid var(--border-color);
-            border-radius: 10px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            font-family: 'JetBrains Mono', monospace;
-            transition: all 0.2s ease;
-            cursor: pointer;
-        }
-
-        .wheel-segment:hover {
-            border-color: var(--accent-engineering);
-            background: var(--accent-engineering-dim);
-        }
-
-        .wheel-segment.active {
-            border-color: var(--accent-engineering);
-            background: var(--accent-engineering);
-            color: var(--bg-primary);
-        }
-
-        .wheel-segment .symbol {
-            font-size: 1.25rem;
-            font-weight: 700;
-        }
-
-        .wheel-segment .name {
-            font-size: 0.625rem;
-            text-transform: uppercase;
-            opacity: 0.7;
-        }
-
-        .wheel-segment.voltage { top: 0; left: 50%; transform: translateX(-50%); }
-        .wheel-segment.current { top: 50%; right: 0; transform: translateY(-50%); }
-        .wheel-segment.resistance { bottom: 0; left: 50%; transform: translateX(-50%); }
-        .wheel-segment.power { top: 50%; left: 0; transform: translateY(-50%); }
-
-        /* Formulas Reference */
-        .formulas-list {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .formula-ref {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.75rem;
-            padding: 10px 12px;
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            color: var(--text-secondary);
-            display: flex;
-            justify-content: space-between;
-        }
-
-        .formula-ref .var {
-            color: var(--accent-engineering);
-            font-weight: 600;
-        }
-
-        /* Quick Values */
-        .quick-values {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 8px;
-        }
-
-        .quick-value {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.6875rem;
-            padding: 8px;
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.15s ease;
-        }
-
-        .quick-value:hover {
-            border-color: var(--accent-engineering);
-            background: var(--accent-engineering-dim);
-        }
-
-        .quick-value .val {
-            display: block;
-            font-size: 0.8125rem;
-            font-weight: 600;
-            color: var(--text-primary);
-        }
-
-        .quick-value .desc {
-            color: var(--text-muted);
-        }
-
-        /* Mobile Responsive */
-        @media (max-width: 1024px) {
-            .calculator-layout {
-                grid-template-columns: 1fr;
-            }
-
-            .sidebar {
-                flex-direction: row;
-                flex-wrap: wrap;
-            }
-
-            .sidebar-card {
-                flex: 1;
-                min-width: 280px;
-            }
-        }
-
-        @media (max-width: 640px) {
-            .input-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .calculator-panel {
-                padding: 20px;
-            }
-
-            .formula-display {
-                grid-template-columns: 1fr;
-            }
-
-            .input-field-wrapper input {
-                font-size: 1.25rem;
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="../css/ohms_law/ohms-law.css">
 </head>
 <body>
     <div class="container">
@@ -440,13 +25,13 @@
                 </div>
                 <div class="header-right">
                     <div class="theme-toggle">
-                        <button data-theme-toggle="light" title="Light mode">
+                        <button data-theme-toggle="light" aria-pressed="false" title="Light mode">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <circle cx="12" cy="12" r="5"/>
                                 <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
                             </svg>
                         </button>
-                        <button data-theme-toggle="dark" title="Dark mode">
+                        <button data-theme-toggle="dark" aria-pressed="false" title="Dark mode">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
                             </svg>
@@ -502,6 +87,12 @@
                                     <option value="1" selected>V</option>
                                     <option value="1000">kV</option>
                                 </select>
+                                <button class="copy-btn" data-copy="voltage" title="Copy value">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                                    </svg>
+                                </button>
                             </div>
                         </div>
 
@@ -534,6 +125,12 @@
                                     <option value="1e-3">mA</option>
                                     <option value="1" selected>A</option>
                                 </select>
+                                <button class="copy-btn" data-copy="current" title="Copy value">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                                    </svg>
+                                </button>
                             </div>
                         </div>
 
@@ -566,6 +163,12 @@
                                     <option value="1000">kΩ</option>
                                     <option value="1e6">MΩ</option>
                                 </select>
+                                <button class="copy-btn" data-copy="resistance" title="Copy value">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                                    </svg>
+                                </button>
                             </div>
                         </div>
 
@@ -599,6 +202,12 @@
                                     <option value="1000">kW</option>
                                     <option value="1e6">MW</option>
                                 </select>
+                                <button class="copy-btn" data-copy="power" title="Copy value">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                                    </svg>
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -742,348 +351,11 @@
             </div>
         </main>
 
-        <footer>
-            <div class="footer-content">
-                <p class="footer-text">© 2025 Tools Hub — Built for engineers</p>
-                <nav class="footer-links">
-                    <a href="../tools.html">All Tools</a>
-                    <a href="#">Report Issue</a>
-                </nav>
-            </div>
-        </footer>
+        <footer data-footer></footer>
     </div>
 
     <script src="../js/shared.js"></script>
-    <script>
-        // ============================================
-        // Ohm's Law Calculator
-        // ============================================
-
-        const state = {
-            voltage: null,
-            current: null,
-            resistance: null,
-            power: null,
-            locked: new Set(),
-            lastEdited: []
-        };
-
-        const elements = {
-            voltage: document.getElementById('voltage'),
-            current: document.getElementById('current'),
-            resistance: document.getElementById('resistance'),
-            power: document.getElementById('power'),
-            voltageUnit: document.getElementById('voltageUnit'),
-            currentUnit: document.getElementById('currentUnit'),
-            resistanceUnit: document.getElementById('resistanceUnit'),
-            powerUnit: document.getElementById('powerUnit')
-        };
-
-        // Initialize
-        function init() {
-            bindInputEvents();
-            bindLockButtons();
-            bindWheelSegments();
-            bindQuickValues();
-        }
-
-        function bindInputEvents() {
-            ['voltage', 'current', 'resistance', 'power'].forEach(param => {
-                elements[param].addEventListener('input', () => {
-                    handleInput(param);
-                });
-                elements[param + 'Unit'].addEventListener('change', () => {
-                    handleInput(param);
-                });
-            });
-        }
-
-        function bindLockButtons() {
-            document.querySelectorAll('.lock-btn').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const param = btn.dataset.lock;
-                    toggleLock(param);
-                });
-            });
-        }
-
-        function bindWheelSegments() {
-            document.querySelectorAll('.wheel-segment').forEach(segment => {
-                segment.addEventListener('click', () => {
-                    const param = segment.dataset.select;
-                    elements[param].focus();
-                    document.querySelectorAll('.wheel-segment').forEach(s => s.classList.remove('active'));
-                    segment.classList.add('active');
-                });
-            });
-        }
-
-        function bindQuickValues() {
-            document.querySelectorAll('.quick-value').forEach(qv => {
-                qv.addEventListener('click', () => {
-                    if (qv.dataset.voltage) {
-                        elements.voltage.value = qv.dataset.voltage;
-                        elements.voltageUnit.value = '1';
-                        handleInput('voltage');
-                    }
-                });
-            });
-        }
-
-        function toggleLock(param) {
-            const btn = document.querySelector(`[data-lock="${param}"]`);
-            const card = document.querySelector(`[data-param="${param}"]`);
-            
-            if (state.locked.has(param)) {
-                state.locked.delete(param);
-                btn.classList.remove('locked');
-                btn.querySelector('.unlocked').style.display = '';
-                btn.querySelector('.locked').style.display = 'none';
-            } else {
-                // Can only lock if there's a value
-                const value = getInputValue(param);
-                if (value !== null && value !== 0) {
-                    state.locked.add(param);
-                    btn.classList.add('locked');
-                    btn.querySelector('.unlocked').style.display = 'none';
-                    btn.querySelector('.locked').style.display = '';
-                }
-            }
-        }
-
-        function getInputValue(param) {
-            const input = elements[param];
-            const unit = elements[param + 'Unit'];
-            const rawValue = parseFloat(input.value);
-            if (isNaN(rawValue)) return null;
-            return rawValue * parseFloat(unit.value);
-        }
-
-        function setInputValue(param, value) {
-            if (value === null || !isFinite(value)) {
-                elements[param].value = '';
-                return;
-            }
-            // 1. Auto-scale: Find the best unit for this value
-            const unitSelect = elements[param + 'Unit'];
-            const options = Array.from(unitSelect.options);
-            
-            // Sort options by value (magnitude) so we check them in order
-            // (e.g., uW, mW, W, kW, MW)
-            options.sort((a, b) => parseFloat(a.value) - parseFloat(b.value));
-
-            let bestOption = options[0];
-            const absValue = Math.abs(value);
-
-            // Find the largest unit that is smaller than or equal to the value
-            // (e.g. for 5000W, we want kW (1000), not W (1) or MW (1e6))
-            // Exception: if value is 0, keep current or default to base
-            if (absValue > 0) {
-                for (let opt of options) {
-                    const optVal = parseFloat(opt.value);
-                    // We switch to a unit if the value is >= 1 of that unit
-                    // But we don't want to switch to 0.005 MW, we prefer 5 kW
-                    if (absValue >= optVal) {
-                        bestOption = opt;
-                    }
-                }
-            } else {
-                // If 0, try to select the base unit (value="1")
-                bestOption = options.find(o => o.value === "1") || options[0];
-            }
-
-            // 2. Update the dropdown to the best unit
-            unitSelect.value = bestOption.value;
-
-            // 3. Calculate the display number for the input box
-            const scaleFactor = parseFloat(bestOption.value);
-            const displayNum = value / scaleFactor;
-
-            // 4. Update the input field
-            // Note: We do NOT use formatNumber() here because <input type="number"> 
-            // cannot handle "k" or "M" suffixes. We just want the raw number.
-            // We strip trailing zeros to keep it clean.
-            elements[param].value = parseFloat(displayNum.toPrecision(6));
-
-            // const unit = parseFloat(elements[param + 'Unit'].value);
-            // const displayValue = value / unit;
-            // elements[param].value = formatNumber(displayValue);
-        }
-
-        function handleInput(editedParam) {
-            // Update last edited list (keep track of the two most recently edited)
-            if (!state.locked.has(editedParam)) {
-                state.lastEdited = state.lastEdited.filter(p => p !== editedParam);
-                state.lastEdited.unshift(editedParam);
-                if (state.lastEdited.length > 2) {
-                    state.lastEdited.pop();
-                }
-            }
-
-            // Get current values
-            const V = getInputValue('voltage');
-            const I = getInputValue('current');
-            const R = getInputValue('resistance');
-            const P = getInputValue('power');
-
-            // Count known values
-            const known = { voltage: V, current: I, resistance: R, power: P };
-            const knownParams = Object.entries(known).filter(([k, v]) => v !== null && v !== 0);
-            
-            // Clear calculated styling
-            document.querySelectorAll('.input-card').forEach(card => {
-                card.classList.remove('calculated');
-            });
-
-            if (knownParams.length >= 2) {
-                // Determine which two to use as inputs
-                let inputParams;
-                if (state.locked.size >= 2) {
-                    inputParams = Array.from(state.locked).slice(0, 2);
-                } else if (state.locked.size === 1) {
-                    const lockedParam = Array.from(state.locked)[0];
-                    const otherKnown = knownParams.filter(([k]) => k !== lockedParam);
-                    inputParams = [lockedParam, otherKnown[0][0]];
-                } else {
-                    // Use last two edited
-                    inputParams = state.lastEdited.slice(0, 2);
-                }
-
-                const [param1, param2] = inputParams;
-                const val1 = known[param1];
-                const val2 = known[param2];
-
-                // Calculate the other two values
-                const calculated = calculateFromTwo(param1, val1, param2, val2);
-                
-                // Set calculated values
-                Object.entries(calculated).forEach(([param, value]) => {
-                    if (!inputParams.includes(param)) {
-                        setInputValue(param, value);
-                        document.querySelector(`[data-param="${param}"]`).classList.add('calculated');
-                    }
-                });
-            }
-
-            updateFormulaDisplay();
-        }
-
-        function calculateFromTwo(param1, val1, param2, val2) {
-            const result = { voltage: null, current: null, resistance: null, power: null };
-            result[param1] = val1;
-            result[param2] = val2;
-
-            const pair = [param1, param2].sort().join('-');
-
-            switch (pair) {
-                case 'current-voltage': // V and I known
-                    result.resistance = val1 / val2; // R = V/I (val1=current, val2=voltage after sort... wait)
-                    // Actually need to be careful about order
-                    const V_vi = param1 === 'voltage' ? val1 : val2;
-                    const I_vi = param1 === 'current' ? val1 : val2;
-                    result.resistance = V_vi / I_vi;
-                    result.power = V_vi * I_vi;
-                    break;
-
-                case 'resistance-voltage': // V and R known
-                    const V_vr = param1 === 'voltage' ? val1 : val2;
-                    const R_vr = param1 === 'resistance' ? val1 : val2;
-                    result.current = V_vr / R_vr;
-                    result.power = (V_vr * V_vr) / R_vr;
-                    break;
-
-                case 'power-voltage': // V and P known
-                    const V_vp = param1 === 'voltage' ? val1 : val2;
-                    const P_vp = param1 === 'power' ? val1 : val2;
-                    result.current = P_vp / V_vp;
-                    result.resistance = (V_vp * V_vp) / P_vp;
-                    break;
-
-                case 'current-resistance': // I and R known
-                    const I_ir = param1 === 'current' ? val1 : val2;
-                    const R_ir = param1 === 'resistance' ? val1 : val2;
-                    result.voltage = I_ir * R_ir;
-                    result.power = I_ir * I_ir * R_ir;
-                    break;
-
-                case 'current-power': // I and P known
-                    const I_ip = param1 === 'current' ? val1 : val2;
-                    const P_ip = param1 === 'power' ? val1 : val2;
-                    result.voltage = P_ip / I_ip;
-                    result.resistance = P_ip / (I_ip * I_ip);
-                    break;
-
-                case 'power-resistance': // R and P known
-                    const R_rp = param1 === 'resistance' ? val1 : val2;
-                    const P_rp = param1 === 'power' ? val1 : val2;
-                    result.voltage = Math.sqrt(P_rp * R_rp);
-                    result.current = Math.sqrt(P_rp / R_rp);
-                    break;
-            }
-
-            return result;
-        }
-
-        function updateFormulaDisplay() {
-            const V = getInputValue('voltage');
-            const I = getInputValue('current');
-            const R = getInputValue('resistance');
-            const P = getInputValue('power');
-
-            // V = I × R
-            if (I !== null && R !== null) {
-                document.getElementById('result-vir').textContent = formatNumber(I * R) + ' V';
-                document.getElementById('formula-vir').classList.add('active');
-            } else {
-                document.getElementById('result-vir').textContent = '—';
-                document.getElementById('formula-vir').classList.remove('active');
-            }
-
-            // P = I × V
-            if (I !== null && V !== null) {
-                document.getElementById('result-piv').textContent = formatNumber(I * V) + ' W';
-                document.getElementById('formula-piv').classList.add('active');
-            } else {
-                document.getElementById('result-piv').textContent = '—';
-                document.getElementById('formula-piv').classList.remove('active');
-            }
-
-            // P = I² × R
-            if (I !== null && R !== null) {
-                document.getElementById('result-pi2r').textContent = formatNumber(I * I * R) + ' W';
-                document.getElementById('formula-pi2r').classList.add('active');
-            } else {
-                document.getElementById('result-pi2r').textContent = '—';
-                document.getElementById('formula-pi2r').classList.remove('active');
-            }
-
-            // P = V² / R
-            if (V !== null && R !== null) {
-                document.getElementById('result-pv2r').textContent = formatNumber((V * V) / R) + ' W';
-                document.getElementById('formula-pv2r').classList.add('active');
-            } else {
-                document.getElementById('result-pv2r').textContent = '—';
-                document.getElementById('formula-pv2r').classList.remove('active');
-            }
-        }
-
-        function formatNumber(num) {
-            if (num === null || !isFinite(num)) return '—';
-            if (num === 0) return '0';
-            
-            const abs = Math.abs(num);
-            if (abs >= 1e9) return (num / 1e9).toPrecision(4) + ' G';
-            if (abs >= 1e6) return (num / 1e6).toPrecision(4) + ' M';
-            if (abs >= 1e3) return (num / 1e3).toPrecision(4) + ' k';
-            if (abs >= 1) return num.toPrecision(6);
-            if (abs >= 1e-3) return (num * 1e3).toPrecision(4) + ' m';
-            if (abs >= 1e-6) return (num * 1e6).toPrecision(4) + ' μ';
-            if (abs >= 1e-9) return (num * 1e9).toPrecision(4) + ' n';
-            return num.toExponential(3);
-        }
-
-        // Start
-        init();
-    </script>
+    <script src="../js/footer.js"></script>
+    <script src="../js/ohms_law/ohms-law.js"></script>
 </body>
 </html>

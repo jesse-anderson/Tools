@@ -216,20 +216,20 @@
         }
 
         /* “active” highlight based on html[data-theme] */
-        html[data-theme="light"] .theme-toggle button[data-theme-toggle="light"] {
+        html[data-theme="light"] .theme-toggle button[data-theme-toggle="light" aria-pressed="false"] {
             background: var(--bg-input);
             color: var(--text-primary);
             border-color: var(--border-hover, rgba(245, 158, 11, 0.35));
         }
 
-        html[data-theme="dark"] .theme-toggle button[data-theme-toggle="dark"] {
+        html[data-theme="dark"] .theme-toggle button[data-theme-toggle="dark" aria-pressed="false"] {
             background: var(--bg-input);
             color: var(--text-primary);
             border-color: var(--border-hover, rgba(245, 158, 11, 0.35));
         }
 
         /* fallback if your “dark” mode is the default (no attribute) */
-        html:not([data-theme="light"]) .theme-toggle button[data-theme-toggle="dark"] {
+        html:not([data-theme="light"]) .theme-toggle button[data-theme-toggle="dark" aria-pressed="false"] {
             background: var(--bg-input);
             color: var(--text-primary);
             border-color: var(--border-hover, rgba(245, 158, 11, 0.35));
@@ -1249,13 +1249,13 @@
 
                 <div class="header-right">
                     <div class="theme-toggle">
-                        <button data-theme-toggle="light" title="Light mode">
+                        <button data-theme-toggle="light" aria-pressed="false" title="Light mode">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <circle cx="12" cy="12" r="5"/>
                                 <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
                             </svg>
                         </button>
-                        <button data-theme-toggle="dark" title="Dark mode">
+                        <button data-theme-toggle="dark" aria-pressed="false" title="Dark mode">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
                             </svg>
@@ -1593,15 +1593,7 @@
         </div>
     </div>
 
-    <footer>
-        <div class="footer-content">
-            <p class="footer-text">© 2025 Tools Hub — Built for engineers</p>
-            <nav class="footer-links">
-                <a href="./tools.html">All Tools</a>
-                <a href="#">Report Issue</a>
-            </nav>
-        </div>
-    </footer>
+    <footer data-footer></footer>
 
     <!-- Modal -->
     <div class="modal-overlay" id="modalOverlay">
@@ -1615,6 +1607,7 @@
     </div>
 
     <script src="../js/shared.js"></script>
+    <script src="../js/footer.js"></script>
     <script>
     /* ========================================
        MOODY CHART READER

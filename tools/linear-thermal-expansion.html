@@ -8,412 +8,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../css/shared.css">
-    <style>
-        .calculator-layout {
-            display: grid;
-            grid-template-columns: 1fr 380px;
-            gap: 24px;
-        }
-
-        .calc-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 32px;
-            height: fit-content;
-        }
-
-        /* Input Sections */
-        .section-title {
-            font-size: 0.875rem;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            margin-bottom: 16px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .input-group {
-            margin-bottom: 24px;
-        }
-
-        .input-row {
-            display: grid;
-            grid-template-columns: 1fr auto;
-            gap: 12px;
-            align-items: end;
-        }
-
-        .input-wrapper label {
-            display: block;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.8125rem;
-            color: var(--text-secondary);
-            margin-bottom: 8px;
-        }
-
-        .input-wrapper input, .input-wrapper select {
-            width: 100%;
-            font-family: 'JetBrains Mono', monospace;
-            padding: 12px;
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            color: var(--text-primary);
-            font-size: 1rem;
-        }
-
-        .input-wrapper input:focus, .input-wrapper select:focus {
-            border-color: var(--accent-engineering);
-            outline: none;
-        }
-
-        /* Material Selection */
-        .material-select-group {
-            display: grid;
-            grid-template-columns: 2fr 1fr;
-            gap: 12px;
-        }
-
-        /* Results Panel */
-        .results-panel {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 24px;
-            margin-top: 32px;
-        }
-
-        .result-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px 0;
-            border-bottom: 1px dashed var(--border-color);
-        }
-
-        .result-item:last-child {
-            border-bottom: none;
-        }
-
-        .result-label {
-            font-family: 'JetBrains Mono', monospace;
-            color: var(--text-secondary);
-            font-size: 0.875rem;
-        }
-
-        .result-value {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 1.25rem;
-            font-weight: 600;
-            color: var(--accent-engineering);
-        }
-
-        .result-value.percent {
-            color: var(--text-primary);
-        }
-
-        .result-sub {
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            margin-left: 8px;
-        }
-
-        /* Visualization Bar */
-        .expansion-viz {
-            margin-top: 24px;
-            padding: 40px 20px 20px;
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            position: relative;
-        }
-
-        .viz-track {
-            height: 44px;
-            background: transparent;
-            position: relative;
-            overflow: visible;
-            display: flex;
-            align-items: center;
-        }
-
-        .viz-bar {
-            height: 100%;
-            background: var(--text-secondary); /* Grey base */
-            width: 80%; /* Base width */
-            border-radius: 4px 0 0 4px;
-            transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
-            position: relative;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--bg-primary);
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.75rem;
-            font-weight: 600;
-        }
-
-        .viz-expansion {
-            height: 100%;
-            background: var(--accent-engineering);
-            position: absolute;
-            top: 0;
-            width: 0;
-            border-radius: 0 4px 4px 0;
-            transition: all 0.5s ease;
-            opacity: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            overflow: hidden;
-        }
-        
-        .viz-expansion span {
-            color: var(--bg-primary);
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.75rem;
-            font-weight: 700;
-            white-space: nowrap;
-            padding: 0 4px;
-        }
-
-        .viz-label, .viz-label-base, .viz-label-start, .viz-label-end, .viz-label-delta {
-            position: absolute;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.75rem;
-        }
-
-        .viz-label-start { top: -28px; left: 0; color: var(--text-secondary); }
-        .viz-label-end { top: -28px; right: 20%; color: var(--text-secondary); }
-        .viz-label-delta { top: 100%; margin-top: 8px; left: 80%; transform: translateX(-50%); color: var(--accent-engineering); white-space: nowrap; }
-
-        /* Sidebar */
-        .sidebar {
-            display: flex;
-            flex-direction: column;
-            gap: 24px;
-            height: fit-content;
-        }
-
-        .sidebar-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-        }
-        
-        .sidebar-card.table-card {
-            height: calc(100vh - 420px);
-            min-height: 350px;
-        }
-
-        .table-wrapper {
-            overflow-y: auto;
-            margin-top: 12px;
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            flex-grow: 1;
-        }
-
-        .cte-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.75rem;
-        }
-
-        .cte-table thead {
-            position: sticky;
-            top: 0;
-            background: var(--bg-card);
-            z-index: 2;
-        }
-
-        .cte-table th {
-            text-align: left;
-            color: var(--text-muted);
-            padding: 10px 8px;
-            border-bottom: 2px solid var(--border-color);
-            font-weight: 600;
-        }
-
-        .cte-table td {
-            padding: 8px;
-            border-bottom: 1px solid var(--border-color);
-            color: var(--text-secondary);
-            border-right: 1px solid var(--border-color);
-        }
-        
-        .cte-table td:last-child { border-right: none; }
-
-        .cte-table tr:hover td {
-            color: var(--text-primary);
-            background: var(--bg-secondary);
-            cursor: pointer;
-        }
-        
-        /* Disclaimer Card */
-        .disclaimer-card {
-            border: 1px solid #f59e0b;
-            background: rgba(245, 158, 11, 0.05);
-        }
-        
-        .disclaimer-title {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            color: #d97706;
-            font-size: 0.75rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            margin-bottom: 12px;
-            font-family: 'JetBrains Mono', monospace;
-            border-bottom: 1px solid rgba(217, 119, 6, 0.2);
-            padding-bottom: 8px;
-        }
-        
-        .disclaimer-content {
-            font-size: 0.6875rem;
-            line-height: 1.4;
-            color: var(--text-secondary);
-            font-family: sans-serif;
-        }
-
-        .disclaimer-list { margin: 8px 0; padding-left: 16px; }
-        .disclaimer-list li { margin-bottom: 6px; }
-        .disclaimer-list strong { color: var(--text-primary); font-weight: 600; }
-        .disclaimer-footer { margin-top: 12px; font-style: italic; opacity: 0.8; border-top: 1px solid rgba(217, 119, 6, 0.2); padding-top: 8px; }
-
-        /* Explanation Section */
-        .explanation-section {
-            margin-top: 48px;
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 40px;
-        }
-
-        .explanation-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 40px;
-            align-items: start;
-        }
-
-        .exp-col h3 {
-            font-family: 'Space Grotesk', sans-serif;
-            font-size: 1.25rem;
-            color: var(--text-primary);
-            margin-bottom: 16px;
-        }
-
-        .exp-col p {
-            font-size: 1rem;
-            color: var(--text-secondary);
-            line-height: 1.6;
-            margin-bottom: 16px;
-        }
-
-        /* Atomic Animation */
-        .atomic-demo {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 16px;
-            margin-bottom: 24px;
-        }
-
-        .atomic-state {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 16px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .temp-label {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.75rem;
-            font-weight: 700;
-            margin-bottom: 12px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            text-transform: uppercase;
-        }
-
-        .temp-label.cold { color: #3b82f6; }
-        .temp-label.hot { color: #ef4444; }
-
-        .lattice {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            transition: all 0.5s ease;
-        }
-
-        .lattice.cold { gap: 4px; }
-        .lattice.hot { gap: 10px; }
-
-        .atom {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            position: relative;
-        }
-
-        .lattice.cold .atom {
-            background-color: #60a5fa;
-            animation: shiver 0.1s infinite alternate;
-        }
-
-        .lattice.hot .atom {
-            background-color: #f87171;
-            box-shadow: 0 0 6px rgba(248, 113, 113, 0.6);
-            animation: vibrate-hard 0.15s infinite linear;
-        }
-
-        @keyframes shiver {
-            0% { transform: translate(0, 0); }
-            100% { transform: translate(0.5px, 0.5px); }
-        }
-
-        @keyframes vibrate-hard {
-            0% { transform: translate(0, 0); }
-            25% { transform: translate(2px, 2px); }
-            50% { transform: translate(-1px, -2px); }
-            75% { transform: translate(-2px, 1px); }
-            100% { transform: translate(0, 0); }
-        }
-
-        .highlight-box {
-            background: var(--bg-secondary);
-            border-left: 4px solid var(--accent-engineering);
-            padding: 16px;
-            border-radius: 0 8px 8px 0;
-            margin: 20px 0;
-        }
-
-        .highlight-box code {
-            font-family: 'JetBrains Mono', monospace;
-            font-weight: 700;
-            color: var(--accent-engineering);
-            font-size: 1.1em;
-        }
-
-        @media (max-width: 900px) {
-            .calculator-layout { grid-template-columns: 1fr; }
-            .sidebar-card.table-card { height: 400px; }
-            .explanation-grid { grid-template-columns: 1fr; }
-        }
-    </style>
+    <link rel="stylesheet" href="../css/linear_thermal_expansion/linear-thermal-expansion.css">
 </head>
 <body>
     <div class="container">
@@ -430,7 +25,7 @@
                 </div>
                 <div class="header-right">
                     <div class="theme-toggle">
-                        <button data-theme-toggle="light" title="Light mode">
+                        <button data-theme-toggle="light" aria-pressed="false" title="Light mode">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <circle cx="12" cy="12" r="5"/>
                                 <line x1="12" y1="1" x2="12" y2="3"/>
@@ -443,7 +38,7 @@
                                 <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
                             </svg>
                         </button>
-                        <button data-theme-toggle="dark" title="Dark mode">
+                        <button data-theme-toggle="dark" aria-pressed="false" title="Dark mode">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
                             </svg>
@@ -480,9 +75,10 @@
                             <div class="input-wrapper">
                                 <label>CTE (α)</label>
                                 <div style="position: relative;">
-                                    <input type="number" id="cteInput" value="11.7" step="0.1">
+                                    <input type="number" id="cteInput" step="0.1">
                                     <span style="position: absolute; right: 10px; top: 12px; font-size: 0.75rem; color: var(--text-muted);">µm/m·°C</span>
                                 </div>
+                                <div id="cteRangeInfo" class="cte-range-info" style="display: none;"></div>
                             </div>
                         </div>
                     </div>
@@ -563,14 +159,14 @@
                     <div class="expansion-viz">
                         <div class="viz-track">
                             <div class="viz-bar" id="vizBarBase">
-                                L₀
+                                <div class="viz-bar-text">L₀</div>
                                 <div class="viz-expansion" id="vizExpansion"></div>
                             </div>
                             <div class="viz-label-start">Start</div>
                             <div class="viz-label-end">L₀</div>
                             <div class="viz-label-delta" id="vizLabel">ΔL</div>
                         </div>
-                        <div style="margin-top: 16px; font-size: 0.75rem; color: var(--text-muted); text-align: center;">
+                        <div class="viz-caption">
                             Visual is true-to-scale. (Expansion may be too small to see).
                         </div>
                     </div>
@@ -598,29 +194,204 @@
                         </div>
                     </div>
                     
-                    <div class="sidebar-card disclaimer-card">
-                        <div class="disclaimer-title">
-                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="3">
+                    <div class="disclaimer-card">
+                        <div class="disclaimer-header" id="disclaimerHeader">
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5">
                                 <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
                                 <line x1="12" y1="9" x2="12" y2="13"/>
                                 <line x1="12" y1="17" x2="12.01" y2="17"/>
                             </svg>
-                            Critical Engineering Disclaimer
+                            <span>Critical Engineering Disclaimer</span>
+                            <svg class="chevron collapsed" id="disclaimerChevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="6 9 12 15 18 9"/>
+                            </svg>
                         </div>
-                        <div class="disclaimer-content">
-                            <p style="margin-bottom: 8px;"><strong>Use for estimation only.</strong> This tool uses a simplified linear model ($\Delta L = \alpha L_0 \Delta T$). Be aware of:</p>
-                            <ul class="disclaimer-list">
-                                <li><strong>Non-Linearity:</strong> CTE changes with temperature, sometimes drastically (e.g. near glass transition $T_g$).</li>
-                                <li><strong>Material Variance:</strong> Values are generic. Specific alloys/fillers will differ.</li>
-                                <li><strong>Anisotropy:</strong> Wood and printed plastics expand differently in X vs Y axes.</li>
-                            </ul>
-                            <p class="disclaimer-footer">
-                                Always verify with specific datasheets and testing standards. Provided "as is" with no warranty.
-                            </p>
+                        <div class="disclaimer-content collapsed" id="disclaimerContent">
+                            <div class="disclaimer-section">
+                                <h4>Simplified Model Limitations</h4>
+                                <p>This tool uses the linear thermal expansion formula:</p>
+                                <p class="formula">&Delta;L = &alpha; &times; L<sub>0</sub> &times; &Delta;T</p>
+                                <p class="disclaimer-note">This model assumes constant CTE across the temperature range, which is <strong>not always accurate</strong>.</p>
+                            </div>
+
+                            <div class="disclaimer-section">
+                                <h4>Key Factors Not Accounted For</h4>
+                                <ul class="disclaimer-list">
+                                    <li><strong>Non-Linearity:</strong> CTE varies with temperature. Plastics especially show dramatic changes near glass transition (T<sub>g</sub>), melting point, or other phase transitions.</li>
+                                    <li><strong>Material Variance:</strong> Values are generic/typical. Specific alloys, additives, fillers, reinforcements, and processing methods significantly affect expansion behavior.</li>
+                                    <li><strong>Anisotropy:</strong> Many materials expand differently in different directions:
+                                        <ul class="disclaimer-nested">
+                                            <li>Wood: radial vs tangential vs longitudinal grain</li>
+                                            <li>Composites: along fibers vs across fibers</li>
+                                            <li>3D prints: layer adhesion direction effects</li>
+                                            <li>Metals: rolling/extrusion direction effects</li>
+                                        </ul>
+                                    </li>
+                                    <li><strong>Thermal Hysteresis:</strong> Some materials don't return to original dimensions after temperature cycling.</li>
+                                    <li><strong>Constraint Effects:</strong> Real-world assemblies may be constrained, causing stress instead of free expansion.</li>
+                                    <li><strong>Moisture & Environment:</strong> Hygroscopic materials (wood, some plastics) expand/contract with humidity changes independent of temperature.</li>
+                                    <li><strong>Time-Dependent Effects:</strong> Creep, stress relaxation, and viscoelastic behavior can affect dimensional stability over time under load and temperature.</li>
+                                </ul>
+                            </div>
+
+                            <div class="disclaimer-section">
+                                <h4>Application-Specific Considerations</h4>
+                                <ul class="disclaimer-list">
+                                    <li><strong>Pressure Vessels & Piping:</strong> Must follow ASME Boiler and Pressure Vessel Code, ASTM standards, and local regulations.</li>
+                                    <li><strong>Structural Components:</strong> Expansion joints, flexible connections, and allowance calculations require professional engineering analysis.</li>
+                                    <li><strong>Precision Assemblies:</strong> Tolerance stack-up analysis must include thermal expansion variations across operating temperature range.</li>
+                                    <li><strong>Dissimilar Materials:</strong> Bimetallic effects can cause significant stresses at joints and interfaces.</li>
+                                    <li><strong>Extreme Temperatures:</strong> CTE values at cryogenic or elevated temperatures may differ substantially from room-temperature data.</li>
+                                </ul>
+                            </div>
+
+                            <div class="disclaimer-section">
+                                <h4>Professional Engineering:</h4>
+                                <p>Consult a qualified professional engineer for:</p>
+                                <ul class="disclaimer-list">
+                                    <li>Safety-critical applications (pressure equipment, load-bearing structures, aerospace, medical devices)</li>
+                                    <li>High-consequence failures (property damage, injury, regulatory compliance)</li>
+                                    <li>Complex geometries or assemblies with multiple materials</li>
+                                    <li>Environments outside normal atmospheric conditions</li>
+                                    <li>Applications requiring certified calculations or PE stamps</li>
+                                </ul>
+                            </div>
+
+                            <div class="disclaimer-footer">
+                                <p><strong>Always verify calculations against specific material datasheets and applicable industry standards.</strong></p>
+                                <p>This tool is provided for educational and estimation purposes only. The authors assume no liability for errors, omissions, or damages resulting from use of this information. Local building codes, industry standards, and professional engineering judgment take precedence over these calculations.</p>
+                            </div>
                         </div>
                     </div>
                 </aside>
             </div>
+
+            <!-- CTE References Section -->
+            <section class="references-section">
+                <div class="references-header" id="referencesHeader">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                    </svg>
+                    <span>CTE Reference Sources</span>
+                    <svg class="chevron collapsed" id="referencesChevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="6 9 12 15 18 9"/>
+                    </svg>
+                </div>
+                <div class="references-content collapsed" id="referencesContent">
+                    <p class="references-intro">Coefficient of Thermal Expansion (CTE) values verified against authoritative datasheets and engineering references. Values are typical for materials at room temperature (20-25°C) and may vary with temperature, grade, and processing.</p>
+
+                    <div class="ref-category">
+                        <h4>Primary Datasheet Sources</h4>
+                        <ul class="ref-list">
+                            <li><strong>MatWeb</strong> - Material property database with manufacturer datasheets</li>
+                            <li><strong>Engineering Toolbox</strong> - Engineering materials reference database</li>
+                            <li><strong>ASM Material Data Sheets</strong> - ASM International material specifications</li>
+                            <li><strong>SpecialChem</strong> - Plastics material properties database</li>
+                        </ul>
+                    </div>
+
+                    <div class="ref-category">
+                        <h4>Comprehensive Material Reference Table</h4>
+                        <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 12px;">All materials in the calculator database with verified CTE sources.</p>
+                        <table class="ref-table">
+                            <thead>
+                                <tr>
+                                    <th>Material</th>
+                                    <th>CTE (µm/m·°C)</th>
+                                    <th>Source</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- METALS -->
+                                <tr><td colspan="3" style="background: var(--bg-secondary); font-weight: 700;">METALS</td></tr>
+                                <tr><td>Aluminum 3003</td><td>22.5-23.6</td><td><a href="https://www.engineeringtoolbox.com/linear-expansion-coefficients-d_95.html" target="_blank" rel="noopener">Engineering Toolbox</a></td></tr>
+                                <tr><td>Aluminum 6061</td><td>23.2-23.6</td><td><a href="https://asm.matweb.com/search/specificmaterial.asp?bassnum=ma6061t6" target="_blank" rel="noopener">MatWeb</a></td></tr>
+                                <tr><td>Brass (Yellow)</td><td>19.0-20.5</td><td><a href="https://www.engineeringtoolbox.com/linear-expansion-coefficients-d_95.html" target="_blank" rel="noopener">Engineering Toolbox</a></td></tr>
+                                <tr><td>Brass (Red)</td><td>18.0-19.5</td><td><a href="https://www.engineeringtoolbox.com/linear-expansion-coefficients-d_95.html" target="_blank" rel="noopener">Engineering Toolbox</a></td></tr>
+                                <tr><td>Bronze (Commercial)</td><td>17.5-18.5</td><td><a href="https://www.matweb.com/search/datasheet.aspx?matguid=b673f55f412f40ae9ee03e9986747016&n=1" target="_blank" rel="noopener">MatWeb (C93200)</a></td></tr>
+                                <tr><td>Cast Iron, Gray</td><td>10.5-11.2</td><td><a href="https://www.engineeringtoolbox.com/linear-expansion-coefficients-d_95.html" target="_blank" rel="noopener">Engineering Toolbox</a></td></tr>
+                                <tr><td>Cast Iron, Ductile</td><td>11.0-12.0</td><td><a href="https://www.engineeringtoolbox.com/linear-expansion-coefficients-d_95.html" target="_blank" rel="noopener">Engineering Toolbox</a></td></tr>
+                                <tr><td>Copper (C10100/C11000)</td><td>16.5-17.2</td><td><a href="https://www.matweb.com/search/datasheet_print.aspx?matguid=ef38978fb59a4887948a717dcbacdfeb" target="_blank" rel="noopener">MatWeb (C11000)</a></td></tr>
+                                <tr><td>Gold</td><td>14.0-14.3</td><td><a href="https://www.matweb.com/reference/elements.aspx" target="_blank" rel="noopener">MatWeb: Elements</a></td></tr>
+                                <tr><td>Lead</td><td>28.0-30.0</td><td><a href="https://www.matweb.com/reference/elements.aspx" target="_blank" rel="noopener">MatWeb: Elements</a></td></tr>
+                                <tr><td>Magnesium</td><td>25.0-26.5</td><td><a href="https://www.matweb.com/reference/elements.aspx" target="_blank" rel="noopener">MatWeb: Elements</a></td></tr>
+                                <tr><td>Nickel</td><td>12.5-13.5</td><td><a href="https://www.matweb.com/reference/elements.aspx" target="_blank" rel="noopener">MatWeb: Elements</a></td></tr>
+                                <tr><td>Platinum</td><td>8.8-9.2</td><td><a href="https://www.matweb.com/reference/elements.aspx" target="_blank" rel="noopener">MatWeb: Elements</a></td></tr>
+                                <tr><td>Silver</td><td>18.5-19.7</td><td><a href="https://www.matweb.com/reference/elements.aspx" target="_blank" rel="noopener">MatWeb: Elements</a></td></tr>
+                                <tr><td>Steel, Carbon (1020)</td><td>11.5-12.0</td><td><a href="https://www.matweb.com/search/datasheet.aspx?matguid=ac54866df849406fa1a8a9d24e7f4d95" target="_blank" rel="noopener">MatWeb</a></td></tr>
+                                <tr><td>Steel, Carbon (4140)</td><td>11.5-13.0</td><td><a href="https://www.matweb.com/search/DataSheet.aspx?MatGUID=1897ec2242d14abba04ef1de7e7be01d" target="_blank" rel="noopener">MatWeb</a></td></tr>
+                                <tr><td>Steel, Stainless 304</td><td>17.2-17.3</td><td><a href="https://asm.matweb.com/search/specificmaterial.asp?bassnum=mq304a" target="_blank" rel="noopener">MatWeb</a></td></tr>
+                                <tr><td>Steel, Stainless 316</td><td>15.5-16.5</td><td><a href="https://asm.matweb.com/search/specificmaterial.asp?bassnum=mq316a" target="_blank" rel="noopener">MatWeb</a></td></tr>
+                                <tr><td>Steel, Tool A2</td><td>11.3-12.0</td><td><a href="https://www.engineeringtoolbox.com/linear-expansion-coefficients-d_95.html" target="_blank" rel="noopener">Engineering Toolbox</a></td></tr>
+                                <tr><td>Steel, Tool D2</td><td>10.2-10.8</td><td><a href="https://www.matweb.com/search/datasheettext.aspx?matguid=37de2ca8d34c415fbdee5add2f86f06f" target="_blank" rel="noopener">MatWeb</a></td></tr>
+                                <tr><td>Titanium Grade 2</td><td>8.4-8.8</td><td><a href="https://www.engineeringtoolbox.com/linear-expansion-coefficients-d_95.html" target="_blank" rel="noopener">Engineering Toolbox</a></td></tr>
+                                <tr><td>Zinc</td><td>29.0-31.0</td><td><a href="https://www.matweb.com/reference/elements.aspx" target="_blank" rel="noopener">MatWeb: Elements</a></td></tr>
+                                <!-- PLASTICS -->
+                                <tr><td colspan="3" style="background: var(--bg-secondary); font-weight: 700;">PLASTICS</td></tr>
+                                <tr><td>ABS (Generic)</td><td>75-95</td><td><a href="https://www.professionalplastics.com/professionalplastics/ThermalPropertiesofPlasticMaterials.pdf" target="_blank" rel="noopener">Professional Plastics</a></td></tr>
+                                <tr><td>Acetal (POM)</td><td>80-85</td><td><a href="https://www.professionalplastics.com/professionalplastics/ThermalPropertiesofPlasticMaterials.pdf" target="_blank" rel="noopener">Professional Plastics</a></td></tr>
+                                <tr><td>Acrylic (PMMA)</td><td>70-75</td><td><a href="https://www.professionalplastics.com/professionalplastics/ThermalPropertiesofPlasticMaterials.pdf" target="_blank" rel="noopener">Professional Plastics</a></td></tr>
+                                <tr><td>CPVC</td><td>69.5-80</td><td><a href="https://www.matweb.com/search/datasheet.aspx?matguid=123e895084d54bc0936ead3c8288b62c&n=1" target="_blank" rel="noopener">MatWeb (Corzan)</a></td></tr>
+                                <tr><td>HDPE</td><td>100-200</td><td><a href="https://www.matweb.com/search/datasheettext.aspx?matguid=c305addb2e1c4a58a3dece14122acfde" target="_blank" rel="noopener">MatWeb (Pipe)</a></td></tr>
+                                <tr><td>LDPE</td><td>100-240</td><td><a href="https://www.matweb.com/search/DataSheet.aspx?MatGUID=5c9aca1a960945aa8d9129f8a618b007" target="_blank" rel="noopener">MatWeb (Sheet)</a></td></tr>
+                                <tr><td>Nylon 6</td><td>70-85</td><td><a href="https://www.professionalplastics.com/professionalplastics/ThermalPropertiesofPlasticMaterials.pdf" target="_blank" rel="noopener">Professional Plastics</a></td></tr>
+                                <tr><td>Nylon 6/6</td><td>70-85</td><td><a href="https://www.professionalplastics.com/professionalplastics/ThermalPropertiesofPlasticMaterials.pdf" target="_blank" rel="noopener">Professional Plastics</a></td></tr>
+                                <tr><td>PEEK</td><td>47-108</td><td><a href="https://www.matweb.com/search/datasheet.aspx?matguid=ffc10b084c4e4dd6975438d9968e1292&n=1" target="_blank" rel="noopener">MatWeb (450G)</a></td></tr>
+                                <tr><td>Polybutylene (PB)</td><td>120-140</td><td><a href="https://www.engineeringtoolbox.com/linear-expansion-coefficients-d_95.html" target="_blank" rel="noopener">Engineering Toolbox</a></td></tr>
+                                <tr><td>Polycarbonate (PC)</td><td>65-70</td><td><a href="https://www.professionalplastics.com/professionalplastics/ThermalPropertiesofPlasticMaterials.pdf" target="_blank" rel="noopener">Professional Plastics</a></td></tr>
+                                <tr><td>Polypropylene (PP)</td><td>100-150</td><td><a href="https://www.professionalplastics.com/professionalplastics/ThermalPropertiesofPlasticMaterials.pdf" target="_blank" rel="noopener">Professional Plastics</a></td></tr>
+                                <tr><td>Polystyrene (PS)</td><td>65-75</td><td><a href="https://www.professionalplastics.com/professionalplastics/ThermalPropertiesofPlasticMaterials.pdf" target="_blank" rel="noopener">Professional Plastics</a></td></tr>
+                                <tr><td>PET (Polyester)</td><td>65-75</td><td><a href="https://www.engineeringtoolbox.com/linear-expansion-coefficients-d_95.html" target="_blank" rel="noopener">Engineering Toolbox</a></td></tr>
+                                <tr><td>PTFE (Teflon)</td><td>100-165</td><td><a href="https://www.matweb.com/search/datasheet.aspx?matguid=ef394c1e30c54ca8b21836006aee2484" target="_blank" rel="noopener">MatWeb</a></td></tr>
+                                <tr><td>PVA</td><td>80-90</td><td><a href="https://www.engineeringtoolbox.com/linear-expansion-coefficients-d_95.html" target="_blank" rel="noopener">Engineering Toolbox</a></td></tr>
+                                <tr><td>PVC (Rigid)</td><td>75-85</td><td><a href="https://www.matweb.com/search/datasheet_print.aspx?matguid=3dbf1ac9082d4de7b247e4bedfd28601" target="_blank" rel="noopener">MatWeb (Piping)</a></td></tr>
+                                <tr><td>PVDF</td><td>100-200</td><td><a href="https://www.theplasticshop.co.uk/plastic_technical_data_sheets/pvdf_technical_data_sheet.pdf" target="_blank" rel="noopener">Technical Datasheet</a></td></tr>
+                                <!-- WOOD -->
+                                <tr><td colspan="3" style="background: var(--bg-secondary); font-weight: 700;">WOOD (Anisotropic)</td></tr>
+                                <tr><td>Fir (Parallel)</td><td>3.5-4.2</td><td><a href="https://web.mst.edu/jthomas/classes/2211/lessons/thermal/thermal_expansion/wood/index.html" target="_blank" rel="noopener">MST: Wood CTE</a></td></tr>
+                                <tr><td>Fir (Perpendicular)</td><td>28-38</td><td><a href="https://web.mst.edu/jthomas/classes/2211/lessons/thermal/thermal_expansion/wood/index.html" target="_blank" rel="noopener">MST: Wood CTE</a></td></tr>
+                                <tr><td>Oak (Parallel)</td><td>4.5-5.5</td><td><a href="https://www.fpl.fs.usda.gov/documnts/fplgtr/fplgtr282/chapter_04_fplgtr282.pdf" target="_blank" rel="noopener">USDA Wood Handbook</a></td></tr>
+                                <tr><td>Oak (Perpendicular)</td><td>45-65</td><td><a href="https://www.engineeringtoolbox.com/linear-expansion-coefficients-d_95.html" target="_blank" rel="noopener">Engineering Toolbox</a></td></tr>
+                                <tr><td>Pine (Parallel)</td><td>4.5-5.5</td><td><a href="https://www.engineeringtoolbox.com/linear-expansion-coefficients-d_95.html" target="_blank" rel="noopener">Engineering Toolbox</a></td></tr>
+                                <tr><td>Pine (Perpendicular)</td><td>30-40</td><td><a href="https://link.springer.com/article/10.1186/s10086-019-1781-9" target="_blank" rel="noopener">Springer: J Wood Sci</a></td></tr>
+                                <!-- OTHERS -->
+                                <tr><td colspan="3" style="background: var(--bg-secondary); font-weight: 700;">CERAMICS & OTHERS</td></tr>
+                                <tr><td>Alumina (99%)</td><td>7.5-8.7</td><td><a href="https://www.engineeringtoolbox.com/linear-expansion-coefficients-d_95.html" target="_blank" rel="noopener">Engineering Toolbox</a></td></tr>
+                                <tr><td>Concrete</td><td>10-14</td><td><a href="https://www.fhwa.dot.gov/publications/research/infrastructure/pavements/pccp/thermal.cfm" target="_blank" rel="noopener">FHWA Research</a></td></tr>
+                                <tr><td>Glass, Borosilicate</td><td>3.25-3.3</td><td><a href="https://www.schott.com/-/media/project/onex/shared/downloads/melting-and-hot-forming/390768-row-schott-technical-glasses-view-2020-04-14.pdf" target="_blank" rel="noopener">SCHOTT</a></td></tr>
+                                <tr><td>Glass, Soda Lime</td><td>8.5-9.5</td><td><a href="https://www.engineeringtoolbox.com/linear-expansion-coefficients-d_95.html" target="_blank" rel="noopener">Engineering Toolbox</a></td></tr>
+                                <tr><td>Quartz, Fused</td><td>0.55-0.59</td><td><a href="https://www.goodfellow.com/global/resources/fused-silica-vs-fused-quartz-key-differences-properties-applications/" target="_blank" rel="noopener">Goodfellow</a></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="ref-category">
+                        <h4>General Reference Sources</h4>
+                        <ul class="ref-list">
+                            <li><a href="https://www.engineeringtoolbox.com/linear-expansion-coefficients-d_95.html" target="_blank" rel="noopener">Engineering Toolbox: Linear Expansion Coefficients</a></li>
+                            <li><a href="https://www.engineeringtoolbox.com/thermal-expansion-metals-d_859.html" target="_blank" rel="noopener">Engineering Toolbox: Metal Expansion</a></li>
+                            <li><a href="https://www.matweb.com" target="_blank" rel="noopener">MatWeb: Material Property Database</a></li>
+                            <li><a href="https://www.professionalplastics.com/professionalplastics/ThermalPropertiesofPlasticMaterials.pdf" target="_blank" rel="noopener">Professional Plastics: Thermal Properties PDF</a></li>
+                            <li><a href="https://web.mst.edu/jthomas/classes/2211/lessons/thermal/thermal_expansion/wood/index.html" target="_blank" rel="noopener">Missouri S&T: Wood CTE Data</a></li>
+                            <li><a href="https://www.fpl.fs.usda.gov/documnts/fplgtr/fplgtr282/chapter_04_fplgtr282.pdf" target="_blank" rel="noopener">USDA Forest Products Laboratory: Wood Handbook</a></li>
+                        </ul>
+                    </div>
+
+                    <div class="ref-category">
+                        <h4>Important Notes</h4>
+                        <ul class="ref-list">
+                            <li>CTE values vary by <strong>temperature range</strong> - values shown are typically for 20-100°C</li>
+                            <li>Specific <strong>alloy grades</strong> may differ from generic material listings</li>
+                            <li><strong>Fillers and reinforcements</strong> (e.g., glass fiber) significantly reduce CTE</li>
+                            <li><strong>Wood is highly anisotropic</strong> - see WOOD section above for parallel vs perpendicular values</li>
+                            <li>Always consult <strong>manufacturer datasheets</strong> for critical applications</li>
+                        </ul>
+                    </div>
+
+                    <p class="references-footer">Last verified: January 2025 | Values subject to change based on material specifications</p>
+                </div>
+            </section>
 
             <section class="explanation-section">
                 <div class="explanation-grid">
@@ -694,252 +465,11 @@
             </section>
         </main>
 
-        <footer>
-            <div class="footer-content">
-                <p class="footer-text">© 2025 Tools Hub — Built for engineers</p>
-                <nav class="footer-links">
-                    <a href="../tools.html">All Tools</a>
-                    <a href="#">Report Issue</a>
-                </nav>
-            </div>
-        </footer>
+        <footer data-footer></footer>
     </div>
 
     <script src="../js/shared.js"></script>
-    <script>
-        const elements = {
-            materialSelect: document.getElementById('materialSelect'),
-            cteInput: document.getElementById('cteInput'),
-            lengthInput: document.getElementById('lengthInput'),
-            lengthUnit: document.getElementById('lengthUnit'),
-            tempInitial: document.getElementById('tempInitial'),
-            tempFinal: document.getElementById('tempFinal'),
-            tempUnit: document.getElementById('tempUnit'),
-            resDeltaT: document.getElementById('resDeltaT'),
-            resDeltaL: document.getElementById('resDeltaL'),
-            resDeltaLUnit: document.getElementById('resDeltaLUnit'),
-            resFinalL: document.getElementById('resFinalL'),
-            resPercent: document.getElementById('resPercent'),
-            vizBarBase: document.getElementById('vizBarBase'),
-            vizExpansion: document.getElementById('vizExpansion'),
-            vizLabel: document.getElementById('vizLabel'),
-            cteTableBody: document.getElementById('cteTableBody')
-        };
-
-        const materialsDB = [
-            { cat: 'Plastics', name: "ABS (Generic)", val: 95.0 },
-            { cat: 'Plastics', name: "Acetal (POM)", val: 85.0 },
-            { cat: 'Plastics', name: "Acrylic (PMMA)", val: 75.0 },
-            { cat: 'Plastics', name: "CPVC", val: 65.0 },
-            { cat: 'Plastics', name: "HDPE", val: 120.0 },
-            { cat: 'Plastics', name: "LDPE", val: 200.0 },
-            { cat: 'Plastics', name: "Nylon 6", val: 80.0 },
-            { cat: 'Plastics', name: "Nylon 6/6", val: 80.0 },
-            { cat: 'Plastics', name: "PEEK", val: 47.0 },
-            { cat: 'Plastics', name: "Polybutylene (PB)", val: 130.0 },
-            { cat: 'Plastics', name: "Polycarbonate (PC)", val: 68.0 },
-            { cat: 'Plastics', name: "Polypropylene (PP)", val: 150.0 },
-            { cat: 'Plastics', name: "Polystyrene (PS)", val: 70.0 },
-            { cat: 'Plastics', name: "PET (Polyester)", val: 70.0 },
-            { cat: 'Plastics', name: "PTFE (Teflon)", val: 126.0 }, 
-            { cat: 'Plastics', name: "PVA", val: 85.0 },
-            { cat: 'Plastics', name: "PVC (Rigid)", val: 54.0 },
-            { cat: 'Plastics', name: "PVDF", val: 120.0 },
-            { cat: 'Metals', name: "Aluminum 3003", val: 23.2 },
-            { cat: 'Metals', name: "Aluminum 6061", val: 23.6 },
-            { cat: 'Metals', name: "Brass (Yellow)", val: 20.3 },
-            { cat: 'Metals', name: "Brass (Red)", val: 18.7 },
-            { cat: 'Metals', name: "Bronze (Comm.)", val: 18.0 },
-            { cat: 'Metals', name: "Cast Iron, Gray", val: 10.8 },
-            { cat: 'Metals', name: "Cast Iron, Ductile", val: 11.5 },
-            { cat: 'Metals', name: "Copper", val: 16.5 },
-            { cat: 'Metals', name: "Gold", val: 14.2 },
-            { cat: 'Metals', name: "Lead", val: 29.3 },
-            { cat: 'Metals', name: "Magnesium", val: 26.0 },
-            { cat: 'Metals', name: "Nickel", val: 13.0 },
-            { cat: 'Metals', name: "Platinum", val: 9.0 },
-            { cat: 'Metals', name: "Silver", val: 19.0 },
-            { cat: 'Metals', name: "Steel, Carbon (1020)", val: 11.7 },
-            { cat: 'Metals', name: "Steel, Carbon (4140)", val: 12.3 },
-            { cat: 'Metals', name: "Steel, SS 304", val: 17.3 },
-            { cat: 'Metals', name: "Steel, SS 316", val: 16.0 },
-            { cat: 'Metals', name: "Steel, Tool A2", val: 11.6 },
-            { cat: 'Metals', name: "Steel, Tool D2", val: 10.5 },
-            { cat: 'Metals', name: "Titanium Gr2", val: 8.6 },
-            { cat: 'Metals', name: "Zinc", val: 30.0 },
-            { cat: 'Wood', name: "Fir (Parallel)", val: 3.8 },
-            { cat: 'Wood', name: "Fir (Perp.)", val: 32.0 },
-            { cat: 'Wood', name: "Oak (Parallel)", val: 4.9 },
-            { cat: 'Wood', name: "Oak (Perp.)", val: 54.0 },
-            { cat: 'Wood', name: "Pine (Parallel)", val: 5.0 },
-            { cat: 'Wood', name: "Pine (Perp.)", val: 34.0 },
-            { cat: 'Others', name: "Alumina (99%)", val: 8.1 },
-            { cat: 'Others', name: "Concrete", val: 12.0 },
-            { cat: 'Others', name: "Glass, Borosilicate", val: 3.3 },
-            { cat: 'Others', name: "Glass, Soda Lime", val: 9.0 },
-            { cat: 'Others', name: "Quartz, Fused", val: 0.55 }
-        ];
-
-        function init() {
-            populateTable();
-            populateDropdown();
-            
-            const inputs = [
-                elements.cteInput, elements.lengthInput, 
-                elements.tempInitial, elements.tempFinal
-            ];
-            
-            inputs.forEach(el => el.addEventListener('input', calculate));
-            [elements.lengthUnit, elements.tempUnit].forEach(el => el.addEventListener('change', calculate));
-
-            elements.materialSelect.addEventListener('change', (e) => {
-                if(e.target.value !== 'custom') {
-                    elements.cteInput.value = e.target.value;
-                    elements.cteInput.readOnly = true;
-                    elements.cteInput.style.backgroundColor = 'var(--bg-secondary)';
-                } else {
-                    elements.cteInput.readOnly = false;
-                    elements.cteInput.style.backgroundColor = 'var(--bg-card)';
-                    elements.cteInput.focus();
-                }
-                calculate();
-            });
-
-            elements.materialSelect.value = "11.7";
-            elements.cteInput.readOnly = true;
-            calculate();
-        }
-
-        function populateDropdown() {
-            const groups = {};
-            materialsDB.forEach(m => {
-                if(!groups[m.cat]) groups[m.cat] = [];
-                groups[m.cat].push(m);
-            });
-
-            let html = '<option value="custom">Custom CTE...</option>';
-            const order = ['Metals', 'Plastics', 'Wood', 'Others'];
-            
-            order.forEach(cat => {
-                if(groups[cat]) {
-                    html += `<optgroup label="${cat}">`;
-                    groups[cat].sort((a,b) => a.name.localeCompare(b.name));
-                    groups[cat].forEach(m => {
-                        html += `<option value="${m.val}">${m.name} (${m.val})</option>`;
-                    });
-                    html += `</optgroup>`;
-                }
-            });
-            
-            elements.materialSelect.innerHTML = html;
-        }
-
-        function populateTable() {
-            const sorted = [...materialsDB].sort((a, b) => a.name.localeCompare(b.name));
-            elements.cteTableBody.innerHTML = sorted.map(m => {
-                const valC = m.val;
-                const valF = (valC * 5 / 9).toFixed(1);
-                return `
-                    <tr onclick="selectFromTable('${m.val}')">
-                        <td>${m.name}</td>
-                        <td>${valC}</td>
-                        <td>${valF}</td>
-                    </tr>
-                `;
-            }).join('');
-        }
-
-        window.selectFromTable = function(val) {
-            elements.materialSelect.value = val;
-            let found = false;
-            for(let i=0; i<elements.materialSelect.options.length; i++) {
-                if(elements.materialSelect.options[i].value === val.toString()) {
-                    elements.materialSelect.selectedIndex = i;
-                    found = true;
-                    break;
-                }
-            }
-            if(!found) elements.materialSelect.value = 'custom';
-            elements.cteInput.value = val;
-            elements.cteInput.readOnly = true;
-            elements.cteInput.style.backgroundColor = 'var(--bg-secondary)';
-            calculate();
-        };
-
-        function calculate() {
-            const alphaVal = parseFloat(elements.cteInput.value) || 0;
-            const L0 = parseFloat(elements.lengthInput.value) || 0;
-            const T1 = parseFloat(elements.tempInitial.value) || 0;
-            const T2 = parseFloat(elements.tempFinal.value) || 0;
-            const tempUnit = elements.tempUnit.value;
-            
-            let deltaT_User = T2 - T1;
-            let deltaT_C = (tempUnit === 'F') ? deltaT_User / 1.8 : deltaT_User;
-
-            const alphaRaw = alphaVal * 1e-6; 
-            const deltaL = alphaRaw * L0 * deltaT_C;
-            const finalL = L0 + deltaL;
-
-            let percentChange = 0;
-            if (L0 !== 0) percentChange = (deltaL / L0) * 100;
-
-            elements.resDeltaT.textContent = `${formatNumber(deltaT_User)} °${tempUnit === 'K' ? 'K' : tempUnit}`;
-
-            const lUnit = elements.lengthUnit.value;
-            const sign = deltaL > 0 ? '+' : '';
-            
-            elements.resDeltaL.textContent = sign + formatNumber(deltaL);
-            elements.resDeltaLUnit.textContent = lUnit;
-            elements.resFinalL.textContent = `${formatNumber(finalL)} ${lUnit}`;
-            
-            const pSign = percentChange > 0 ? '+' : '';
-            let pText;
-            if (Math.abs(percentChange) < 0.001 && percentChange !== 0) {
-                 pText = pSign + percentChange.toExponential(2) + '%';
-            } else {
-                 pText = pSign + percentChange.toPrecision(4) + '%';
-            }
-            elements.resPercent.textContent = pText;
-
-            updateViz(deltaL, L0);
-        }
-
-        function updateViz(dL, L0) {
-            if (L0 === 0) return;
-            
-            const pct = (dL / L0) * 100;
-            const isExpansion = dL >= 0;
-            const absPct = Math.abs(pct);
-
-            if (isExpansion) {
-                elements.vizExpansion.style.left = '100%';
-                elements.vizExpansion.style.right = 'auto';
-                elements.vizExpansion.style.width = absPct + '%';
-                elements.vizExpansion.style.backgroundColor = 'var(--accent-engineering)';
-                
-                elements.vizLabel.textContent = `+ΔL ${formatNumber(dL)}`;
-                elements.vizLabel.style.color = 'var(--accent-engineering)';
-                elements.vizLabel.style.left = `calc(80% + ${absPct * 0.8}%)`; 
-            } else {
-                elements.vizExpansion.style.left = 'auto';
-                elements.vizExpansion.style.right = '0'; 
-                elements.vizExpansion.style.width = absPct + '%';
-                elements.vizExpansion.style.backgroundColor = '#ef4444';
-                
-                elements.vizLabel.textContent = `-ΔL ${formatNumber(dL)}`;
-                elements.vizLabel.style.color = '#ef4444';
-                elements.vizLabel.style.left = `calc(80% - ${absPct * 0.8}%)`; 
-            }
-        }
-
-        function formatNumber(num) {
-            if (num === 0) return "0";
-            if (Math.abs(num) < 0.0001) return num.toExponential(3);
-            if (Math.abs(num % 1) < 1e-5) return num.toFixed(0);
-            return parseFloat(num.toFixed(4));
-        }
-
-        init();
-    </script>
+    <script src="../js/footer.js"></script>
+    <script src="../js/linear_thermal_expansion/linear-thermal-expansion.js"></script>
 </body>
 </html>
