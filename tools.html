@@ -933,18 +933,59 @@
             </section>
         </main>
 
-        <footer>
-            <div class="footer-content">
-                <p class="footer-text">© 2025 Tools Hub by Jesse Anderson — Built for engineers and developers</p>
-                <nav class="footer-links">
-                    <a href="#">About</a>
-                    <a href="#">Changelog</a>
-                    <a href="#">Request a Tool</a>
-                </nav>
+        <footer data-footer-variant="hub" data-footer-tagline="Built for engineers and developers"></footer>
+
+        <!-- About Modal -->
+        <div class="modal-overlay" id="aboutModal">
+            <div class="modal">
+                <div class="modal-header">
+                    <h2 class="modal-title">About Tools Hub</h2>
+                    <button class="modal-close" id="aboutModalClose" aria-label="Close modal">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"/>
+                            <line x1="6" y1="6" x2="18" y2="18"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <p><strong>Tools Hub</strong> is a collection of browser-based utilities designed for engineers, IT professionals, and anyone who needs quick calculations or data processing.</p>
+
+                    <h3>Features</h3>
+                    <ul>
+                        <li><strong>No server required</strong> — All processing happens in your browser</li>
+                        <li><strong>Privacy focused</strong> — Your data never leaves your device</li>
+                        <li><strong>Works offline</strong> — Once loaded, tools work without internet</li>
+                        <li><strong>Dark & Light themes</strong> — Easy on the eyes, any time of day</li>
+                    </ul>
+
+                    <h3>Categories</h3>
+                    <ul>
+                        <li><strong>Engineering:</strong> Unit converters, Ohm's Law, thermal expansion, pinout diagrams</li>
+                        <li><strong>IT & Coding:</strong> JSON formatter, regex tester, encoding tools, color picker</li>
+                        <li><strong>Database:</strong> SQLite viewer, DuckDB playground</li>
+                        <li><strong>Biochemical:</strong> Dosage calculators, toxicology tools</li>
+                        <li><strong>Data Science:</strong> Linear regression, clustering visualizer</li>
+                    </ul>
+
+                    <h3>Version</h3>
+                    <p>Current version: <strong>1.9.0</strong></p>
+
+                    <h3>Links</h3>
+                    <p>
+                        <a href="https://github.com/jesse-anderson/Tools" target="_blank" rel="noopener">GitHub Repository</a> ·
+                        <a href="https://github.com/jesse-anderson/Tools/issues/new" target="_blank" rel="noopener">Report an Issue</a> ·
+                        <a href="https://github.com/jesse-anderson/Tools/blob/main/README.md" target="_blank" rel="noopener">Documentation</a>
+                    </p>
+
+                    <p style="margin-top: 16px; font-size: 0.875rem; opacity: 0.7;">
+                        Licensed under <a href="https://github.com/jesse-anderson/Tools/blob/main/LICENSE" target="_blank" rel="noopener">GPL-3.0</a>
+                    </p>
+                </div>
             </div>
-        </footer>
+        </div>
     </div>
 
+    <script src="js/footer.js"></script>
     <script>
         // View Toggle (Detailed / Condensed)
         const toggleBtns = document.querySelectorAll('.toggle-btn');
@@ -1025,6 +1066,40 @@
 
         // Load saved collapsed state on page load
         loadCollapsedState();
+
+        // ============================================
+        // About Modal
+        // ============================================
+        const aboutModal = document.getElementById('aboutModal');
+        const aboutModalClose = document.getElementById('aboutModalClose');
+
+        // Open modal when clicking "About" link in footer
+        document.addEventListener('click', (e) => {
+            const aboutLink = e.target.closest('a[href="#about"]');
+            if (aboutLink) {
+                e.preventDefault();
+                aboutModal.classList.add('active');
+            }
+        });
+
+        // Close modal with X button
+        aboutModalClose.addEventListener('click', () => {
+            aboutModal.classList.remove('active');
+        });
+
+        // Close modal when clicking overlay
+        aboutModal.addEventListener('click', (e) => {
+            if (e.target === aboutModal) {
+                aboutModal.classList.remove('active');
+            }
+        });
+
+        // Close modal with Escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && aboutModal.classList.contains('active')) {
+                aboutModal.classList.remove('active');
+            }
+        });
     </script>
     <script type="module" src="js/shared.js"></script>
     <!-- the curse of cloudflare and their optimization... -->

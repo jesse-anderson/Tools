@@ -10,7 +10,8 @@ const Footer = {
         author: 'Jesse Anderson',
         tagline: 'Built for engineers',
         toolsPath: '../tools.html',
-        issueUrl: 'https://github.com/jesse-anderson/Tools/issues/new'
+        issueUrl: 'https://github.com/jesse-anderson/Tools/issues/new',
+        variant: 'default'
     },
 
     /**
@@ -36,7 +37,8 @@ const Footer = {
             author: footer.dataset.footerAuthor || this.defaults.author,
             tagline: footer.dataset.footerTagline || this.defaults.tagline,
             toolsPath: footer.dataset.footerToolsPath || this.defaults.toolsPath,
-            issueUrl: footer.dataset.footerIssueUrl || this.defaults.issueUrl
+            issueUrl: footer.dataset.footerIssueUrl || this.defaults.issueUrl,
+            variant: footer.dataset.footerVariant || this.defaults.variant
         };
 
         const year = new Date().getFullYear();
@@ -60,13 +62,31 @@ const Footer = {
         const authorText = config.author ? ` by ${config.author}` : '';
         const taglineText = config.tagline ? ` — ${config.tagline}` : '';
 
-        return `
-            <div class="footer-content">
-                <p class="footer-text">© ${year} Tools Hub${authorText}${taglineText}</p>
+        // Build links based on variant
+        let linksHTML = '';
+        if (config.variant === 'hub') {
+            // Hub page - doesn't need "All Tools" link
+            linksHTML = `
+                <nav class="footer-links">
+                    <a href="#about">About</a>
+                    <a href="https://github.com/jesse-anderson/Tools/blob/main/README.md" target="_blank" rel="noopener">Documentation</a>
+                    <a href="${config.issueUrl}">Request a Tool</a>
+                </nav>
+            `;
+        } else {
+            // Tool page - needs "All Tools" and "Report Issue" links
+            linksHTML = `
                 <nav class="footer-links">
                     <a href="${config.toolsPath}">All Tools</a>
                     <a href="${config.issueUrl}">Report Issue</a>
                 </nav>
+            `;
+        }
+
+        return `
+            <div class="footer-content">
+                <p class="footer-text">© ${year} Tools Hub${authorText}${taglineText}</p>
+                ${linksHTML}
             </div>
         `;
     },
