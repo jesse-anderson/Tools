@@ -1,1 +1,2 @@
-Test file to push changes. Github CI/CD sucks right now and I'm migrating to CF.
+Test file to push changes. Github CI/CD sucks right now and I'm migrating to CF. 
+**edit: It actually turns out CI/CD was wacky yesterday AND CF pages was down. womp womp
