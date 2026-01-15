@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https://fonts.gstatic.com; connect-src 'self' https://cdn.jsdelivr.net ws:; media-src 'self' blob:; worker-src 'self' blob: 'unsafe-eval'; font-src 'self' https://fonts.gstatic.com https://fonts.googleapis.com;">
     <title>Face Blur Tool | Tools Hub</title>
 
     <!--
@@ -33,14 +34,24 @@
     <!-- Shared CSS -->
     <link rel="stylesheet" href="../css/shared.css">
 
-    <!-- Face Blur Tool CSS -->
-    <link rel="stylesheet" href="../css/face_blurrer/face_blur.css">
+    <!-- Face Blur Tool CSS (Modular) -->
+    <link rel="stylesheet" href="../css/face_blurrer/face-blur-layout.css">
+    <link rel="stylesheet" href="../css/face_blurrer/face-blur-components.css">
+    <link rel="stylesheet" href="../css/face_blurrer/face-blur-animations.css">
 
     <!-- MediaPipe Scripts -->
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_detection/face_detection.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_detection/face_detection.js"
+            integrity="sha384-oO3wOXOXIGBvHXjKwoF69nDtnGjqWIBuT+yCjjIAZmDek7qgjztCwK+WjCuL9O0a"
+            crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js"
+            integrity="sha384-nKiz5QrpRlMQLw5nrZcprT7N9vmmAcIgV8TuGuep4x91V4JIPsXa+D44Wxj0guoa"
+            crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"
+            integrity="sha384-q1KhAZhJcJXr3zfC3Tz07pBqQSabwFIZhXlmlUAB8s0zk4ETWERkIKGBCFQ5Jc3e"
+            crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"
+            integrity="sha384-W/7NVG2tfN12ld8faSFVOZ/W4UHFHze98GqEUPTl8EjY9QDwCKQIzoCHp8/IlIIr"
+            crossorigin="anonymous"></script>
 
 </head>
 <body>
@@ -113,7 +124,7 @@
                     </svg>
                     <div>
                         <strong>Blur Reversibility Warning</strong>
-                        <button class="warning-toggle" onclick="toggleWarningDetails()">Show details</button>
+                        <button class="warning-toggle" id="warningToggleBtn">Show details</button>
                         <div class="warning-details">
                             Blur effects may be reversible using AI reconstruction tools. For sensitive content:
                             <br>• Use maximum blur intensity (100%)
@@ -127,7 +138,7 @@
                 <div class="section">
                     <div class="section-title">Input Source</div>
                     <div class="input-type-selector">
-                        <button class="input-type-btn active" data-type="image" onclick="setInputType('image')">
+                        <button class="input-type-btn active" data-type="image" id="inputTypeImageBtn">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
                                 <circle cx="8.5" cy="8.5" r="1.5"/>
@@ -135,7 +146,7 @@
                             </svg>
                             Image
                         </button>
-                        <button class="input-type-btn" data-type="camera" onclick="setInputType('camera')">
+                        <button class="input-type-btn" data-type="camera" id="inputTypeCameraBtn">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
                                 <circle cx="12" cy="13" r="4"/>
@@ -147,7 +158,7 @@
 
                 <!-- Image Upload Zone -->
                 <div class="section" id="uploadSection">
-                    <div class="upload-zone" id="uploadZone" onclick="document.getElementById('imageInput').click()">
+                    <div class="upload-zone" id="uploadZone">
                         <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                             <polyline points="17 8 12 3 7 8"/>
@@ -155,27 +166,27 @@
                         </svg>
                         <div class="upload-text">Click to upload image</div>
                         <div class="upload-hint">or drag and drop (JPG, PNG, WebP)</div>
-                        <input type="file" id="imageInput" accept="image/*" onchange="handleImageUpload(event)">
+                        <input type="file" id="imageInput" accept="image/*">
                     </div>
                 </div>
 
                 <!-- Camera Section -->
-                <div class="section" id="cameraSection" style="display: none;">
-                    <button class="tool-btn" onclick="startCamera()" id="startCameraBtn">
+                <div class="section hidden" id="cameraSection">
+                    <button class="tool-btn" id="startCameraBtn">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <polygon points="23 7 16 12 23 17 23 7"/>
                             <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
                         </svg>
                         Start Camera
                     </button>
-                    <button class="tool-btn" onclick="stopCamera()" id="stopCameraBtn" disabled>
+                    <button class="tool-btn" id="stopCameraBtn" disabled>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <rect x="6" y="4" width="4" height="16"/>
                             <rect x="14" y="4" width="4" height="16"/>
                         </svg>
                         Stop Camera
                     </button>
-                    <button class="tool-btn" onclick="captureFrame()" id="captureBtn" disabled>
+                    <button class="tool-btn" id="captureBtn" disabled>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <circle cx="12" cy="12" r="10"/>
                             <circle cx="12" cy="12" r="3"/>
@@ -190,26 +201,29 @@
 
                     <div class="control-group">
                         <div class="control-label" style="display: flex; justify-content: space-between;">
-                            <span>Intensity</span>
-                            <span class="range-value" id="blurValueDisplay">50%</span>
+                            <label for="blurIntensity">Intensity</label>
+                            <span class="range-value" id="blurValueDisplay" aria-live="polite">50%</span>
                         </div>
-                        <input type="range" class="range-slider" id="blurIntensity" min="1" max="100" value="50" oninput="updateBlurIntensity(this.value)">
+                        <input type="range" class="range-slider" id="blurIntensity" min="1" max="100" value="50"
+                               aria-label="Blur intensity" aria-valuemin="1" aria-valuemax="100" aria-valuenow="50">
                     </div>
 
                     <div class="control-group">
                         <div class="control-label" style="display: flex; justify-content: space-between;">
-                            <span>Region Expansion</span>
-                            <span class="range-value" id="expandValueDisplay">100%</span>
+                            <label for="expandRegion">Region Expansion</label>
+                            <span class="range-value" id="expandValueDisplay" aria-live="polite">100%</span>
                         </div>
-                        <input type="range" class="range-slider" id="expandRegion" min="50" max="200" value="100" oninput="updateExpandRegion(this.value)">
+                        <input type="range" class="range-slider" id="expandRegion" min="50" max="200" value="100"
+                               aria-label="Region expansion" aria-valuemin="50" aria-valuemax="200" aria-valuenow="100">
                     </div>
 
                     <div class="control-group">
                         <div class="control-label" style="display: flex; justify-content: space-between;">
-                            <span>Detection Confidence</span>
-                            <span class="range-value" id="confidenceValueDisplay">50%</span>
+                            <label for="confidenceThreshold">Detection Confidence</label>
+                            <span class="range-value" id="confidenceValueDisplay" aria-live="polite">50%</span>
                         </div>
-                        <input type="range" class="range-slider" id="confidenceThreshold" min="10" max="99" value="50" oninput="updateConfidence(this.value)">
+                        <input type="range" class="range-slider" id="confidenceThreshold" min="10" max="99" value="50"
+                               aria-label="Detection confidence threshold" aria-valuemin="10" aria-valuemax="99" aria-valuenow="50">
                     </div>
 
                     <!-- Identity Protection Score -->
@@ -230,7 +244,7 @@
                 <div class="section">
                     <div class="section-title">Privacy Presets</div>
                     <div class="presets-grid">
-                        <button class="preset-btn" onclick="applyPreset('journalist')">
+                        <button class="preset-btn" data-preset="journalist" id="presetJournalistBtn">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2z"/>
                                 <path d="M2 6h20"/>
@@ -240,7 +254,7 @@
                             </svg>
                             Journalist
                         </button>
-                        <button class="preset-btn" onclick="applyPreset('legal')">
+                        <button class="preset-btn" data-preset="legal" id="presetLegalBtn">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2z"/>
                                 <path d="M2 6h20"/>
@@ -250,19 +264,19 @@
                             </svg>
                             Legal
                         </button>
-                        <button class="preset-btn" onclick="applyPreset('social')">
+                        <button class="preset-btn" data-preset="social" id="presetSocialBtn">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v5h2V9a5 5 0 0 0 5 5h3"/>
                             </svg>
                             Social
                         </button>
-                        <button class="preset-btn" onclick="applyPreset('maximum')">
+                        <button class="preset-btn" data-preset="maximum" id="presetMaximumBtn">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
                             </svg>
                             Maximum
                         </button>
-                        <button class="preset-btn" onclick="applyPreset('inpaint')">
+                        <button class="preset-btn" data-preset="inpaint" id="presetInpaintBtn">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M12 2v4"/>
                                 <path d="M12 18v4"/>
@@ -276,33 +290,33 @@
                 </div>
 
                 <!-- Feature Blurring -->
-                <div class="section" id="featureBlurringSection" style="display: none;">
+                <div class="section hidden" id="featureBlurringSection">
                     <div class="section-title">Feature Blurring</div>
                     <div class="feature-blur-controls">
                         <div class="feature-blur-item">
                             <label class="feature-blur-label">
-                                <input type="checkbox" id="blurEyes" onchange="updateFeatureBlurring()" checked>
+                                <input type="checkbox" id="blurEyes" checked>
                                 <span class="feature-toggle"></span>
                                 Eyes
                             </label>
                         </div>
                         <div class="feature-blur-item">
                             <label class="feature-blur-label">
-                                <input type="checkbox" id="blurEyebrows" onchange="updateFeatureBlurring()">
+                                <input type="checkbox" id="blurEyebrows">
                                 <span class="feature-toggle"></span>
                                 Eyebrows
                             </label>
                         </div>
                         <div class="feature-blur-item">
                             <label class="feature-blur-label">
-                                <input type="checkbox" id="blurNose" onchange="updateFeatureBlurring()">
+                                <input type="checkbox" id="blurNose">
                                 <span class="feature-toggle"></span>
                                 Nose
                             </label>
                         </div>
                         <div class="feature-blur-item">
                             <label class="feature-blur-label">
-                                <input type="checkbox" id="blurMouth" onchange="updateFeatureBlurring()">
+                                <input type="checkbox" id="blurMouth">
                                 <span class="feature-toggle"></span>
                                 Mouth
                             </label>
@@ -312,31 +326,31 @@
 
                 <div class="section-title" style="margin-top: 12px;">Blur Type</div>
                     <div class="blur-type-grid">
-                        <button class="blur-type-btn active" data-type="gaussian" onclick="setBlurType('gaussian')">Gaussian</button>
-                        <button class="blur-type-btn" data-type="pixelate" onclick="setBlurType('pixelate')">Pixelate</button>
-                        <button class="blur-type-btn" data-type="mosaic" onclick="setBlurType('mosaic')">Mosaic</button>
-                        <button class="blur-type-btn" data-type="box" onclick="setBlurType('box')">Black Box</button>
-                        <button class="blur-type-btn" data-type="motion" onclick="setBlurType('motion')">Motion</button>
-                        <button class="blur-type-btn" data-type="eyes" onclick="setBlurType('eyes')">Eyes Only</button>
-                        <button class="blur-type-btn" data-type="inpaint" onclick="setBlurType('inpaint')">Inpaint</button>
-                        <button class="blur-type-btn" data-type="skinmask" onclick="setBlurType('skinmask')">
+                        <button class="blur-type-btn active" data-type="gaussian" role="button" aria-selected="true" id="blurTypeGaussianBtn">Gaussian</button>
+                        <button class="blur-type-btn" data-type="pixelate" role="button" aria-selected="false" id="blurTypePixelateBtn">Pixelate</button>
+                        <button class="blur-type-btn" data-type="mosaic" role="button" aria-selected="false" id="blurTypeMosaicBtn">Mosaic</button>
+                        <button class="blur-type-btn" data-type="box" role="button" aria-selected="false" id="blurTypeBoxBtn">Black Box</button>
+                        <button class="blur-type-btn" data-type="motion" role="button" aria-selected="false" id="blurTypeMotionBtn">Motion</button>
+                        <button class="blur-type-btn" data-type="eyes" role="button" aria-selected="false" id="blurTypeEyesBtn">Eyes Only</button>
+                        <button class="blur-type-btn" data-type="inpaint" role="button" aria-selected="false" id="blurTypeInpaintBtn">Inpaint</button>
+                        <button class="blur-type-btn" data-type="skinmask" role="button" aria-selected="false" id="blurTypeSkinmaskBtn">
                             Skin Mask
                             <span class="info-tooltip">
-                                <svg class="info-tooltip-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <svg class="info-tooltip-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                                     <circle cx="12" cy="12" r="10"/>
                                     <line x1="12" y1="16" x2="12" y2="12"/>
                                     <line x1="12" y1="8" x2="12.01" y2="8"/>
                                 </svg>
-                                <span class="info-tooltip-text">May miss some skin tones - works best on light/medium skin</span>
+                                <span class="info-tooltip-text">Uses YCbCr color space with adaptive sampling. Attempts to work across all skin tones.</span>
                             </span>
                         </button>
-                        <button class="blur-type-btn" data-type="features" onclick="setBlurType('features')">Feature Destroyer</button>
+                        <button class="blur-type-btn" data-type="features" role="button" aria-selected="false" id="blurTypeFeaturesBtn">Feature Destroyer</button>
                     </div>
 
                     <div class="toggle-container" style="margin-top: 12px;">
                         <span class="toggle-label">Show Face Boxes</span>
                         <label class="toggle-switch">
-                            <input type="checkbox" id="showFaceBoxes" onchange="redrawImage()">
+                            <input type="checkbox" id="showFaceBoxes">
                             <span class="toggle-slider"></span>
                         </label>
                     </div>
@@ -344,7 +358,7 @@
                     <div class="toggle-container">
                         <span class="toggle-label">Show Face Mesh</span>
                         <label class="toggle-switch">
-                            <input type="checkbox" id="showFaceMesh" onchange="redrawImage()">
+                            <input type="checkbox" id="showFaceMesh">
                             <span class="toggle-slider"></span>
                         </label>
                     </div>
@@ -352,7 +366,7 @@
                     <div class="toggle-container">
                         <span class="toggle-label">Manual Draw Mode</span>
                         <label class="toggle-switch">
-                            <input type="checkbox" id="manualDrawMode" onchange="toggleManualDraw()">
+                            <input type="checkbox" id="manualDrawMode">
                             <span class="toggle-slider"></span>
                         </label>
                     </div>
@@ -363,8 +377,8 @@
                     <div class="face-list-header">
                         <span class="face-list-title">Detected Faces</span>
                         <div class="face-list-actions">
-                            <button class="face-list-btn" onclick="selectAllFaces(true)">Select All</button>
-                            <button class="face-list-btn" onclick="selectAllFaces(false)">Deselect All</button>
+                            <button class="face-list-btn" id="selectAllFacesBtn">Select All</button>
+                            <button class="face-list-btn" id="deselectAllFacesBtn">Deselect All</button>
                         </div>
                     </div>
                     <div class="face-list-items" id="faceListItems">
@@ -374,14 +388,14 @@
 
                 <!-- Action Buttons -->
                 <div class="section">
-                    <button class="tool-btn" onmousedown="showOriginal()" onmouseup="hideOriginal()" onmouseleave="hideOriginal()" ontouchstart="showOriginal()" ontouchend="hideOriginal()" id="previewBtn">
+                    <button class="tool-btn" id="previewBtn">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
                             <circle cx="12" cy="12" r="3"/>
                         </svg>
                         Hold to Preview (Space)
                     </button>
-                    <button class="tool-btn primary" onclick="downloadImage()" id="downloadBtn" disabled>
+                    <button class="tool-btn primary" id="downloadBtn" disabled>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                             <polyline points="7 10 12 15 17 10"/>
@@ -389,14 +403,14 @@
                         </svg>
                         Download Blurred Image
                     </button>
-                    <button class="tool-btn" onclick="resetTool()" id="resetBtn">
+                    <button class="tool-btn" id="resetBtn">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <polyline points="23 4 23 10 17 10"/>
                             <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
                         </svg>
                         Reset
                     </button>
-                    <button class="tool-btn" onclick="clearManualRegions()" id="clearManualBtn" style="display: none;">
+                    <button class="tool-btn hidden" id="clearManualBtn">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <polyline points="3 6 5 6 21 6"/>
                             <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
@@ -406,14 +420,14 @@
 
                     <!-- Undo/Redo Buttons (shown in manual draw mode) -->
                     <div id="undoRedoContainer" style="display: none; gap: 8px;">
-                        <button class="tool-btn" onclick="undoManualRegion()" id="undoBtn" disabled title="Undo (Ctrl+Z)">
+                        <button class="tool-btn" id="undoBtn" disabled title="Undo (Ctrl+Z)">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M3 7v6h6"/>
                                 <path d="M3 13a9 9 0 1 0 3-7.7L3 7"/>
                             </svg>
                             Undo
                         </button>
-                        <button class="tool-btn" onclick="redoManualRegion()" id="redoBtn" disabled title="Redo (Ctrl+Y)">
+                        <button class="tool-btn" id="redoBtn" disabled title="Redo (Ctrl+Y)">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M21 7v6h-6"/>
                                 <path d="M21 13a9 9 0 1 1-3-7.7l3 2.7"/>
@@ -425,7 +439,7 @@
 
                 <!-- Status Indicator -->
                 <div class="status-indicator" id="statusIndicator">
-                    <div class="spinner" id="statusSpinner"></div>
+                    <div class="spinner hidden" id="statusSpinner"></div>
                     <span id="statusText">Processing...</span>
                 </div>
 
@@ -454,10 +468,10 @@
                     <canvas id="outputCanvas"></canvas>
 
                     <!-- Comparison Canvas (for before/after slider) -->
-                    <canvas id="comparisonCanvas" style="display: none;"></canvas>
+                    <canvas id="comparisonCanvas" class="hidden"></canvas>
 
                     <!-- Comparison Slider -->
-                    <div class="comparison-slider" id="comparisonSlider" style="display: none;">
+                    <div class="comparison-slider hidden" id="comparisonSlider">
                         <div class="comparison-handle" id="comparisonHandle">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <polyline points="15 18 9 12 15 6"/>
@@ -468,14 +482,14 @@
                     </div>
 
                     <!-- Camera Video -->
-                    <div class="camera-container" id="cameraContainer">
-                        <video id="cameraVideo" autoplay playsinline style="display: none;"></video>
+                    <div class="camera-container hidden" id="cameraContainer">
+                        <video id="cameraVideo" autoplay playsinline class="hidden"></video>
                         <canvas id="cameraCanvas"></canvas>
                     </div>
 
                     <!-- Face Count Badge -->
-                    <div class="face-count-badge" id="faceCountBadge">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                    <div class="face-count-badge hidden" id="faceCountBadge" aria-live="polite" aria-atomic="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" aria-hidden="true">
                             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
                             <circle cx="12" cy="7" r="4"/>
                         </svg>
@@ -483,10 +497,10 @@
                     </div>
 
                     <!-- Comparison Mode Toggle -->
-                    <div class="comparison-toggle" id="comparisonToggle" style="display: none;">
-                        <button class="comparison-btn active" id="showBlurredBtn" onclick="setComparisonMode('blurred')">Blurred</button>
-                        <button class="comparison-btn" id="showSliderBtn" onclick="setComparisonMode('slider')">Compare</button>
-                        <button class="comparison-btn" id="showOriginalBtn" onclick="setComparisonMode('original')">Original</button>
+                    <div class="comparison-toggle hidden" id="comparisonToggle">
+                        <button class="comparison-btn active" id="showBlurredBtn">Blurred</button>
+                        <button class="comparison-btn" id="showSliderBtn">Compare</button>
+                        <button class="comparison-btn" id="showOriginalBtn">Original</button>
                     </div>
                 </div>
             </div>
@@ -499,9 +513,8 @@
     <script type="module" src="../js/shared.js"></script>
     <script type="module" src="../js/footer.js"></script>
 
-    <!-- Face Blur Tool Scripts -->
-    <script src="../js/face_blurrer/landmarks.js"></script>
-    <script src="../js/face_blurrer/blur-algorithms.js"></script>
-    <script src="../js/face_blurrer/face-blur.js"></script>
+    <!-- Face Blur Tool Scripts (modular ES6) -->
+    <!-- Main entry point - imports all other modules -->
+    <script type="module" src="../js/face_blurrer/face-blur.js"></script>
 </body>
 </html>

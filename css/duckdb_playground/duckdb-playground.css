@@ -1,0 +1,23 @@
+/*
+============================================
+DuckDB Playground v2.0.0 - Main Entry
+============================================
+This file imports all modular CSS files.
+Load this file from HTML to get all styles.
+
+Project: Tools Hub by Jesse Anderson
+Repository: https://github.com/jesse-anderson/Tools
+License: GPL-3.0
+
+Last Updated: January 2025
+============================================
+*/
+
+/* Base: Variables, theme, animations, focus states */
+@import url('./duckdb-base.css');
+
+/* Layout: Grid, header, footer, panels, sidebar */
+@import url('./duckdb-layout.css');
+
+/* Components: Buttons, forms, tables, modals, toasts */
+@import url('./duckdb-components.css');

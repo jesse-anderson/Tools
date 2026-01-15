@@ -1,0 +1,2188 @@
+// ============================================
+// PDF Diff Checker
+// ============================================
+
+/**
+ * PDF Diff Checker - Main Module
+ * Compares two PDFs by extracting text with coordinates and computing document-level diffs.
+ */
+
+// ============================================
+// State Management
+// ============================================
+
+const state = {
+    // PDF documents
+    pdfA: null,
+    pdfB: null,
+
+    // File names for display
+    fileAName: null,
+    fileBName: null,
+
+    // Current page numbers (0-indexed)
+    currentPageA: 0,
+    currentPageB: 0,
+
+    // Extracted text items with coordinates
+    textItemsA: [],
+    textItemsB: [],
+
+    // Document text sequences for diffing
+    sequenceA: [],
+    sequenceB: [],
+
+    // Computed diff results
+    diffResults: [],
+
+    // Page-to-diff mapping for rendering highlights
+    pageDiffsA: {}, // pageIndex -> array of diffs
+    pageDiffsB: {},
+
+    // Processing state
+    isProcessing: false,
+    processingProgress: 0,
+
+    // Edge case detection
+    hasRotatedText: false,
+    rotatedTextCount: 0,
+    hasMultiColumnLayout: false,
+    multiColumnPages: [], // Page indices with multi-column layout
+    rotationAngles: [], // Detected rotation angles in PDFs
+
+    // Canvas scale factors for coordinate conversion
+    canvasScaleA: 1,
+    canvasScaleB: 1,
+
+    // PDF document dimensions (at scale 1.0)
+    pdfWidthA: 0,
+    pdfHeightA: 0,
+    pdfWidthB: 0,
+    pdfHeightB: 0,
+
+    // Viewport dimensions for coordinate conversion
+    viewportWidthA: 0,
+    viewportHeightA: 0,
+    viewportWidthB: 0,
+    viewportHeightB: 0,
+
+    // Diff engine (diff-match-patch instance)
+    diffEngine: null,
+};
+
+// ============================================
+// DOM Elements
+// ============================================
+
+const elements = {
+    // Upload
+    pdfAInput: null,
+    pdfBInput: null,
+    pdfAInfo: null,
+    pdfBInfo: null,
+    compareBtn: null,
+    clearBtn: null,
+
+    // Progress
+    progressSection: null,
+    progressFill: null,
+    progressText: null,
+
+    // Comparison
+    comparisonSection: null,
+    canvasA: null,
+    canvasB: null,
+    overlayA: null,
+    overlayB: null,
+    canvasContainerA: null,
+    canvasContainerB: null,
+
+    // Page navigation
+    prevPageA: null,
+    nextPageA: null,
+    prevPageB: null,
+    nextPageB: null,
+    pageIndicatorA: null,
+    pageIndicatorB: null,
+
+    // Summary
+    summarySection: null,
+    insertionCount: null,
+    deletionCount: null,
+    modificationCount: null,
+    exportReportBtn: null,
+
+    // Modal
+    licensesModal: null,
+    closeLicenses: null,
+    viewLicensesBtn: null,
+};
+
+// ============================================
+// Initialization
+// ============================================
+
+function init() {
+    // Verify required DOM elements exist
+    const requiredIds = [
+        'pdfAInput', 'pdfBInput', 'pdfAInfo', 'pdfBInfo',
+        'compareBtn', 'clearBtn', 'progressSection', 'progressFill', 'progressText',
+        'comparisonSection', 'canvasA', 'canvasB', 'overlayA', 'overlayB',
+        'canvasContainerA', 'canvasContainerB',
+        'prevPageA', 'nextPageA', 'prevPageB', 'nextPageB',
+        'pageIndicatorA', 'pageIndicatorB',
+        'summarySection', 'insertionCount', 'deletionCount', 'modificationCount',
+        'exportReportBtn', 'viewLicensesBtn', 'licensesModal', 'closeLicenses'
+    ];
+
+    const missing = requiredIds.filter(id => !document.getElementById(id));
+    if (missing.length > 0) {
+        console.error(`PDF Diff: Missing required DOM elements: ${missing.join(', ')}`);
+        return;
+    }
+
+    // Cache DOM elements
+    cacheElements();
+
+    // Bind event listeners
+    bindUploadHandlers();
+    bindActionButtons();
+    bindPageNavigation();
+    bindScrollSync();
+    bindModalHandlers();
+
+    console.log('PDF Diff Checker initialized');
+}
+
+function cacheElements() {
+    elements.pdfAInput = document.getElementById('pdfAInput');
+    elements.pdfBInput = document.getElementById('pdfBInput');
+    elements.pdfAInfo = document.getElementById('pdfAInfo');
+    elements.pdfBInfo = document.getElementById('pdfBInfo');
+    elements.compareBtn = document.getElementById('compareBtn');
+    elements.clearBtn = document.getElementById('clearBtn');
+    elements.progressSection = document.getElementById('progressSection');
+    elements.progressFill = document.getElementById('progressFill');
+    elements.progressText = document.getElementById('progressText');
+    elements.comparisonSection = document.getElementById('comparisonSection');
+    elements.canvasA = document.getElementById('canvasA');
+    elements.canvasB = document.getElementById('canvasB');
+    elements.overlayA = document.getElementById('overlayA');
+    elements.overlayB = document.getElementById('overlayB');
+    elements.canvasContainerA = document.getElementById('canvasContainerA');
+    elements.canvasContainerB = document.getElementById('canvasContainerB');
+    elements.prevPageA = document.getElementById('prevPageA');
+    elements.nextPageA = document.getElementById('nextPageA');
+    elements.prevPageB = document.getElementById('prevPageB');
+    elements.nextPageB = document.getElementById('nextPageB');
+    elements.pageIndicatorA = document.getElementById('pageIndicatorA');
+    elements.pageIndicatorB = document.getElementById('pageIndicatorB');
+    elements.summarySection = document.getElementById('summarySection');
+    elements.insertionCount = document.getElementById('insertionCount');
+    elements.deletionCount = document.getElementById('deletionCount');
+    elements.modificationCount = document.getElementById('modificationCount');
+    elements.exportReportBtn = document.getElementById('exportReportBtn');
+    elements.viewLicensesBtn = document.getElementById('viewLicensesBtn');
+    elements.licensesModal = document.getElementById('licensesModal');
+    elements.closeLicenses = document.getElementById('closeLicenses');
+}
+
+// ============================================
+// Event Binding
+// ============================================
+
+function bindUploadHandlers() {
+    elements.pdfAInput.addEventListener('change', (e) => handleFileSelect(e, 'A'));
+    elements.pdfBInput.addEventListener('change', (e) => handleFileSelect(e, 'B'));
+}
+
+function bindActionButtons() {
+    elements.compareBtn.addEventListener('click', handleCompare);
+    elements.clearBtn.addEventListener('click', handleClear);
+    elements.exportReportBtn.addEventListener('click', handleExportReport);
+}
+
+function bindPageNavigation() {
+    elements.prevPageA.addEventListener('click', () => navigatePage('A', -1));
+    elements.nextPageA.addEventListener('click', () => navigatePage('A', 1));
+    elements.prevPageB.addEventListener('click', () => navigatePage('B', -1));
+    elements.nextPageB.addEventListener('click', () => navigatePage('B', 1));
+}
+
+function bindScrollSync() {
+    let syncTimeout = null;
+
+    const syncScroll = (source, target) => {
+        // Clear any pending sync
+        if (syncTimeout) {
+            clearTimeout(syncTimeout);
+            syncTimeout = null;
+        }
+
+        // Use a flag to prevent sync loops
+        if (source.dataset.syncing === 'true') {
+            return;
+        }
+
+        // Mark target as syncing
+        target.dataset.syncing = 'true';
+
+        // Calculate scroll percentage (0-1)
+        const sourceScrollTop = source.scrollTop;
+        const sourceScrollHeight = source.scrollHeight - source.clientHeight;
+        const scrollPercentage = sourceScrollHeight > 0
+            ? sourceScrollTop / sourceScrollHeight
+            : 0;
+
+        // Apply same scroll percentage to target
+        const targetScrollHeight = target.scrollHeight - target.clientHeight;
+        target.scrollTop = scrollPercentage * targetScrollHeight;
+
+        // Also sync horizontal scroll
+        const sourceScrollLeft = source.scrollLeft;
+        const sourceScrollWidth = source.scrollWidth - source.clientWidth;
+        const scrollLeftPercentage = sourceScrollWidth > 0
+            ? sourceScrollLeft / sourceScrollWidth
+            : 0;
+
+        const targetScrollWidth = target.scrollWidth - target.clientWidth;
+        target.scrollLeft = scrollLeftPercentage * targetScrollWidth;
+
+        // Clear the syncing flag after a brief delay
+        syncTimeout = setTimeout(() => {
+            target.dataset.syncing = 'false';
+        }, 10);
+    };
+
+    // Sync A -> B
+    elements.canvasContainerA.addEventListener('scroll', () => {
+        syncScroll(elements.canvasContainerA, elements.canvasContainerB);
+    });
+
+    // Sync B -> A
+    elements.canvasContainerB.addEventListener('scroll', () => {
+        syncScroll(elements.canvasContainerB, elements.canvasContainerA);
+    });
+}
+
+function bindModalHandlers() {
+    elements.viewLicensesBtn.addEventListener('click', () => {
+        elements.licensesModal.classList.add('active');
+    });
+
+    elements.closeLicenses.addEventListener('click', () => {
+        elements.licensesModal.classList.remove('active');
+    });
+
+    elements.licensesModal.addEventListener('click', (e) => {
+        if (e.target === elements.licensesModal) {
+            elements.licensesModal.classList.remove('active');
+        }
+    });
+}
+
+// ============================================
+// File Handling
+// ============================================
+
+async function handleFileSelect(event, pdfKey) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    // Validate PDF type
+    if (file.type !== 'application/pdf') {
+        showError(`Please select a valid PDF file for PDF ${pdfKey}`);
+        event.target.value = '';
+        return;
+    }
+
+    // Validate file size (warn if > 50MB)
+    const fileSizeMB = file.size / (1024 * 1024);
+    if (fileSizeMB > 50) {
+        showWarning(`PDF ${pdfKey} is large (${fileSizeMB.toFixed(1)}MB). Processing may take longer.`);
+    }
+
+    try {
+        // Show loading state
+        const infoEl = pdfKey === 'A' ? elements.pdfAInfo : elements.pdfBInfo;
+        const originalText = infoEl.textContent;
+        infoEl.textContent = 'Loading...';
+
+        // Read file as ArrayBuffer
+        const arrayBuffer = await readFileAsArrayBuffer(file);
+
+        // Load PDF using pdf.js
+        const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+        const pdfDocument = await loadingTask.promise;
+
+        // Update state
+        if (pdfKey === 'A') {
+            state.pdfA = pdfDocument;
+            state.fileAName = file.name;
+            state.currentPageA = 0;
+            elements.pdfAInfo.textContent = `${file.name} (${pdfDocument.numPages} pages)`;
+            elements.pdfAInfo.parentElement.querySelector('.upload-label').classList.add('has-file');
+        } else {
+            state.pdfB = pdfDocument;
+            state.fileBName = file.name;
+            state.currentPageB = 0;
+            elements.pdfBInfo.textContent = `${file.name} (${pdfDocument.numPages} pages)`;
+            elements.pdfBInfo.parentElement.querySelector('.upload-label').classList.add('has-file');
+        }
+
+        // Render first page and show comparison section
+        renderPage(pdfKey);
+
+        // Show comparison section if at least one PDF is loaded
+        if (state.pdfA || state.pdfB) {
+            elements.comparisonSection.style.display = 'block';
+        }
+
+        // Enable compare button if both files loaded
+        updateCompareButton();
+
+        console.log(`PDF ${pdfKey} loaded successfully: ${pdfDocument.numPages} pages`);
+
+    } catch (error) {
+        console.error(`Error loading PDF ${pdfKey}:`, error);
+
+        // Handle specific error types
+        let errorMessage = `Failed to load PDF ${pdfKey}`;
+        if (error.name === 'PasswordException') {
+            errorMessage = `PDF ${pdfKey} is password-protected and cannot be opened.`;
+        } else if (error.name === 'InvalidPDFException') {
+            errorMessage = `PDF ${pdfKey} appears to be corrupted or invalid.`;
+        } else if (error.message) {
+            errorMessage = `PDF ${pdfKey}: ${error.message}`;
+        }
+
+        showError(errorMessage);
+
+        // Reset input
+        event.target.value = '';
+        if (pdfKey === 'A') {
+            state.pdfA = null;
+            state.fileAName = null;
+            elements.pdfAInfo.textContent = 'No file selected';
+            elements.pdfAInfo.parentElement.querySelector('.upload-label')?.classList.remove('has-file');
+        } else {
+            state.pdfB = null;
+            state.fileBName = null;
+            elements.pdfBInfo.textContent = 'No file selected';
+            elements.pdfBInfo.parentElement.querySelector('.upload-label')?.classList.remove('has-file');
+        }
+
+        updateCompareButton();
+    }
+}
+
+/**
+ * Read a file as an ArrayBuffer
+ * @param {File} file - The file to read
+ * @returns {Promise<ArrayBuffer>} The file data as ArrayBuffer
+ */
+function readFileAsArrayBuffer(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(new Error('Failed to read file'));
+        reader.readAsArrayBuffer(file);
+    });
+}
+
+function updateCompareButton() {
+    const hasPdfA = state.pdfA !== null;
+    const hasPdfB = state.pdfB !== null;
+    elements.compareBtn.disabled = !(hasPdfA && hasPdfB);
+}
+
+// ============================================
+// Page Navigation
+// ============================================
+
+function navigatePage(pdfKey, direction) {
+    const pdfDoc = pdfKey === 'A' ? state.pdfA : state.pdfB;
+    const currentPage = pdfKey === 'A' ? state.currentPageA : state.currentPageB;
+
+    const newPage = currentPage + direction;
+    if (newPage >= 0 && newPage < pdfDoc?.numPages) {
+        if (pdfKey === 'A') {
+            state.currentPageA = newPage;
+        } else {
+            state.currentPageB = newPage;
+        }
+        renderPage(pdfKey);
+    }
+}
+
+// ============================================
+// Highlight Rendering
+// ============================================
+
+/**
+ * Render diff highlights on the SVG overlay
+ * @param {string} pdfKey - 'A' or 'B'
+ * @param {number} pageIndex - Page number to render highlights for
+ */
+function renderHighlights(pdfKey, pageIndex) {
+    const overlay = pdfKey === 'A' ? elements.overlayA : elements.overlayB;
+    const pageDiffs = pdfKey === 'A' ? state.pageDiffsA : state.pageDiffsB;
+
+    // Clear existing highlights
+    overlay.innerHTML = '';
+
+    // Get diffs for this page
+    const diffs = pageDiffs[pageIndex] || [];
+    if (diffs.length === 0) return;
+
+    // Create SVG namespace
+    const svgNS = 'http://www.w3.org/2000/svg';
+
+    // Render each diff as a rectangle
+    for (const diff of diffs) {
+        const rect = document.createElementNS(svgNS, 'rect');
+        const bbox = diff.boundingBox;
+
+        // Convert PDF coordinates to canvas coordinates with proper Y-flip
+        const canvasCoords = bboxPdfToCanvas(bbox, pdfKey);
+
+        // Ensure valid dimensions
+        const width = Math.max(1, canvasCoords.width);
+        const height = Math.max(1, canvasCoords.height);
+
+        // Set rectangle attributes
+        rect.setAttribute('x', canvasCoords.x.toFixed(2));
+        rect.setAttribute('y', canvasCoords.y.toFixed(2));
+        rect.setAttribute('width', width.toFixed(2));
+        rect.setAttribute('height', height.toFixed(2));
+        rect.setAttribute('class', `highlight-rect ${diff.type}`);
+        rect.setAttribute('rx', '2'); // Rounded corners
+
+        // Add title for tooltip
+        const title = document.createElementNS(svgNS, 'title');
+        const displayText = diff.text.length > 50
+            ? diff.text.substring(0, 50) + '...'
+            : diff.text;
+
+        if (diff.type === 'modified') {
+            const originalText = diff.originalText || '';
+            const modifiedText = diff.modifiedText || '';
+            const originalDisplay = originalText.length > 30 ? originalText.substring(0, 30) + '...' : originalText;
+            const modifiedDisplay = modifiedText.length > 30 ? modifiedText.substring(0, 30) + '...' : modifiedText;
+            title.textContent = `MODIFIED:\nFrom: "${originalDisplay}"\nTo: "${modifiedDisplay}"`;
+        } else {
+            title.textContent = `${diff.type.toUpperCase()}: "${displayText}"`;
+        }
+        rect.appendChild(title);
+
+        overlay.appendChild(rect);
+    }
+}
+
+/**
+ * Clear all highlights from an overlay
+ * @param {string} pdfKey - 'A' or 'B'
+ */
+function clearHighlights(pdfKey) {
+    const overlay = pdfKey === 'A' ? elements.overlayA : elements.overlayB;
+    overlay.innerHTML = '';
+}
+
+// ============================================
+// Rendering
+// ============================================
+
+async function renderPage(pdfKey) {
+    const pdfDoc = pdfKey === 'A' ? state.pdfA : state.pdfB;
+    const pageNumber = pdfKey === 'A' ? state.currentPageA : state.currentPageB;
+    const canvas = pdfKey === 'A' ? elements.canvasA : elements.canvasB;
+    const canvasContainer = pdfKey === 'A' ? elements.canvasContainerA : elements.canvasContainerB;
+    const canvasContent = canvasContainer.querySelector('.canvas-content');
+    const overlay = pdfKey === 'A' ? elements.overlayA : elements.overlayB;
+
+    if (!pdfDoc) return;
+
+    try {
+        // Add loading state
+        canvasContainer.classList.add('loading');
+
+        // Get the page (page numbers are 1-indexed in pdf.js)
+        const page = await pdfDoc.getPage(pageNumber + 1);
+
+        // Get the viewport to calculate scale
+        const containerWidth = canvasContainer.clientWidth - 32; // Account for padding
+        const unscaledViewport = page.getViewport({ scale: 1.0 });
+
+        // Calculate scale to fit container width
+        const scale = Math.min(
+            containerWidth / unscaledViewport.width,
+            2.0 // Max scale for quality
+        );
+
+        const viewport = page.getViewport({ scale });
+
+        // Store scale and viewport dimensions for coordinate conversion later
+        if (pdfKey === 'A') {
+            state.canvasScaleA = scale;
+            state.pdfWidthA = unscaledViewport.width;
+            state.pdfHeightA = unscaledViewport.height;
+            state.viewportWidthA = viewport.width;
+            state.viewportHeightA = viewport.height;
+        } else {
+            state.canvasScaleB = scale;
+            state.pdfWidthB = unscaledViewport.width;
+            state.pdfHeightB = unscaledViewport.height;
+            state.viewportWidthB = viewport.width;
+            state.viewportHeightB = viewport.height;
+        }
+
+        // Set canvas dimensions
+        const context = canvas.getContext('2d');
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+
+        // Set canvas-content wrapper dimensions (for scrolling)
+        canvasContent.style.width = `${viewport.width}px`;
+        canvasContent.style.height = `${viewport.height}px`;
+
+        // Set overlay dimensions to match canvas
+        overlay.style.width = `${viewport.width}px`;
+        overlay.style.height = `${viewport.height}px`;
+        overlay.setAttribute('viewBox', `0 0 ${viewport.width} ${viewport.height}`);
+
+        // Clear previous content
+        context.clearRect(0, 0, canvas.width, canvas.height);
+        overlay.innerHTML = '';
+
+        // Render PDF page to canvas
+        const renderContext = {
+            canvasContext: context,
+            viewport: viewport
+        };
+
+        await page.render(renderContext).promise;
+
+        // Render diff highlights if available
+        renderHighlights(pdfKey, pageNumber);
+
+        // Update page indicator
+        updatePageIndicator(pdfKey);
+
+        // Update navigation button states
+        updateNavigationButtons(pdfKey);
+
+        // Remove loading state
+        canvasContainer.classList.remove('loading');
+
+    } catch (error) {
+        console.error(`Error rendering page for PDF ${pdfKey}:`, error);
+        canvasContainer.classList.remove('loading');
+        showError(`Failed to render page for PDF ${pdfKey}`);
+    }
+}
+
+function updatePageIndicator(pdfKey) {
+    const pdfDoc = pdfKey === 'A' ? state.pdfA : state.pdfB;
+    const currentPage = pdfKey === 'A' ? state.currentPageA : state.currentPageB;
+    const indicator = pdfKey === 'A' ? elements.pageIndicatorA : elements.pageIndicatorB;
+
+    if (pdfDoc) {
+        indicator.textContent = `Page ${currentPage + 1} of ${pdfDoc.numPages}`;
+    }
+}
+
+function updateNavigationButtons(pdfKey) {
+    const pdfDoc = pdfKey === 'A' ? state.pdfA : state.pdfB;
+    const currentPage = pdfKey === 'A' ? state.currentPageA : state.currentPageB;
+    const prevBtn = pdfKey === 'A' ? elements.prevPageA : elements.prevPageB;
+    const nextBtn = pdfKey === 'A' ? elements.nextPageA : elements.nextPageB;
+
+    if (!pdfDoc) {
+        prevBtn.disabled = true;
+        nextBtn.disabled = true;
+        return;
+    }
+
+    prevBtn.disabled = currentPage <= 0;
+    nextBtn.disabled = currentPage >= pdfDoc.numPages - 1;
+}
+
+// ============================================
+// Comparison
+// ============================================
+
+async function handleCompare() {
+    if (!state.pdfA || !state.pdfB) {
+        showError('Please load both PDFs before comparing');
+        return;
+    }
+
+    try {
+        state.isProcessing = true;
+
+        // Reset edge case tracking for this comparison
+        state.hasRotatedText = false;
+        state.rotatedTextCount = 0;
+        state.hasMultiColumnLayout = false;
+        state.multiColumnPages = [];
+        state.rotationAngles = [];
+
+        // Show progress
+        elements.progressSection.style.display = 'block';
+        updateProgress(0, 'Extracting text from PDF A...');
+
+        // Extract text from both PDFs
+        state.textItemsA = await extractTextFromPDF(state.pdfA, 'A');
+        updateProgress(25, 'Extracting text from PDF B...');
+
+        state.textItemsB = await extractTextFromPDF(state.pdfB, 'B');
+
+        // Check for scanned PDFs (no text content)
+        if (state.textItemsA.length === 0 && state.textItemsB.length === 0) {
+            showWarning('No text content found in either PDF. Both PDFs may be scanned images.');
+            elements.progressSection.style.display = 'none';
+            state.isProcessing = false;
+            return;
+        } else if (state.textItemsA.length === 0) {
+            showWarning('No text content found in PDF A. It may be a scanned image.');
+        } else if (state.textItemsB.length === 0) {
+            showWarning('No text content found in PDF B. It may be a scanned image.');
+        }
+
+        // Log results for debugging
+        console.log(`Extracted ${state.textItemsA.length} text items from PDF A`);
+        console.log(`Extracted ${state.textItemsB.length} text items from PDF B`);
+
+        // Show edge case warnings if any were detected during extraction
+        const edgeCases = {
+            hasRotatedText: state.hasRotatedText,
+            rotatedTextCount: state.rotatedTextCount,
+            rotationAngles: [...state.rotationAngles],
+            hasMultiColumnLayout: state.hasMultiColumnLayout,
+            multiColumnPages: [...state.multiColumnPages]
+        };
+        if (edgeCases.hasRotatedText || edgeCases.hasMultiColumnLayout) {
+            showEdgeCaseWarnings(edgeCases);
+        }
+
+        // Build document text sequences for diffing
+        updateProgress(50, 'Building document sequences...');
+        const { textA, textB, sequenceA, sequenceB } = getDiffTexts();
+
+        // Store sequences for later use in highlight rendering
+        state.sequenceA = sequenceA;
+        state.sequenceB = sequenceB;
+
+        // Compute document-level diff
+        updateProgress(75, 'Computing differences...');
+        const diffs = computeDiff(textA, textB);
+        state.diffResults = diffs;
+
+        // Map diff results back to source coordinates
+        updateProgress(85, 'Mapping differences to coordinates...');
+        const { diffsA, diffsB } = mapDiffsToCoordinates(diffs, sequenceA, sequenceB);
+
+        // Build page-to-diff mappings for efficient rendering
+        state.pageDiffsA = buildPageDiffMapping(diffsA);
+        state.pageDiffsB = buildPageDiffMapping(diffsB);
+
+        // Calculate and display statistics
+        const stats = getDiffStats(diffs);
+        updateProgress(100, 'Comparison complete');
+
+        // Update summary section
+        elements.insertionCount.textContent = stats.insertions;
+        elements.deletionCount.textContent = stats.deletions;
+        elements.modificationCount.textContent = Math.round(stats.modifications / 2); // Divide by 2 since we count both delete and insert
+        elements.summarySection.style.display = 'block';
+
+        console.log('Diff results:', diffs);
+        console.log('Stats:', stats);
+        console.log('Page diffs A:', state.pageDiffsA);
+        console.log('Page diffs B:', state.pageDiffsB);
+
+        // Hide progress after a brief delay
+        setTimeout(() => {
+            elements.progressSection.style.display = 'none';
+        }, 1000);
+
+    } catch (error) {
+        console.error('Error during comparison:', error);
+        showError(`Comparison failed: ${error.message}`);
+        elements.progressSection.style.display = 'none';
+    } finally {
+        state.isProcessing = false;
+    }
+}
+
+/**
+ * Extract all text items with coordinates from a PDF document
+ * @param {PDFDocumentProxy} pdfDoc - The PDF document
+ * @param {string} sourcePdf - 'A' or 'B'
+ * @returns {Promise<Array>} Array of text items with coordinates
+ */
+async function extractTextFromPDF(pdfDoc, sourcePdf) {
+    const textItems = [];
+    const numPages = pdfDoc.numPages;
+
+    // Iterate through all pages
+    for (let pageIndex = 0; pageIndex < numPages; pageIndex++) {
+        // Update progress for multi-page PDFs
+        const progress = sourcePdf === 'A'
+            ? (pageIndex / numPages) * 50
+            : 50 + (pageIndex / numPages) * 50;
+        updateProgress(progress, `Extracting text from page ${pageIndex + 1} of ${numPages} (${sourcePdf})...`);
+
+        try {
+            const page = await pdfDoc.getPage(pageIndex + 1);
+
+            // Get text content with layout information
+            const textContent = await page.getTextContent();
+
+            // Extract each text item with its coordinates
+            textContent.items.forEach((item, itemIndex) => {
+                // Skip empty items
+                if (!item.str || item.str.trim() === '') {
+                    return;
+                }
+
+                // pdf.js provides transform array [a, b, c, d, e, f]
+                // where e is x translation and f is y translation (before applying scale)
+                // The item also has width property
+
+                // Get viewport for coordinate conversion (at scale 1.0 for PDF space coordinates)
+                const viewport = page.getViewport({ scale: 1.0 });
+                const [scaleX, skewY, skewX, scaleY, translateX, translateY] = item.transform;
+
+                // Calculate bounding box in PDF coordinate space
+                // pdf.js text coordinates are from bottom-left origin
+                // We'll store in PDF space and convert to canvas space during rendering
+
+                // For proper Y-coordinate: PDF coordinates start from bottom-left
+                // We store the raw PDF coordinates (bottom-left origin) and convert during render
+                const pdfX = translateX;
+                const pdfY = translateY; // Bottom-left Y in PDF space
+                const width = item.width || (item.str.length * scaleX);
+                const height = item.height || (scaleY * 12 / scaleX); // Approximate height
+
+                // Detect rotation from transform matrix
+                // scaleX (a) and scaleY (d) are normally positive for horizontal text
+                // Rotation is indicated by skewY (b) and skewX (c) values
+                // Common rotations:
+                //   0°:   skewX=0, skewY=0
+                //   90°:  skewX=-scaleY, skewY=scaleX
+                //   180°: scaleX<0, scaleY<0
+                //   270°: skewX=scaleY, skewY=-scaleX
+                let rotation = 0;
+                const rotationThreshold = 0.1;
+
+                if (Math.abs(skewY) < rotationThreshold && Math.abs(skewX) < rotationThreshold) {
+                    // Normal or 180° rotation
+                    if (scaleX < 0) rotation = 180;
+                } else if (Math.abs(skewY + scaleX) < rotationThreshold && Math.abs(skewX + scaleY) < rotationThreshold) {
+                    // 90° rotation
+                    rotation = 90;
+                } else if (Math.abs(skewY - scaleX) < rotationThreshold && Math.abs(skewX - scaleY) < rotationThreshold) {
+                    // 270° rotation
+                    rotation = 270;
+                }
+
+                // Track rotated text for edge case notification
+                if (rotation !== 0) {
+                    state.hasRotatedText = true;
+                    state.rotatedTextCount++;
+                    // Track unique rotation angles
+                    if (!state.rotationAngles.includes(rotation)) {
+                        state.rotationAngles.push(rotation);
+                    }
+                }
+
+                // Store viewport height for this page (needed for Y-conversion during render)
+                const pageViewportHeight = viewport.height;
+
+                textItems.push({
+                    text: item.str,
+                    x: pdfX,
+                    y: pdfY,
+                    width: width,
+                    height: height,
+                    pageIndex: pageIndex,
+                    sourcePdf: sourcePdf,
+                    itemIndex: itemIndex,
+                    // Store original transform for reference
+                    transform: item.transform,
+                    // Store page viewport height for Y-conversion
+                    pageViewportHeight: pageViewportHeight,
+                    // Store rotation for proper rendering
+                    rotation: rotation,
+                    // Font info if available
+                    fontName: item.fontName || null
+                });
+            });
+
+        } catch (error) {
+            console.warn(`Error extracting text from page ${pageIndex + 1}:`, error);
+            // Continue with other pages
+        }
+    }
+
+    // Detect multi-column layouts for edge case notification
+    // Group text items by page and check each page for columns
+    const pageGroups = new Map();
+    for (const item of textItems) {
+        if (!pageGroups.has(item.pageIndex)) {
+            pageGroups.set(item.pageIndex, []);
+        }
+        pageGroups.get(item.pageIndex).push(item);
+    }
+
+    // Check each page for multi-column layout
+    for (const [pageIndex, items] of pageGroups) {
+        if (items.length < 10) continue; // Skip pages with too little text
+
+        const columns = detectColumns(items);
+        // If more than one column detected, track it
+        if (columns.length > 1) {
+            state.hasMultiColumnLayout = true;
+            if (!state.multiColumnPages.includes(parseInt(pageIndex))) {
+                state.multiColumnPages.push(parseInt(pageIndex));
+            }
+        }
+    }
+
+    return textItems;
+}
+
+// ============================================
+// Coordinate Conversion
+// ============================================
+
+/**
+ * Convert PDF coordinates to canvas coordinates for rendering highlights
+ *
+ * PDF Coordinate System: Origin at bottom-left, Y increases upward
+ * Canvas Coordinate System: Origin at top-left, Y increases downward
+ *
+ * @param {Object} textItem - Text item with PDF coordinates
+ * @param {string} pdfKey - 'A' or 'B'
+ * @returns {Object} Bounding box in canvas coordinates {x, y, width, height}
+ */
+function pdfToCanvasCoords(textItem, pdfKey) {
+    const scale = pdfKey === 'A' ? state.canvasScaleA : state.canvasScaleB;
+    const pdfHeight = pdfKey === 'A' ? state.pdfHeightA : state.pdfHeightB;
+
+    // PDF coordinates are in points (1/72 inch), origin at bottom-left
+    // Canvas coordinates need origin at top-left (Y-flipped)
+
+    // X coordinate: direct scaling
+    const canvasX = textItem.x * scale;
+
+    // Y coordinate: flip from bottom-left to top-left
+    // In PDF: (0,0) is bottom-left, (0, pdfHeight) is top-left
+    // In Canvas: (0,0) is top-left, (0, canvasHeight) is bottom-left
+    // Formula: canvasY = (pdfHeight - pdfY - pdfHeight) * scale
+    // But we also need to account for the text item's height
+    const canvasY = (pdfHeight - textItem.y - textItem.height) * scale;
+
+    return {
+        x: canvasX,
+        y: canvasY,
+        width: textItem.width * scale,
+        height: textItem.height * scale
+    };
+}
+
+/**
+ * Convert a single coordinate value from PDF to canvas
+ * @param {number} pdfCoord - Coordinate in PDF space
+ * @param {string} pdfKey - 'A' or 'B'
+ * @param {boolean} isY - Whether this is a Y-coordinate (needs flip)
+ * @returns {number} Coordinate in canvas space
+ */
+function pdfCoordToCanvas(pdfCoord, pdfKey, isY = false) {
+    const scale = pdfKey === 'A' ? state.canvasScaleA : state.canvasScaleB;
+
+    if (isY) {
+        const pdfHeight = pdfKey === 'A' ? state.pdfHeightA : state.pdfHeightB;
+        // Y needs to be flipped
+        return (pdfHeight - pdfCoord) * scale;
+    }
+
+    return pdfCoord * scale;
+}
+
+/**
+ * Convert canvas coordinates back to PDF coordinates (for reverse lookups)
+ * @param {number} canvasCoord - Coordinate in canvas space
+ * @param {string} pdfKey - 'A' or 'B'
+ * @param {boolean} isY - Whether this is a Y-coordinate (needs flip)
+ * @returns {number} Coordinate in PDF space
+ */
+function canvasToPdfCoord(canvasCoord, pdfKey, isY = false) {
+    const scale = pdfKey === 'A' ? state.canvasScaleA : state.canvasScaleB;
+
+    if (isY) {
+        const pdfHeight = pdfKey === 'A' ? state.pdfHeightA : state.pdfHeightB;
+        // Y needs to be flipped back
+        return pdfHeight - (canvasCoord / scale);
+    }
+
+    return canvasCoord / scale;
+}
+
+/**
+ * Get the bounding box for a text item in canvas coordinates
+ * @param {Object} textItem - Text item with PDF coordinates
+ * @param {string} pdfKey - 'A' or 'B'
+ * @returns {Object} Bounding box {x, y, width, height}
+ */
+function getCanvasBoundingBox(textItem, pdfKey) {
+    const coords = pdfToCanvasCoords(textItem, pdfKey);
+    return {
+        x: coords.x,
+        y: coords.y,
+        width: coords.width,
+        height: coords.height,
+        // Add calculated properties for SVG rect
+        x2: coords.x + coords.width,
+        y2: coords.y + coords.height
+    };
+}
+
+/**
+ * Convert a bounding box from PDF space to canvas space
+ * Used for pre-computed diff bounding boxes
+ *
+ * Handles rotated text by adjusting the bounding box dimensions
+ *
+ * @param {Object} bbox - Bounding box in PDF space {x, y, width, height, rotation}
+ * @param {string} pdfKey - 'A' or 'B'
+ * @returns {Object} Bounding box in canvas space {x, y, width, height}
+ */
+function bboxPdfToCanvas(bbox, pdfKey) {
+    const scale = pdfKey === 'A' ? state.canvasScaleA : state.canvasScaleB;
+    const pdfHeight = pdfKey === 'A' ? state.pdfHeightA : state.pdfHeightB;
+
+    const rotation = bbox.rotation || 0;
+
+    // For rotated text, width and height swap
+    let pdfWidth = bbox.width;
+    let pdfHeight_val = bbox.height;
+    let pdfX = bbox.x;
+    let pdfY = bbox.y;
+
+    if (rotation === 90 || rotation === 270) {
+        // Swap width and height for 90°/270° rotations
+        [pdfWidth, pdfHeight_val] = [pdfHeight_val, pdfWidth];
+
+        // Adjust origin for 90° rotation
+        if (rotation === 90) {
+            pdfY = bbox.y - bbox.height;
+        }
+        // Adjust origin for 270° rotation
+        if (rotation === 270) {
+            pdfX = bbox.x - bbox.width;
+        }
+    } else if (rotation === 180) {
+        // Flip both dimensions for 180° rotation
+        pdfX = bbox.x - bbox.width;
+        pdfY = bbox.y - bbox.height;
+    }
+
+    return {
+        x: pdfX * scale,
+        y: (pdfHeight - pdfY - pdfHeight_val) * scale,
+        width: pdfWidth * scale,
+        height: pdfHeight_val * scale
+    };
+}
+
+// ============================================
+// Text Line Grouping
+// ============================================
+
+/**
+ * Detect columns in a page's text items
+ * @param {Array} textItems - Array of text items with coordinates
+ * @returns {Array} Array of column boundaries {xMin, xMax} sorted left to right
+ */
+function detectColumns(textItems) {
+    if (textItems.length === 0) return [];
+
+    // Collect all x positions and find gaps
+    const xPositions = textItems.map(item => item.x).sort((a, b) => a - b);
+
+    // Find significant gaps (potential column separators)
+    const gaps = [];
+    for (let i = 1; i < xPositions.length; i++) {
+        const gap = xPositions[i] - xPositions[i - 1];
+        if (gap > 20) { // Threshold for column gap (adjustable)
+            gaps.push({
+                position: (xPositions[i] + xPositions[i - 1]) / 2,
+                size: gap
+            });
+        }
+    }
+
+    // If no significant gaps found, treat as single column
+    if (gaps.length === 0) {
+        return [{ xMin: 0, xMax: Infinity }];
+    }
+
+    // Sort gaps by size (largest gaps are most likely column separators)
+    gaps.sort((a, b) => b.size - a.size);
+
+    // Use the largest gap(s) to define columns
+    // For simplicity, use the single largest gap
+    const columnBoundary = gaps[0].position;
+
+    return [
+        { xMin: 0, xMax: columnBoundary },
+        { xMin: columnBoundary, xMax: Infinity }
+    ];
+}
+
+/**
+ * Assign text items to columns
+ * @param {Array} textItems - Array of text items with coordinates
+ * @param {Array} columns - Column boundaries from detectColumns
+ * @returns {Array} Array of arrays, one per column
+ */
+function groupByColumns(textItems, columns) {
+    const columnGroups = columns.map(() => []);
+
+    for (const item of textItems) {
+        // Find which column this item belongs to
+        const centerX = item.x + item.width / 2;
+        let assignedColumn = 0;
+
+        for (let i = 0; i < columns.length; i++) {
+            if (centerX >= columns[i].xMin && centerX < columns[i].xMax) {
+                assignedColumn = i;
+                break;
+            }
+        }
+
+        columnGroups[assignedColumn].push(item);
+    }
+
+    return columnGroups;
+}
+
+/**
+ * Group text items into lines based on y-position proximity
+ * Items on the same line have similar y coordinates (within threshold)
+ * @param {Array} textItems - Array of text items with coordinates
+ * @param {number} threshold - Maximum y-distance to consider items on same line (default: 5)
+ * @returns {Array} Array of lines, each line is an array of text items
+ */
+function groupTextItemsByLine(textItems, threshold = 5) {
+    if (textItems.length === 0) return [];
+
+    // Sort items by y position (top to bottom), then by x position (left to right)
+    const sortedItems = [...textItems].sort((a, b) => {
+        if (Math.abs(a.y - b.y) < threshold) {
+            // Same line - sort by x position
+            return a.x - b.x;
+        }
+        // Different lines - sort by y position
+        return a.y - b.y;
+    });
+
+    const lines = [];
+    let currentLine = [sortedItems[0]];
+    let currentY = sortedItems[0].y;
+
+    for (let i = 1; i < sortedItems.length; i++) {
+        const item = sortedItems[i];
+
+        // Check if this item is on the same line as current
+        if (Math.abs(item.y - currentY) <= threshold) {
+            currentLine.push(item);
+        } else {
+            // Start a new line
+            lines.push(currentLine);
+            currentLine = [item];
+            currentY = item.y;
+        }
+    }
+
+    // Don't forget the last line
+    if (currentLine.length > 0) {
+        lines.push(currentLine);
+    }
+
+    return lines;
+}
+
+/**
+ * Group text items by page, then by line within each page
+ * Handles multi-column layouts by detecting columns first
+ * @param {Array} textItems - Array of text items with coordinates
+ * @returns {Map} Map of pageIndex -> Array of lines (each line is array of items)
+ */
+function groupTextItemsByPageAndLine(textItems) {
+    const pageGroups = new Map();
+
+    // First, group by page
+    for (const item of textItems) {
+        if (!pageGroups.has(item.pageIndex)) {
+            pageGroups.set(item.pageIndex, []);
+        }
+        pageGroups.get(item.pageIndex).push(item);
+    }
+
+    // Then, group each page by line (with column detection)
+    const pageLines = new Map();
+    for (const [pageIndex, items] of pageGroups) {
+        // Detect columns on this page
+        const columns = detectColumns(items);
+
+        // Group by columns first
+        const columnGroups = groupByColumns(items, columns);
+
+        // Group each column by line, then interleave lines from all columns
+        const allLines = [];
+
+        for (const columnItems of columnGroups) {
+            const lines = groupTextItemsByLine(columnItems);
+            allLines.push(...lines);
+        }
+
+        // Sort all lines by Y position (this handles column ordering)
+        allLines.sort((lineA, lineB) => {
+            const avgYA = lineA.reduce((sum, item) => sum + item.y, 0) / lineA.length;
+            const avgYB = lineB.reduce((sum, item) => sum + item.y, 0) / lineB.length;
+            return avgYA - avgYB;
+        });
+
+        pageLines.set(pageIndex, allLines);
+    }
+
+    return pageLines;
+}
+
+/**
+ * Merge text items on the same line into a single string
+ * @param {Array} lineItems - Array of text items on the same line (sorted by x)
+ * @returns {string} Combined text for the line
+ */
+function mergeLineText(lineItems) {
+    return lineItems.map(item => item.text).join('');
+}
+
+/**
+ * Get the combined text of all lines in a document
+ * @param {Array} textItems - Array of text items
+ * @returns {Array} Array of line text strings in reading order
+ */
+function getDocumentLines(textItems) {
+    const lines = groupTextItemsByLine(textItems);
+    return lines.map(lineItems => mergeLineText(lineItems));
+}
+
+// ============================================
+// Document Text Sequences
+// ============================================
+
+/**
+ * Build an ordered text sequence for document-level diffing
+ * This creates a flat array of text tokens in reading order
+ * Handles multi-column layouts by detecting columns first
+ * @param {Array} textItems - Array of text items with coordinates
+ * @returns {Array} Ordered sequence of text tokens with metadata
+ */
+function buildDocumentTextSequence(textItems) {
+    // Group by page first to maintain page order
+    const pageGroups = new Map();
+    for (const item of textItems) {
+        if (!pageGroups.has(item.pageIndex)) {
+            pageGroups.set(item.pageIndex, []);
+        }
+        pageGroups.get(item.pageIndex).push(item);
+    }
+
+    // Sort pages by index
+    const sortedPages = Array.from(pageGroups.entries()).sort((a, b) => a[0] - b[0]);
+
+    // Build the sequence
+    const sequence = [];
+    let tokenIndex = 0;
+
+    for (const [pageIndex, items] of sortedPages) {
+        // Detect columns on this page
+        const columns = detectColumns(items);
+
+        // Group by columns first
+        const columnGroups = groupByColumns(items, columns);
+
+        // Group each column by line
+        const columnLines = columnGroups.map(columnItems => groupTextItemsByLine(columnItems));
+
+        // Interleave lines from columns based on Y position
+        // This handles proper reading order for multi-column layouts
+        const allLinesWithColumn = [];
+
+        for (let colIndex = 0; colIndex < columnLines.length; colIndex++) {
+            for (const lineItems of columnLines[colIndex]) {
+                allLinesWithColumn.push({
+                    items: lineItems,
+                    column: colIndex,
+                    avgY: lineItems.reduce((sum, item) => sum + item.y, 0) / lineItems.length,
+                    avgX: lineItems.reduce((sum, item) => sum + item.x, 0) / lineItems.length
+                });
+            }
+        }
+
+        // Sort lines primarily by Y, then by column (for multi-column)
+        allLinesWithColumn.sort((a, b) => {
+            const yDiff = a.avgY - b.avgY;
+            if (Math.abs(yDiff) > 10) {
+                // Different rows - sort by Y
+                return yDiff;
+            }
+            // Same row - sort by column (left to right)
+            return a.column - b.column;
+        });
+
+        for (const lineData of allLinesWithColumn) {
+            const lineItems = lineData.items;
+
+            // Sort items within line by x position
+            lineItems.sort((a, b) => a.x - b.x);
+
+            for (const item of lineItems) {
+                sequence.push({
+                    text: item.text,
+                    tokenIndex: tokenIndex++,
+                    pageIndex: item.pageIndex,
+                    x: item.x,
+                    y: item.y,
+                    width: item.width,
+                    height: item.height,
+                    rotation: item.rotation || 0,
+                    sourcePdf: item.sourcePdf,
+                    // Keep reference to original item
+                    item: item
+                });
+            }
+
+            // Add a token for line break (helps with diff readability)
+            sequence.push({
+                text: '\n',
+                tokenIndex: tokenIndex++,
+                pageIndex: pageIndex,
+                isLineBreak: true,
+                sourcePdf: items[0]?.sourcePdf || null
+            });
+        }
+
+        // Add a page break token
+        sequence.push({
+            text: '\f', // Form feed character for page break
+            tokenIndex: tokenIndex++,
+            pageIndex: pageIndex,
+            isPageBreak: true,
+            sourcePdf: items[0]?.sourcePdf || null
+        });
+    }
+
+    return sequence;
+}
+
+/**
+ * Build a plain text string from a document sequence
+ * Useful for passing to diff-match-patch
+ * @param {Array} sequence - Document text sequence
+ * @returns {string} Plain text representation
+ */
+function sequenceToPlainText(sequence) {
+    return sequence.map(token => token.text).join('');
+}
+
+/**
+ * Get combined plain text from both PDFs for diffing
+ * @returns {Object} { textA, textB, sequenceA, sequenceB }
+ */
+function getDiffTexts() {
+    const sequenceA = buildDocumentTextSequence(state.textItemsA);
+    const sequenceB = buildDocumentTextSequence(state.textItemsB);
+
+    const textA = sequenceToPlainText(sequenceA);
+    const textB = sequenceToPlainText(sequenceB);
+
+    return {
+        textA,
+        textB,
+        sequenceA,
+        sequenceB
+    };
+}
+
+/**
+ * Find the token in a sequence at a given diff position
+ * @param {Array} sequence - Document text sequence
+ * @param {number} charIndex - Character index in plain text
+ * @returns {Object} Token at the given position
+ */
+function findTokenAtCharIndex(sequence, charIndex) {
+    let currentCharIndex = 0;
+
+    for (const token of sequence) {
+        const tokenLength = token.text.length;
+
+        if (currentCharIndex + tokenLength > charIndex) {
+            // The charIndex is within this token
+            return token;
+        }
+
+        currentCharIndex += tokenLength;
+    }
+
+    // If we're past the end, return the last token
+    return sequence[sequence.length - 1];
+}
+
+// ============================================
+// Diff Integration (diff-match-patch)
+// ============================================
+
+/**
+ * Initialize and configure the diff-match-patch library
+ * @returns {Object} Configured diff-match-patch instance
+ */
+function initDiffEngine() {
+    if (typeof diff_match_patch === 'undefined') {
+        throw new Error('diff-match-patch library not loaded');
+    }
+
+    const dmp = new diff_match_patch();
+
+    // Configure for text diffing
+    // Timeout: 0 = no timeout (run until complete)
+    dmp.Diff_Timeout = 0;
+
+    // Edit cost: higher values = more likely to show edits than replacements
+    dmp.Diff_EditCost = 4;
+
+    // Match threshold: 0.0 = exact match only, 1.0 = match anything
+    dmp.Match_Threshold = 0.5;
+
+    // Match distance: how far to search for a match
+    dmp.Match_Distance = 1000;
+
+    // Patch delete threshold: 0 = exact match, 1 = match anything
+    dmp.Patch_DeleteThreshold = 0.5;
+
+    return dmp;
+}
+
+/**
+ * Get the diff-match-patch instance (lazy initialization)
+ * @returns {Object} diff-match-patch instance
+ */
+function getDiffEngine() {
+    if (!state.diffEngine) {
+        state.diffEngine = initDiffEngine();
+    }
+    return state.diffEngine;
+}
+
+/**
+ * Compute diff between two text strings
+ * @param {string} text1 - Original text
+ * @param {string} text2 - Modified text
+ * @returns {Array} Array of diff objects from diff-match-patch
+ *                   Each diff: [type, text] where type is -1 (delete), 0 (equal), or 1 (insert)
+ */
+function computeDiff(text1, text2) {
+    const dmp = getDiffEngine();
+
+    // Compute the diff
+    // The second parameter (0) is the timeout in seconds
+    // The third parameter (false) means don't check for line-by-line diff
+    const diffs = dmp.diff_main(text1, text2);
+
+    // Clean up the diff for human readability
+    // This merges adjacent diffs of the same type and eliminates trivial equalities
+    dmp.diff_cleanupSemantic(diffs);
+
+    // Optional: further cleanup to eliminate very short equalities
+    dmp.diff_cleanupEfficiency(diffs);
+
+    return diffs;
+}
+
+/**
+ * Get diff statistics (counts of insertions, deletions, modifications)
+ * @param {Array} diffs - Diff array from computeDiff
+ * @returns {Object} { insertions, deletions, modifications, unchanged }
+ */
+function getDiffStats(diffs) {
+    let insertions = 0;
+    let deletions = 0;
+    let modifications = 0;
+    let unchanged = 0;
+
+    // Track if we're in a delete followed by insert (modification pattern)
+    let i = 0;
+    while (i < diffs.length) {
+        const [type, text] = diffs[i];
+
+        if (type === 0) {
+            // Equal/unchanged
+            unchanged += text.length;
+        } else if (type === -1) {
+            // Delete
+            if (i + 1 < diffs.length && diffs[i + 1][0] === 1) {
+                // Delete followed by insert = modification
+                modifications += Math.max(text.length, diffs[i + 1][1].length);
+                i++; // Skip the insert we just counted
+            } else {
+                deletions += text.length;
+            }
+        } else if (type === 1) {
+            // Insert (not preceded by delete)
+            insertions += text.length;
+        }
+
+        i++;
+    }
+
+    return {
+        insertions,
+        deletions,
+        modifications,
+        unchanged
+    };
+}
+
+// ============================================
+// Diff Coordinate Mapping
+// ============================================
+
+/**
+ * Map diff results back to source text items with coordinates
+ * This creates annotated diffs that can be highlighted on the PDF pages
+ *
+ * Diff Types:
+ * - deletion: Text removed from PDF A (red highlight on PDF A)
+ * - insertion: Text added to PDF B (green highlight on PDF B)
+ * - modified: Text changed (yellow highlight on both PDFs - delete+insert pair)
+ *
+ * @param {Array} diffs - Diff array from computeDiff
+ * @param {Array} sequenceA - Document sequence for PDF A
+ * @param {Array} sequenceB - Document sequence for PDF B
+ * @returns {Object} { diffsA, diffsB } - Arrays of diffs with coordinate info
+ */
+function mapDiffsToCoordinates(diffs, sequenceA, sequenceB) {
+    const diffsA = []; // Diffs to highlight on PDF A (deletions, modifications)
+    const diffsB = []; // Diffs to highlight on PDF B (insertions, modifications)
+
+    let charIndexA = 0; // Current character position in text A
+    let charIndexB = 0; // Current character position in text B
+
+    let i = 0;
+    while (i < diffs.length) {
+        const [type, text] = diffs[i];
+        const textLength = text.length;
+
+        if (type === 0) {
+            // Equal - skip, nothing to highlight
+            charIndexA += textLength;
+            charIndexB += textLength;
+            i++;
+        } else if (type === -1) {
+            // Check if this deletion is followed by an insertion (modification pattern)
+            if (i + 1 < diffs.length && diffs[i + 1][0] === 1) {
+                // This is a modification (delete + insert)
+                const [_, deletedText] = diffs[i];
+                const [__, insertedText] = diffs[i + 1];
+
+                // Determine if this qualifies as a modification (similar lengths)
+                // Allow some flexibility since word counts can differ
+                const lenRatio = Math.min(deletedText.length, insertedText.length) /
+                                Math.max(deletedText.length, insertedText.length);
+                const isModification = lenRatio > 0.3 || // At least 30% size match
+                                     (deletedText.length <= 50 && insertedText.length <= 50); // Or both are short
+
+                if (isModification) {
+                    // Get tokens for the deleted part (from PDF A)
+                    const charStartA = charIndexA;
+                    const charEndA = charIndexA + deletedText.length;
+                    const tokensA = getTokensInRange(sequenceA, charStartA, charEndA);
+                    const byPageA = groupTokensByPage(tokensA);
+
+                    // Get tokens for the inserted part (from PDF B)
+                    const charStartB = charIndexB;
+                    const charEndB = charIndexB + insertedText.length;
+                    const tokensB = getTokensInRange(sequenceB, charStartB, charEndB);
+                    const byPageB = groupTokensByPage(tokensB);
+
+                    // Create modification entries for both PDFs
+                    // For PDF A, show what was deleted (in yellow)
+                    for (const [pageIndex, pageTokens] of byPageA) {
+                        diffsA.push({
+                            type: 'modified',
+                            text: deletedText,
+                            pageIndex: pageIndex,
+                            tokens: pageTokens,
+                            boundingBox: mergeBoundingBoxes(pageTokens),
+                            modifiedText: insertedText // Show what it became
+                        });
+                    }
+
+                    // For PDF B, show what was inserted (in yellow)
+                    for (const [pageIndex, pageTokens] of byPageB) {
+                        diffsB.push({
+                            type: 'modified',
+                            text: insertedText,
+                            pageIndex: pageIndex,
+                            tokens: pageTokens,
+                            boundingBox: mergeBoundingBoxes(pageTokens),
+                            originalText: deletedText // Show what it was before
+                        });
+                    }
+
+                    charIndexA += deletedText.length;
+                    charIndexB += insertedText.length;
+                    i += 2; // Skip both delete and insert
+                    continue;
+                }
+            }
+
+            // Regular deletion - highlight on PDF A
+            const charStart = charIndexA;
+            const charEnd = charIndexA + textLength;
+
+            // Find all tokens that overlap this range
+            const tokens = getTokensInRange(sequenceA, charStart, charEnd);
+
+            // Group consecutive tokens by page
+            const byPage = groupTokensByPage(tokens);
+
+            for (const [pageIndex, pageTokens] of byPage) {
+                diffsA.push({
+                    type: 'deletion',
+                    text: text,
+                    pageIndex: pageIndex,
+                    tokens: pageTokens,
+                    boundingBox: mergeBoundingBoxes(pageTokens)
+                });
+            }
+
+            charIndexA += textLength;
+            i++;
+        } else if (type === 1) {
+            // Regular insertion (not preceded by deletion) - highlight on PDF B
+            const charStart = charIndexB;
+            const charEnd = charIndexB + textLength;
+
+            // Find all tokens that overlap this range
+            const tokens = getTokensInRange(sequenceB, charStart, charEnd);
+
+            // Group consecutive tokens by page
+            const byPage = groupTokensByPage(tokens);
+
+            for (const [pageIndex, pageTokens] of byPage) {
+                diffsB.push({
+                    type: 'insertion',
+                    text: text,
+                    pageIndex: pageIndex,
+                    tokens: pageTokens,
+                    boundingBox: mergeBoundingBoxes(pageTokens)
+                });
+            }
+
+            charIndexB += textLength;
+            i++;
+        } else {
+            i++;
+        }
+    }
+
+    return { diffsA, diffsB };
+}
+
+/**
+ * Get all tokens that overlap a character range in the sequence
+ * @param {Array} sequence - Document token sequence
+ * @param {number} charStart - Start character index
+ * @param {number} charEnd - End character index
+ * @returns {Array} Array of tokens that overlap the range
+ */
+function getTokensInRange(sequence, charStart, charEnd) {
+    const result = [];
+    let currentCharIndex = 0;
+
+    for (const token of sequence) {
+        const tokenLength = token.text.length;
+        const tokenEnd = currentCharIndex + tokenLength;
+
+        // Skip line breaks and page breaks for highlighting
+        if (token.isLineBreak || token.isPageBreak) {
+            currentCharIndex += tokenLength;
+            continue;
+        }
+
+        // Check for overlap
+        if (tokenEnd > charStart && currentCharIndex < charEnd) {
+            result.push({
+                ...token,
+                // Calculate how much of this token is in the range
+                overlapStart: Math.max(charStart - currentCharIndex, 0),
+                overlapEnd: Math.min(charEnd - currentCharIndex, tokenLength)
+            });
+        }
+
+        currentCharIndex += tokenLength;
+
+        // Optimization: stop if we've passed the range
+        if (currentCharIndex >= charEnd) {
+            break;
+        }
+    }
+
+    return result;
+}
+
+/**
+ * Group tokens by their page index
+ * @param {Array} tokens - Array of tokens
+ * @returns {Map} Map of pageIndex -> array of tokens
+ */
+function groupTokensByPage(tokens) {
+    const byPage = new Map();
+
+    for (const token of tokens) {
+        if (!byPage.has(token.pageIndex)) {
+            byPage.set(token.pageIndex, []);
+        }
+        byPage.get(token.pageIndex).push(token);
+    }
+
+    return byPage;
+}
+
+/**
+ * Merge bounding boxes of multiple tokens
+ * @param {Array} tokens - Array of tokens with coordinates
+ * @returns {Object} Merged bounding box { x, y, width, height, rotation }
+ */
+function mergeBoundingBoxes(tokens) {
+    if (tokens.length === 0) {
+        return { x: 0, y: 0, width: 0, height: 0, rotation: 0 };
+    }
+
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+
+    // Track if tokens have rotation (use majority rotation)
+    const rotationCounts = {};
+    let maxRotationCount = 0;
+    let dominantRotation = 0;
+
+    for (const token of tokens) {
+        const tokenX2 = token.x + token.width;
+        const tokenY2 = token.y + token.height;
+
+        minX = Math.min(minX, token.x);
+        minY = Math.min(minY, token.y);
+        maxX = Math.max(maxX, tokenX2);
+        maxY = Math.max(maxY, tokenY2);
+
+        // Track rotation
+        const rotation = token.rotation || 0;
+        rotationCounts[rotation] = (rotationCounts[rotation] || 0) + 1;
+        if (rotationCounts[rotation] > maxRotationCount) {
+            maxRotationCount = rotationCounts[rotation];
+            dominantRotation = rotation;
+        }
+    }
+
+    return {
+        x: minX,
+        y: minY,
+        width: maxX - minX,
+        height: maxY - minY,
+        rotation: dominantRotation
+    };
+}
+
+/**
+ * Build page-to-diff mapping for efficient rendering
+ * @param {Array} diffs - Array of diffs with pageIndex
+ * @returns {Object} Map of pageIndex -> array of diffs
+ */
+function buildPageDiffMapping(diffs) {
+    const pageMap = {};
+
+    for (const diff of diffs) {
+        if (!pageMap[diff.pageIndex]) {
+            pageMap[diff.pageIndex] = [];
+        }
+        pageMap[diff.pageIndex].push(diff);
+    }
+
+    return pageMap;
+}
+
+// ============================================
+// Export Diff Report
+// ============================================
+
+/**
+ * Generate a diff report as text
+ * @returns {string} Formatted diff report
+ */
+function generateDiffReport() {
+    const stats = getDiffStats(state.diffResults);
+    const timestamp = new Date().toISOString();
+
+    let report = '';
+    report += '='.repeat(60) + '\n';
+    report += 'PDF DIFF REPORT\n';
+    report += '='.repeat(60) + '\n\n';
+
+    // Metadata
+    report += 'Generated: ' + new Date().toLocaleString() + '\n';
+    report += 'PDF A: ' + (state.fileAName || 'Unknown') + '\n';
+    report += 'PDF B: ' + (state.fileBName || 'Unknown') + '\n';
+    report += '\n';
+
+    // Summary Statistics
+    report += '-'.repeat(60) + '\n';
+    report += 'SUMMARY\n';
+    report += '-'.repeat(60) + '\n';
+    report += 'Insertions:    ' + stats.insertions + '\n';
+    report += 'Deletions:     ' + stats.deletions + '\n';
+    report += 'Modifications: ' + Math.round(stats.modifications / 2) + '\n';
+    report += 'Unchanged:     ' + stats.unchanged + '\n';
+    report += '\n';
+
+    // Detailed changes by page
+    report += '-'.repeat(60) + '\n';
+    report += 'DETAILED CHANGES\n';
+    report += '-'.repeat(60) + '\n\n';
+
+    // Group diffs by page and type
+    const changesByPage = {};
+
+    // Process PDF A diffs (deletions, modifications)
+    for (const [pageIndex, diffs] of Object.entries(state.pageDiffsA)) {
+        if (!changesByPage[pageIndex]) {
+            changesByPage[pageIndex] = { insertions: [], deletions: [], modifications: [] };
+        }
+        for (const diff of diffs) {
+            if (diff.type === 'deletion') {
+                changesByPage[pageIndex].deletions.push(diff);
+            } else if (diff.type === 'modified') {
+                changesByPage[pageIndex].modifications.push(diff);
+            }
+        }
+    }
+
+    // Process PDF B diffs (insertions, modifications)
+    for (const [pageIndex, diffs] of Object.entries(state.pageDiffsB)) {
+        if (!changesByPage[pageIndex]) {
+            changesByPage[pageIndex] = { insertions: [], deletions: [], modifications: [] };
+        }
+        for (const diff of diffs) {
+            if (diff.type === 'insertion') {
+                changesByPage[pageIndex].insertions.push(diff);
+            } else if (diff.type === 'modified') {
+                // Avoid double-counting modifications (they appear in both PDFs)
+                // Only count if not already in this page's modifications
+                const alreadyCounted = changesByPage[pageIndex].modifications.some(
+                    existingMod => existingMod.text === diff.originalText
+                );
+                if (!alreadyCounted) {
+                    changesByPage[pageIndex].modifications.push(diff);
+                }
+            }
+        }
+    }
+
+    // Sort pages and report changes
+    const sortedPages = Object.keys(changesByPage).map(Number).sort((a, b) => a - b);
+
+    if (sortedPages.length === 0) {
+        report += 'No changes detected.\n';
+    } else {
+        for (const pageIndex of sortedPages) {
+            const pageChanges = changesByPage[pageIndex];
+            const pageNum = pageIndex + 1;
+
+            report += 'Page ' + pageNum + ':\n';
+
+            if (pageChanges.deletions.length > 0) {
+                report += '  DELETIONS (' + pageChanges.deletions.length + '):\n';
+                for (const diff of pageChanges.deletions.slice(0, 10)) {
+                    const text = diff.text.replace(/\n/g, '\\n').substring(0, 60);
+                    report += '    - "' + text + (diff.text.length > 60 ? '...' : '') + '"\n';
+                }
+                if (pageChanges.deletions.length > 10) {
+                    report += '    ... and ' + (pageChanges.deletions.length - 10) + ' more\n';
+                }
+            }
+
+            if (pageChanges.insertions.length > 0) {
+                report += '  INSERTIONS (' + pageChanges.insertions.length + '):\n';
+                for (const diff of pageChanges.insertions.slice(0, 10)) {
+                    const text = diff.text.replace(/\n/g, '\\n').substring(0, 60);
+                    report += '    + "' + text + (diff.text.length > 60 ? '...' : '') + '"\n';
+                }
+                if (pageChanges.insertions.length > 10) {
+                    report += '    ... and ' + (pageChanges.insertions.length - 10) + ' more\n';
+                }
+            }
+
+            if (pageChanges.modifications.length > 0) {
+                report += '  MODIFICATIONS (' + pageChanges.modifications.length + '):\n';
+                for (const diff of pageChanges.modifications.slice(0, 10)) {
+                    const oldText = (diff.originalText || diff.text).replace(/\n/g, '\\n').substring(0, 40);
+                    const newText = (diff.modifiedText || diff.text).replace(/\n/g, '\\n').substring(0, 40);
+                    report += '    ~ "' + oldText + (diff.originalText?.length > 40 || diff.text.length > 40 ? '...' : '') + '"\n';
+                    report += '      → "' + newText + (diff.modifiedText?.length > 40 || diff.text.length > 40 ? '...' : '') + '"\n';
+                }
+                if (pageChanges.modifications.length > 10) {
+                    report += '    ... and ' + (pageChanges.modifications.length - 10) + ' more\n';
+                }
+            }
+
+            report += '\n';
+        }
+    }
+
+    report += '='.repeat(60) + '\n';
+    report += 'END OF REPORT\n';
+    report += '='.repeat(60) + '\n';
+
+    return report;
+}
+
+/**
+ * Generate a JSON diff report
+ * @returns {string} JSON formatted diff report
+ */
+function generateDiffReportJSON() {
+    const stats = getDiffStats(state.diffResults);
+
+    const report = {
+        metadata: {
+            generated: new Date().toISOString(),
+            pdfA: state.fileAName || 'Unknown',
+            pdfB: state.fileBName || 'Unknown',
+            tool: 'PDF Diff Checker v1.0.0',
+            url: 'https://github.com/jesse-anderson/Tools'
+        },
+        summary: {
+            insertions: stats.insertions,
+            deletions: stats.deletions,
+            modifications: Math.round(stats.modifications / 2),
+            unchanged: stats.unchanged
+        },
+        changes: {
+            pdfA: [],
+            pdfB: []
+        }
+    };
+
+    // Add PDF A changes (deletions, modifications)
+    for (const [pageIndex, diffs] of Object.entries(state.pageDiffsA)) {
+        for (const diff of diffs) {
+            const changeEntry = {
+                page: parseInt(pageIndex) + 1,
+                type: diff.type,
+                text: diff.text,
+                position: {
+                    x: diff.boundingBox.x,
+                    y: diff.boundingBox.y,
+                    width: diff.boundingBox.width,
+                    height: diff.boundingBox.height
+                }
+            };
+            // Add modification context if available
+            if (diff.type === 'modified' && diff.modifiedText) {
+                changeEntry.modifiedTo = diff.modifiedText;
+            }
+            report.changes.pdfA.push(changeEntry);
+        }
+    }
+
+    // Add PDF B changes (insertions, modifications)
+    for (const [pageIndex, diffs] of Object.entries(state.pageDiffsB)) {
+        for (const diff of diffs) {
+            const changeEntry = {
+                page: parseInt(pageIndex) + 1,
+                type: diff.type,
+                text: diff.text,
+                position: {
+                    x: diff.boundingBox.x,
+                    y: diff.boundingBox.y,
+                    width: diff.boundingBox.width,
+                    height: diff.boundingBox.height
+                }
+            };
+            // Add modification context if available
+            if (diff.type === 'modified' && diff.originalText) {
+                changeEntry.modifiedFrom = diff.originalText;
+            }
+            report.changes.pdfB.push(changeEntry);
+        }
+    }
+
+    return JSON.stringify(report, null, 2);
+}
+
+/**
+ * Download content as a file
+ * @param {string} content - File content
+ * @param {string} filename - Download filename
+ * @param {string} mimeType - MIME type
+ */
+function downloadFile(content, filename, mimeType) {
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+}
+
+/**
+ * Handle export button click - shows format selection dialog
+ */
+function handleExportReport() {
+    if (!state.diffResults || state.diffResults.length === 0) {
+        showError('No diff results to export. Please compare PDFs first.');
+        return;
+    }
+
+    // Ask user for format preference
+    const format = prompt('Select export format:\n1 - Text Report (.txt)\n2 - JSON Report (.json)\n\nEnter 1 or 2:', '1');
+
+    if (format === '1') {
+        // Text format
+        const report = generateDiffReport();
+        const filename = 'diff-report-' + Date.now() + '.txt';
+        downloadFile(report, filename, 'text/plain');
+    } else if (format === '2') {
+        // JSON format
+        const report = generateDiffReportJSON();
+        const filename = 'diff-report-' + Date.now() + '.json';
+        downloadFile(report, filename, 'application/json');
+    } else {
+        showError('Invalid format selection.');
+    }
+}
+
+// ============================================
+// Clear
+// ============================================
+
+async function handleClear() {
+    // Destroy PDF documents to free memory
+    if (state.pdfA) {
+        try {
+            await state.pdfA.destroy();
+        } catch (e) {
+            console.warn('Error destroying PDF A:', e);
+        }
+    }
+    if (state.pdfB) {
+        try {
+            await state.pdfB.destroy();
+        } catch (e) {
+            console.warn('Error destroying PDF B:', e);
+        }
+    }
+
+    // Reset state
+    state.pdfA = null;
+    state.pdfB = null;
+    state.fileAName = null;
+    state.fileBName = null;
+    state.currentPageA = 0;
+    state.currentPageB = 0;
+    state.textItemsA = [];
+    state.textItemsB = [];
+    state.sequenceA = [];
+    state.sequenceB = [];
+    state.diffResults = [];
+    state.pageDiffsA = {};
+    state.pageDiffsB = {};
+    state.pdfWidthA = 0;
+    state.pdfHeightA = 0;
+    state.pdfWidthB = 0;
+    state.pdfHeightB = 0;
+    state.viewportWidthA = 0;
+    state.viewportHeightA = 0;
+    state.viewportWidthB = 0;
+    state.viewportHeightB = 0;
+    state.canvasScaleA = 1;
+    state.canvasScaleB = 1;
+    state.diffEngine = null;
+
+    // Reset edge case detection
+    state.hasRotatedText = false;
+    state.rotatedTextCount = 0;
+    state.hasMultiColumnLayout = false;
+    state.multiColumnPages = [];
+    state.rotationAngles = [];
+
+    // Reset UI
+    elements.pdfAInput.value = '';
+    elements.pdfBInput.value = '';
+    elements.pdfAInfo.textContent = 'No file selected';
+    elements.pdfBInfo.textContent = 'No file selected';
+    elements.pdfAInfo.parentElement.querySelector('.upload-label')?.classList.remove('has-file');
+    elements.pdfBInfo.parentElement.querySelector('.upload-label')?.classList.remove('has-file');
+    elements.compareBtn.disabled = true;
+    elements.comparisonSection.style.display = 'none';
+    elements.summarySection.style.display = 'none';
+    elements.progressSection.style.display = 'none';
+
+    // Clear edge case messages
+    document.querySelectorAll('.edge-case-message').forEach(el => el.remove());
+
+    // Reset page indicators
+    elements.pageIndicatorA.textContent = 'Page 1 of 1';
+    elements.pageIndicatorB.textContent = 'Page 1 of 1';
+
+    // Clear canvases
+    const ctxA = elements.canvasA.getContext('2d');
+    const ctxB = elements.canvasB.getContext('2d');
+    ctxA.clearRect(0, 0, elements.canvasA.width, elements.canvasA.height);
+    ctxB.clearRect(0, 0, elements.canvasB.width, elements.canvasB.height);
+    elements.overlayA.innerHTML = '';
+    elements.overlayB.innerHTML = '';
+
+    // Reset navigation buttons
+    elements.prevPageA.disabled = true;
+    elements.nextPageA.disabled = true;
+    elements.prevPageB.disabled = true;
+    elements.nextPageB.disabled = true;
+}
+
+// ============================================
+// Error Handling
+// ============================================
+
+function showError(message) {
+    // Create error element if it doesn't exist
+    let errorEl = document.querySelector('.error-message');
+    if (!errorEl) {
+        errorEl = document.createElement('div');
+        errorEl.className = 'error-message';
+        elements.uploadSection = document.querySelector('.upload-section');
+        if (elements.uploadSection) {
+            elements.uploadSection.before(errorEl);
+        }
+    }
+    errorEl.textContent = message;
+    errorEl.style.display = 'block';
+
+    // Auto-hide after 5 seconds
+    setTimeout(() => {
+        errorEl.style.display = 'none';
+    }, 5000);
+}
+
+function showWarning(message) {
+    // Create warning element if it doesn't exist
+    let warningEl = document.querySelector('.warning-message');
+    if (!warningEl) {
+        warningEl = document.createElement('div');
+        warningEl.className = 'warning-message';
+        elements.comparisonSection = document.getElementById('comparisonSection');
+        if (elements.comparisonSection) {
+            elements.comparisonSection.before(warningEl);
+        }
+    }
+    warningEl.textContent = message;
+    warningEl.style.display = 'block';
+
+    // Auto-hide after 5 seconds
+    setTimeout(() => {
+        warningEl.style.display = 'none';
+    }, 5000);
+}
+
+/**
+ * Show edge case warnings based on detected issues during PDF processing
+ * Creates stackable info messages that don't interfere with each other
+ * @param {Object} edgeCases - Object containing detected edge cases
+ */
+function showEdgeCaseWarnings(edgeCases) {
+    const warnings = [];
+
+    if (edgeCases.hasRotatedText) {
+        const angles = edgeCases.rotationAngles.sort((a, b) => a - b).map(a => `${a}°`).join(', ');
+        warnings.push(`Rotated text detected (${angles}). Highlight positions may be less accurate for rotated content.`);
+    }
+
+    if (edgeCases.hasMultiColumnLayout) {
+        const pageNumbers = edgeCases.multiColumnPages.map(p => p + 1).sort((a, b) => a - b);
+        const pageList = pageNumbers.length > 5
+            ? `${pageNumbers.slice(0, 5).join(', ')}... and ${pageNumbers.length - 5} more`
+            : pageNumbers.join(', ');
+        warnings.push(`Multi-column layout detected on page(s): ${pageList}. Reading order is preserved.`);
+    }
+
+    // Clear existing edge case messages
+    document.querySelectorAll('.edge-case-message').forEach(el => el.remove());
+
+    // Display each warning with a slight delay between them
+    const comparisonSection = document.getElementById('comparisonSection');
+    if (!comparisonSection) return;
+
+    warnings.forEach((warning, index) => {
+        setTimeout(() => {
+            const infoEl = document.createElement('div');
+            infoEl.className = 'info-message edge-case-message';
+            infoEl.textContent = `ℹ️ ${warning}`;
+
+            // Insert before comparison section
+            comparisonSection.before(infoEl);
+
+            // Add show class for animation
+            requestAnimationFrame(() => {
+                infoEl.classList.add('show');
+            });
+
+            // Auto-hide after 8 seconds
+            setTimeout(() => {
+                infoEl.classList.remove('show');
+                setTimeout(() => infoEl.remove(), 300);
+            }, 8000);
+        }, index * 400);
+    });
+}
+
+// ============================================
+// Progress Updates
+// ============================================
+
+function updateProgress(percent, message) {
+    state.processingProgress = percent;
+    elements.progressFill.style.width = `${percent}%`;
+    if (message) {
+        elements.progressText.textContent = message;
+    }
+}
+
+// ============================================
+// Initialize on DOM Ready
+// ============================================
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+} else {
+    init();
+}

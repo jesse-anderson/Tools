@@ -1,0 +1,21 @@
+/* Face Blur Tool - Animations */
+/* Keyframe animations for the face blur tool */
+
+/* Toast Slide Up Animation */
+@keyframes toastSlideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Spinner Animation */
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}

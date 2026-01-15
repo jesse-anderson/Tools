@@ -1,0 +1,625 @@
+/* ============================================
+   PDF Diff Checker - Specific Styles
+   ============================================ */
+
+/* Main Layout */
+.diff-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+/* ============================================
+   Upload Section
+   ============================================ */
+.upload-section {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 32px;
+}
+
+.upload-pair {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 32px;
+    margin-bottom: 24px;
+}
+
+.upload-card {
+    flex: 1;
+    max-width: 320px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
+.upload-label {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 32px 24px;
+    background: var(--bg-secondary);
+    border: 2px dashed var(--border-color);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    width: 100%;
+    text-align: center;
+    color: var(--text-secondary);
+}
+
+.upload-label svg {
+    width: 48px;
+    height: 48px;
+    stroke: var(--text-muted);
+    transition: stroke 0.2s ease;
+}
+
+.upload-label:hover {
+    border-color: var(--accent-it);
+    color: var(--text-primary);
+}
+
+.upload-label:hover svg {
+    stroke: var(--accent-it);
+}
+
+.upload-label.has-file {
+    border-style: solid;
+    border-color: var(--accent-success);
+    background: var(--accent-success-dim);
+}
+
+.file-input {
+    display: none;
+}
+
+.file-info {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    text-align: center;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.vs-badge {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    background: var(--bg-card);
+    border: 2px solid var(--border-color);
+    border-radius: 50%;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    font-size: 0.875rem;
+    color: var(--accent-it);
+    flex-shrink: 0;
+}
+
+/* Action Buttons */
+.action-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border-color);
+}
+
+/* ============================================
+   Progress Section
+   ============================================ */
+.progress-section {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 20px 32px;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 8px;
+    background: var(--bg-secondary);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 12px;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent-it), var(--accent-success));
+    border-radius: 4px;
+    width: 0%;
+    transition: width 0.3s ease;
+}
+
+.progress-text {
+    text-align: center;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+/* ============================================
+   Comparison Section
+   ============================================ */
+.comparison-section {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 24px;
+}
+
+.pdf-viewers {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+}
+
+.pdf-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.pdf-panel .panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    background: var(--bg-secondary);
+    border-radius: 8px;
+}
+
+.pdf-panel .panel-header h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.page-indicator {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+/* Canvas Container */
+.canvas-container {
+    position: relative;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    overflow: auto;
+    min-height: 400px;
+    max-height: 600px;
+    padding: 16px; /* Moved padding here from canvas-content */
+}
+
+/* Scrollable content wrapper */
+.canvas-content {
+    position: relative;
+    display: inline-block; /* Allows canvas to determine size */
+    flex-shrink: 0;
+}
+
+.canvas-container canvas {
+    display: block; /* Remove default inline spacing */
+}
+
+/* Highlight Overlay - must align exactly with canvas */
+.highlight-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+}
+
+/* Highlight Rectangles */
+.highlight-rect {
+    position: absolute;
+    opacity: 0.35;
+    transition: opacity 0.2s ease;
+}
+
+.highlight-rect:hover {
+    opacity: 0.6;
+}
+
+/* Insertions: Green - content added in PDF B */
+.highlight-rect.insertion {
+    fill: var(--accent-success);
+}
+
+/* Deletions: Red - content removed from PDF A */
+.highlight-rect.deletion {
+    fill: var(--accent-error);
+}
+
+/* Modifications: Yellow - content changed (shown on both PDFs) */
+.highlight-rect.modified {
+    fill: var(--accent-warning);
+}
+
+/* Page Navigation */
+.page-nav {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+}
+
+.nav-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: var(--text-secondary);
+}
+
+.nav-btn:hover:not(:disabled) {
+    border-color: var(--accent-it);
+    color: var(--accent-it);
+    background: var(--accent-it-dim);
+}
+
+.nav-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.nav-btn svg {
+    width: 20px;
+    height: 20px;
+}
+
+/* ============================================
+   Summary Section
+   ============================================ */
+.summary-section {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 24px;
+}
+
+.summary-section h3 {
+    font-size: 1.125rem;
+    margin-bottom: 16px;
+    color: var(--text-primary);
+}
+
+.summary-stats {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.stat-item {
+    flex: 1;
+    min-width: 140px;
+    padding: 16px;
+    background: var(--bg-secondary);
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.stat-label {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.stat-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.stat-item.insertions .stat-value {
+    color: var(--accent-success);
+}
+
+.stat-item.deletions .stat-value {
+    color: var(--accent-error);
+}
+
+.stat-item.modifications .stat-value {
+    color: var(--accent-warning);
+}
+
+/* ============================================
+   Empty State
+   ============================================ */
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 48px;
+    color: var(--text-muted);
+    text-align: center;
+}
+
+.empty-state svg {
+    width: 64px;
+    height: 64px;
+    margin-bottom: 16px;
+    opacity: 0.5;
+}
+
+.empty-state-text {
+    font-size: 1rem;
+}
+
+/* ============================================
+   Modal Styles
+   ============================================ */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal-overlay.active {
+    display: flex;
+}
+
+.modal {
+    background: var(--bg-card);
+    border-radius: 12px;
+    max-width: 600px;
+    width: 90%;
+    max-height: 80vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.modal-title {
+    font-size: 1.125rem;
+    margin: 0;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: var(--text-muted);
+    cursor: pointer;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.modal-close:hover {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+.modal-content {
+    padding: 20px;
+    overflow-y: auto;
+}
+
+.modal-content h3 {
+    font-size: 1rem;
+    margin-bottom: 16px;
+    color: var(--text-primary);
+}
+
+.library-entry {
+    margin-bottom: 20px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.library-entry:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+.library-entry h4 {
+    font-size: 1rem;
+    margin-bottom: 8px;
+    color: var(--accent-it);
+}
+
+.library-entry p {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+}
+
+.library-license {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.875rem;
+    color: var(--text-muted);
+}
+
+.library-license a {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--accent-it);
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.library-license a:hover {
+    color: var(--accent-success);
+}
+
+/* ============================================
+   Responsive Design
+   ============================================ */
+@media (max-width: 1024px) {
+    .pdf-viewers {
+        grid-template-columns: 1fr;
+        gap: 24px;
+    }
+
+    .upload-pair {
+        flex-direction: column;
+    }
+
+    .vs-badge {
+        transform: rotate(90deg);
+    }
+}
+
+@media (max-width: 768px) {
+    .upload-section,
+    .comparison-section,
+    .summary-section {
+        padding: 20px;
+    }
+
+    .action-buttons {
+        flex-direction: column;
+    }
+
+    .action-buttons .tool-btn {
+        width: 100%;
+    }
+
+    .summary-stats {
+        flex-direction: column;
+    }
+
+    .stat-item {
+        min-width: 100%;
+    }
+}
+
+/* ============================================
+   Loading Spinner
+   ============================================ */
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid var(--bg-secondary);
+    border-top-color: var(--accent-it);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+/* ============================================
+   PDF-specific panel styling
+   ============================================ */
+.pdf-a-panel .panel-header {
+    border-left: 4px solid var(--accent-error);
+}
+
+.pdf-b-panel .panel-header {
+    border-left: 4px solid var(--accent-success);
+}
+
+/* PDF Loading State */
+.canvas-container.loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.canvas-container.loading .spinner {
+    position: absolute;
+}
+
+/* Error Message */
+.error-message {
+    background: var(--accent-error-dim);
+    border: 1px solid var(--accent-error);
+    border-radius: 8px;
+    padding: 16px;
+    color: var(--accent-error);
+    text-align: center;
+    font-size: 0.875rem;
+    margin-bottom: 16px;
+}
+
+/* Warning Message */
+.warning-message {
+    background: var(--accent-warning-dim);
+    border: 1px solid var(--accent-warning);
+    border-radius: 8px;
+    padding: 16px;
+    color: var(--accent-warning);
+    text-align: center;
+    font-size: 0.875rem;
+    margin-bottom: 8px;
+    display: none;
+}
+
+/* Info Message - for edge case notifications */
+.info-message {
+    background: rgba(6, 182, 212, 0.1);
+    border: 1px solid var(--accent-it);
+    border-radius: 8px;
+    padding: 12px 16px;
+    color: var(--accent-it);
+    text-align: center;
+    font-size: 0.875rem;
+    margin-bottom: 8px;
+    display: none;
+}
+
+.info-message.show {
+    display: block;
+    animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

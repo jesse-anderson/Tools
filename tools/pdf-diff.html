@@ -9,7 +9,7 @@ Dependencies (pinned versions):
 - pdf.js: 4.0.379 (Mozilla PDF rendering library)
     https://mozilla.github.io/pdf.js/
     Apache-2.0: https://github.com/mozilla/pdf.js/blob/main/LICENSE
-- diff-match-patch: 1.0.5 (Text diff algorithm)
+- diff-match-patch: 20181111 (Google's text diff algorithm)
     https://github.com/google/diff-match-patch
     Apache-2.0: https://github.com/google/diff-match-patch/blob/main/COPYING
 
@@ -33,6 +33,7 @@ Last Updated: January 2025
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com https://fonts.googleapis.com; connect-src 'self' https://cdn.jsdelivr.net https://unpkg.com ws: wss:; img-src 'self' data: blob:; worker-src 'self' blob:;">
     <title>PDF Diff Checker | Tools Hub</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -40,19 +41,19 @@ Last Updated: January 2025
     <link rel="stylesheet" href="../css/shared.css">
     <link rel="stylesheet" href="../css/pdf_diff/pdf-diff.css">
 
-    <!-- pdf.js -->
-    <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@4.0.379/build/pdf.min.mjs" type="module"></script>
-    <script>
-        // Set pdf.js worker
-        pdfjsLib = {
-            GlobalWorkerOptions: {
-                workerSrc: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.0.379/build/pdf.worker.min.mjs'
-            }
-        };
+    <!-- pdf.js - Load and set worker for v4 -->
+    <script type="module">
+        // Set pdf.js worker for v4
+        import * as pdfjsLib from 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.0.379/build/pdf.min.mjs';
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.0.379/build/pdf.worker.min.mjs';
+        // Make pdfjsLib available globally for the modules
+        window.pdfjsLib = pdfjsLib;
     </script>
 
     <!-- diff-match-patch -->
-    <script src="https://cdn.jsdelivr.net/npm/diff-match-patch@1.0.5/diff_match_patch.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/diff-match-patch@1.0.5/index.js"
+            defer
+            crossorigin="anonymous"></script>
 </head>
 <body>
     <div class="container">
@@ -161,8 +162,10 @@ Last Updated: January 2025
                                 <span class="page-indicator" id="pageIndicatorA">Page 1 of 1</span>
                             </div>
                             <div class="canvas-container" id="canvasContainerA">
-                                <canvas id="canvasA"></canvas>
-                                <svg class="highlight-overlay" id="overlayA"></svg>
+                                <div class="canvas-content">
+                                    <canvas id="canvasA"></canvas>
+                                    <svg class="highlight-overlay" id="overlayA"></svg>
+                                </div>
                             </div>
                             <div class="page-nav">
                                 <button class="nav-btn" id="prevPageA" disabled>
@@ -185,8 +188,10 @@ Last Updated: January 2025
                                 <span class="page-indicator" id="pageIndicatorB">Page 1 of 1</span>
                             </div>
                             <div class="canvas-container" id="canvasContainerB">
-                                <canvas id="canvasB"></canvas>
-                                <svg class="highlight-overlay" id="overlayB"></svg>
+                                <div class="canvas-content">
+                                    <canvas id="canvasB"></canvas>
+                                    <svg class="highlight-overlay" id="overlayB"></svg>
+                                </div>
                             </div>
                             <div class="page-nav">
                                 <button class="nav-btn" id="prevPageB" disabled>
@@ -306,7 +311,7 @@ Last Updated: January 2025
     </div>
 
     <!-- Shared JS -->
-    <script src="../js/shared.js"></script>
+    <script src="../js/shared.js" type="module"></script>
 
     <!-- Tool-Specific JS Module -->
     <script type="module" src="../js/pdf_diff/pdf-diff.js"></script>

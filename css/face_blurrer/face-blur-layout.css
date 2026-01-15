@@ -1,0 +1,178 @@
+/* Face Blur Tool - Layout Styles */
+/* Panel, canvas, and responsive layout styles */
+
+/* Utility Classes */
+.hidden {
+    display: none !important;
+}
+
+/* Main Layout */
+.calculator-layout {
+    display: grid;
+    grid-template-columns: 360px 1fr;
+    gap: 24px;
+    min-height: calc(100vh - 300px);
+    align-items: start;
+}
+
+.calculator-panel {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    position: sticky;
+    top: 16px;
+    max-height: calc(100vh - 120px);
+    overflow-y: auto;
+}
+
+.panel-header {
+    margin-bottom: 4px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.panel-header h2 {
+    font-size: 1.5rem;
+    margin-bottom: 6px;
+}
+
+.panel-header p {
+    color: var(--text-secondary);
+    font-size: 0.9375rem;
+    line-height: 1.45;
+}
+
+/* Canvas Container */
+.canvas-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-height: 0;
+}
+
+.canvas-wrapper {
+    flex: 1;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    position: relative;
+    min-height: 400px;
+    touch-action: none; /* Prevent scrolling while drawing on mobile */
+}
+
+.canvas-wrapper canvas {
+    max-width: 100%;
+    max-height: 100%;
+    display: none;
+}
+
+.canvas-wrapper canvas:not(.hidden) {
+    display: block;
+}
+
+.placeholder-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    color: var(--text-muted);
+}
+
+.placeholder-content svg {
+    width: 64px;
+    height: 64px;
+    opacity: 0.5;
+}
+
+.placeholder-content p {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1rem;
+    text-align: center;
+    max-width: 300px;
+}
+
+/* Camera Container */
+.camera-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+.camera-container video {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.camera-container canvas {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+}
+
+/* Hidden Inputs */
+#imageInput {
+    display: none;
+}
+
+/* License Info */
+.license-info {
+    margin-top: 16px;
+    padding: 12px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+}
+
+.license-info a {
+    color: var(--accent-engineering);
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+    .calculator-layout {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+
+    .calculator-panel {
+        max-height: none;
+        position: static;
+    }
+
+    .canvas-wrapper {
+        min-height: 300px;
+    }
+
+    .face-list-items {
+        max-height: 150px;
+    }
+}
+
+@media (max-width: 768px) {
+    .input-type-selector {
+        grid-template-columns: 1fr;
+    }
+
+    .blur-type-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .panel-header h2 {
+        font-size: 1.25rem;
+    }
+}

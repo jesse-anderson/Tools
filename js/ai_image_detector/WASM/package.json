@@ -1,0 +1,16 @@
+{
+  "name": "ai_image_detection_fft_wasm",
+  "type": "module",
+  "description": "High-performance 2D FFT for AI Image Detector using WebAssembly",
+  "version": "0.1.0",
+  "files": [
+    "ai_image_detection_fft_wasm_bg.wasm",
+    "ai_image_detection_fft_wasm.js",
+    "ai_image_detection_fft_wasm.d.ts"
+  ],
+  "main": "ai_image_detection_fft_wasm.js",
+  "types": "ai_image_detection_fft_wasm.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}
