@@ -69,11 +69,29 @@
 }
 
 /* Layout */
+/* Make container use flexbox to push footer to bottom */
+body {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+.container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+main {
+    flex: 1;
+}
+
 .pinouts-layout {
     display: grid;
     grid-template-columns: var(--esp-sidebar-width) 1fr;
     gap: var(--esp-space-8);
-    min-height: calc(100vh - 120px);
+    /* Remove min-height since we're using flexbox now */
+    align-items: start;
 }
 
 .panel {
