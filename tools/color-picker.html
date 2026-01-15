@@ -1,3 +1,29 @@
+<!--
+============================================
+COLOR PICKER & CONVERTER v1.0.0
+============================================
+Description: Browser-based color picker and converter
+with support for HEX, RGB, HSL, and CMYK formats.
+
+Dependencies: None (Vanilla JavaScript)
+
+Project: Tools Hub by Jesse Anderson
+Repository: https://github.com/jesse-anderson/Tools
+License: GPL-3.0 - https://github.com/jesse-anderson/Tools/blob/main/LICENSE
+
+Features:
+- Native color picker integration
+- HEX input with validation and paste support (3-digit and 6-digit)
+- RGB sliders with live preview
+- Color format conversions (RGB, HSL, CMYK, CSS variable)
+- One-click copy to clipboard for all formats
+- WCAG contrast ratio checking (AA/AAA compliance)
+- Interactive tints and shades palette
+- Responsive design with dark/light theme support
+
+Last Updated: January 2025
+============================================
+-->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -25,13 +51,13 @@
                 </div>
                 <div class="header-right">
                     <div class="theme-toggle">
-                        <button data-theme-toggle="light" aria-pressed="false" title="Light mode">
+                        <button data-theme-toggle="light" title="Light mode">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <circle cx="12" cy="12" r="5"/>
                                 <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
                             </svg>
                         </button>
-                        <button data-theme-toggle="dark" aria-pressed="false" title="Dark mode">
+                        <button data-theme-toggle="dark" title="Dark mode">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
                             </svg>
@@ -39,10 +65,10 @@
                     </div>
                 </div>
             </div>
-            <div style="margin-top: 24px; display: flex; align-items: center; gap: 16px;">
-                <div class="tool-icon-header engineering">🎨</div>
+            <div class="header-title-area">
+                <div class="tool-icon-header it">🎨</div>
                 <div>
-                    <h1>Color Converter</h1>
+                    <h1>Color Picker & Converter</h1>
                     <p class="tagline">// HEX • RGB • HSL • CMYK</p>
                 </div>
             </div>
@@ -51,21 +77,32 @@
         <main>
             <div class="calculator-layout">
                 <div class="calculator-panel">
+                    <!-- Live region for screen reader announcements -->
+                    <div class="sr-only" aria-live="polite" aria-atomic="true" id="copyAnnouncer"></div>
+
                     <div class="panel-header">
                         <h2>Pick & Convert</h2>
-                        <p>Adjust the sliders or enter a HEX code. Values update automatically.</p>
+                        <p>Adjust the sliders, enter a HEX code, or use the color picker. Alpha (transparency) is set separately.</p>
                     </div>
 
                     <div class="main-preview-area">
-                        <div class="color-swatch-large" id="mainSwatch">
-                            <input type="color" id="nativePicker" value="#3B82F6">
+                        <div class="color-swatch-large" id="mainSwatch" role="button" tabindex="0" aria-label="Color preview swatch. Press Enter or Space to open RGB color picker. Alpha is set separately below.">
+                            <input type="color" id="nativePicker" value="#3B82F6" aria-label="Open RGB color picker (alpha not supported)">
                         </div>
                         <div class="hex-input-group">
-                            <label style="font-size: 0.875rem; color: var(--text-secondary); margin-bottom: 8px;">HEX Code</label>
+                            <label class="hex-label">HEX Code <span class="hex-label-hint">(Paste HEX8/alpha supported)</span></label>
                             <div class="hex-field-wrapper">
                                 <span class="hex-hash">#</span>
-                                <input type="text" id="hexInput" class="hex-input" value="3B82F6" maxlength="6">
+                                <input type="text" id="hexInput" class="hex-input" value="3B82F6" maxlength="8" aria-describedby="hexAlphaHint">
+                                <span id="hexAlphaIndicator" class="hex-alpha-indicator" hidden>
+                                    <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2">
+                                        <circle cx="12" cy="12" r="10"/>
+                                        <path d="M12 2a10 10 0 0 0 0 20v-20z"/>
+                                    </svg>
+                                    <span id="hexAlphaValue">50%</span>
+                                </span>
                             </div>
+                            <span id="hexAlphaHint" class="hex-hint-text">Alpha < 100% - last 2 digits represent transparency</span>
                         </div>
                     </div>
 
@@ -85,6 +122,28 @@
                             <input type="range" id="bSlider" min="0" max="255" value="246">
                             <input type="number" id="bInput" class="channel-val" min="0" max="255" value="246">
                         </div>
+                        <div class="channel-row alpha-row">
+                            <span class="channel-label">A</span>
+                            <div class="alpha-slider-wrapper">
+                                <input type="range" id="aSlider" min="0" max="100" value="100" class="alpha-slider">
+                                <div class="alpha-slider-scale" aria-hidden="true">
+                                    <span class="scale-mark" data-value="0">0%</span>
+                                    <span class="scale-mark" data-value="25">25%</span>
+                                    <span class="scale-mark" data-value="50">50%</span>
+                                    <span class="scale-mark" data-value="75">75%</span>
+                                    <span class="scale-mark" data-value="100">100%</span>
+                                </div>
+                            </div>
+                            <input type="number" id="aInput" class="channel-val" min="0" max="100" value="100">
+                        </div>
+                        <div class="alpha-row-label">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"/>
+                                <line x1="12" y1="16" x2="12" y2="12"/>
+                                <line x1="12" y1="8" x2="12.01" y2="8"/>
+                            </svg>
+                            Color picker is RGB-only. Alpha (transparency) is applied separately below.
+                        </div>
                     </div>
 
                     <div class="converter-grid">
@@ -92,7 +151,43 @@
                             <div class="format-header">RGB String</div>
                             <div class="format-value">
                                 <span id="rgbString">rgb(59, 130, 246)</span>
-                                <button class="copy-btn" >
+                                <button class="copy-btn" aria-label="Copy RGB string" data-copy-target="rgbString">
+                                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="format-card">
+                            <div class="format-header">HEX3 (Short)</div>
+                            <div class="format-value">
+                                <span id="hex3String">#3BF</span>
+                                <button class="copy-btn" aria-label="Copy HEX3 string" data-copy-target="hex3String">
+                                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="format-card">
+                            <div class="format-header">RGBA</div>
+                            <div class="format-value">
+                                <span id="rgbaString">rgba(59, 130, 246, 1)</span>
+                                <button class="copy-btn" aria-label="Copy RGBA string" data-copy-target="rgbaString">
+                                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="format-card">
+                            <div class="format-header">HEX8 (#RRGGBBAA)</div>
+                            <div class="format-value">
+                                <span id="hex8String">#3B82F6FF</span>
+                                <button class="copy-btn" aria-label="Copy HEX8 string" data-copy-target="hex8String">
                                     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
                                         <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
                                         <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
@@ -104,7 +199,19 @@
                             <div class="format-header">HSL</div>
                             <div class="format-value">
                                 <span id="hslString">hsl(217, 91%, 60%)</span>
-                                <button class="copy-btn" >
+                                <button class="copy-btn" aria-label="Copy HSL string" data-copy-target="hslString">
+                                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="format-card">
+                            <div class="format-header">HSLA</div>
+                            <div class="format-value">
+                                <span id="hslaString">hsla(217, 91%, 60%, 1)</span>
+                                <button class="copy-btn" aria-label="Copy HSLA string" data-copy-target="hslaString">
                                     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
                                         <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
                                         <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
@@ -116,7 +223,7 @@
                             <div class="format-header">CMYK (Approx)</div>
                             <div class="format-value">
                                 <span id="cmykString">76, 47, 0, 4</span>
-                                <button class="copy-btn" >
+                                <button class="copy-btn" aria-label="Copy CMYK values" data-copy-target="cmykString">
                                     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
                                         <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
                                         <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
@@ -128,7 +235,7 @@
                             <div class="format-header">CSS Variable</div>
                             <div class="format-value">
                                 <span id="cssString">--color-primary: #3B82F6;</span>
-                                <button class="copy-btn" >
+                                <button class="copy-btn" aria-label="Copy CSS variable" data-copy-target="cssString">
                                     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
                                         <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
                                         <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
@@ -148,7 +255,7 @@
                             Critical Engineering Disclaimer
                         </div>
                         <div class="disclaimer-content">
-                            <p style="margin-bottom: 8px;"><strong>Use for digital approximation only.</strong> Screen rendering differs significantly from physical media. Be aware of:</p>
+                            <p><strong>Use for digital approximation only.</strong> Screen rendering differs significantly from physical media. Be aware of:</p>
                             <ul class="disclaimer-list">
                                 <li><strong>Color Space:</strong> These values assume standard sRGB. AdobeRGB or P3 monitors will render these values differently.</li>
                                 <li><strong>Print Mismatch:</strong> CMYK conversions here are mathematical approximations and do not account for ICC profiles, ink density, or paper stock.</li>
@@ -170,12 +277,34 @@
                             </svg>
                             Text Contrast
                         </h3>
-                        <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 12px;">Legibility against background</div>
-                        
-                        <div class="contrast-demo" id="contrastBlack" style="background: #3B82F6; color: #000;">
+                        <div class="sidebar-card-subtitle">Legibility against background</div>
+
+                        <div class="contrast-background-controls">
+                            <label>Background for contrast:</label>
+                            <div class="bg-presets">
+                                <button class="bg-preset active" data-bg="255,255,255" title="White background">
+                                    <span class="bg-swatch bg-white"></span>
+                                    White
+                                </button>
+                                <button class="bg-preset" data-bg="18,18,18" title="Dark background">
+                                    <span class="bg-swatch bg-dark"></span>
+                                    Dark
+                                </button>
+                                <button class="bg-preset" data-bg="custom" title="Custom background">
+                                    <span class="bg-swatch bg-custom" id="customBgSwatch"></span>
+                                    Custom
+                                </button>
+                            </div>
+                            <div class="custom-bg-picker-wrapper" id="customBgPickerWrapper">
+                                <input type="color" id="customBgPicker" value="#808080">
+                                <span class="bg-hex-display" id="customBgHex">#808080</span>
+                            </div>
+                        </div>
+
+                        <div class="contrast-demo" id="contrastBlack">
                             Black Text <span class="contrast-badge" id="badgeBlack">--</span>
                         </div>
-                        <div class="contrast-demo" id="contrastWhite" style="background: #3B82F6; color: #fff;">
+                        <div class="contrast-demo" id="contrastWhite">
                             White Text <span class="contrast-badge" id="badgeWhite">--</span>
                         </div>
                     </div>
@@ -208,8 +337,8 @@
         <footer data-footer></footer>
     </div>
 
-    <script src="../js/shared.js"></script>
-    <script src="../js/footer.js"></script>
-    <script src="../js/color_picker/color-picker.js"></script>
+    <script type="module" src="../js/shared.js"></script>
+    <script type="module" type="module" src="../js/footer.js"></script>
+    <script type="module" src="../js/color_picker/color-picker.js"></script>
 </body>
 </html>

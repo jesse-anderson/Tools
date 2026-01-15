@@ -1,3 +1,27 @@
+<!--
+============================================
+JSON FORMATTER v1.0.0
+============================================
+Description: Browser-based JSON validation, formatting,
+and minification tool with precision loss detection.
+
+Dependencies: None (Vanilla JavaScript)
+
+Project: Tools Hub by Jesse Anderson
+Repository: https://github.com/jesse-anderson/Tools
+License: GPL-3.0
+
+Features:
+- Format/pretty-print JSON with syntax highlighting
+- Minify JSON by removing whitespace
+- Real-time validation with common error detection
+- Large integer precision loss warning (IEEE 754 limits)
+- JSON statistics (size, keys, arrays, depth)
+- Sample data loader with edge case examples
+
+Last Updated: January 2025
+============================================
+-->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -8,219 +32,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../css/shared.css">
-    <style>
-        /* Shared Tool Styles */
-        .calculator-layout {
-            display: grid;
-            grid-template-columns: 1fr 320px;
-            gap: 24px;
-            min-height: calc(100vh - 300px);
-        }
-
-        .calculator-panel {
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 24px;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .panel-header {
-            margin-bottom: 20px;
-            padding-bottom: 16px;
-            border-bottom: 1px solid var(--border-color);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .panel-header h2 { font-size: 1.5rem; margin-bottom: 4px; }
-        .panel-header p { color: var(--text-secondary); font-size: 0.9375rem; }
-
-        /* Toolbar */
-        .toolbar {
-            display: flex;
-            gap: 12px;
-            margin-bottom: 16px;
-            flex-wrap: wrap;
-        }
-
-        .tool-btn {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 16px;
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            color: var(--text-primary);
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.8125rem;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .tool-btn:hover {
-            border-color: var(--accent-engineering);
-            background: var(--bg-card);
-        }
-
-        .tool-btn.primary {
-            background: var(--accent-engineering);
-            color: var(--bg-primary);
-            border-color: var(--accent-engineering);
-            font-weight: 600;
-        }
-        .tool-btn.primary:hover { opacity: 0.9; }
-
-        .tool-btn svg { width: 14px; height: 14px; }
-
-        /* Editor Area */
-        .editor-container {
-            flex: 1;
-            position: relative;
-            min-height: 500px;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            overflow: hidden;
-            background: var(--bg-secondary);
-        }
-
-        textarea.json-input {
-            width: 100%;
-            height: 100%;
-            border: none;
-            background: transparent;
-            color: var(--text-primary);
-            padding: 20px;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.875rem;
-            line-height: 1.6;
-            resize: none;
-            outline: none;
-        }
-
-        /* Syntax Highlighting Overlay */
-        .json-output {
-            position: absolute;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            padding: 20px;
-            margin: 0;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.875rem;
-            line-height: 1.6;
-            color: var(--text-primary);
-            background: var(--bg-card);
-            overflow: auto;
-            white-space: pre-wrap;
-            display: none; /* Hidden by default */
-        }
-
-        .json-output.active { display: block; }
-
-        /* Syntax Colors (Custom implementation) */
-        .key { color: #f87171; } /* Red-ish */
-        .string { color: #34d399; } /* Green-ish */
-        .number { color: #60a5fa; } /* Blue-ish */
-        .boolean { color: #a78bfa; } /* Purple-ish */
-        .null { color: #9ca3af; } /* Gray */
-
-        /* Error Banner */
-        .error-banner {
-            background: rgba(239, 68, 68, 0.1);
-            border: 1px solid rgba(239, 68, 68, 0.3);
-            color: #ef4444;
-            padding: 12px;
-            border-radius: 6px;
-            margin-bottom: 16px;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.8125rem;
-            display: none;
-            align-items: center;
-            gap: 10px;
-        }
-
-        /* Sidebar Styles */
-        .sidebar {
-            display: flex;
-            flex-direction: column;
-            gap: 24px;
-        }
-
-        .sidebar-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 20px;
-        }
-
-        .sidebar-card h3 {
-            font-size: 0.875rem;
-            color: var(--text-primary);
-            margin-bottom: 16px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        /* Warning Banner */
-        .warning-banner {
-            background: rgba(245, 158, 11, 0.1);
-            border: 1px solid rgba(245, 158, 11, 0.3);
-            color: #f59e0b; /* Amber-500 */
-            padding: 12px;
-            border-radius: 6px;
-            margin-bottom: 16px;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.8125rem;
-            display: none;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .stat-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 8px 0;
-            border-bottom: 1px solid var(--border-color);
-            font-size: 0.8125rem;
-        }
-
-        .stat-row:last-child { border-bottom: none; }
-        .stat-label { color: var(--text-secondary); }
-        .stat-val { font-family: 'JetBrains Mono', monospace; font-weight: 600; color: var(--accent-engineering); }
-
-        /* Disclaimer Card */
-        .disclaimer-card {
-            background: var(--bg-card);
-            border: 1px solid rgba(239, 68, 68, 0.4);
-            border-left: 4px solid rgba(239, 68, 68, 0.8);
-            border-radius: 8px;
-            padding: 20px;
-            margin-top: 24px;
-        }
-        .disclaimer-title {
-            display: flex; align-items: center; gap: 10px;
-            font-family: 'Space Grotesk', sans-serif; font-weight: 700;
-            color: #ef4444; text-transform: uppercase; letter-spacing: 0.05em;
-            margin-bottom: 12px;
-        }
-        .disclaimer-content { font-size: 0.875rem; color: var(--text-secondary); line-height: 1.6; }
-        .disclaimer-list { margin: 12px 0; padding-left: 20px; }
-        .disclaimer-list li { margin-bottom: 6px; }
-        .disclaimer-footer {
-            margin-top: 16px; font-size: 0.75rem; color: var(--text-muted);
-            border-top: 1px solid var(--border-color); padding-top: 12px;
-            font-family: 'JetBrains Mono', monospace;
-        }
-
-        @media (max-width: 1024px) {
-            .calculator-layout { grid-template-columns: 1fr; }
-            .editor-container { min-height: 400px; }
-        }
-    </style>
+    <link rel="stylesheet" href="../css/json_formatter/json-formatter.css">
 </head>
 <body>
     <div class="container">
@@ -251,8 +63,8 @@
                     </div>
                 </div>
             </div>
-            <div style="margin-top: 24px; display: flex; align-items: center; gap: 16px;">
-                <div class="tool-icon-header engineering">{}</div>
+            <div class="tool-icon-container">
+                <div class="tool-icon-header it">{}</div>
                 <div>
                     <h1>JSON Formatter</h1>
                     <p class="tagline">// PARSE • VALIDATE • MINIFY</p>
@@ -268,7 +80,7 @@
                         <p>Paste your JSON below to format, validate, or minify.</p>
                     </div>
 
-                    <div class="error-banner" id="errorBanner">
+                    <div class="error-banner" id="errorBanner" role="alert" aria-live="assertive">
                         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
                             <circle cx="12" cy="12" r="10"/>
                             <line x1="12" y1="8" x2="12" y2="12"/>
@@ -277,7 +89,7 @@
                         <span id="errorText">Invalid JSON</span>
                     </div>
 
-                    <div class="warning-banner" id="warningBanner">
+                    <div class="warning-banner" id="warningBanner" role="alert" aria-live="polite">
                         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
                             <line x1="12" y1="9" x2="12" y2="13"/>
@@ -286,18 +98,7 @@
                         <span id="warningText">Warning: Large integers detected. Precision may be lost.</span>
                     </div>
 
-                    <div class="success-banner" id="successBanner" style="
-                        background: rgba(34, 197, 94, 0.1);
-                        border: 1px solid rgba(34, 197, 94, 0.3);
-                        color: #22c55e;
-                        padding: 12px;
-                        border-radius: 6px;
-                        margin-bottom: 16px;
-                        font-family: 'JetBrains Mono', monospace;
-                        font-size: 0.8125rem;
-                        display: none;
-                        align-items: center;
-                        gap: 10px;">
+                    <div class="success-banner" id="successBanner" role="status" aria-live="polite">
                         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
                             <polyline points="20 6 9 17 4 12"/>
                         </svg>
@@ -305,7 +106,7 @@
                     </div>
 
                     <div class="toolbar">
-                        <button class="tool-btn primary" onclick="formatJSON()">
+                        <button id="formatBtn" class="tool-btn primary" aria-label="Format JSON with pretty-printing">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <polyline points="4 14 10 14 10 20"/>
                                 <polyline points="20 10 14 10 14 4"/>
@@ -314,7 +115,7 @@
                             </svg>
                             Format
                         </button>
-                        <button class="tool-btn" onclick="minifyJSON()">
+                        <button id="minifyBtn" class="tool-btn" aria-label="Minify JSON by removing whitespace">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <polyline points="4 7 4 4 20 4 20 7"/>
                                 <line x1="9" y1="20" x2="15" y2="20"/>
@@ -322,14 +123,14 @@
                             </svg>
                             Minify
                         </button>
-                        <button class="tool-btn" onclick="copyResult()">
+                        <button id="copyBtn" class="tool-btn" aria-label="Copy formatted JSON to clipboard">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
                                 <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
                             </svg>
                             Copy
                         </button>
-                        <button class="tool-btn" onclick="clearEditor()" style="margin-left: auto; color: #ef4444; border-color: rgba(239,68,68,0.3);">
+                        <button id="clearBtn" class="tool-btn danger" aria-label="Clear editor">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <polyline points="3 6 5 6 21 6"/>
                                 <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
@@ -339,8 +140,9 @@
                     </div>
 
                     <div class="editor-container">
+                        <label for="inputArea" class="visually-hidden">JSON Input</label>
                         <textarea id="inputArea" class="json-input" placeholder="// Paste JSON here..." spellcheck="false"></textarea>
-                        <pre id="outputArea" class="json-output"></pre>
+                        <pre id="outputArea" class="json-output" role="region" aria-label="Formatted JSON output" aria-live="polite"></pre>
                     </div>
                 </div>
 
@@ -379,10 +181,10 @@
                             </svg>
                             Quick Actions
                         </h3>
-                        <button class="tool-btn" onclick="loadSample()" style="width: 100%; justify-content: center; margin-bottom: 8px;">
+                        <button id="loadSampleBtn" class="tool-btn" aria-label="Load sample JSON data" style="width: 100%; justify-content: center; margin-bottom: 8px;">
                             Load Sample Data
                         </button>
-                        <button class="tool-btn" onclick="editMode()" id="editBtn" style="width: 100%; justify-content: center; display: none;">
+                        <button id="editBtn" class="tool-btn" aria-label="Return to edit mode" style="width: 100%; justify-content: center; display: none;">
                             Return to Edit
                         </button>
                     </div>
@@ -415,418 +217,8 @@
         <footer data-footer></footer>
     </div>
 
-    <script src="../js/shared.js"></script>
-    <script src="../js/footer.js"></script>
-    <script>
-        // ============================================
-        // JSON Logic
-        // ============================================
-
-        const inputArea = document.getElementById('inputArea');
-        const outputArea = document.getElementById('outputArea');
-        
-        // Banners
-        const errorBanner = document.getElementById('errorBanner');
-        const errorText = document.getElementById('errorText');
-        const warningBanner = document.getElementById('warningBanner');
-        const warningText = document.getElementById('warningText');
-        
-        const editBtn = document.getElementById('editBtn');
-
-        // Stats Elements
-        const stats = {
-            size: document.getElementById('statSize'),
-            keys: document.getElementById('statKeys'),
-            arrays: document.getElementById('statArrays'),
-            depth: document.getElementById('statDepth')
-        };
-
-        // Real-time stat update
-        let timeout;
-        inputArea.addEventListener('input', () => {
-            clearTimeout(timeout);
-            timeout = setTimeout(() => {
-                // Clear banners on type
-                errorBanner.style.display = 'none';
-                warningBanner.style.display = 'none';
-                
-                updateStats(inputArea.value);
-            }, 500);
-        });
-
-        function formatJSON() {
-            processJSON(true);
-        }
-
-        function minifyJSON() {
-            processJSON(false);
-        }
-
-        function processJSON(pretty) {
-            try {
-                const raw = inputArea.value;
-                if (!raw.trim()) {
-                    showError(new Error("Input is empty"));
-                    return;
-                }
-
-                // 1. Check for Precision Loss BEFORE parsing
-                // This is critical because JSON.parse is destructive
-                checkPrecisionLoss(raw);
-
-                // 2. Parse & Transform
-                const obj = JSON.parse(raw);
-                const formatted = pretty ? JSON.stringify(obj, null, 2) : JSON.stringify(obj);
-                
-                // 3. Update UI
-                if (pretty) {
-                    inputArea.style.display = 'none';
-                    outputArea.innerHTML = syntaxHighlight(formatted);
-                    outputArea.classList.add('active');
-                } else {
-                    outputArea.classList.remove('active');
-                    inputArea.style.display = 'block';
-                    inputArea.value = formatted;
-                }
-                
-                editBtn.style.display = pretty ? 'flex' : 'none';
-                errorBanner.style.display = 'none';
-                
-                // Update stats synchronously (no delay)
-                updateStats(formatted);
-
-            } catch (e) {
-                showError(e);
-            }
-        }
-
-        function checkPrecisionLoss(raw) {
-            // We need to find large integers BEFORE JSON.parse destroys them
-            // Strategy: Find number sequences with 15+ digits in valid JSON positions
-            
-            // Pattern breakdown:
-            // (?:^|[:\[,\s]) - Start of string, or after : [ , or whitespace
-            // (-?\d{15,}) - Capture negative or positive integers with 15+ digits
-            // (?=[,\]\}\s]|$) - Followed by , ] } whitespace or end of string
-            const unsafePattern = /(?:^|[:\[,\s])(-?\d{15,})(?=[,\]\}\s]|$)/g;
-            
-            let match;
-            let hasIssue = false;
-            const problematicNumbers = [];
-
-            while ((match = unsafePattern.exec(raw)) !== null) {
-                const numStr = match[1];
-                
-                // JavaScript's Number can safely represent integers up to 2^53 - 1
-                // That's 9007199254740991 (16 digits)
-                // Anything larger will lose precision
-                
-                try {
-                    const asNumber = Number(numStr);
-                    
-                    // Primary check: explicitly verify against MAX_SAFE_INTEGER
-                    // This catches 9007199254740992 and above
-                    if (Math.abs(asNumber) > Number.MAX_SAFE_INTEGER) {
-                        hasIssue = true;
-                        problematicNumbers.push(numStr);
-                        continue;
-                    }
-                    
-                    // Secondary check: round-trip test for edge cases
-                    // This catches cases where string conversion differs
-                    const backToString = asNumber.toString();
-                    if (backToString !== numStr) {
-                        hasIssue = true;
-                        problematicNumbers.push(numStr);
-                    }
-                    
-                } catch (e) {
-                    // If we can't parse it, let the main JSON.parse handle the error
-                    continue;
-                }
-            }
-
-            if (hasIssue) {
-                warningBanner.style.display = 'flex';
-                
-                // More detailed warning message
-                if (problematicNumbers.length === 1) {
-                    warningText.textContent = `Warning: Large integer detected (${problematicNumbers[0]}...). JavaScript has rounded this value.`;
-                } else if (problematicNumbers.length <= 3) {
-                    warningText.textContent = `Warning: ${problematicNumbers.length} large integers detected. JavaScript has rounded these values.`;
-                } else {
-                    warningText.textContent = `Warning: ${problematicNumbers.length} large integers detected. JavaScript has rounded these values.`;
-                }
-            } else {
-                warningBanner.style.display = 'none';
-            }
-        }
-
-        function editMode() {
-            outputArea.classList.remove('active');
-            inputArea.style.display = 'block';
-            editBtn.style.display = 'none';
-            // Sync content if needed (optional)
-        }
-
-        function clearEditor() {
-            inputArea.value = '';
-            outputArea.innerHTML = '';
-            outputArea.classList.remove('active');
-            inputArea.style.display = 'block';
-            errorBanner.style.display = 'none';
-            warningBanner.style.display = 'none';
-            editBtn.style.display = 'none';
-            updateStats('');
-        }
-
-        function loadSample() {
-            // Use raw string literal to avoid JavaScript number parsing
-            // This preserves the exact integer value as it would appear in JSON
-            const sampleStr = `{
-        "project": "Tools Hub",
-        "version": "1.0.0",
-        "active": true,
-        "config": {
-            "maxRetries": 3,
-            "timeout": 5000
-        },
-        "users": [
-            {
-            "id": 101,
-            "name": "Alice",
-            "role": "admin"
-            },
-            {
-            "id": 9223372036854775807,
-            "name": "BigInt_User",
-            "role": "tester",
-            "note": "This ID exceeds JavaScript's MAX_SAFE_INTEGER (2^53-1)"
-            }
-        ],
-        "statistics": {
-            "totalUsers": 2,
-            "activeToday": 1
-        }
-        }`;
-            
-            inputArea.value = sampleStr;
-            editMode();
-            updateStats(inputArea.value);
-        }
-
-
-        function copyResult() {
-            const text = outputArea.classList.contains('active') ? outputArea.innerText : inputArea.value;
-            
-            // Check if there's any text to copy
-            if (!text || !text.trim()) {
-                alert('Nothing to copy! Please enter some JSON first.');
-                return;
-            }
-            
-            // Helper to show success animation
-            const showSuccess = () => {
-                const copyBtn = document.querySelector('.tool-btn[onclick="copyResult()"]');
-                if (!copyBtn) return;
-                
-                const originalHtml = copyBtn.innerHTML;
-                const originalStyle = {
-                    borderColor: copyBtn.style.borderColor,
-                    color: copyBtn.style.color
-                };
-
-                copyBtn.innerHTML = `
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <polyline points="20 6 9 17 4 12"/>
-                    </svg>
-                    Copied!
-                `;
-                copyBtn.style.borderColor = '#22c55e';
-                copyBtn.style.color = '#22c55e';
-                
-                setTimeout(() => {
-                    copyBtn.innerHTML = originalHtml;
-                    copyBtn.style.borderColor = originalStyle.borderColor;
-                    copyBtn.style.color = originalStyle.color;
-                }, 2000);
-            };
-
-            // 1. Try Modern Async API
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText(text)
-                    .then(showSuccess)
-                    .catch(err => {
-                        console.warn('Clipboard API failed, trying fallback...', err);
-                        fallbackCopy(text);
-                    });
-            } else {
-                // 2. Immediate Fallback for older browsers / non-secure contexts
-                fallbackCopy(text);
-            }
-
-            // Fallback Method: Create hidden textarea -> Select -> ExecCommand
-            function fallbackCopy(textToCopy) {
-                try {
-                    const textArea = document.createElement("textarea");
-                    textArea.value = textToCopy;
-                    
-                    // Ensure it's not visible but part of the DOM
-                    textArea.style.position = "fixed";
-                    textArea.style.left = "-9999px";
-                    textArea.style.top = "0";
-                    document.body.appendChild(textArea);
-                    
-                    textArea.focus();
-                    textArea.select();
-                    
-                    const successful = document.execCommand('copy');
-                    document.body.removeChild(textArea);
-                    
-                    if (successful) {
-                        showSuccess();
-                    } else {
-                        throw new Error('execCommand returned false');
-                    }
-                } catch (err) {
-                    console.error('Fallback copy failed:', err);
-                    alert('Failed to copy to clipboard. Please try selecting and copying manually.');
-                }
-            }
-        }
-
-        function showError(e) {
-            let msg = e.message;
-            const hint = detectCommonErrors(inputArea.value);
-            if (hint) msg += ` — ${hint}`;
-            
-            errorText.textContent = msg;
-            
-            // Make sure we're in edit mode first
-            editMode();
-            
-            // Ensure error banner is visible (force show after edit mode)
-            errorBanner.style.display = 'flex';
-            // Hide warning if we have an error (error is more important)
-            warningBanner.style.display = 'none';
-            
-            // Scroll error into view if needed
-            errorBanner.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        }
-
-        function detectCommonErrors(raw) {
-            // Trailing comma
-            if (/,\s*[\]}]/.test(raw)) {
-                return "Trailing comma detected (not allowed in JSON)";
-            }
-            
-            // Single quotes instead of double quotes
-            if (/'[^']*'\s*:/.test(raw) || /:\s*'[^']*'/.test(raw)) {
-                return "Single quotes detected (JSON requires double quotes)";
-            }
-            
-            // Unquoted keys
-            if (/(?:^|[{,])\s*([a-zA-Z_$][a-zA-Z0-9_$]*)\s*:/.test(raw)) {
-                return "Unquoted key detected (all keys must be quoted)";
-            }
-            
-            // Comments (not allowed in JSON)
-            if (/\/\/|\/\*/.test(raw)) {
-                return "Comments detected (not allowed in standard JSON)";
-            }
-            
-            // NaN or Infinity (not valid JSON)
-            if (/\b(NaN|Infinity|-Infinity)\b/.test(raw)) {
-                return "NaN/Infinity detected (not valid JSON values)";
-            }
-            
-            // Undefined
-            if (/\bundefined\b/.test(raw)) {
-                return "undefined detected (use null instead)";
-            }
-            
-            return null;
-        }
-
-        // --- Logic & Stats ---
-
-        function updateStats(jsonStr) {
-            if (!jsonStr) {
-                resetStats();
-                return;
-            }
-            const size = new Blob([jsonStr]).size;
-            stats.size.textContent = formatBytes(size);
-
-            try {
-                const obj = JSON.parse(jsonStr);
-                const metrics = analyzeJSON(obj);
-                stats.keys.textContent = metrics.keys;
-                stats.arrays.textContent = metrics.arrays;
-                stats.depth.textContent = metrics.depth;
-            } catch (e) {
-                // Ignore stats update on invalid JSON
-            }
-        }
-
-        function analyzeJSON(obj) {
-            let keys = 0;
-            let arrays = 0;
-            let maxDepth = 0;
-            function traverse(o, depth) {
-                if (depth > maxDepth) maxDepth = depth;
-                if (Array.isArray(o)) {
-                    arrays++;
-                    o.forEach(item => traverse(item, depth + 1));
-                } else if (typeof o === 'object' && o !== null) {
-                    keys += Object.keys(o).length;
-                    Object.values(o).forEach(val => traverse(val, depth + 1));
-                }
-            }
-            traverse(obj, 1);
-            return { keys, arrays, depth: maxDepth };
-        }
-
-        function formatBytes(bytes) {
-            if (bytes === 0) return '0 B';
-            const k = 1024;
-            const sizes = ['B', 'KB', 'MB', 'GB'];
-            const i = Math.floor(Math.log(bytes) / Math.log(k));
-            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-        }
-
-        function resetStats() {
-            stats.size.textContent = '0 B';
-            stats.keys.textContent = '0';
-            stats.arrays.textContent = '0';
-            stats.depth.textContent = '0';
-        }
-
-        function syntaxHighlight(json) {
-            json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-            return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
-                let cls = 'number';
-                if (/^"/.test(match)) {
-                    cls = /:$/.test(match) ? 'key' : 'string';
-                } else if (/true|false/.test(match)) {
-                    cls = 'boolean';
-                } else if (/null/.test(match)) {
-                    cls = 'null';
-                }
-                return '<span class="' + cls + '">' + match + '</span>';
-            });
-        }
-
-        function validateAndShowFeedback() {
-            // This can be called on successful parse to show "Valid JSON ✓"
-            const successBanner = document.getElementById('successBanner'); 
-            if (successBanner) {
-                successBanner.style.display = 'flex';
-                setTimeout(() => {
-                    successBanner.style.display = 'none';
-                }, 3000);
-            }
-        }
-    </script>
+    <script type="module" type="module" src="../js/shared.js"></script>
+    <script type="module" src="../js/footer.js" defer></script>
+    <script type="module" src="../js/json_formatter/json-formatter.js"></script>
 </body>
 </html>

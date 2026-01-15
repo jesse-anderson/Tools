@@ -171,8 +171,8 @@
         .theme-toggle button:hover { color: var(--text-primary); }
         .theme-toggle button svg { width: 16px; height: 16px; }
         /* Active state for theme buttons handled by JS or simple CSS if classes added */
-        [data-theme="light"] button[data-theme-toggle="light" aria-pressed="false"] { color: var(--accent-engineering); background: var(--bg-card); box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-        [data-theme="dark"] button[data-theme-toggle="dark" aria-pressed="false"] { color: var(--accent-engineering); background: var(--bg-card); }
+        [data-theme="light"] button[data-theme-toggle="light" ] { color: var(--accent-engineering); background: var(--bg-card); box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        [data-theme="dark"] button[data-theme-toggle="dark" ] { color: var(--accent-engineering); background: var(--bg-card); }
 
 
         /* =========================================
@@ -476,8 +476,8 @@
         <footer data-footer></footer>
     </div>
 
-    <script src="../js/shared.js"></script>
-    <script src="../js/footer.js"></script>
+    <script type="module" src="../js/shared.js"></script>
+    <script type="module" src="../js/footer.js"></script>
     <script>
         // ============================================
         // Theme Manager (Inline Fallback)

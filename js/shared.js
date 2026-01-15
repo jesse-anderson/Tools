@@ -1,5 +1,5 @@
 /* ============================================
-   TOOLS HUB - SHARED JAVASCRIPT
+   TOOLS HUB - SHARED JAVASCRIPT MODULE
    ============================================ */
 
 // Theme Management
@@ -8,7 +8,7 @@ const ThemeManager = {
         // Check for saved theme preference or system preference
         const savedTheme = localStorage.getItem('toolsTheme');
         const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        
+
         if (savedTheme) {
             this.setTheme(savedTheme);
         } else if (systemPrefersDark) {
@@ -161,18 +161,18 @@ const NumberFormat = {
     format(num, maxDecimals = 10) {
         if (num === 0) return '0';
         if (!isFinite(num)) return num > 0 ? '∞' : '-∞';
-        
+
         const absNum = Math.abs(num);
-        
+
         // Use scientific notation for very large or small numbers
         if (absNum >= 1e10 || (absNum < 1e-6 && absNum > 0)) {
             return num.toExponential(6);
         }
-        
+
         // Otherwise use fixed notation with smart precision
         const str = num.toPrecision(12);
         const parsed = parseFloat(str);
-        
+
         // Remove trailing zeros
         return parsed.toString();
     },
@@ -181,15 +181,15 @@ const NumberFormat = {
     parse(str) {
         if (typeof str === 'number') return str;
         str = str.toString().trim();
-        
+
         // Handle scientific notation
         if (/[eE]/.test(str)) {
             return parseFloat(str);
         }
-        
+
         // Remove commas and spaces
         str = str.replace(/[,\s]/g, '');
-        
+
         return parseFloat(str);
     }
 };
@@ -212,7 +212,7 @@ const ToolsCounter = {
             const titleEl = section.querySelector('.category-title');
             const countEl = section.querySelector('.category-count');
             const toolCards = section.querySelectorAll('.tools-grid .tool-card');
-            
+
             const categoryName = titleEl ? titleEl.textContent.trim() : 'Unknown';
             const toolCount = toolCards.length;
 
@@ -256,7 +256,7 @@ const ToolsCounter = {
         sections.forEach(section => {
             const titleEl = section.querySelector('.category-title');
             const toolCards = section.querySelectorAll('.tools-grid .tool-card');
-            
+
             const categoryName = titleEl ? titleEl.textContent.trim() : 'Unknown';
             const toolCount = toolCards.length;
 
@@ -322,7 +322,7 @@ const ToolsSearch = {
         this.searchInput.addEventListener('input', () => {
             clearTimeout(this.debounceTimer);
             this.debounceTimer = setTimeout(() => this.search(), 50);
-            
+
             // Update clear button visibility
             const wrapper = this.searchInput.closest('.search-wrapper');
             if (this.searchInput.value) {
@@ -415,14 +415,36 @@ const ToolsSearch = {
         this.searchInput.focus();
     }
 };
-// Initialize on DOM ready
-document.addEventListener('DOMContentLoaded', () => {
+
+// ============================================
+// INITIALIZATION
+// ============================================
+
+/**
+ * Initialize shared functionality when DOM is ready
+ */
+function initShared() {
     ThemeManager.init();
     ToolsCounter.countAndUpdate();
     ToolsSearch.init();
-});
+}
 
-// Export for use in other scripts
+// Initialize on DOM ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initShared);
+} else {
+    // DOM is already ready
+    initShared();
+}
+
+// ============================================
+// EXPORTS
+// ============================================
+
+// ES Module exports
+export { ThemeManager, Clipboard, NumberFormat, ToolsCounter, ToolsSearch };
+
+// Also export as window global for backward compatibility with non-module tools
 window.ToolsHub = {
     ThemeManager,
     Clipboard,

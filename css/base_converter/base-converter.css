@@ -1,0 +1,530 @@
+/*
+============================================
+BASE CONVERTER TOOL STYLES v1.0.0
+============================================
+Description: Styles for the Base Converter tool - a browser-based
+number base conversion utility with hardware architecture simulation.
+
+Dependencies: None
+
+Project: Tools Hub by Jesse Anderson
+Repository: https://github.com/jesse-anderson/Tools
+License: GPL-3.0 - https://github.com/jesse-anderson/Tools/blob/main/LICENSE
+
+Components:
+- Architecture toolbar (word size, endianness controls)
+- Base input cards (decimal, hexadecimal, octal, binary)
+- Bit visualizer (LSB display with interactive toggle)
+- Error and warning banners
+- Responsive sidebar layout
+
+Last Updated: January 2025
+============================================
+*/
+
+/* ============================================
+   Main Layout
+   ============================================ */
+
+.calculator-layout {
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    gap: 24px;
+    min-height: calc(100vh - 300px);
+}
+
+.calculator-panel {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 32px;
+}
+
+.panel-header {
+    margin-bottom: 24px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.panel-header h2 {
+    font-size: 1.5rem;
+    margin-bottom: 8px;
+}
+
+.panel-header p {
+    color: var(--text-secondary);
+    font-size: 0.9375rem;
+}
+
+/* ============================================
+   Architecture Toolbar
+   ============================================ */
+
+.arch-toolbar {
+    display: flex;
+    gap: 24px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    padding: 16px;
+    border-radius: 8px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+}
+
+.control-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.control-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+
+.toggle-group {
+    display: flex;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 2px;
+}
+
+.toggle-btn {
+    padding: 6px 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8125rem;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.toggle-btn:hover {
+    color: var(--text-primary);
+}
+
+.toggle-btn.active {
+    background: var(--accent-engineering);
+    color: var(--bg-primary);
+    font-weight: 600;
+}
+
+.clear-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8125rem;
+    border: 1px solid var(--border-color);
+    background: var(--bg-card);
+    color: var(--text-secondary);
+    cursor: pointer;
+    border-radius: 6px;
+    transition: all 0.2s;
+}
+
+.clear-btn:hover {
+    border-color: #ef4444;
+    color: #ef4444;
+}
+
+/* ============================================
+   Converter Input Cards
+   ============================================ */
+
+.converter-input-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 20px;
+    margin-bottom: 32px;
+}
+
+.base-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 20px;
+    transition: all 0.2s ease;
+}
+
+.base-card:focus-within {
+    border-color: var(--accent-engineering);
+    box-shadow: 0 0 0 3px var(--accent-engineering-dim);
+}
+
+.base-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.base-label {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.base-badge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    padding: 2px 6px;
+    border-radius: 4px;
+    color: var(--text-muted);
+}
+
+.base-input-wrapper {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.base-input {
+    width: 100%;
+    background: transparent;
+    border: none;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.25rem;
+    color: var(--text-primary);
+    outline: none;
+}
+
+.base-input::placeholder {
+    color: var(--text-muted);
+    opacity: 0.5;
+}
+
+/* Binary uses textarea for wrapping */
+.base-textarea {
+    width: 100%;
+    background: transparent;
+    border: none;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1rem;
+    color: var(--text-primary);
+    outline: none;
+    resize: none;
+    line-height: 1.5;
+    min-height: 1.5em;
+    max-height: 6em;
+    overflow-y: auto;
+}
+
+.base-textarea::placeholder {
+    color: var(--text-muted);
+    opacity: 0.5;
+}
+
+.base-prefix {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--accent-engineering);
+    flex-shrink: 0;
+}
+
+.copy-btn {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    color: var(--text-muted);
+    width: 36px;
+    height: 36px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.copy-btn:hover {
+    border-color: var(--accent-engineering);
+    color: var(--accent-engineering);
+}
+
+/* ============================================
+   Error States
+   ============================================ */
+
+.base-card.error {
+    border-color: #ef4444;
+    background: rgba(239, 68, 68, 0.05);
+}
+
+.base-input.error-input,
+.base-textarea.error-input {
+    color: #ef4444;
+}
+
+/* Flash animation when invalid characters are removed */
+.base-card.invalid-chars-flash {
+    animation: invalidCharFlash 300ms ease-out;
+}
+
+@keyframes invalidCharFlash {
+    0% {
+        border-color: var(--accent-engineering);
+        box-shadow: 0 0 0 2px var(--accent-engineering-dim);
+    }
+    100% {
+        border-color: var(--border-color);
+        box-shadow: none;
+    }
+}
+
+/* Error Message Banner */
+.error-banner {
+    display: none;
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid #ef4444;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-bottom: 20px;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.error-banner.active {
+    display: flex;
+}
+
+.error-banner svg {
+    flex-shrink: 0;
+    color: #ef4444;
+    margin-top: 2px;
+}
+
+.error-banner-content {
+    flex: 1;
+}
+
+.error-banner-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: #ef4444;
+    margin-bottom: 4px;
+}
+
+.error-banner-message {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8125rem;
+    color: var(--text-secondary);
+}
+
+/* ============================================
+   Warning States
+   ============================================ */
+
+/* Warning Message Banner */
+.warning-banner {
+    display: none;
+    background: rgba(245, 158, 11, 0.1);
+    border: 1px solid #f59e0b;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-bottom: 20px;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.warning-banner.active {
+    display: flex;
+}
+
+.warning-banner svg {
+    flex-shrink: 0;
+    color: #f59e0b;
+    margin-top: 2px;
+}
+
+.warning-banner-content {
+    flex: 1;
+}
+
+.warning-banner-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: #f59e0b;
+    margin-bottom: 4px;
+}
+
+.warning-banner-message {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8125rem;
+    color: var(--text-secondary);
+}
+
+/* ============================================
+   Sidebar
+   ============================================ */
+
+.sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.sidebar-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 20px;
+}
+
+.sidebar-card h3 {
+    font-size: 0.875rem;
+    color: var(--text-primary);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* ============================================
+   Bit Visualizer
+   ============================================ */
+
+.bit-grid {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 4px;
+    margin-bottom: 16px;
+}
+
+.bit-box {
+    aspect-ratio: 1;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    transition: all 0.1s;
+    font-weight: 500;
+}
+
+.bit-box:hover {
+    border-color: var(--accent-engineering);
+}
+
+.bit-box.active {
+    background: var(--accent-engineering);
+    border-color: var(--accent-engineering);
+    border-width: 2px;
+    border-style: inset;
+    color: var(--bg-primary);
+    font-weight: 700;
+}
+
+.bit-labels {
+    display: flex;
+    justify-content: space-between;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.625rem;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+}
+
+/* ============================================
+   Quick Values
+   ============================================ */
+
+.quick-list {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+
+.quick-btn {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    padding: 8px;
+    border-radius: 4px;
+    text-align: left;
+    cursor: pointer;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    transition: all 0.2s;
+}
+
+.quick-btn:hover {
+    border-color: var(--accent-engineering);
+    color: var(--text-primary);
+}
+
+/* ============================================
+   Disclaimer Card
+   ============================================ */
+
+.disclaimer-card {
+    background: var(--bg-card);
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    border-left: 4px solid rgba(239, 68, 68, 0.8);
+    border-radius: 8px;
+    padding: 20px;
+    margin-top: 24px;
+}
+
+.disclaimer-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    color: #ef4444;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 12px;
+}
+
+.disclaimer-content {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+}
+
+.disclaimer-list {
+    margin: 12px 0;
+    padding-left: 20px;
+}
+
+.disclaimer-list li {
+    margin-bottom: 6px;
+}
+
+.disclaimer-footer {
+    margin-top: 16px;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    border-top: 1px solid var(--border-color);
+    padding-top: 12px;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+/* ============================================
+   Responsive Design
+   ============================================ */
+
+@media (max-width: 768px) {
+    .calculator-layout {
+        grid-template-columns: 1fr;
+    }
+}

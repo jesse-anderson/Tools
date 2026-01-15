@@ -1,3 +1,31 @@
+<!--
+============================================
+BASE CONVERTER v1.0.0
+============================================
+Description: Browser-based number base conversion tool supporting
+binary, octal, decimal, and hexadecimal with endianness and
+word size simulation for hardware architecture modeling.
+
+Dependencies: None (Vanilla JavaScript)
+
+Project: Tools Hub by Jesse Anderson
+Repository: https://github.com/jesse-anderson/Tools
+License: GPL-3.0 - https://github.com/jesse-anderson/Tools/blob/main/LICENSE
+
+Features:
+- Convert between binary (base-2), octal (base-8), decimal (base-10), and hexadecimal (base-16)
+- Word size simulation: Auto, 16-bit, 32-bit, and 64-bit modes
+- Endianness support: Big Endian (BE) and Little Endian (LE) byte swapping
+- Two's Complement: Negative numbers supported in fixed word size modes
+- Interactive bit visualizer showing LSB with click-to-toggle functionality
+- Quick value buttons for common register maximums (8-bit, 16-bit, 32-bit, 64-bit)
+- Real-time input validation with instant feedback
+- Truncation warnings when values exceed word size limits
+- Copy-to-clipboard functionality for all formats
+
+Last Updated: January 2025
+============================================
+-->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -8,337 +36,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../css/shared.css">
-    <style>
-        /* Shared Tool Styles */
-        .calculator-layout {
-            display: grid;
-            grid-template-columns: 1fr 320px;
-            gap: 24px;
-            min-height: calc(100vh - 300px);
-        }
-
-        .calculator-panel {
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 32px;
-        }
-
-        .panel-header {
-            margin-bottom: 24px;
-            padding-bottom: 20px;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .panel-header h2 { font-size: 1.5rem; margin-bottom: 8px; }
-        .panel-header p { color: var(--text-secondary); font-size: 0.9375rem; }
-
-        /* Architecture Toolbar */
-        .arch-toolbar {
-            display: flex;
-            gap: 24px;
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            padding: 16px;
-            border-radius: 8px;
-            margin-bottom: 24px;
-            flex-wrap: wrap;
-        }
-
-        .control-group {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .control-label {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            color: var(--text-secondary);
-            font-weight: 600;
-        }
-
-        .toggle-group {
-            display: flex;
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            padding: 2px;
-        }
-
-        .toggle-btn {
-            padding: 6px 12px;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.8125rem;
-            border: none;
-            background: transparent;
-            color: var(--text-secondary);
-            cursor: pointer;
-            border-radius: 4px;
-            transition: all 0.2s;
-        }
-
-        .toggle-btn:hover { color: var(--text-primary); }
-        
-        .toggle-btn.active {
-            background: var(--accent-engineering);
-            color: var(--bg-primary);
-            font-weight: 600;
-        }
-
-        .clear-btn {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 16px;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.8125rem;
-            border: 1px solid var(--border-color);
-            background: var(--bg-card);
-            color: var(--text-secondary);
-            cursor: pointer;
-            border-radius: 6px;
-            transition: all 0.2s;
-        }
-
-        .clear-btn:hover {
-            border-color: #ef4444;
-            color: #ef4444;
-        }
-
-        /* Converter Grid */
-        .converter-input-grid {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 20px;
-            margin-bottom: 32px;
-        }
-
-        .base-card {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            border-radius: 10px;
-            padding: 20px;
-            transition: all 0.2s ease;
-        }
-
-        .base-card:focus-within {
-            border-color: var(--accent-engineering);
-            box-shadow: 0 0 0 3px var(--accent-engineering-dim);
-        }
-
-        .base-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 12px;
-        }
-
-        .base-label {
-            font-family: 'Space Grotesk', sans-serif;
-            font-weight: 700;
-            color: var(--text-primary);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .base-badge {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.75rem;
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            padding: 2px 6px;
-            border-radius: 4px;
-            color: var(--text-muted);
-        }
-
-        .base-input-wrapper {
-            display: flex;
-            gap: 12px;
-            align-items: center;
-        }
-
-        .base-input {
-            width: 100%;
-            background: transparent;
-            border: none;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 1.25rem;
-            color: var(--text-primary);
-            outline: none;
-        }
-
-        .base-input::placeholder { color: var(--text-muted); opacity: 0.5; }
-
-        /* Binary uses textarea for wrapping */
-        .base-textarea {
-            width: 100%;
-            background: transparent;
-            border: none;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 1rem;
-            color: var(--text-primary);
-            outline: none;
-            resize: none;
-            line-height: 1.5;
-            min-height: 1.5em;
-            max-height: 6em;
-            overflow-y: auto;
-        }
-
-        .base-textarea::placeholder { color: var(--text-muted); opacity: 0.5; }
-
-        .base-prefix {
-            font-family: 'JetBrains Mono', monospace;
-            color: var(--accent-engineering);
-            flex-shrink: 0;
-        }
-
-        .copy-btn {
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            color: var(--text-muted);
-            width: 36px;
-            height: 36px;
-            border-radius: 6px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: all 0.2s;
-            flex-shrink: 0;
-        }
-
-        .copy-btn:hover {
-            border-color: var(--accent-engineering);
-            color: var(--accent-engineering);
-        }
-
-        /* Error State */
-        .base-card.error {
-            border-color: #ef4444;
-            background: rgba(239, 68, 68, 0.05);
-        }
-
-        /* Sidebar Styles */
-        .sidebar {
-            display: flex;
-            flex-direction: column;
-            gap: 24px;
-        }
-
-        .sidebar-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 20px;
-        }
-
-        .sidebar-card h3 {
-            font-size: 0.875rem;
-            color: var(--text-primary);
-            margin-bottom: 16px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        /* Bit Visualizer */
-        .bit-grid {
-            display: grid;
-            grid-template-columns: repeat(8, 1fr);
-            gap: 4px;
-            margin-bottom: 16px;
-        }
-
-        .bit-box {
-            aspect-ratio: 1;
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.875rem;
-            color: var(--text-muted);
-            transition: all 0.1s;
-        }
-
-        .bit-box:hover { border-color: var(--accent-engineering); }
-        
-        .bit-box.active {
-            background: var(--accent-engineering);
-            border-color: var(--accent-engineering);
-            color: var(--bg-primary);
-            font-weight: 700;
-        }
-
-        .bit-labels {
-            display: flex;
-            justify-content: space-between;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.625rem;
-            color: var(--text-muted);
-            margin-bottom: 8px;
-        }
-
-        /* Quick Values */
-        .quick-list {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px;
-        }
-        
-        .quick-btn {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            padding: 8px;
-            border-radius: 4px;
-            text-align: left;
-            cursor: pointer;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.75rem;
-            color: var(--text-secondary);
-            transition: all 0.2s;
-        }
-
-        .quick-btn:hover {
-            border-color: var(--accent-engineering);
-            color: var(--text-primary);
-        }
-
-        /* Disclaimer Card */
-        .disclaimer-card {
-            background: var(--bg-card);
-            border: 1px solid rgba(239, 68, 68, 0.4);
-            border-left: 4px solid rgba(239, 68, 68, 0.8);
-            border-radius: 8px;
-            padding: 20px;
-            margin-top: 24px;
-        }
-        .disclaimer-title {
-            display: flex; align-items: center; gap: 10px;
-            font-family: 'Space Grotesk', sans-serif; font-weight: 700;
-            color: #ef4444; text-transform: uppercase; letter-spacing: 0.05em;
-            margin-bottom: 12px;
-        }
-        .disclaimer-content { font-size: 0.875rem; color: var(--text-secondary); line-height: 1.6; }
-        .disclaimer-list { margin: 12px 0; padding-left: 20px; }
-        .disclaimer-list li { margin-bottom: 6px; }
-        .disclaimer-footer {
-            margin-top: 16px; font-size: 0.75rem; color: var(--text-muted);
-            border-top: 1px solid var(--border-color); padding-top: 12px;
-            font-family: 'JetBrains Mono', monospace;
-        }
-
-        @media (max-width: 768px) {
-            .calculator-layout { grid-template-columns: 1fr; }
-        }
-    </style>
+    <link rel="stylesheet" href="../css/base_converter/base-converter.css">
 </head>
 <body>
     <div class="container">
@@ -355,13 +53,13 @@
                 </div>
                 <div class="header-right">
                     <div class="theme-toggle">
-                        <button data-theme-toggle="light" aria-pressed="false" title="Light mode">
+                        <button data-theme-toggle="light" aria-pressed="false" aria-label="Switch to light mode" title="Light mode">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <circle cx="12" cy="12" r="5"/>
                                 <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
                             </svg>
                         </button>
-                        <button data-theme-toggle="dark" aria-pressed="false" title="Dark mode">
+                        <button data-theme-toggle="dark" aria-pressed="false" aria-label="Switch to dark mode" title="Dark mode">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
                             </svg>
@@ -386,26 +84,52 @@
                         <p>Type in any field. Use the toolbar below to simulate hardware architecture.</p>
                     </div>
 
+                    <!-- Error Message Banner -->
+                    <div class="error-banner" id="error-banner" role="alert" aria-live="polite">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <line x1="12" y1="8" x2="12" y2="12"/>
+                            <line x1="12" y1="16" x2="12.01" y2="16"/>
+                        </svg>
+                        <div class="error-banner-content">
+                            <div class="error-banner-title">Invalid Input</div>
+                            <div class="error-banner-message" id="error-message"></div>
+                        </div>
+                    </div>
+
+                    <!-- Warning Message Banner -->
+                    <div class="warning-banner" id="warning-banner" role="alert" aria-live="polite">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                            <line x1="12" y1="9" x2="12" y2="13"/>
+                            <line x1="12" y1="17" x2="12.01" y2="17"/>
+                        </svg>
+                        <div class="warning-banner-content">
+                            <div class="warning-banner-title">Value Truncated</div>
+                            <div class="warning-banner-message" id="warning-message"></div>
+                        </div>
+                    </div>
+
                     <div class="arch-toolbar">
                         <div class="control-group">
                             <span class="control-label">Word Size</span>
-                            <div class="toggle-group" id="width-toggles">
-                                <button class="toggle-btn" onclick="setMode('width', 'auto')">Auto</button>
-                                <button class="toggle-btn" onclick="setMode('width', 16)">16-bit</button>
-                                <button class="toggle-btn active" onclick="setMode('width', 32)">32-bit</button>
-                                <button class="toggle-btn" onclick="setMode('width', 64)">64-bit</button>
+                            <div class="toggle-group" id="width-toggles" role="radiogroup" aria-label="Word size selection">
+                                <button class="toggle-btn" data-mode-type="width" data-mode-value="auto" role="radio" aria-checked="false">Auto</button>
+                                <button class="toggle-btn" data-mode-type="width" data-mode-value="16" role="radio" aria-checked="false">16-bit</button>
+                                <button class="toggle-btn active" data-mode-type="width" data-mode-value="32" role="radio" aria-checked="true">32-bit</button>
+                                <button class="toggle-btn" data-mode-type="width" data-mode-value="64" role="radio" aria-checked="false">64-bit</button>
                             </div>
                         </div>
                         <div class="control-group">
                             <span class="control-label">Endianness</span>
-                            <div class="toggle-group" id="endian-toggles">
-                                <button class="toggle-btn active" onclick="setMode('endian', 'BE')">Big Endian (BE)</button>
-                                <button class="toggle-btn" onclick="setMode('endian', 'LE')">Little Endian (LE)</button>
+                            <div class="toggle-group" id="endian-toggles" role="radiogroup" aria-label="Endianness selection">
+                                <button class="toggle-btn active" data-mode-type="endian" data-mode-value="BE" role="radio" aria-checked="true">Big Endian (BE)</button>
+                                <button class="toggle-btn" data-mode-type="endian" data-mode-value="LE" role="radio" aria-checked="false">Little Endian (LE)</button>
                             </div>
                         </div>
                         <div class="control-group" style="margin-left: auto;">
                             <span class="control-label">&nbsp;</span>
-                            <button class="clear-btn" onclick="clearAll()">
+                            <button class="clear-btn" id="clear-btn" aria-label="Clear all input fields">
                                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
                                 </svg>
@@ -422,7 +146,7 @@
                             </div>
                             <div class="base-input-wrapper">
                                 <input type="text" class="base-input" id="input-dec" placeholder="0" spellcheck="false" autocomplete="off">
-                                <button class="copy-btn" onclick="copyValue('input-dec')" title="Copy">
+                                <button class="copy-btn" data-copy-target="input-dec" aria-label="Copy decimal value" title="Copy">
                                     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
                                         <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
                                         <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
@@ -438,7 +162,7 @@
                             <div class="base-input-wrapper">
                                 <span class="base-prefix">0x</span>
                                 <input type="text" class="base-input" id="input-hex" placeholder="00 00 00 00" spellcheck="false" autocomplete="off">
-                                <button class="copy-btn" onclick="copyValue('input-hex')" title="Copy">
+                                <button class="copy-btn" data-copy-target="input-hex" aria-label="Copy hexadecimal value" title="Copy">
                                     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
                                         <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
                                         <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
@@ -454,7 +178,7 @@
                             <div class="base-input-wrapper">
                                 <span class="base-prefix">0o</span>
                                 <input type="text" class="base-input" id="input-oct" placeholder="0" spellcheck="false" autocomplete="off">
-                                <button class="copy-btn" onclick="copyValue('input-oct')" title="Copy">
+                                <button class="copy-btn" data-copy-target="input-oct" aria-label="Copy octal value" title="Copy">
                                     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
                                         <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
                                         <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
@@ -470,7 +194,7 @@
                             <div class="base-input-wrapper">
                                 <span class="base-prefix">0b</span>
                                 <textarea class="base-textarea" id="input-bin" placeholder="00000000 00000000 00000000 00000000" spellcheck="false" autocomplete="off" rows="1"></textarea>
-                                <button class="copy-btn" onclick="copyValue('input-bin')" title="Copy">
+                                <button class="copy-btn" data-copy-target="input-bin" aria-label="Copy binary value" title="Copy">
                                     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
                                         <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
                                         <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
@@ -494,7 +218,7 @@
                             <p style="margin-bottom: 8px;"><strong>Hardware Simulation.</strong> When "Little Endian" is active, Hex and Binary fields display the byte-swapped memory representation.</p>
                             <ul class="disclaimer-list">
                                 <li><strong>Word Size:</strong> Endian swapping requires a fixed word size (e.g. 32-bit). In "Auto" mode, Endianness is ignored (defaults to Big Endian).</li>
-                                <li><strong>Signedness:</strong> This tool treats all inputs as Unsigned Integers. Negative inputs will be parsed as positive magnitudes.</li>
+                                <li><strong>Signedness:</strong> Negative numbers are supported via Two's Complement when using a fixed word size (16/32/64-bit). In "Auto" mode, only positive values are supported.</li>
                                 <li><strong>Truncation:</strong> Inputting a value larger than the selected Word Size will result in high-byte truncation.</li>
                                 <li><strong>Octal:</strong> Octal representation is not affected by endianness (it represents the abstract value, like Decimal).</li>
                             </ul>
@@ -538,16 +262,16 @@
                             Register Max Values
                         </h3>
                         <div class="quick-list">
-                            <button class="quick-btn" onclick="setDecimal(255)">
+                            <button class="quick-btn" data-quick-value="255" aria-label="Set decimal to 255 (8-bit maximum)">
                                 <strong>8-bit</strong><br>255
                             </button>
-                            <button class="quick-btn" onclick="setDecimal(65535)">
+                            <button class="quick-btn" data-quick-value="65535" aria-label="Set decimal to 65535 (16-bit maximum)">
                                 <strong>16-bit</strong><br>65,535
                             </button>
-                            <button class="quick-btn" onclick="setDecimal(4294967295)">
+                            <button class="quick-btn" data-quick-value="4294967295" aria-label="Set decimal to 4294967295 (32-bit maximum)">
                                 <strong>32-bit</strong><br>4.29 Billion
                             </button>
-                            <button class="quick-btn" onclick="setDecimal(BigInt('18446744073709551615'))">
+                            <button class="quick-btn" data-quick-value="18446744073709551615" data-quick-bigint="true" aria-label="Set decimal to 18446744073709551615 (64-bit unsigned maximum)">
                                 <strong>64-bit</strong><br>Max Uint64
                             </button>
                         </div>
@@ -559,422 +283,8 @@
         <footer data-footer></footer>
     </div>
 
-    <script src="../js/shared.js"></script>
-    <script src="../js/footer.js"></script>
-    <script>
-        // ============================================
-        // Base Converter Logic (Endian Aware)
-        // ============================================
-
-        const state = {
-            width: 32, // 'auto', 16, 32, 64
-            endian: 'BE' // 'BE', 'LE'
-        };
-
-        const inputs = {
-            dec: document.getElementById('input-dec'),
-            hex: document.getElementById('input-hex'),
-            oct: document.getElementById('input-oct'),
-            bin: document.getElementById('input-bin')
-        };
-        const bitGrid = document.getElementById('bit-grid');
-
-        // Initialize
-        function init() {
-            // Generate Bits
-            for (let i = 7; i >= 0; i--) {
-                const bit = document.createElement('div');
-                bit.className = 'bit-box';
-                bit.dataset.index = i;
-                bit.textContent = '0';
-                bit.onclick = () => toggleBit(i);
-                bitGrid.appendChild(bit);
-            }
-
-            // Bind Inputs with validation regex
-            bindInput('dec', /[^0-9]/g);
-            bindInput('hex', /[^0-9A-Fa-f\s]/g);
-            bindInput('oct', /[^0-7]/g);
-            bindInput('bin', /[^0-1\s]/g);
-
-            // Auto-resize binary textarea on input
-            inputs.bin.addEventListener('input', () => autoResizeTextarea(inputs.bin));
-
-            updateModeUI();
-        }
-
-        function setMode(type, val) {
-            state[type] = val;
-            updateModeUI();
-            
-            // Re-evaluate current decimal value in new mode
-            let currentDec = inputs.dec.value.replace(/[^0-9]/g, '');
-            if (currentDec) {
-                try {
-                    let bigVal = BigInt(currentDec);
-                    // Apply mask for new width
-                    if (state.width !== 'auto') {
-                        const mask = (1n << BigInt(state.width)) - 1n;
-                        bigVal = bigVal & mask;
-                    }
-                    updateAll(bigVal, null);
-                } catch(e) {}
-            }
-        }
-
-        function updateModeUI() {
-            // Update width buttons
-            const widthToggles = document.getElementById('width-toggles');
-            Array.from(widthToggles.children).forEach(btn => {
-                const txt = btn.textContent.toLowerCase();
-                const isActive = (
-                    (state.width === 'auto' && txt.includes('auto')) ||
-                    (state.width === 16 && txt.includes('16')) ||
-                    (state.width === 32 && txt.includes('32')) ||
-                    (state.width === 64 && txt.includes('64'))
-                );
-                btn.classList.toggle('active', isActive);
-            });
-
-            // Update endian buttons
-            const endianToggles = document.getElementById('endian-toggles');
-            const beBtn = endianToggles.children[0];
-            const leBtn = endianToggles.children[1];
-
-            // Disable LE if Auto is selected (doesn't make sense)
-            if (state.width === 'auto') {
-                state.endian = 'BE';
-                beBtn.classList.add('active');
-                leBtn.classList.remove('active');
-                leBtn.disabled = true;
-                leBtn.style.opacity = '0.5';
-                leBtn.style.cursor = 'not-allowed';
-            } else {
-                leBtn.disabled = false;
-                leBtn.style.opacity = '1';
-                leBtn.style.cursor = 'pointer';
-                beBtn.classList.toggle('active', state.endian === 'BE');
-                leBtn.classList.toggle('active', state.endian === 'LE');
-            }
-        }
-
-        function bindInput(type, invalidRegex) {
-            inputs[type].addEventListener('input', (e) => {
-                let val = e.target.value;
-                
-                // Remove invalid chars (always replace; don't use .test() with /g regex)
-                val = val.replace(invalidRegex, '');
-                if (val !== e.target.value) e.target.value = val;
-                
-                const cleanVal = val.replace(/\s/g, ''); // Remove spaces for parsing
-                if (cleanVal === '') {
-                    clearAll(type);
-                    return;
-                }
-
-                try {
-                    let bigIntVal;
-                    
-                    if (type === 'dec') {
-                        // Decimal is always the abstract value
-                        bigIntVal = BigInt(cleanVal);
-                    } else if (type === 'oct') {
-                        // Octal is always the abstract value (not byte-swapped)
-                        bigIntVal = BigInt('0o' + cleanVal);
-                    } else if (type === 'hex') {
-                        // Hex represents BYTES. If LE, we must swap them to get Value.
-                        bigIntVal = parseHexWithEndian(cleanVal);
-                    } else if (type === 'bin') {
-                        // Binary represents BYTES (like hex). If LE, swap bytes.
-                        bigIntVal = parseBinWithEndian(cleanVal);
-                    }
-
-                    // Mask to width
-                    if (state.width !== 'auto') {
-                        const mask = (1n << BigInt(state.width)) - 1n;
-                        bigIntVal = bigIntVal & mask;
-                    }
-
-                    updateAll(bigIntVal, type);
-                } catch (err) {
-                    console.log('Parse error:', err);
-                }
-            });
-        }
-
-        function parseHexWithEndian(hexStr) {
-            // hexStr comes in with no spaces (caller does .replace(/\s/g,''))
-            if (hexStr.length === 0) return 0n;
-
-            // Normalize to whole bytes
-            if (hexStr.length % 2 !== 0) hexStr = '0' + hexStr;
-
-            // Split into bytes in the order the user typed (display order)
-            let bytes = [];
-            for (let i = 0; i < hexStr.length; i += 2) {
-                bytes.push(hexStr.slice(i, i + 2));
-            }
-
-            // If fixed width: pad/truncate as BYTES in the input's byte order
-            if (state.width !== 'auto') {
-                const byteCount = state.width / 8;
-
-                if (bytes.length > byteCount) {
-                    // Truncation:
-                    // - BE display order: keep least-significant bytes => keep last
-                    // - LE memory order: keep lowest-address bytes (LSB side) => keep first
-                    bytes = (state.endian === 'LE')
-                        ? bytes.slice(0, byteCount)
-                        : bytes.slice(-byteCount);
-                } else if (bytes.length < byteCount) {
-                    const pad = new Array(byteCount - bytes.length).fill('00');
-
-                    // Padding:
-                    // - BE display order: pad high bytes at the front
-                    // - LE memory order: pad high-address bytes at the end
-                    bytes = (state.endian === 'LE')
-                        ? bytes.concat(pad)
-                        : pad.concat(bytes);
-                }
-
-                // Convert from memory order (LE) to abstract big-endian byte order
-                if (state.endian === 'LE') {
-                    bytes = bytes.slice().reverse();
-                }
-            }
-
-            return BigInt('0x' + bytes.join(''));
-        }
-
-        function parseBinWithEndian(binStr) {
-            // binStr comes in with no spaces (caller does .replace(/\s/g,''))
-            if (binStr.length === 0) return 0n;
-
-            // Normalize to whole bytes
-            const remainder = binStr.length % 8;
-            if (remainder !== 0) {
-                binStr = '0'.repeat(8 - remainder) + binStr;
-            }
-
-            // Split into bytes in the order the user typed (display order)
-            let bytes = [];
-            for (let i = 0; i < binStr.length; i += 8) {
-                bytes.push(binStr.slice(i, i + 8));
-            }
-
-            // If fixed width: pad/truncate as BYTES in the input's byte order
-            if (state.width !== 'auto') {
-                const byteCount = state.width / 8;
-
-                if (bytes.length > byteCount) {
-                    // Truncation:
-                    // - BE display order: keep least-significant bytes => keep last
-                    // - LE memory order: keep lowest-address bytes (LSB side) => keep first
-                    bytes = (state.endian === 'LE')
-                        ? bytes.slice(0, byteCount)
-                        : bytes.slice(-byteCount);
-                } else if (bytes.length < byteCount) {
-                    const pad = new Array(byteCount - bytes.length).fill('00000000');
-
-                    // Padding:
-                    // - BE display order: pad high bytes at the front
-                    // - LE memory order: pad high-address bytes at the end
-                    bytes = (state.endian === 'LE')
-                        ? bytes.concat(pad)
-                        : pad.concat(bytes);
-                }
-
-                // Convert from memory order (LE) to abstract big-endian byte order
-                if (state.endian === 'LE') {
-                    bytes = bytes.slice().reverse();
-                }
-            }
-
-            return BigInt('0b' + bytes.join(''));
-        }
-
-        function updateAll(value, skipType) {
-            // Value is the ABSTRACT numeric value (Big Endian interpretation)
-            
-            // 1. Update Decimal (Always abstract value)
-            if (skipType !== 'dec') {
-                inputs.dec.value = value.toString(10);
-            }
-
-            // 2. Update Octal (Always abstract value, not byte-swapped)
-            if (skipType !== 'oct') {
-                inputs.oct.value = value.toString(8);
-            }
-
-            // 3. Prepare Hex string
-            let hexStr = value.toString(16).toUpperCase();
-            if (hexStr.length % 2 !== 0) hexStr = '0' + hexStr;
-
-            // Pad to width if fixed
-            if (state.width !== 'auto') {
-                const targetHexChars = state.width / 4;
-                hexStr = hexStr.padStart(targetHexChars, '0');
-            }
-
-            // 4. Prepare Binary string
-            let binStr = value.toString(2);
-            
-            // Pad to width if fixed
-            if (state.width !== 'auto') {
-                binStr = binStr.padStart(state.width, '0');
-            } else {
-                // Pad to full bytes in auto mode
-                const remainder = binStr.length % 8;
-                if (remainder !== 0) {
-                    binStr = '0'.repeat(8 - remainder) + binStr;
-                }
-            }
-
-            // 5. Apply endian swap for display if LE
-            let displayHex = hexStr;
-            let displayBin = binStr;
-            
-            if (state.endian === 'LE' && state.width !== 'auto') {
-                displayHex = reverseHexBytes(hexStr, state.width / 8);
-                displayBin = reverseBinBytes(binStr, state.width / 8);
-            }
-
-            // 6. Update fields with formatted display
-            if (skipType !== 'hex') {
-                inputs.hex.value = formatHex(displayHex);
-            }
-
-            if (skipType !== 'bin') {
-                inputs.bin.value = formatBin(displayBin);
-                autoResizeTextarea(inputs.bin);
-            }
-
-            updateBits(value);
-        }
-
-        function reverseHexBytes(hex, byteCount) {
-            // Ensure full length for swapping
-            const targetLength = byteCount * 2;
-            const padded = hex.padStart(targetLength, '0').slice(-targetLength);
-            
-            const bytes = [];
-            for (let i = 0; i < padded.length; i += 2) {
-                bytes.push(padded.substr(i, 2));
-            }
-            return bytes.reverse().join('');
-        }
-
-        function reverseBinBytes(bin, byteCount) {
-            // Ensure full length for swapping
-            const targetLength = byteCount * 8;
-            const padded = bin.padStart(targetLength, '0').slice(-targetLength);
-            
-            const bytes = [];
-            for (let i = 0; i < padded.length; i += 8) {
-                bytes.push(padded.substr(i, 8));
-            }
-            return bytes.reverse().join('');
-        }
-
-        function formatHex(hex) {
-            // Add space every 2 chars (byte separation)
-            return hex.replace(/(.{2})/g, '$1 ').trim();
-        }
-
-        function formatBin(bin) {
-            // Add space every 8 chars (byte separation)
-            return bin.replace(/(.{8})/g, '$1 ').trim();
-        }
-
-        function autoResizeTextarea(textarea) {
-            textarea.style.height = 'auto';
-            textarea.style.height = Math.min(textarea.scrollHeight, 144) + 'px'; // max 6em ~~ 144px
-        }
-
-        function updateBits(value) {
-            // Always visualize the LSB of the abstract VALUE
-            const lowByte = Number(value & 0xFFn);
-            const bits = bitGrid.children;
-            for (let i = 0; i < 8; i++) {
-                const domBit = bits[i];
-                const bitIndex = parseInt(domBit.dataset.index);
-                const isActive = (lowByte >> bitIndex) & 1;
-                
-                if (isActive) {
-                    domBit.classList.add('active');
-                    domBit.textContent = '1';
-                } else {
-                    domBit.classList.remove('active');
-                    domBit.textContent = '0';
-                }
-            }
-        }
-
-        function toggleBit(index) {
-            let currentVal = inputs.dec.value === '' ? 0n : BigInt(inputs.dec.value);
-            const mask = 1n << BigInt(index);
-            
-            if ((currentVal & mask) !== 0n) {
-                currentVal = currentVal & ~mask;
-            } else {
-                currentVal = currentVal | mask;
-            }
-            
-            if (state.width !== 'auto') {
-                const widthMask = (1n << BigInt(state.width)) - 1n;
-                currentVal = currentVal & widthMask;
-            }
-
-            updateAll(currentVal, null);
-        }
-
-        function setDecimal(val) {
-            let bigVal = BigInt(val);
-            
-            // Apply mask for current width
-            if (state.width !== 'auto') {
-                const mask = (1n << BigInt(state.width)) - 1n;
-                bigVal = bigVal & mask;
-            }
-            
-            updateAll(bigVal, null);
-        }
-
-        function clearAll(skipType = null) {
-            if (skipType !== 'dec') inputs.dec.value = '';
-            if (skipType !== 'hex') inputs.hex.value = '';
-            if (skipType !== 'oct') inputs.oct.value = '';
-            if (skipType !== 'bin') {
-                inputs.bin.value = '';
-                autoResizeTextarea(inputs.bin);
-            }
-            
-            Array.from(bitGrid.children).forEach(b => {
-                b.classList.remove('active');
-                b.textContent = '0';
-            });
-        }
-
-        function copyValue(id) {
-            const input = document.getElementById(id);
-            if (input.value) {
-                // Remove spaces for copy
-                const clean = input.value.replace(/\s/g, '');
-                navigator.clipboard.writeText(clean);
-                
-                // Visual feedback
-                const btn = input.parentElement.querySelector('.copy-btn');
-                const originalColor = btn.style.borderColor;
-                btn.style.borderColor = 'var(--accent-engineering)';
-                btn.style.color = 'var(--accent-engineering)';
-                setTimeout(() => {
-                    btn.style.borderColor = originalColor;
-                    btn.style.color = '';
-                }, 200);
-            }
-        }
-
-        init();
-    </script>
+    <script type="module" src="../js/shared.js"></script>
+    <script type="module" src="../js/footer.js"></script>
+    <script type="module" src="../js/base_converter/base-converter.js"></script>
 </body>
 </html>
