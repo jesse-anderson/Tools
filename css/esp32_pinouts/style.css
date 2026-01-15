@@ -365,22 +365,26 @@
     text-decoration: none;
 }
 
-/* Modal */
-.modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
+/* Modal - use body selector to override shared.css .modal (card) styles */
+body > .modal {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: auto !important;
+    max-width: none !important;
     background: rgba(0,0,0,0.55);
     display: none;
     align-items: center;
     justify-content: center;
     padding: var(--esp-space-7);
     z-index: var(--esp-z-modal);
+    border: none !important;
+    border-radius: 0 !important;
 }
 
-.modal.open {
+body > .modal.open {
     display: flex;
 }
 
