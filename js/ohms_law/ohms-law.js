@@ -369,7 +369,9 @@ function performCalculation(editedParam) {
         power: getStateValue('power')
     };
 
-    const knownParams = Object.entries(known).filter(([k, v]) => v !== null);
+    const knownParams = Object.entries(known).filter(([k, v]) =>
+        v !== null && v !== INVALID
+    );
 
     // Clear calculated styling
     document.querySelectorAll('.input-card').forEach(card => {
