@@ -1,0 +1,30 @@
+/* tslint:disable */
+/* eslint-disable */
+export const memory: WebAssembly.Memory;
+export const anderson_darling_test: (a: number, b: number, c: number, d: number) => [number, number];
+export const breusch_pagan_test: (a: number, b: number, c: number, d: number) => [number, number];
+export const cooks_distance_test: (a: number, b: number, c: number, d: number) => [number, number];
+export const durbin_watson_test: (a: number, b: number, c: number, d: number) => [number, number];
+export const get_version: () => [number, number];
+export const harvey_collier_test: (a: number, b: number, c: number, d: number) => [number, number];
+export const jarque_bera_test: (a: number, b: number, c: number, d: number) => [number, number];
+export const ols_regression: (a: number, b: number, c: number, d: number, e: number, f: number) => [number, number];
+export const parse_csv: (a: number, b: number) => [number, number];
+export const python_white_test: (a: number, b: number, c: number, d: number) => [number, number];
+export const r_white_test: (a: number, b: number, c: number, d: number) => [number, number];
+export const rainbow_test: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => [number, number];
+export const shapiro_wilk_test: (a: number, b: number, c: number, d: number) => [number, number];
+export const test: () => [number, number];
+export const test_ci: (a: number, b: number, c: number, d: number) => [number, number];
+export const test_housing_regression: () => [number, number];
+export const test_r_accuracy: () => [number, number];
+export const test_t_critical: (a: number, b: number) => [number, number];
+export const white_test: (a: number, b: number, c: number, d: number, e: number, f: number) => [number, number];
+export const get_t_critical: (a: number, b: number) => number;
+export const get_t_cdf: (a: number, b: number) => number;
+export const get_normal_inverse: (a: number) => number;
+export const __wbindgen_externrefs: WebAssembly.Table;
+export const __wbindgen_free: (a: number, b: number, c: number) => void;
+export const __wbindgen_malloc: (a: number, b: number) => number;
+export const __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;
+export const __wbindgen_start: () => void;

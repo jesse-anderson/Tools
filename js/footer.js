@@ -85,7 +85,7 @@ const Footer = {
 
         return `
             <div class="footer-content">
-                <p class="footer-text">© ${year} Tools Hub${authorText}${taglineText}</p>
+                <p class="footer-text">© 2025-${year} Tools Hub${authorText}${taglineText}</p>
                 ${linksHTML}
             </div>
         `;
@@ -103,7 +103,7 @@ const Footer = {
         if (textEl) {
             const authorText = config.author ? ` by ${config.author}` : '';
             const taglineText = config.tagline ? ` — ${config.tagline}` : '';
-            textEl.textContent = `© ${year} Tools Hub${authorText}${taglineText}`;
+            textEl.textContent = `© 2025-${year} Tools Hub${authorText}${taglineText}`;
         }
 
         // Update links if needed

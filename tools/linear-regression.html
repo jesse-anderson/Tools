@@ -18,7 +18,7 @@
     <div class="container">
         <header>
             <div class="header-content">
-                <div class="header-left">
+                 <div class="header-left">
                     <a href="../tools.html" class="back-link">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M19 12H5M12 19l-7-7 7-7"/>
@@ -290,6 +290,24 @@ X1,X2,Y
                         </p>
                     </div>
 
+                    <!-- Diagnostics Panel (Linearity Tests) -->
+                    <div style="margin-top: 24px;">
+                        <div class="section-header">
+                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 8px;">
+                                <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+                            </svg>
+                            <span>Diagnostic Tests</span>
+                        </div>
+                        <p style="font-size: 0.8rem; color: var(--text-muted); margin: 4px 0 12px;">
+                            Tests for regression assumptions (linearity, homoscedasticity, normality, etc.)
+                        </p>
+                        <div id="diagnosticsResults">
+                            <div class="diagnostics-empty">
+                                <p style="color: var(--text-muted); font-size: 0.875rem;">Run regression to see diagnostic test results</p>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="collapsible-header" id="residualsToggle" aria-expanded="true" role="button" tabindex="0">
                         <span class="title">Residuals Table</span>
                         <svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
@@ -316,6 +334,14 @@ X1,X2,Y
                     </div>
 
                     <div class="export-buttons">
+                        <button class="tool-btn" id="exportRawDataBtn" style="display: none;">
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                <polyline points="7 10 12 15 17 10"/>
+                                <line x1="12" y1="15" x2="12" y2="3"/>
+                            </svg>
+                            Export Raw Data (CSV)
+                        </button>
                         <button class="tool-btn" id="exportPngBtn">
                             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
@@ -496,12 +522,8 @@ X1,X2,Y
                                 <span>© SheetJS LLC</span>
                             </li>
                             <li>
-                                <a href="https://nalgebra.org/" target="_blank" rel="noopener">nalgebra</a> — Apache 2.0 License
-                                <span>Rust linear algebra library</span>
-                            </li>
-                            <li>
-                                <a href="https://github.com/statrs-dev/statrs" target="_blank" rel="noopener">statrs</a> — MIT License
-                                <span>Rust statistical computation library</span>
+                                <a href="https://github.com/jesse-anderson/linreg-core" target="_blank" rel="noopener">linreg-core</a> — MIT OR Apache-2.0
+                                <span>© Jesse Anderson - Custom Rust WASM OLS regression engine</span>
                             </li>
                         </ul>
                     </div>
@@ -515,9 +537,6 @@ X1,X2,Y
 
     <!-- Toast Container -->
     <div class="toast-container" id="toastContainer"></div>
-
-    <script type="module" src="../js/shared.js"></script>
-    <script type="module" src="../js/footer.js"></script>
 
     <!-- Sheet Selector Modal -->
     <div class="modal-overlay" id="sheetModal">
@@ -547,7 +566,7 @@ X1,X2,Y
         </div>
     </div>
 
-    <script src="../js/shared.js"></script>
+    <script src="../js/footer.js"></script>
     <script type="module" src="../js/linear_regression/logic.js"></script>
 </body>
 </html>
