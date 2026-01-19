@@ -13,6 +13,15 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <!-- SheetJS for Excel import -->
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+
+    <!-- Import Map for ES Module Resolution -->
+    <script type="importmap">
+    {
+        "imports": {
+            "@linreg/": "../js/linear_regression/"
+        }
+    }
+    </script>
 </head>
 <body>
     <div class="container">
@@ -567,6 +576,6 @@ X1,X2,Y
     </div>
 
     <script src="../js/footer.js"></script>
-    <script  src="../js/linear_regression/logic.js"></script>
+    <script type="module" src="../js/linear_regression/logic.js" crossorigin="anonymous"></script>
 </body>
 </html>
