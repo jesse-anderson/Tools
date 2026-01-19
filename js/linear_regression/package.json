@@ -1,15 +1,32 @@
 {
-  "name": "linear_regression_wasm",
+  "name": "linreg-core",
   "type": "module",
-  "version": "0.1.0",
-  "files": [
-    "linear_regression_wasm_bg.wasm",
-    "linear_regression_wasm.js",
-    "linear_regression_wasm.d.ts"
+  "collaborators": [
+    "Jesse Anderson"
   ],
-  "main": "linear_regression_wasm.js",
-  "types": "linear_regression_wasm.d.ts",
+  "description": "Lightweight OLS linear regression with diagnostic tests. Custom implementations of linear algebra and statistical distributions - no external math dependencies.",
+  "version": "0.1.0",
+  "license": "MIT OR Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jesse-anderson/linreg-core"
+  },
+  "files": [
+    "linreg_core_bg.wasm",
+    "linreg_core.js",
+    "linreg_core.d.ts"
+  ],
+  "main": "linreg_core.js",
+  "homepage": "https://jesse-anderson.net",
+  "types": "linreg_core.d.ts",
   "sideEffects": [
     "./snippets/*"
+  ],
+  "keywords": [
+    "statistics",
+    "regression",
+    "ols",
+    "linear-regression",
+    "diagnostics"
   ]
 }

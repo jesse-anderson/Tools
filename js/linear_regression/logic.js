@@ -1,10 +1,27 @@
-import init, { ols_regression, test, get_t_critical, get_normal_inverse, parse_csv } from './linear_regression_wasm.js';
+import init, {
+    ols_regression,
+    rainbow_test,
+    white_test,
+    harvey_collier_test,
+    breusch_pagan_test,
+    jarque_bera_test,
+    durbin_watson_test,
+    shapiro_wilk_test,
+    anderson_darling_test,
+    cooks_distance_test,
+    test,
+    get_t_critical,
+    get_normal_inverse,
+    parse_csv
+} from '@linreg/linreg_core.js';
 
 // Security Check
 const ALLOWED_DOMAINS = [
     'jesse-anderson.net',
     'tools.jesse-anderson.net',
-    'linear-regression.jesse-anderson.net'
+    'linear-regression.jesse-anderson.net',
+    'localhost',
+    '127.0.0.1'
 ];
 
 if (!ALLOWED_DOMAINS.includes(window.location.hostname)) {
@@ -28,6 +45,72 @@ if (!ALLOWED_DOMAINS.includes(window.location.hostname)) {
     `;
     throw new Error(`Unauthorized domain: ${window.location.hostname}`);
 }
+
+// Theme Management
+const ThemeManager = {
+    init() {
+        const savedTheme = localStorage.getItem('linregTheme');
+        const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+        if (savedTheme) {
+            this.setTheme(savedTheme);
+        } else if (systemPrefersDark) {
+            this.setTheme('dark');
+        } else {
+            this.setTheme('dark');
+        }
+
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+            if (!localStorage.getItem('linregTheme')) {
+                this.setTheme(e.matches ? 'dark' : 'light');
+            }
+        });
+
+        this.setupToggleButtons();
+    },
+
+    setTheme(theme) {
+        document.documentElement.setAttribute('data-theme', theme);
+        localStorage.setItem('linregTheme', theme);
+        this.updateToggleButtons(theme);
+    },
+
+    getTheme() {
+        return document.documentElement.getAttribute('data-theme') || 'dark';
+    },
+
+    toggle() {
+        const current = this.getTheme();
+        this.setTheme(current === 'dark' ? 'light' : 'dark');
+    },
+
+    setupToggleButtons() {
+        document.querySelectorAll('[data-theme-toggle]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const theme = btn.dataset.themeToggle;
+                if (theme === 'toggle') {
+                    this.toggle();
+                } else {
+                    this.setTheme(theme);
+                }
+            });
+        });
+    },
+
+    updateToggleButtons(theme) {
+        document.querySelectorAll('[data-theme-toggle]').forEach(btn => {
+            const btnTheme = btn.dataset.themeToggle;
+            if (btnTheme === 'dark' || btnTheme === 'light') {
+                const isActive = btnTheme === theme;
+                btn.classList.toggle('active', isActive);
+                btn.setAttribute('aria-pressed', isActive.toString());
+            }
+        });
+    }
+};
+
+// Initialize theme
+ThemeManager.init();
 
 // Initialize WASM and expose to global scope
 let wasmReady = false;
@@ -62,12 +145,58 @@ window.WasmRegression = {
         const namesJson = JSON.stringify(names);
         return ols_regression(yJson, xJson, namesJson);
     },
-    parseCsv: (content) => parse_csv(content)
+    parseCsv: (content) => parse_csv(content),
+    // Diagnostic tests - each callable independently
+    rainbowTest: (y, xVars, fraction = 0.5, method = 'r') => {
+        const yJson = JSON.stringify(y);
+        const xJson = JSON.stringify(xVars);
+        return rainbow_test(yJson, xJson, fraction, method);
+    },
+    whiteTest: (y, xVars, method = 'r') => {
+        const yJson = JSON.stringify(y);
+        const xJson = JSON.stringify(xVars);
+        return white_test(yJson, xJson, method);
+    },
+    harveyCollierTest: (y, xVars) => {
+        const yJson = JSON.stringify(y);
+        const xJson = JSON.stringify(xVars);
+        return harvey_collier_test(yJson, xJson);
+    },
+    breuschPaganTest: (y, xVars) => {
+        const yJson = JSON.stringify(y);
+        const xJson = JSON.stringify(xVars);
+        return breusch_pagan_test(yJson, xJson);
+    },
+    jarqueBeraTest: (y, xVars) => {
+        const yJson = JSON.stringify(y);
+        const xJson = JSON.stringify(xVars);
+        return jarque_bera_test(yJson, xJson);
+    },
+    durbinWatsonTest: (y, xVars) => {
+        const yJson = JSON.stringify(y);
+        const xJson = JSON.stringify(xVars);
+        return durbin_watson_test(yJson, xJson);
+    },
+    shapiroWilkTest: (y, xVars) => {
+        const yJson = JSON.stringify(y);
+        const xJson = JSON.stringify(xVars);
+        return shapiro_wilk_test(yJson, xJson);
+    },
+    andersonDarlingTest: (y, xVars) => {
+        const yJson = JSON.stringify(y);
+        const xJson = JSON.stringify(xVars);
+        return anderson_darling_test(yJson, xJson);
+    },
+    cooksDistanceTest: (y, xVars) => {
+        const yJson = JSON.stringify(y);
+        const xJson = JSON.stringify(xVars);
+        return cooks_distance_test(yJson, xJson);
+    }
 };
 
-// ============================================ 
+// ============================================
 // STATE MANAGEMENT
-// ============================================ 
+// ============================================
 const STATE = {
     rawData: [],           // Array of row objects
     headers: [],           // Column names
@@ -75,6 +204,7 @@ const STATE = {
     yVariable: null,       // Selected Y variable
     xVariables: [],        // Selected X variables (array)
     regressionResults: null,
+    diagnostics: null,     // Diagnostic test results
     charts: {
         main: null,
         residuals: null,
@@ -231,7 +361,248 @@ async function calculateRegression(yVar, xVars) {
     };
 }
 
-// ============================================ 
+// ============================================
+// DIAGNOSTIC TESTS
+// ============================================
+
+/**
+ * Run all diagnostic tests for regression assumptions
+ * @param {Array} yData - Response variable data
+ * @param {Array} xData - Predictor variables data (array of arrays)
+ * @param {string} rainbowMethod - Rainbow test method: 'r', 'python', or 'both' (default: 'r')
+ * @param {string} whiteMethod - White test method: 'r', 'python', or 'both' (default: 'r')
+ * @returns {Object} Diagnostic test results
+ */
+async function runDiagnostics(yData, xData, rainbowMethod = 'r', whiteMethod = 'r') {
+    if (!window.WasmRegression || !window.WasmRegression.isReady()) {
+        throw new Error('WASM module is not ready for diagnostics');
+    }
+
+    const diagnostics = {
+        linearity: [],
+        heteroscedasticity: [],
+        normality: [],
+        autocorrelation: [],
+        influence: []
+    };
+
+    // Rainbow Test for Linearity
+    try {
+        const rainbowJson = window.WasmRegression.rainbowTest(yData, xData, 0.5, rainbowMethod);
+        const rainbowResult = JSON.parse(rainbowJson);
+        if (!rainbowResult.error) {
+            // Handle new format with r_result and python_result
+            const method = rainbowMethod.toLowerCase();
+            let testResult;
+
+            if (method === 'both' && rainbowResult.r_result && rainbowResult.python_result) {
+                // For 'both', show both results in the display
+                testResult = {
+                    name: 'Rainbow Test (R & Python)',
+                    shortName: 'Rainbow',
+                    test_name: rainbowResult.test_name,
+                    r_result: rainbowResult.r_result,
+                    python_result: rainbowResult.python_result,
+                    interpretation: rainbowResult.interpretation,
+                    guidance: rainbowResult.guidance,
+                    is_passed: rainbowResult.r_result.is_passed || rainbowResult.python_result.is_passed
+                };
+            } else if (rainbowResult.r_result) {
+                // R result (default)
+                testResult = {
+                    name: 'Rainbow Test (R)',
+                    shortName: 'Rainbow',
+                    statistic: rainbowResult.r_result.statistic,
+                    p_value: rainbowResult.r_result.p_value,
+                    is_passed: rainbowResult.r_result.is_passed,
+                    interpretation: rainbowResult.interpretation,
+                    guidance: rainbowResult.guidance
+                };
+            } else if (rainbowResult.python_result) {
+                // Python result
+                testResult = {
+                    name: 'Rainbow Test (Python)',
+                    shortName: 'Rainbow',
+                    statistic: rainbowResult.python_result.statistic,
+                    p_value: rainbowResult.python_result.p_value,
+                    is_passed: rainbowResult.python_result.is_passed,
+                    interpretation: rainbowResult.interpretation,
+                    guidance: rainbowResult.guidance
+                };
+            } else {
+                // Legacy format (fallback)
+                testResult = rainbowResult;
+            }
+
+            diagnostics.linearity.push(testResult);
+        }
+    } catch (e) {
+        console.warn('Rainbow test failed:', e);
+    }
+
+    // Harvey-Collier Test for Linearity
+    try {
+        const hcJson = window.WasmRegression.harveyCollierTest(yData, xData);
+        const hcResult = JSON.parse(hcJson);
+        if (!hcResult.error) {
+            diagnostics.linearity.push({
+                name: 'Harvey-Collier Test',
+                shortName: 'Harvey-Collier',
+                ...hcResult
+            });
+        }
+    } catch (e) {
+        console.warn('Harvey-Collier test failed:', e);
+    }
+
+    // White Test for Heteroscedasticity
+    try {
+        const whiteJson = window.WasmRegression.whiteTest(yData, xData, whiteMethod);
+        const whiteResult = JSON.parse(whiteJson);
+        if (!whiteResult.error) {
+            // Handle new format with r_result and python_result
+            const method = whiteMethod.toLowerCase();
+            let testResult;
+
+            if (method === 'both' && whiteResult.r_result && whiteResult.python_result) {
+                // For 'both', show both results in the display
+                testResult = {
+                    name: 'White Test (R & Python)',
+                    shortName: 'White',
+                    test_name: whiteResult.test_name,
+                    r_result: whiteResult.r_result,
+                    python_result: whiteResult.python_result,
+                    interpretation: whiteResult.interpretation,
+                    guidance: whiteResult.guidance,
+                    is_passed: whiteResult.r_result.is_passed || whiteResult.python_result.is_passed
+                };
+            } else if (whiteResult.r_result) {
+                // R result (default)
+                testResult = {
+                    name: 'White Test (R)',
+                    shortName: 'White',
+                    statistic: whiteResult.r_result.statistic,
+                    p_value: whiteResult.r_result.p_value,
+                    is_passed: whiteResult.r_result.is_passed,
+                    interpretation: whiteResult.interpretation,
+                    guidance: whiteResult.guidance
+                };
+            } else if (whiteResult.python_result) {
+                // Python result
+                testResult = {
+                    name: 'White Test (Python)',
+                    shortName: 'White',
+                    statistic: whiteResult.python_result.statistic,
+                    p_value: whiteResult.python_result.p_value,
+                    is_passed: whiteResult.python_result.is_passed,
+                    interpretation: whiteResult.interpretation,
+                    guidance: whiteResult.guidance
+                };
+            } else {
+                // Legacy format (fallback)
+                testResult = whiteResult;
+            }
+
+            diagnostics.heteroscedasticity.push(testResult);
+        }
+    } catch (e) {
+        console.warn('White test failed:', e);
+    }
+
+    // Breusch-Pagan Test for Heteroscedasticity
+    try {
+        const bpJson = window.WasmRegression.breuschPaganTest(yData, xData);
+        const bpResult = JSON.parse(bpJson);
+        if (!bpResult.error) {
+            diagnostics.heteroscedasticity.push({
+                name: 'Breusch-Pagan Test',
+                shortName: 'Breusch-Pagan',
+                ...bpResult
+            });
+        }
+    } catch (e) {
+        console.warn('Breusch-Pagan test failed:', e);
+    }
+
+    // Jarque-Bera Test for Normality
+    try {
+        const jbJson = window.WasmRegression.jarqueBeraTest(yData, xData);
+        const jbResult = JSON.parse(jbJson);
+        if (!jbResult.error) {
+            diagnostics.normality.push({
+                name: 'Jarque-Bera Test',
+                shortName: 'Jarque-Bera',
+                ...jbResult
+            });
+        }
+    } catch (e) {
+        console.warn('Jarque-Bera test failed:', e);
+    }
+
+    // Shapiro-Wilk Test for Normality
+    try {
+        const swJson = window.WasmRegression.shapiroWilkTest(yData, xData);
+        const swResult = JSON.parse(swJson);
+        if (!swResult.error) {
+            diagnostics.normality.push({
+                name: 'Shapiro-Wilk Test',
+                shortName: 'Shapiro-Wilk',
+                ...swResult
+            });
+        }
+    } catch (e) {
+        console.warn('Shapiro-Wilk test failed:', e);
+    }
+
+    // Anderson-Darling Test for Normality
+    try {
+        const adJson = window.WasmRegression.andersonDarlingTest(yData, xData);
+        const adResult = JSON.parse(adJson);
+        if (!adResult.error) {
+            diagnostics.normality.push({
+                name: 'Anderson-Darling Test',
+                shortName: 'Anderson-Darling',
+                ...adResult
+            });
+        }
+    } catch (e) {
+        console.warn('Anderson-Darling test failed:', e);
+    }
+
+    // Durbin-Watson Test for Autocorrelation
+    try {
+        const dwJson = window.WasmRegression.durbinWatsonTest(yData, xData);
+        const dwResult = JSON.parse(dwJson);
+        if (!dwResult.error) {
+            diagnostics.autocorrelation.push({
+                name: 'Durbin-Watson Test',
+                shortName: 'Durbin-Watson',
+                ...dwResult
+            });
+        }
+    } catch (e) {
+        console.warn('Durbin-Watson test failed:', e);
+    }
+
+    // Cook's Distance for Influence Detection
+    try {
+        const cdJson = window.WasmRegression.cooksDistanceTest(yData, xData);
+        const cdResult = JSON.parse(cdJson);
+        if (!cdResult.error) {
+            diagnostics.influence.push({
+                name: "Cook's Distance",
+                shortName: "Cook's Distance",
+                ...cdResult
+            });
+        }
+    } catch (e) {
+        console.warn("Cook's Distance test failed:", e);
+    }
+
+    return diagnostics;
+}
+
+// ============================================
 // EXAMPLE DATASETS
 // ============================================ 
 const EXAMPLES = {
@@ -469,6 +840,7 @@ function parseCSVData(csvText) {
         updateColumnSelectors();
         document.getElementById('dataPreview').style.display = 'block';
         document.getElementById('resultsSection').style.display = 'block';
+        document.getElementById('exportRawDataBtn').style.display = 'inline-flex';
 
         showToast(`Loaded ${STATE.rawData.length} rows with ${STATE.headers.length} columns (Rust parser)`, 'success');
 
@@ -614,7 +986,7 @@ function updateResultsDisplay(results) {
         isNaN(results.rSquared) ? 'N/A (no Y variance)' : results.rSquared.toFixed(4);
     document.getElementById('adjRSquared').textContent =
         isNaN(results.adjRSquared) ? 'N/A' : results.adjRSquared.toFixed(4);
-    document.getElementById('fStat').textContent = results.fStat.toFixed(4);
+    document.getElementById('fStat').textContent = formatLargeNumber(results.fStat);
     document.getElementById('pValue').textContent = formatPValue(results.fPValue);
 
     // Update equation
@@ -666,6 +1038,354 @@ function updateVIFDisplay(results) {
             </tr>
         `;
     });
+}
+
+/**
+ * Safely format a number for display, handling undefined/null values
+ */
+function safeFormatNum(value, decimals = 4) {
+    if (value === undefined || value === null || isNaN(value)) {
+        return 'N/A';
+    }
+    return value.toFixed(decimals);
+}
+
+/**
+ * Format large numbers that may be effectively infinite
+ */
+function formatLargeNumber(value, decimals = 4) {
+    if (value === undefined || value === null || isNaN(value)) {
+        return 'N/A';
+    }
+    if (!isFinite(value)) {
+        return '∞';
+    }
+    // For very large absolute values, show infinity instead of scientific notation
+    if (Math.abs(value) > 1000000) {
+        return '∞';
+    }
+    return value.toFixed(decimals);
+}
+
+/**
+ * Filter out diagnostic tests that have errors or missing critical data
+ */
+function isValidTestResult(test) {
+    // Check for error property
+    if (test.error) {
+        return false;
+    }
+    // For tests with r_result and python_result, check both
+    if (test.r_result && test.python_result) {
+        return (test.r_result.statistic !== undefined && test.r_result.p_value !== undefined &&
+                test.python_result.statistic !== undefined && test.python_result.p_value !== undefined);
+    }
+    // For standard tests, check basic properties
+    return (test.statistic !== undefined && test.p_value !== undefined);
+}
+
+/**
+ * Update the diagnostics panel with test results
+ */
+function updateDiagnosticsDisplay(diagnostics) {
+    const container = document.getElementById('diagnosticsResults');
+    if (!container) {
+        console.warn('Diagnostics container not found');
+        return;
+    }
+
+    const hasTests = (diagnostics.linearity && diagnostics.linearity.length > 0) ||
+                     (diagnostics.heteroscedasticity && diagnostics.heteroscedasticity.length > 0) ||
+                     (diagnostics.normality && diagnostics.normality.length > 0) ||
+                     (diagnostics.autocorrelation && diagnostics.autocorrelation.length > 0) ||
+                     (diagnostics.influence && diagnostics.influence.length > 0);
+
+    if (!hasTests) {
+        container.innerHTML = `
+            <div class="diagnostics-empty">
+                <p>No diagnostic tests available</p>
+            </div>
+        `;
+        return;
+    }
+
+    let html = '';
+
+    // Linearity Tests
+    if (diagnostics.linearity && diagnostics.linearity.length > 0) {
+        const validTests = diagnostics.linearity.filter(isValidTestResult);
+        if (validTests.length > 0) {
+            html += `
+                <div class="diagnostics-section">
+                    <h4 class="diagnostics-section-title">Linearity Tests</h4>
+                    <p class="diagnostics-section-desc">Tests for linear relationship between variables</p>
+            `;
+
+            validTests.forEach(test => {
+                // Handle special case for Rainbow test with both R and Python results
+                if (test.r_result && test.python_result) {
+                    const statusClass = test.is_passed ? 'pass' : 'fail';
+                    const statusText = test.is_passed ? 'Pass' : 'Fail';
+                    const statusIcon = test.is_passed ? '✓' : '✗';
+
+                    html += `
+                        <div class="diagnostic-test-card ${statusClass}">
+                            <div class="test-header">
+                                <span class="test-name">${test.name}</span>
+                                <span class="test-status ${statusClass}">${statusIcon} ${statusText}</span>
+                            </div>
+                            <div class="test-details-comparison">
+                                <div class="test-method-result">
+                                    <span class="test-method">R (lmtest)</span>
+                                    <span class="test-stat">F = ${safeFormatNum(test.r_result.statistic)}</span>
+                                    <span class="test-p-value">p = ${test.r_result.p_value < 0.0001 ? '< 0.0001' : safeFormatNum(test.r_result.p_value)}</span>
+                                </div>
+                                <div class="test-method-result">
+                                    <span class="test-method">Python (statsmodels)</span>
+                                    <span class="test-stat">F = ${safeFormatNum(test.python_result.statistic)}</span>
+                                    <span class="test-p-value">p = ${test.python_result.p_value < 0.0001 ? '< 0.0001' : safeFormatNum(test.python_result.p_value)}</span>
+                                </div>
+                            </div>
+                            <div class="test-interpretation">${test.interpretation}</div>
+                            ${!test.is_passed ? `<div class="test-guidance"><strong>Guidance:</strong> ${test.guidance}</div>` : ''}
+                        </div>
+                    `;
+                } else {
+                    // Standard single-result test
+                    const statusClass = test.is_passed ? 'pass' : 'fail';
+                    const statusText = test.is_passed ? 'Pass' : 'Fail';
+                    const statusIcon = test.is_passed ? '✓' : '✗';
+
+                    html += `
+                        <div class="diagnostic-test-card ${statusClass}">
+                            <div class="test-header">
+                                <span class="test-name">${test.name}</span>
+                                <span class="test-status ${statusClass}">${statusIcon} ${statusText}</span>
+                            </div>
+                            <div class="test-details">
+                                <span class="test-stat">${test.shortName === 'Rainbow' ? 'F' : 't'} = ${safeFormatNum(test.statistic)}</span>
+                                <span class="test-p-value">p = ${test.p_value < 0.0001 ? '< 0.0001' : safeFormatNum(test.p_value)}</span>
+                            </div>
+                            <div class="test-interpretation">${test.interpretation}</div>
+                            ${!test.is_passed ? `<div class="test-guidance"><strong>Guidance:</strong> ${test.guidance}</div>` : ''}
+                        </div>
+                    `;
+                }
+            });
+
+            html += `</div>`;
+        }
+    }
+
+    // Heteroscedasticity Tests
+    if (diagnostics.heteroscedasticity && diagnostics.heteroscedasticity.length > 0) {
+        const validTests = diagnostics.heteroscedasticity.filter(isValidTestResult);
+        if (validTests.length > 0) {
+            html += `
+                <div class="diagnostics-section">
+                    <h4 class="diagnostics-section-title">Heteroscedasticity Tests</h4>
+                    <p class="diagnostics-section-desc">Tests for constant variance of residuals</p>
+            `;
+
+            validTests.forEach(test => {
+                // Handle special case for White test with both R and Python results
+                if (test.r_result && test.python_result) {
+                    const statusClass = test.is_passed ? 'pass' : 'fail';
+                    const statusText = test.is_passed ? 'Pass' : 'Fail';
+                    const statusIcon = test.is_passed ? '✓' : '✗';
+
+                    html += `
+                        <div class="diagnostic-test-card ${statusClass}">
+                            <div class="test-header">
+                                <span class="test-name">${test.name}</span>
+                                <span class="test-status ${statusClass}">${statusIcon} ${statusText}</span>
+                            </div>
+                            <div class="test-details-comparison">
+                                <div class="test-method-result">
+                                    <span class="test-method">R (skedastic)</span>
+                                    <span class="test-stat">LM = ${safeFormatNum(test.r_result.statistic)}</span>
+                                    <span class="test-p-value">p = ${test.r_result.p_value < 0.0001 ? '< 0.0001' : safeFormatNum(test.r_result.p_value)}</span>
+                                </div>
+                                <div class="test-method-result">
+                                    <span class="test-method">Python (statsmodels)</span>
+                                    <span class="test-stat">LM = ${safeFormatNum(test.python_result.statistic)}</span>
+                                    <span class="test-p-value">p = ${test.python_result.p_value < 0.0001 ? '< 0.0001' : safeFormatNum(test.python_result.p_value)}</span>
+                                </div>
+                            </div>
+                            <div class="test-interpretation">${test.interpretation}</div>
+                            ${!test.is_passed ? `<div class="test-guidance"><strong>Guidance:</strong> ${test.guidance}</div>` : ''}
+                        </div>
+                    `;
+                } else {
+                    // Standard single-result test
+                    const statusClass = test.is_passed ? 'pass' : 'fail';
+                    const statusText = test.is_passed ? 'Pass' : 'Fail';
+                    const statusIcon = test.is_passed ? '✓' : '✗';
+
+                    html += `
+                        <div class="diagnostic-test-card ${statusClass}">
+                            <div class="test-header">
+                                <span class="test-name">${test.name}</span>
+                                <span class="test-status ${statusClass}">${statusIcon} ${statusText}</span>
+                            </div>
+                            <div class="test-details">
+                                <span class="test-stat">LM = ${safeFormatNum(test.statistic)}</span>
+                                <span class="test-p-value">p = ${test.p_value < 0.0001 ? '< 0.0001' : safeFormatNum(test.p_value)}</span>
+                            </div>
+                            <div class="test-interpretation">${test.interpretation}</div>
+                            ${!test.is_passed ? `<div class="test-guidance"><strong>Guidance:</strong> ${test.guidance}</div>` : ''}
+                        </div>
+                    `;
+                }
+            });
+
+            html += `</div>`;
+        }
+    }
+
+    // Normality Tests
+    if (diagnostics.normality && diagnostics.normality.length > 0) {
+        const validTests = diagnostics.normality.filter(isValidTestResult);
+        if (validTests.length > 0) {
+            html += `
+                <div class="diagnostics-section">
+                    <h4 class="diagnostics-section-title">Normality Tests</h4>
+                    <p class="diagnostics-section-desc">Tests for normal distribution of residuals</p>
+            `;
+
+            validTests.forEach(test => {
+                // Determine stat label based on test type
+                let statLabel = ' statistic';
+                if (test.shortName === 'Jarque-Bera') statLabel = 'JB';
+                else if (test.shortName === 'Shapiro-Wilk') statLabel = 'W';
+                else if (test.shortName === 'Anderson-Darling') statLabel = 'A²';
+
+                const statusClass = test.is_passed ? 'pass' : 'fail';
+                const statusText = test.is_passed ? 'Pass' : 'Fail';
+                const statusIcon = test.is_passed ? '✓' : '✗';
+
+                html += `
+                    <div class="diagnostic-test-card ${statusClass}">
+                        <div class="test-header">
+                            <span class="test-name">${test.name}</span>
+                            <span class="test-status ${statusClass}">${statusIcon} ${statusText}</span>
+                        </div>
+                        <div class="test-details">
+                            <span class="test-stat">${statLabel} = ${safeFormatNum(test.statistic)}</span>
+                            <span class="test-p-value">p = ${test.p_value < 0.0001 ? '< 0.0001' : safeFormatNum(test.p_value)}</span>
+                        </div>
+                        <div class="test-interpretation">${test.interpretation}</div>
+                        ${!test.is_passed ? `<div class="test-guidance"><strong>Guidance:</strong> ${test.guidance}</div>` : ''}
+                    </div>
+                `;
+            });
+
+            html += `</div>`;
+        }
+    }
+
+    // Autocorrelation Tests
+    if (diagnostics.autocorrelation && diagnostics.autocorrelation.length > 0) {
+        const validTests = diagnostics.autocorrelation.filter(isValidTestResult);
+        if (validTests.length > 0) {
+            html += `
+                <div class="diagnostics-section">
+                    <h4 class="diagnostics-section-title">Autocorrelation Tests</h4>
+                    <p class="diagnostics-section-desc">Tests for independence of residuals</p>
+            `;
+
+            validTests.forEach(test => {
+                // Durbin-Watson doesn't have is_passed - determine from statistic value
+                const dw = test.statistic;
+                let statusClass = 'pass';
+                let statusText = 'Pass';
+                let statusIcon = '✓';
+
+                // DW interpretation: < 1 or > 3 indicates autocorrelation
+                if (dw < 1 || dw > 3) {
+                    statusClass = 'fail';
+                    statusText = 'Fail';
+                    statusIcon = '✗';
+                } else if (dw < 1.5 || dw > 2.5) {
+                    statusClass = 'warning';
+                    statusText = 'Warning';
+                    statusIcon = '⚠';
+                }
+
+                html += `
+                    <div class="diagnostic-test-card ${statusClass}">
+                        <div class="test-header">
+                            <span class="test-name">Durbin-Watson Test</span>
+                            <span class="test-status ${statusClass}">${statusIcon} ${statusText}</span>
+                        </div>
+                        <div class="test-details">
+                            <span class="test-stat">DW = ${safeFormatNum(dw)}</span>
+                        </div>
+                    <div class="test-interpretation">${test.interpretation}</div>
+                    <div class="test-guidance">${test.guidance}</div>
+                </div>
+            `;
+            });
+
+            html += `</div>`;
+        }
+    }
+
+    // Influence Tests
+    if (diagnostics.influence && diagnostics.influence.length > 0) {
+        const validTests = diagnostics.influence.filter(isValidTestResult);
+        if (validTests.length > 0) {
+            html += `
+                <div class="diagnostics-section">
+                    <h4 class="diagnostics-section-title">Influence Tests</h4>
+                    <p class="diagnostics-section-desc">Tests for influential observations</p>
+            `;
+
+            validTests.forEach(test => {
+                // Cook's Distance shows potentially influential observations
+                // Compute max distance and index from distances array
+                const distances = test.distances || [];
+                const maxDistance = distances.length > 0 ? Math.max(...distances) : 0;
+                const maxIndex = distances.indexOf(maxDistance);
+
+                // Use the influential_1 array (D > 1 threshold) for high influence
+                const influential = test.influential_1 || [];
+                const hasInfluential = influential.length > 0;
+
+                const statusClass = hasInfluential ? 'warning' : 'pass';
+                const statusText = hasInfluential ? 'Warning' : 'Pass';
+                const statusIcon = hasInfluential ? '⚠' : '✓';
+
+                html += `
+                    <div class="diagnostic-test-card ${statusClass}">
+                        <div class="test-header">
+                            <span class="test-name">${test.test_name || test.name}</span>
+                            <span class="test-status ${statusClass}">${statusIcon} ${statusText}</span>
+                        </div>
+                        <div class="test-details">
+                            <span class="test-stat">Max Cook's D = ${safeFormatNum(maxDistance)}</span>
+                            <span class="test-p-value">Threshold (4/n) = ${safeFormatNum(test.threshold_4_over_n)}</span>
+                        </div>
+                        <div class="test-interpretation">${test.interpretation}</div>
+                        ${hasInfluential ? `<div class="test-guidance"><strong>Influential observations (D > 1):</strong> ${influential.map(i => i + 1).join(', ')}</div>` : ''}
+                        <div class="test-guidance">${test.guidance}</div>
+                    </div>
+                `;
+            });
+
+            html += `</div>`;
+        }
+    }
+
+    if (html === '') {
+        html = `
+            <div class="diagnostics-empty">
+                <p>No diagnostic tests available</p>
+            </div>
+        `;
+    }
+
+    container.innerHTML = html;
 }
 
 function updateEquation(results) {
@@ -757,17 +1477,32 @@ function updateCoefficientsTable(results) {
     const pValues = results.pValues;
     const ci = results.confidenceIntervals;
 
+    // Helper to format numbers, handling extreme values
+    function formatStatValue(val, decimals = 4) {
+        if (val === undefined || val === null || isNaN(val)) {
+            return 'N/A';
+        }
+        if (!isFinite(val)) {
+            return '∞';
+        }
+        // For very large absolute values, use scientific notation or infinity
+        if (Math.abs(val) > 1000000) {
+            return '∞';
+        }
+        return val.toFixed(decimals);
+    }
+
     let html = '';
     names.forEach((name, i) => {
         const signClass = coeffs[i] >= 0 ? 'positive' : 'negative';
         html += `<tr>
             <td>${escapeHtml(name)}</td>
-            <td class="${signClass}">${coeffs[i].toFixed(4)}</td>
-            <td>${stdErrs[i].toFixed(4)}</td>
-            <td>${tStats[i].toFixed(4)}</td>
+            <td class="${signClass}">${formatStatValue(coeffs[i])}</td>
+            <td>${formatStatValue(stdErrs[i])}</td>
+            <td>${formatStatValue(tStats[i])}</td>
             <td>${formatPValue(pValues[i])}</td>
-            <td>${ci[i][0].toFixed(4)}</td>
-            <td>${ci[i][1].toFixed(4)}</td>
+            <td>${formatStatValue(ci[i][0])}</td>
+            <td>${formatStatValue(ci[i][1])}</td>
         </tr>`;
     });
 
@@ -1371,7 +2106,36 @@ function exportResultsAsCSV() {
     showToast('Results exported as CSV', 'success');
 }
 
-// ============================================ 
+function exportRawDataAsCSV() {
+    if (!STATE.rawData || STATE.rawData.length === 0) {
+        showToast('No data to export', 'warning');
+        return;
+    }
+
+    // Build CSV with headers
+    let csv = STATE.headers.map(h => `"${h}"`).join(',') + '\n';
+
+    // Add data rows
+    STATE.rawData.forEach(row => {
+        const values = STATE.headers.map(h => {
+            const val = row[h];
+            // Quote string values, keep numbers as-is
+            return typeof val === 'string' ? `"${val.replace(/"/g, '""')}"` : val;
+        });
+        csv += values.join(',') + '\n';
+    });
+
+    // Download
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const link = document.createElement('a');
+    link.download = 'linear-regression-raw-data.csv';
+    link.href = URL.createObjectURL(blob);
+    link.click();
+
+    showToast('Raw data exported as CSV', 'success');
+}
+
+// ============================================
 // UTILITY FUNCTIONS
 // ============================================ 
 function escapeHtml(text) {
@@ -1479,11 +2243,34 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             STATE.regressionResults = await calculateRegression(STATE.yVariable, STATE.xVariables);
+
+            // Prepare data for diagnostics
+            const yData = STATE.rawData.map(row => row[STATE.yVariable]);
+            const xData = STATE.xVariables.map(v => STATE.rawData.map(row => row[v]));
+
+            // Run diagnostic tests
+            STATE.diagnostics = await runDiagnostics(yData, xData);
+
             updateResultsDisplay(STATE.regressionResults);
+            updateDiagnosticsDisplay(STATE.diagnostics);
             showToast('Regression analysis complete (Rust WASM engine)', 'success');
         } catch (error) {
-            showToast(`Regression error: ${error.message}`, 'error');
-            console.error(error);
+            // Provide user-friendly error messages
+            let errorMessage = error.message;
+
+            // Translate common WASM errors to user-friendly messages
+            if (error.message.includes('SingularMatrix') || error.message.includes('singular')) {
+                errorMessage = 'Matrix is singular (perfect multicollinearity). Remove redundant variables that are linear combinations of others. Try using fewer predictor variables.';
+            } else if (error.message.includes('InsufficientData')) {
+                errorMessage = 'Not enough data points for this model. Add more observations or remove predictor variables.';
+            } else if (error.message.includes('Domain check')) {
+                errorMessage = 'Security check failed. This tool is restricted to authorized domains.';
+            } else if (error.message.includes('WASM module is not ready')) {
+                errorMessage = 'WASM module still loading. Please wait a moment and try again.';
+            }
+
+            showToast(`Regression error: ${errorMessage}`, 'error');
+            console.error('Regression error:', error);
         } finally {
             btn.disabled = false;
             btn.innerHTML = originalText;
@@ -1525,6 +2312,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Export buttons
     document.getElementById('exportPngBtn').addEventListener('click', exportChartsAsPNG);
     document.getElementById('exportCsvBtn').addEventListener('click', exportResultsAsCSV);
+    document.getElementById('exportRawDataBtn').addEventListener('click', exportRawDataAsCSV);
 
     // Theme change listener for chart updates
     const observer = new MutationObserver(() => {
