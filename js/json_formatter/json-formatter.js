@@ -8,8 +8,9 @@
  * Includes precision loss detection for large integers.
  */
 
-// Import Clipboard utility from shared module
-import { Clipboard } from '../shared.js';
+// Clipboard utility is exposed by shared.js on the global object so the same
+// shared loader works for both classic-script and module-based tools.
+const Clipboard = window.ToolsHub?.Clipboard;
 
 // File size thresholds (in bytes) - module level constants
 const LARGE_FILE_THRESHOLD = 5 * 1024 * 1024;  // 5MB

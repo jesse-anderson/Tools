@@ -438,13 +438,11 @@ if (document.readyState === 'loading') {
 }
 
 // ============================================
-// EXPORTS
+// GLOBAL EXPORT
 // ============================================
 
-// ES Module exports
-export { ThemeManager, Clipboard, NumberFormat, ToolsCounter, ToolsSearch };
-
-// Also export as window global for backward compatibility with non-module tools
+// This file intentionally stays classic-script compatible because some tools are
+// opened directly from disk or load it without `type="module"`.
 window.ToolsHub = {
     ThemeManager,
     Clipboard,

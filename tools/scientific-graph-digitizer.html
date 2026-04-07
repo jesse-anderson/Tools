@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Scientific Graph Compare | Tools Hub</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%230f172a'/%3E%3Cpath d='M14 48h36' stroke='%233b82f6' stroke-width='4' stroke-linecap='round'/%3E%3Cpath d='M18 44V20m14 24V14m14 30V26' stroke='%23f8fafc' stroke-width='6' stroke-linecap='round'/%3E%3C/svg%3E" />
+    <link rel="stylesheet" href="../css/shared.css" />
+    <style>
+        .layout { display:grid; grid-template-columns:340px 1fr; gap:24px; min-height:calc(100vh - 300px); align-items:start; }
+        .sidebar { position:sticky; top:16px; display:flex; flex-direction:column; gap:16px; max-height:calc(100vh - 120px); overflow:auto; }
+        .panel, .workspace { background:var(--bg-card); border:1px solid var(--border-color); border-radius:14px; }
+        .panel { padding:18px; display:flex; flex-direction:column; gap:12px; }
+        .panel h2 { margin-bottom:6px; font-size:1.18rem; }
+        .panel h3 { margin:0; font-size:.82rem; text-transform:uppercase; letter-spacing:.08em; font-family:'Space Grotesk',sans-serif; }
+        details.panel summary { cursor:pointer; list-style:none; font-size:.82rem; text-transform:uppercase; letter-spacing:.08em; font-family:'Space Grotesk',sans-serif; font-weight:700; }
+        details.panel summary::-webkit-details-marker { display:none; }
+        .hint, .panel p, .footnote { color:var(--text-secondary); font-size:.9rem; line-height:1.5; }
+        .row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+        .tool-btn { display:inline-flex; align-items:center; justify-content:center; padding:9px 12px; border-radius:10px; border:1px solid var(--border-color); background:var(--bg-secondary); color:var(--text-primary); font:400 .8rem 'JetBrains Mono',monospace; cursor:pointer; text-decoration:none; }
+        .tool-btn:hover { border-color:var(--accent-engineering); }
+        .tool-btn.primary { border-color:rgba(59,130,246,.5); background:rgba(59,130,246,.12); }
+        .tool-btn:disabled { opacity:.55; cursor:not-allowed; }
+        .input-line { display:flex; flex-direction:column; gap:6px; min-width:0; flex:1 1 140px; }
+        .input-line label { font:.74rem 'Space Grotesk',sans-serif; text-transform:uppercase; letter-spacing:.05em; color:var(--text-secondary); font-weight:700; }
+        .input-line input, .input-line select { width:100%; padding:10px 11px; border:1px solid var(--border-color); background:var(--bg-secondary); color:var(--text-primary); border-radius:10px; outline:none; font:400 .84rem 'JetBrains Mono',monospace; }
+        .input-line input:focus, .input-line select:focus { border-color:var(--accent-engineering); }
+        .label-with-help { display:flex; align-items:center; gap:8px; }
+        .help-tip { display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px; border-radius:999px; border:1px solid var(--border-color); background:var(--bg-secondary); color:var(--text-secondary); font:700 .72rem 'JetBrains Mono',monospace; cursor:help; user-select:none; }
+        .help-tip:focus-visible { outline:2px solid var(--accent-engineering); outline-offset:2px; }
+        .check-row { display:flex; align-items:center; gap:10px; color:var(--text-secondary); font-size:.85rem; }
+        .check-row input { accent-color:var(--accent-engineering); }
+        .kv { display:grid; grid-template-columns:1fr auto; gap:8px 12px; font:.78rem 'JetBrains Mono',monospace; }
+        .kv .val { text-align:right; color:var(--text-primary); }
+        .support { padding:12px 14px; border-radius:12px; background:rgba(15,23,42,.36); border:1px solid rgba(59,130,246,.2); color:var(--text-secondary); font-size:.86rem; line-height:1.5; }
+        .support a { color:var(--accent-engineering); text-decoration:none; }
+        .workspace { padding:16px; display:flex; flex-direction:column; gap:12px; min-height:700px; }
+        .workspace-header, .workspace-header-left, .workspace-header-right { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+        .workspace-header { justify-content:space-between; }
+        .badge { display:inline-flex; align-items:center; gap:8px; padding:6px 10px; border-radius:999px; border:1px solid var(--border-color); background:var(--bg-secondary); color:var(--text-secondary); font:.77rem 'JetBrains Mono',monospace; }
+        .badge strong { color:var(--text-primary); }
+        .canvas-wrap { position:relative; flex:1; min-height:620px; border-radius:14px; overflow:hidden; border:1px solid rgba(255,255,255,.08); background:linear-gradient(45deg,rgba(255,255,255,.035) 25%,transparent 25%,transparent 75%,rgba(255,255,255,.035) 75%),linear-gradient(45deg,rgba(255,255,255,.035) 25%,transparent 25%,transparent 75%,rgba(255,255,255,.035) 75%),#0b1220; background-size:24px 24px; background-position:0 0,12px 12px; }
+        .canvas-wrap.pdf-mode { min-height:min(88vh,1080px); }
+        #mainCanvas { width:100%; height:100%; display:block; cursor:crosshair; }
+        @media (max-width:1100px) { .layout { grid-template-columns:1fr; } .sidebar { position:relative; top:0; max-height:none; } .canvas-wrap { min-height:500px; } }
+    </style>
+</head>
+<body>
+<div class="container">
+    <header>
+        <div class="header-content">
+            <div class="header-left">
+                <a href="../tools.html" class="back-link">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="19" y1="12" x2="5" y2="12"></line>
+                        <polyline points="12 19 5 12 12 5"></polyline>
+                    </svg>
+                    Back to Tools
+                </a>
+            </div>
+            <div class="header-right">
+                <div class="theme-toggle">
+                    <button data-theme-toggle="light" aria-pressed="false" title="Light mode">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="5"></circle>
+                            <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path>
+                        </svg>
+                    </button>
+                    <button data-theme-toggle="dark" aria-pressed="false" title="Dark mode">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div style="margin-top:24px; display:flex; align-items:center; gap:16px;">
+            <div class="tool-icon-header engineering">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M4 7h16M4 12h16M4 17h16"></path>
+                    <path d="M8 3h8"></path>
+                </svg>
+            </div>
+            <div>
+                <h1>Scientific Graph Compare</h1>
+                <p class="tagline">// SIMPLE PAPER FIGURE MEASUREMENT</p>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="layout">
+            <aside class="sidebar">
+                <section class="panel">
+                    <h2>Fast scientific analysis</h2>
+                    <p>Upload an image or PDF, optionally crop to a region of interest, then place the baseline, optional axis tick, control, and treatment markers. Set the baseline value explicitly, then use a different axis tick only when you want value calibration.</p>
+                </section>
+
+                <section class="panel">
+                    <h3>Input</h3>
+                    <div class="row">
+                        <label class="tool-btn"><input id="fileImage" type="file" accept="image/png,image/jpeg,image/webp,image/gif,image/bmp" hidden />Upload Image</label>
+                        <label class="tool-btn"><input id="filePdf" type="file" accept="application/pdf" hidden />Upload PDF</label>
+                        <button class="tool-btn" id="btnLoadExample" type="button">Load Example</button>
+                        <button class="tool-btn" id="btnSaveExample" type="button">Save Current As Example</button>
+                    </div>
+                    <div class="hint">Example image: Huso et al., "Creatine supplementation influences substrate utilization at rest," <em>Journal of Applied Physiology</em>, 2002. Saving the current view makes future `Load Example` clicks restore the same image, markers, and values.</div>
+                    <div class="row" id="pdfControls" hidden>
+                        <button class="tool-btn" id="btnPdfPrev" type="button" aria-label="Previous PDF page">&lt;</button>
+                        <div class="input-line" style="max-width:96px;"><label for="pdfPage">PDF Page</label><input id="pdfPage" type="number" min="1" value="1" /></div>
+                        <div class="hint" id="pdfPageMeta">1 / 1</div>
+                        <button class="tool-btn" id="btnPdfNext" type="button" aria-label="Next PDF page">&gt;</button>
+                        <div class="input-line" style="max-width:132px;">
+                            <div class="label-with-help">
+                                <label for="pdfScale">Render Scale</label>
+                                <span class="help-tip" tabindex="0" aria-label="Higher render scale gives a sharper PDF page but uses more memory and takes longer. Increase it gradually until the figure is readable." title="Higher render scale gives a sharper PDF page but uses more memory and takes longer. Increase it gradually until the figure is readable.">i</span>
+                            </div>
+                            <input id="pdfScale" type="number" min="1" max="10" step="0.5" value="4" />
+                        </div>
+                    </div>
+                    <div class="kv">
+                        <div>Source</div><div class="val" id="kvSource">--</div>
+                        <div>Image size</div><div class="val" id="kvSize">--</div>
+                        <div>Working ROI</div><div class="val" id="kvRoi">Full image</div>
+                    </div>
+                </section>
+
+                <section class="panel">
+                    <h3>Compare</h3>
+                    <div class="row">
+                        <button class="tool-btn" id="btnSelectRoi" type="button">Select ROI</button>
+                        <button class="tool-btn" id="btnResetRoi" type="button">Reset ROI</button>
+                    </div>
+                    <div class="input-line">
+                        <label for="baselineValue">Baseline Value</label>
+                        <input id="baselineValue" type="number" step="any" value="0" />
+                    </div>
+                    <div class="input-line">
+                        <label for="axisValue">Axis Tick Value (Optional)</label>
+                        <input id="axisValue" type="number" step="any" value="100" />
+                    </div>
+                    <div class="hint">Baseline is the graph's reference line, usually 0 but sometimes 50, -20, or another value. Use a different axis tick value only when you want numeric calibration.</div>
+                    <div class="row">
+                        <button class="tool-btn" id="btnSetBaseline" type="button">Set Baseline Line</button>
+                        <button class="tool-btn" id="btnSetAxis" type="button">Set Axis Tick</button>
+                    </div>
+                    <div class="row" id="seriesTopButtons"></div>
+                    <div class="row" id="segmentButtons" hidden style="display:none;"></div>
+                    <div class="row">
+                        <button class="tool-btn" id="btnClearMarks" type="button">Clear Marks</button>
+                    </div>
+                    <div class="hint" id="actionHint">Typical order: upload image, optionally select ROI, set the baseline line and its value, optionally set one different axis tick for scaling, then set control and the treatment markers.</div>
+                    <div class="kv">
+                        <div>Active tool</div><div class="val" id="kvActiveTool">View</div>
+                        <div>Cursor</div><div class="val" id="kvCursor">--</div>
+                    </div>
+                </section>
+
+                <details class="panel" id="advancedPanel">
+                    <summary>Advanced Options</summary>
+                    <div class="input-line">
+                        <label for="measurementMode">Measurement Mode</label>
+                        <select id="measurementMode">
+                            <option value="baseline">Baseline Bars</option>
+                            <option value="segment">Segment Mode</option>
+                        </select>
+                    </div>
+                    <div class="hint">Segment mode is for stacked-bar segments. It measures from each segment top to its own bottom marker instead of the baseline line.</div>
+                    <div class="row">
+                        <button class="tool-btn" id="btnAddTreatment" type="button">Add Treatment</button>
+                        <button class="tool-btn" id="btnRemoveTreatment" type="button">Remove Last Treatment</button>
+                    </div>
+                    <div id="seriesConfigList"></div>
+                    <div class="input-line">
+                        <label for="unitLabel">Shared Units</label>
+                        <input id="unitLabel" type="text" value="" placeholder="%, mmol, g, etc." />
+                    </div>
+                    <label class="check-row"><input id="useSeparateUnits" type="checkbox" />Separate units by series</label>
+                    <div class="hint" id="separateUnitsHint" hidden>When enabled, each series gets its own unit field in the list above.</div>
+                    <div class="hint">Results Box Content</div>
+                    <label class="check-row"><input id="overlayShowBaselineValue" type="checkbox" />Show baseline value</label>
+                    <label class="check-row"><input id="overlayShowAxisTickValue" type="checkbox" />Show axis tick value</label>
+                    <label class="check-row"><input id="overlayShowRawPx" type="checkbox" />Show pixel heights</label>
+                    <label class="check-row"><input id="overlayShowValues" type="checkbox" checked />Show calibrated values</label>
+                    <label class="check-row"><input id="overlayShowVsControl" type="checkbox" checked />Show percent vs control</label>
+                    <div class="hint">Export Image</div>
+                    <label class="check-row"><input id="exportShowResults" type="checkbox" checked />Show results box</label>
+                    <label class="check-row"><input id="exportShowLegend" type="checkbox" checked />Show legend</label>
+                    <label class="check-row"><input id="exportShowGuides" type="checkbox" checked />Show guide lines</label>
+                    <label class="check-row"><input id="exportShowMeasures" type="checkbox" checked />Show measurement lines</label>
+                    <label class="check-row"><input id="exportShowMarkerLabels" type="checkbox" checked />Show marker labels</label>
+                    <div class="row">
+                        <button class="tool-btn" id="btnCopyResults" type="button" disabled>Copy Results</button>
+                        <button class="tool-btn" id="btnResetSavedExample" type="button">Reset Saved Example</button>
+                    </div>
+                </details>
+
+                <section class="panel">
+                    <h3>Results</h3>
+                    <div class="kv">
+                        <div>Axis mode</div><div class="val" id="kvAxisMode">NA</div>
+                    </div>
+                    <div class="kv" id="resultsDynamic"></div>
+                </section>
+
+                <section class="panel">
+                    <h3>Export</h3>
+                    <div class="row">
+                        <button class="tool-btn primary" id="btnSaveAnnotated" type="button" disabled>Save Annotated PNG</button>
+                        <button class="tool-btn" id="btnExportCsv" type="button" disabled>Export CSV</button>
+                    </div>
+                    <div class="support">Need perspective correction first? Use <a href="./figure-rectifier.html">Figure Rectifier</a> separately, then return here for the quick comparison workflow.</div>
+                </section>
+            </aside>
+
+            <section class="workspace">
+                <div class="workspace-header">
+                    <div class="workspace-header-left">
+                        <span class="badge"><strong>Mode:</strong> <span id="badgeMode">View</span></span>
+                        <span class="badge"><strong>Shortcut:</strong> `R` ROI, `Z` Baseline line, `T` Axis, `C` Control, `A`/`B` first treatments, `X` Clear, `Esc` Cancel</span>
+                    </div>
+                    <div class="workspace-header-right">
+                        <span class="badge"><strong>Workflow:</strong> Simple compare first, rectifier only if needed</span>
+                    </div>
+                </div>
+                <div class="canvas-wrap" id="canvasWrap"><canvas id="mainCanvas"></canvas></div>
+                <div class="footnote">This page is intentionally narrow and fast. It measures directly on the uploaded image or ROI. It does not require perspective correction unless the figure is badly skewed.</div>
+            </section>
+        </div>
+    </main>
+
+    <footer data-footer></footer>
+</div>
+
+<script src="../js/shared.js"></script>
+<script src="../js/footer.js"></script>
+<script src="../js/scientific_graph_digitizer/compare-core.js"></script>
+<script src="../js/scientific_graph_digitizer/compare-ui.js"></script>
+<script src="../js/scientific_graph_digitizer/compare-io.js"></script>
+<script src="../js/scientific_graph_digitizer/compare-events.js"></script>
+</body>
+</html>
