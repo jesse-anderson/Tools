@@ -1,0 +1,223 @@
+<!--
+============================================
+MARKDOWN EXPORTER v1.0.0
+============================================
+Description: Browser-based Markdown editor with live preview
+and direct export to PDF or DOCX.
+
+Dependencies:
+- marked.js (local vendored ESM build for Markdown parsing)
+    https://marked.js.org/
+    MIT License: https://github.com/markedjs/marked/blob/master/LICENSE
+- DOMPurify (local vendored HTML sanitization)
+    https://github.com/cure53/DOMPurify
+    Apache-2.0 / MPL-2.0: https://github.com/cure53/DOMPurify/blob/main/LICENSE
+- pdfmake 0.2.x (direct PDF download, local-first CDN fallback)
+    https://pdfmake.github.io/docs/0.1/
+    MIT License: https://github.com/bpampuch/pdfmake/blob/master/LICENSE
+- Source Serif Pro (downloadable PDF body/headings)
+    https://github.com/adobe-fonts/source-serif-pro
+    SIL Open Font License 1.1: https://github.com/adobe-fonts/source-serif-pro/blob/release/LICENSE.md
+- Source Code Pro (downloadable PDF code blocks / inline code)
+    https://github.com/adobe-fonts/source-code-pro
+    SIL Open Font License 1.1: https://github.com/adobe-fonts/source-code-pro/blob/release/LICENSE.md
+- docx 9.x (structured DOCX export, local-first CDN fallback)
+    https://docx.js.org/
+    MIT License: https://github.com/dolanmiu/docx/blob/master/LICENSE
+- html-docx-js 0.3.1 (DOCX fallback, local-first CDN fallback)
+    https://github.com/evidenceprime/html-docx-js
+    MIT License: https://github.com/evidenceprime/html-docx-js/blob/master/LICENSE
+
+Project: Tools Hub by Jesse Anderson
+Repository: https://github.com/jesse-anderson/Tools
+License: GPL-3.0 - https://github.com/jesse-anderson/Tools/blob/main/LICENSE
+============================================
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Markdown Exporter | Tools Hub</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/shared.css">
+    <link rel="stylesheet" href="../css/markdown_exporter/markdown-exporter.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <div class="header-left">
+                    <a href="../tools.html" class="back-link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <line x1="19" y1="12" x2="5" y2="12"></line>
+                            <polyline points="12 19 5 12 12 5"></polyline>
+                        </svg>
+                        Back to Tools
+                    </a>
+                </div>
+                <div class="header-right">
+                    <div class="theme-toggle">
+                        <button data-theme-toggle="light" aria-pressed="false" title="Light mode">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                <circle cx="12" cy="12" r="5"></circle>
+                                <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path>
+                            </svg>
+                        </button>
+                        <button data-theme-toggle="dark" aria-pressed="false" title="Dark mode">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tool-header">
+                <div class="tool-icon-header it">
+                    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                        <path d="M12 18v-7"></path>
+                        <polyline points="8.5 14.5 12 18 15.5 14.5"></polyline>
+                    </svg>
+                </div>
+                <div>
+                    <h1>Markdown Exporter</h1>
+                    <p class="tagline">// LIVE PREVIEW | PDF | DOCX</p>
+                </div>
+            </div>
+        </header>
+
+        <main>
+            <div class="exporter-layout">
+                <section class="panel control-panel">
+                    <div class="panel-top">
+                        <div>
+                            <h2>Export-ready Markdown</h2>
+                            <p>Write Markdown on the left, review the rendered output on the right, then export to PDF or DOCX from this tool directly.</p>
+                        </div>
+                        <div class="button-row">
+                            <label class="tool-btn">
+                                <input id="fileInput" type="file" accept=".md,.markdown,.txt,text/markdown,text/plain" hidden>
+                                Open Markdown
+                            </label>
+                            <button class="tool-btn" id="loadSampleBtn" type="button">Load Sample</button>
+                            <button class="tool-btn danger" id="clearBtn" type="button">Clear</button>
+                        </div>
+                    </div>
+
+                    <div class="settings-grid">
+                        <div class="input-line">
+                            <label for="filenameInput">Filename</label>
+                            <input id="filenameInput" type="text" value="markdown-export">
+                        </div>
+                        <div class="input-line">
+                            <label for="pageSizeSelect">PDF Page Size</label>
+                            <select id="pageSizeSelect">
+                                <option value="letter">Letter</option>
+                                <option value="a4">A4</option>
+                            </select>
+                        </div>
+                        <div class="input-line">
+                            <label for="orientationSelect">Orientation</label>
+                            <select id="orientationSelect">
+                                <option value="portrait">Portrait</option>
+                                <option value="landscape">Landscape</option>
+                            </select>
+                        </div>
+                        <div class="input-line">
+                            <label for="marginInput">Margin (inches)</label>
+                            <input id="marginInput" type="number" min="0.25" max="2" step="0.25" value="0.5">
+                        </div>
+                        <div class="action-group">
+                            <button class="tool-btn primary" id="exportPdfBtn" type="button">Export PDF</button>
+                            <button class="tool-btn" id="printPdfBtn" type="button">Download PDF</button>
+                            <button class="tool-btn primary" id="exportDocxBtn" type="button">Export DOCX</button>
+                        </div>
+                    </div>
+
+                    <div class="status-line" id="statusLine" aria-live="polite">Ready.</div>
+                </section>
+
+                <section class="workspace panel">
+                    <div class="pane editor-pane">
+                        <div class="pane-header">
+                            <h3>Markdown</h3>
+                            <span class="pane-meta" id="editorMeta">0 chars</span>
+                        </div>
+                        <textarea id="editor" spellcheck="false" placeholder="# Write Markdown here&#10;&#10;Use this tool when you want direct PDF or DOCX export from rendered Markdown."></textarea>
+                    </div>
+
+                    <div class="pane preview-pane">
+                        <div class="pane-header">
+                            <h3>Preview</h3>
+                            <span class="pane-meta" id="renderMeta">Rendered in 0 ms</span>
+                        </div>
+                        <div id="preview" class="preview-container" role="region" aria-label="Rendered Markdown preview">
+                            <div class="preview-empty">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                    <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path>
+                                    <polyline points="14 2 14 8 20 8"></polyline>
+                                </svg>
+                                <p>Rendered Markdown will appear here.</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="info-grid">
+                    <div class="info-card">
+                        <h3>Document Stats</h3>
+                        <div class="stat-grid">
+                            <div><span>Characters</span><strong id="statChars">0</strong></div>
+                            <div><span>Words</span><strong id="statWords">0</strong></div>
+                            <div><span>Lines</span><strong id="statLines">0</strong></div>
+                            <div><span>Title</span><strong id="statTitle">Untitled</strong></div>
+                        </div>
+                    </div>
+
+                    <div class="info-card">
+                        <h3>Export Notes</h3>
+                        <ul class="notes-list">
+                            <li><strong>Export PDF</strong> opens the higher-fidelity print layout so browser "Save as PDF" keeps text and spacing more faithful.</li>
+                            <li><strong>Download PDF</strong> creates a direct downloadable text-based PDF for normal selection, search, and copy/paste using Source Serif Pro and Source Code Pro for cleaner typography.</li>
+                            <li>DOCX export now tries a structured document build first and only falls back to Word altchunks if that path is unavailable.</li>
+                            <li>If an image cannot be embedded for direct export, the status line will warn you instead of failing silently.</li>
+                        </ul>
+                    </div>
+
+                    <details class="info-card" open>
+                        <summary>Third-Party Licenses</summary>
+                        <ul class="license-list">
+                            <li><strong><a href="https://github.com/markedjs/marked" target="_blank" rel="noopener">marked</a></strong> - MIT License</li>
+                            <li><strong><a href="https://github.com/cure53/DOMPurify" target="_blank" rel="noopener">DOMPurify</a></strong> - Apache-2.0 / MPL-2.0</li>
+                            <li><strong><a href="https://github.com/dolanmiu/docx" target="_blank" rel="noopener">docx</a></strong> - MIT License<br><span>Primary structured DOCX generation.</span></li>
+                            <li><strong><a href="https://github.com/bpampuch/pdfmake" target="_blank" rel="noopener">pdfmake</a></strong> - MIT License<br><span>Direct-download text PDF generation.</span></li>
+                            <li><strong><a href="https://github.com/adobe-fonts/source-serif-pro" target="_blank" rel="noopener">Source Serif Pro</a></strong> - SIL OFL 1.1<br><span>Direct-download PDF body and heading typography.</span></li>
+                            <li><strong><a href="https://github.com/adobe-fonts/source-code-pro" target="_blank" rel="noopener">Source Code Pro</a></strong> - SIL OFL 1.1<br><span>Direct-download PDF code block and inline code typography.</span></li>
+                            <li><strong><a href="https://github.com/evidenceprime/html-docx-js" target="_blank" rel="noopener">html-docx-js</a></strong> - MIT License<br><span>Fallback DOCX conversion for Microsoft Word altchunks.</span></li>
+                        </ul>
+                    </details>
+                </section>
+            </div>
+        </main>
+
+        <footer data-footer></footer>
+    </div>
+
+    <script src="../js/shared.js"></script>
+    <script src="../js/footer.js"></script>
+    <script src="../js/vendor/markdown_preview/purify.min.js"></script>
+    <script src="../js/vendor/markdown_preview/prism.min.js"></script>
+    <script src="../js/vendor/markdown_preview/prism-python.min.js"></script>
+    <script src="../js/vendor/markdown_preview/prism-javascript.min.js"></script>
+    <script src="../js/vendor/markdown_preview/prism-css.min.js"></script>
+    <script src="../js/vendor/markdown_preview/prism-bash.min.js"></script>
+    <script src="../js/vendor/markdown_preview/prism-json.min.js"></script>
+    <script src="../js/vendor/markdown_preview/prism-markdown.min.js"></script>
+    <script type="module" src="../js/markdown_exporter/markdown-exporter.js"></script>
+</body>
+</html>
