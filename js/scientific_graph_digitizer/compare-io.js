@@ -2,8 +2,8 @@
     const GraphCompare = window.ScientificGraphCompare;
     const { constants, state, dom, helpers, series, tools, measure, stateOps } = GraphCompare;
     const { clonePoint, sanitizePoint, nowIso, parseNumericInput, cloneCanvas, createCanvasFromBitmap } = helpers;
-    const { createSeriesMeta, createSeriesPoints, normalizeSeriesOrder, getSeriesIds, getSeriesLabel, getSeriesUnit, getCommonUnit } = series;
-    const { currentCanvas, isSegmentMode, getResults } = measure;
+    const { createSeriesMeta, createSeriesPoints, normalizeSeriesOrder, getSeriesIds, getSeriesLabel, getSeriesUnit, getCommonUnit, createTraceMeta, createTracePoints, normalizeTraceOrder, getTraceIds, getTraceLabel } = series;
+    const { currentCanvas, isSegmentMode, isSeriesWorkflowMode, getResults, getTraceResults } = measure;
 
     function downloadBlob(filename, blob) {
         const anchor = document.createElement("a");
@@ -46,9 +46,14 @@
             if (pointSource.b && !pointSource.b.bottom && preset.points.bBase) pointSource.b.bottom = sanitizePoint(preset.points.bBase, width, height);
         }
         return {
+            workflowMode: preset && preset.workflowMode === "series" ? "series" : "compare",
             measurementMode: preset && preset.measurementMode === "segment" ? "segment" : "baseline",
             baselineValue: Number.isFinite(preset && preset.baselineValue) ? preset.baselineValue : 0,
             axisTickValue: Number.isFinite(preset && preset.axisTickValue) ? preset.axisTickValue : 100,
+            xAxisLabel: typeof (preset && preset.xAxisLabel) === "string" ? preset.xAxisLabel : "X",
+            yAxisLabel: typeof (preset && preset.yAxisLabel) === "string" ? preset.yAxisLabel : "Y",
+            xOriginValue: Number.isFinite(preset && preset.xOriginValue) ? preset.xOriginValue : 0,
+            xTickValue: Number.isFinite(preset && preset.xTickValue) ? preset.xTickValue : 10,
             unitLabel: typeof (preset && preset.unitLabel) === "string" ? preset.unitLabel : "",
             useSeparateUnits: !!(preset && preset.useSeparateUnits),
             workingLabel: typeof (preset && preset.workingLabel) === "string" && preset.workingLabel.trim() ? preset.workingLabel : "Full image",
@@ -56,9 +61,24 @@
             seriesMeta: createSeriesMeta(order, metaSource),
             points: {
                 baseline: sanitizePoint(preset && preset.points && preset.points.baseline, width, height),
-                axis: sanitizePoint(preset && preset.points && preset.points.axis, width, height)
+                axis: sanitizePoint(preset && preset.points && preset.points.axis, width, height),
+                xOrigin: sanitizePoint(preset && preset.points && preset.points.xOrigin, width, height),
+                xTick: sanitizePoint(preset && preset.points && preset.points.xTick, width, height)
             },
-            seriesPoints: createSeriesPoints(order, pointSource)
+            seriesPoints: createSeriesPoints(order, pointSource),
+            traceOrder: normalizeTraceOrder(Array.isArray(preset && preset.traceOrder) ? preset.traceOrder : ["trace-a"]),
+            traceMeta: createTraceMeta(normalizeTraceOrder(Array.isArray(preset && preset.traceOrder) ? preset.traceOrder : ["trace-a"]), preset && preset.traceMeta),
+            tracePoints: createTracePoints(
+                normalizeTraceOrder(Array.isArray(preset && preset.traceOrder) ? preset.traceOrder : ["trace-a"]),
+                Object.fromEntries(
+                    normalizeTraceOrder(Array.isArray(preset && preset.traceOrder) ? preset.traceOrder : ["trace-a"]).map((id) => [
+                        id,
+                        Array.isArray(preset && preset.tracePoints && preset.tracePoints[id])
+                            ? preset.tracePoints[id].map((point) => sanitizePoint(point, width, height)).filter(Boolean)
+                            : []
+                    ])
+                )
+            )
         };
     }
 
@@ -88,20 +108,30 @@
         if (!image) return null;
         return {
             source: await serializeExampleSource(image),
+            workflowMode: state.workflowMode,
             filename: state.source.filename || constants.EXAMPLE_IMAGE_NAME,
             workingLabel: state.working.label,
             measurementMode: dom.measurementMode.value,
             baselineValue: parseNumericInput(dom.baselineValue),
             axisTickValue: parseNumericInput(dom.axisValue),
+            xAxisLabel: dom.xAxisLabel.value,
+            yAxisLabel: dom.yAxisLabel.value,
+            xOriginValue: parseNumericInput(dom.xOriginValue),
+            xTickValue: parseNumericInput(dom.xTickValue),
             unitLabel: dom.unitLabel.value,
             useSeparateUnits: dom.useSeparateUnits.checked,
             seriesOrder: [...state.seriesOrder],
             seriesMeta: createSeriesMeta(state.seriesOrder, state.seriesMeta),
             points: {
                 baseline: clonePoint(state.points.baseline),
-                axis: clonePoint(state.points.axis)
+                axis: clonePoint(state.points.axis),
+                xOrigin: clonePoint(state.points.xOrigin),
+                xTick: clonePoint(state.points.xTick)
             },
             seriesPoints: createSeriesPoints(state.seriesOrder, state.seriesPoints),
+            traceOrder: [...state.traceOrder],
+            traceMeta: createTraceMeta(state.traceOrder, state.traceMeta),
+            tracePoints: createTracePoints(state.traceOrder, state.tracePoints),
             savedAt: nowIso()
         };
     }
@@ -137,19 +167,68 @@
 
     function applyExamplePreset(preset, canvas) {
         const normalized = normalizePreset(preset, canvas);
+        state.workflowMode = normalized.workflowMode;
+        dom.workflowMode.value = normalized.workflowMode;
         dom.measurementMode.value = normalized.measurementMode;
         dom.baselineValue.value = String(normalized.baselineValue);
         dom.axisValue.value = String(normalized.axisTickValue);
+        dom.xAxisLabel.value = normalized.xAxisLabel;
+        dom.yAxisLabel.value = normalized.yAxisLabel;
+        dom.xOriginValue.value = String(normalized.xOriginValue);
+        dom.xTickValue.value = String(normalized.xTickValue);
         dom.unitLabel.value = normalized.unitLabel;
         dom.useSeparateUnits.checked = normalized.useSeparateUnits;
         state.working.label = normalized.workingLabel;
         state.points.baseline = normalized.points.baseline;
         state.points.axis = normalized.points.axis;
+        state.points.xOrigin = normalized.points.xOrigin;
+        state.points.xTick = normalized.points.xTick;
         series.setSeriesState(normalized.seriesOrder, normalized.seriesMeta, normalized.seriesPoints);
+        series.setTraceState(normalized.traceOrder, normalized.traceMeta, normalized.tracePoints);
         stateOps.setActiveTool(null);
     }
 
     function buildCsv() {
+        if (isSeriesWorkflowMode()) {
+            const results = getTraceResults();
+            const rows = [[
+                "series_id",
+                "series",
+                "point_index",
+                "x_px",
+                "y_px",
+                "x_value",
+                "y_value",
+                "x_label",
+                "y_label",
+                "source_filename",
+                "working_label"
+            ]];
+            getTraceIds().forEach((id) => {
+                const trace = results.traces[id];
+                if (!trace) return;
+                trace.points.forEach((point, index) => {
+                    rows.push([
+                        id,
+                        getTraceLabel(id),
+                        index + 1,
+                        point.xPx.toFixed(4),
+                        point.yPx.toFixed(4),
+                        Number.isFinite(point.xValue) ? point.xValue.toFixed(6) : "",
+                        Number.isFinite(point.yValue) ? point.yValue.toFixed(6) : "",
+                        results.xAxisLabel,
+                        results.yAxisLabel,
+                        state.source.filename || "",
+                        state.working.label
+                    ]);
+                });
+            });
+            const csvCell = (value) => {
+                const stringValue = value == null ? "" : String(value);
+                return /[",\n]/.test(stringValue) ? `"${stringValue.replace(/"/g, "\"\"")}"` : stringValue;
+            };
+            return rows.map((row) => row.map(csvCell).join(",")).join("\n") + "\n";
+        }
         const results = getResults();
         const image = currentCanvas();
         const rows = [
@@ -220,7 +299,7 @@
     async function saveAnnotatedPng() {
         const image = currentCanvas();
         if (!image) return;
-        const results = getResults();
+        const results = isSeriesWorkflowMode() ? getTraceResults() : getResults();
         const canvas = document.createElement("canvas");
         canvas.width = image.width;
         canvas.height = image.height;
@@ -229,28 +308,44 @@
         exportCtx.drawImage(image, 0, 0);
         if (dom.exportShowGuides.checked && state.points.baseline) GraphCompare.ui.drawGuideLine(exportCtx, viewport, state.points.baseline, "rgba(245,158,11,0.88)");
         if (dom.exportShowGuides.checked && state.points.axis) GraphCompare.ui.drawGuideLine(exportCtx, viewport, state.points.axis, "rgba(253,224,71,0.82)");
-        if (dom.exportShowMeasures.checked) {
-            getSeriesIds().forEach((id) => GraphCompare.ui.drawVerticalMeasure(exportCtx, viewport, id));
-        }
-        GraphCompare.ui.drawMarker(exportCtx, viewport, tools.makeTool("baseline"), state.points.baseline, 8, dom.exportShowMarkerLabels.checked);
-        GraphCompare.ui.drawMarker(exportCtx, viewport, tools.makeTool("axis"), state.points.axis, 8, dom.exportShowMarkerLabels.checked);
-        getSeriesIds().forEach((id) => {
-            GraphCompare.ui.drawMarker(exportCtx, viewport, tools.makeTool("series-top", id), state.seriesPoints[id].top, 8, dom.exportShowMarkerLabels.checked);
-            if (isSegmentMode()) {
-                GraphCompare.ui.drawMarker(exportCtx, viewport, tools.makeTool("series-bottom", id), state.seriesPoints[id].bottom, 8, dom.exportShowMarkerLabels.checked);
+        if (isSeriesWorkflowMode()) {
+            if (dom.exportShowGuides.checked && state.points.xOrigin) GraphCompare.ui.drawVerticalGuideLine(exportCtx, viewport, state.points.xOrigin, "rgba(192,132,252,0.84)");
+            if (dom.exportShowGuides.checked && state.points.xTick) GraphCompare.ui.drawVerticalGuideLine(exportCtx, viewport, state.points.xTick, "rgba(249,168,212,0.84)");
+            GraphCompare.ui.drawMarker(exportCtx, viewport, tools.makeTool("baseline"), state.points.baseline, 8, dom.exportShowMarkerLabels.checked);
+            GraphCompare.ui.drawMarker(exportCtx, viewport, tools.makeTool("axis"), state.points.axis, 8, dom.exportShowMarkerLabels.checked);
+            GraphCompare.ui.drawMarker(exportCtx, viewport, tools.makeTool("xOrigin"), state.points.xOrigin, 8, dom.exportShowMarkerLabels.checked);
+            GraphCompare.ui.drawMarker(exportCtx, viewport, tools.makeTool("xTick"), state.points.xTick, 8, dom.exportShowMarkerLabels.checked);
+            getTraceIds().forEach((id) => {
+                GraphCompare.ui.drawTraceSeries(exportCtx, viewport, id, {
+                    showLabels: dom.exportShowMarkerLabels.checked,
+                    showLine: dom.exportShowMeasures.checked,
+                    showPoints: true
+                });
+            });
+        } else {
+            if (dom.exportShowMeasures.checked) {
+                getSeriesIds().forEach((id) => GraphCompare.ui.drawVerticalMeasure(exportCtx, viewport, id));
             }
-        });
+            GraphCompare.ui.drawMarker(exportCtx, viewport, tools.makeTool("baseline"), state.points.baseline, 8, dom.exportShowMarkerLabels.checked);
+            GraphCompare.ui.drawMarker(exportCtx, viewport, tools.makeTool("axis"), state.points.axis, 8, dom.exportShowMarkerLabels.checked);
+            getSeriesIds().forEach((id) => {
+                GraphCompare.ui.drawMarker(exportCtx, viewport, tools.makeTool("series-top", id), state.seriesPoints[id].top, 8, dom.exportShowMarkerLabels.checked);
+                if (isSegmentMode()) {
+                    GraphCompare.ui.drawMarker(exportCtx, viewport, tools.makeTool("series-bottom", id), state.seriesPoints[id].bottom, 8, dom.exportShowMarkerLabels.checked);
+                }
+            });
+        }
         if (dom.exportShowResults.checked) GraphCompare.ui.drawOverlayBox(exportCtx, viewport, results);
         if (dom.exportShowLegend.checked) GraphCompare.ui.drawLegendBox(exportCtx, viewport);
         const blob = await canvasToBlob(canvas, "image/png");
         const stem = (state.source.filename || "scientific_graph_compare").replace(/\.[^.]+$/, "");
-        downloadBlob(`${stem}_annotated_compare.png`, blob);
+        downloadBlob(`${stem}_${isSeriesWorkflowMode() ? "digitized_series" : "annotated_compare"}.png`, blob);
     }
 
     function exportCsv() {
         const blob = new Blob([buildCsv()], { type: "text/csv;charset=utf-8" });
         const stem = (state.source.filename || "scientific_graph_compare").replace(/\.[^.]+$/, "");
-        downloadBlob(`${stem}_compare.csv`, blob);
+        downloadBlob(`${stem}_${isSeriesWorkflowMode() ? "series" : "compare"}.csv`, blob);
     }
 
     function loadPdfJsIfNeeded() {

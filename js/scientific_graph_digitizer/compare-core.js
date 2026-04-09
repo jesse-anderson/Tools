@@ -10,10 +10,13 @@
         EXAMPLE_IMAGE_NAME: "graph-compare-example.jpeg",
         EXAMPLE_PRESET_STORAGE_KEY: "scientific_graph_compare.example_preset.v2",
         MIN_TREATMENT_COUNT: 2,
+        MIN_TRACE_SERIES_COUNT: 1,
         TOOL_META: Object.freeze({ name: "scientific-graph-compare", version: "0.4.0" }),
         FIXED_MARK_META: Object.freeze({
             baseline: { label: "Baseline", short: "Base", color: "#f59e0b" },
-            axis: { label: "Axis Tick", short: "Tick", color: "#fde047" }
+            axis: { label: "Axis Tick", short: "Tick", color: "#fde047" },
+            xOrigin: { label: "X Origin", short: "X0", color: "#c084fc" },
+            xTick: { label: "X Tick", short: "XT", color: "#f9a8d4" }
         }),
         TOP_COLORS: Object.freeze(["#38bdf8", "#34d399", "#f472b6", "#fb923c", "#a78bfa", "#22d3ee", "#f87171", "#84cc16", "#2dd4bf", "#eab308"]),
         BOTTOM_COLORS: Object.freeze(["#0ea5e9", "#10b981", "#ec4899", "#f97316", "#8b5cf6", "#06b6d4", "#ef4444", "#65a30d", "#14b8a6", "#ca8a04"]),
@@ -47,7 +50,8 @@
         source: { canvas: null, filename: null, type: null, width: 0, height: 0 },
         working: { canvas: null, label: "Full image" },
         pdf: { doc: null },
-        points: { baseline: null, axis: null },
+        workflowMode: "compare",
+        points: { baseline: null, axis: null, xOrigin: null, xTick: null },
         seriesOrder: ["control", "a", "b"],
         seriesMeta: {
             control: { label: "Control", unit: "" },
@@ -58,6 +62,13 @@
             control: { top: null, bottom: null },
             a: { top: null, bottom: null },
             b: { top: null, bottom: null }
+        },
+        traceOrder: ["trace-a"],
+        traceMeta: {
+            "trace-a": { label: "Series A" }
+        },
+        tracePoints: {
+            "trace-a": []
         },
         activeTool: null,
         roiDraft: null,
@@ -72,6 +83,9 @@
         pdfPage: document.getElementById("pdfPage"),
         pdfPageMeta: document.getElementById("pdfPageMeta"),
         pdfScale: document.getElementById("pdfScale"),
+        workflowMode: document.getElementById("workflowMode"),
+        workflowHint: document.getElementById("workflowHint"),
+        capturePanelHeading: document.getElementById("capturePanelHeading"),
         btnPdfPrev: document.getElementById("btnPdfPrev"),
         btnPdfNext: document.getElementById("btnPdfNext"),
         btnLoadExample: document.getElementById("btnLoadExample"),
@@ -94,9 +108,11 @@
         separateUnitsHint: document.getElementById("separateUnitsHint"),
         overlayShowBaselineValue: document.getElementById("overlayShowBaselineValue"),
         overlayShowAxisTickValue: document.getElementById("overlayShowAxisTickValue"),
+        overlayShowXAxisTickValue: document.getElementById("overlayShowXAxisTickValue"),
         overlayShowRawPx: document.getElementById("overlayShowRawPx"),
         overlayShowValues: document.getElementById("overlayShowValues"),
         overlayShowVsControl: document.getElementById("overlayShowVsControl"),
+        overlayShowSeriesCounts: document.getElementById("overlayShowSeriesCounts"),
         exportShowResults: document.getElementById("exportShowResults"),
         exportShowLegend: document.getElementById("exportShowLegend"),
         exportShowGuides: document.getElementById("exportShowGuides"),
@@ -104,16 +120,39 @@
         exportShowMarkerLabels: document.getElementById("exportShowMarkerLabels"),
         btnCopyResults: document.getElementById("btnCopyResults"),
         btnResetSavedExample: document.getElementById("btnResetSavedExample"),
+        seriesPanel: document.getElementById("seriesPanel"),
+        xAxisLabel: document.getElementById("xAxisLabel"),
+        yAxisLabel: document.getElementById("yAxisLabel"),
+        xOriginValue: document.getElementById("xOriginValue"),
+        xTickValue: document.getElementById("xTickValue"),
+        btnSetXOrigin: document.getElementById("btnSetXOrigin"),
+        btnSetXTick: document.getElementById("btnSetXTick"),
+        traceSeriesButtons: document.getElementById("traceSeriesButtons"),
+        btnAddTraceSeries: document.getElementById("btnAddTraceSeries"),
+        btnRemoveTraceSeries: document.getElementById("btnRemoveTraceSeries"),
+        btnFinishSeries: document.getElementById("btnFinishSeries"),
+        btnUndoTracePoint: document.getElementById("btnUndoTracePoint"),
+        traceSeriesConfigList: document.getElementById("traceSeriesConfigList"),
+        seriesActionHint: document.getElementById("seriesActionHint"),
+        kvActiveSeries: document.getElementById("kvActiveSeries"),
+        kvXAxisMode: document.getElementById("kvXAxisMode"),
         kvSource: document.getElementById("kvSource"),
         kvSize: document.getElementById("kvSize"),
         kvRoi: document.getElementById("kvRoi"),
         kvActiveTool: document.getElementById("kvActiveTool"),
         kvCursor: document.getElementById("kvCursor"),
         kvAxisMode: document.getElementById("kvAxisMode"),
+        compareResultsHeader: document.getElementById("compareResultsHeader"),
         resultsDynamic: document.getElementById("resultsDynamic"),
+        seriesResultsHeader: document.getElementById("seriesResultsHeader"),
+        kvSeriesYAxisMode: document.getElementById("kvSeriesYAxisMode"),
+        kvSeriesHeaderXAxisMode: document.getElementById("kvSeriesHeaderXAxisMode"),
+        seriesResultsDynamic: document.getElementById("seriesResultsDynamic"),
         btnSaveAnnotated: document.getElementById("btnSaveAnnotated"),
         btnExportCsv: document.getElementById("btnExportCsv"),
         badgeMode: document.getElementById("badgeMode"),
+        badgeShortcut: document.getElementById("badgeShortcut"),
+        badgeWorkflow: document.getElementById("badgeWorkflow"),
         actionHint: document.getElementById("actionHint"),
         canvasWrap: document.getElementById("canvasWrap"),
         mainCanvas: document.getElementById("mainCanvas"),
@@ -126,6 +165,8 @@
         topButtonsKey: "",
         segmentButtonsKey: "",
         configKey: "",
+        traceButtonsKey: "",
+        traceConfigKey: "",
         resultsStructureKey: "",
         resultsRows: Object.create(null),
         latestResults: null,
@@ -216,6 +257,15 @@
         return id === "control" ? "Control" : id.toUpperCase();
     }
 
+    function traceIdAt(index) {
+        return `trace-${indexToLetters(index)}`;
+    }
+
+    function defaultTraceLabel(id) {
+        const suffix = typeof id === "string" && id.startsWith("trace-") ? id.slice(6) : id;
+        return `Series ${String(suffix || "A").toUpperCase()}`;
+    }
+
     function normalizeSeriesOrder(order, minTreatments = constants.MIN_TREATMENT_COUNT) {
         const normalized = ["control"];
         const seen = new Set(["control"]);
@@ -260,6 +310,48 @@
         return points;
     }
 
+    function normalizeTraceOrder(order, minTraceSeries = constants.MIN_TRACE_SERIES_COUNT) {
+        const normalized = [];
+        const seen = new Set();
+        if (Array.isArray(order)) {
+            order.forEach((entry) => {
+                const id = typeof entry === "string" ? entry.trim().toLowerCase() : "";
+                if (!id || seen.has(id)) return;
+                seen.add(id);
+                normalized.push(id);
+            });
+        }
+        while (normalized.length < minTraceSeries) {
+            const id = traceIdAt(normalized.length);
+            if (!seen.has(id)) {
+                seen.add(id);
+                normalized.push(id);
+            }
+        }
+        return normalized;
+    }
+
+    function createTraceMeta(order, source) {
+        const meta = {};
+        order.forEach((id) => {
+            meta[id] = {
+                label: cleanLabel(source && source[id] && source[id].label, defaultTraceLabel(id))
+            };
+        });
+        return meta;
+    }
+
+    function createTracePoints(order, source) {
+        const points = {};
+        order.forEach((id) => {
+            const entries = source && source[id];
+            points[id] = Array.isArray(entries)
+                ? entries.map((point) => clonePoint(point)).filter(Boolean)
+                : [];
+        });
+        return points;
+    }
+
     function getSeriesIds() {
         return [...state.seriesOrder];
     }
@@ -289,6 +381,18 @@
         return getCommonUnit();
     }
 
+    function getTraceIds() {
+        return [...state.traceOrder];
+    }
+
+    function getTraceLabel(id) {
+        return cleanLabel(state.traceMeta[id] && state.traceMeta[id].label, defaultTraceLabel(id));
+    }
+
+    function nextTraceId() {
+        return traceIdAt(state.traceOrder.length);
+    }
+
     function shortSeriesLabel(id, suffix = "") {
         const label = getSeriesLabel(id);
         const trimmed = label.length > 4 ? label.slice(0, 4) : label;
@@ -304,17 +408,41 @@
         state.seriesOrder = normalizedOrder;
         state.seriesMeta = createSeriesMeta(normalizedOrder, metaSource);
         state.seriesPoints = createSeriesPoints(normalizedOrder, pointSource);
-        if (state.activeTool && state.activeTool.seriesId && !state.seriesOrder.includes(state.activeTool.seriesId)) {
+        if (state.activeTool && state.activeTool.seriesId && (state.activeTool.kind === "series-top" || state.activeTool.kind === "series-bottom") && !state.seriesOrder.includes(state.activeTool.seriesId)) {
             state.activeTool = null;
         }
     }
 
-    function makeTool(kind, seriesId = null) {
-        return kind ? { kind, seriesId: seriesId || null } : null;
+    function setTraceState(order, metaSource, pointSource) {
+        const normalizedOrder = normalizeTraceOrder(order);
+        state.traceOrder = normalizedOrder;
+        state.traceMeta = createTraceMeta(normalizedOrder, metaSource);
+        state.tracePoints = createTracePoints(normalizedOrder, pointSource);
+        if (state.activeTool && state.activeTool.seriesId && (state.activeTool.kind === "trace-series" || state.activeTool.kind === "trace-point") && !state.traceOrder.includes(state.activeTool.seriesId)) {
+            state.activeTool = null;
+        }
+    }
+
+    function appendTracePoint(id, point) {
+        if (!id || !state.tracePoints[id]) return;
+        state.tracePoints[id].push(clonePoint(point));
+    }
+
+    function removeLastTracePoint(id) {
+        if (!id || !state.tracePoints[id] || !state.tracePoints[id].length) return;
+        state.tracePoints[id].pop();
+    }
+
+    function isSeriesWorkflowMode() {
+        return state.workflowMode === "series";
+    }
+
+    function makeTool(kind, seriesId = null, pointIndex = null) {
+        return kind ? { kind, seriesId: seriesId || null, pointIndex: Number.isInteger(pointIndex) ? pointIndex : null } : null;
     }
 
     function toolKey(tool) {
-        return tool ? `${tool.kind}:${tool.seriesId || ""}` : "";
+        return tool ? `${tool.kind}:${tool.seriesId || ""}:${Number.isInteger(tool.pointIndex) ? tool.pointIndex : ""}` : "";
     }
 
     function toolEquals(left, right) {
@@ -329,6 +457,14 @@
         return !!tool && tool.kind === "series-bottom";
     }
 
+    function isTraceSeriesTool(tool) {
+        return !!tool && tool.kind === "trace-series";
+    }
+
+    function isTracePointTool(tool) {
+        return !!tool && tool.kind === "trace-point";
+    }
+
     function seriesIdFromTool(tool) {
         return tool && tool.seriesId ? tool.seriesId : null;
     }
@@ -339,7 +475,17 @@
 
     function getMarkMeta(tool) {
         if (!tool) return { label: "", short: "", color: "#94a3b8" };
-        if (tool.kind === "baseline" || tool.kind === "axis") return constants.FIXED_MARK_META[tool.kind];
+        if (tool.kind === "baseline" || tool.kind === "axis" || tool.kind === "xOrigin" || tool.kind === "xTick") return constants.FIXED_MARK_META[tool.kind];
+        if (tool.kind === "trace-point" || tool.kind === "trace-series") {
+            const id = tool.seriesId;
+            const colorIndex = Math.max(0, state.traceOrder.indexOf(id));
+            const label = getTraceLabel(id);
+            return {
+                label,
+                short: label.length > 6 ? label.slice(0, 6) : label,
+                color: constants.TOP_COLORS[colorIndex % constants.TOP_COLORS.length]
+            };
+        }
         const id = tool.seriesId;
         if (!id) return { label: tool.kind, short: tool.kind, color: "#94a3b8" };
         const colorIndex = seriesColorIndex(id);
@@ -356,6 +502,10 @@
         if (tool.kind === "roi") return "Select ROI";
         if (tool.kind === "baseline") return "Set Baseline Line";
         if (tool.kind === "axis") return "Set Axis Tick";
+        if (tool.kind === "xOrigin") return "Set X Origin";
+        if (tool.kind === "xTick") return "Set X Tick";
+        if (tool.kind === "trace-series") return `Capture ${getTraceLabel(tool.seriesId)}`;
+        if (tool.kind === "trace-point") return `Move ${getTraceLabel(tool.seriesId)} Point`;
         if (isSeriesBottomTool(tool)) return `Set ${getSeriesLabel(tool.seriesId)} Bottom`;
         if (isSeriesTopTool(tool)) return isSegmentMode() ? `Set ${getSeriesLabel(tool.seriesId)} Top` : `Set ${getSeriesLabel(tool.seriesId)}`;
         return "View";
@@ -363,7 +513,11 @@
 
     function getPointByTool(tool) {
         if (!tool) return null;
-        if (tool.kind === "baseline" || tool.kind === "axis") return state.points[tool.kind];
+        if (tool.kind === "baseline" || tool.kind === "axis" || tool.kind === "xOrigin" || tool.kind === "xTick") return state.points[tool.kind];
+        if (isTracePointTool(tool)) {
+            const points = tool.seriesId && state.tracePoints[tool.seriesId];
+            return points && Number.isInteger(tool.pointIndex) ? points[tool.pointIndex] || null : null;
+        }
         const id = tool.seriesId;
         if (!id || !state.seriesPoints[id]) return null;
         return isSeriesBottomTool(tool) ? state.seriesPoints[id].bottom : state.seriesPoints[id].top;
@@ -372,8 +526,14 @@
     function setPointByTool(tool, point) {
         const nextPoint = point ? { x: point.x, y: point.y } : null;
         if (!tool) return;
-        if (tool.kind === "baseline" || tool.kind === "axis") {
+        if (tool.kind === "baseline" || tool.kind === "axis" || tool.kind === "xOrigin" || tool.kind === "xTick") {
             state.points[tool.kind] = nextPoint;
+            return;
+        }
+        if (isTracePointTool(tool)) {
+            const points = tool.seriesId && state.tracePoints[tool.seriesId];
+            if (!points || !Number.isInteger(tool.pointIndex) || tool.pointIndex < 0 || tool.pointIndex >= points.length) return;
+            points[tool.pointIndex] = nextPoint;
             return;
         }
         const id = tool.seriesId;
@@ -386,12 +546,21 @@
     }
 
     function interactivePointTools() {
-        const tools = [makeTool("baseline"), makeTool("axis")];
+        const activeTools = [makeTool("baseline"), makeTool("axis")];
+        if (isSeriesWorkflowMode()) {
+            activeTools.push(makeTool("xOrigin"), makeTool("xTick"));
+            getTraceIds().forEach((id) => {
+                (state.tracePoints[id] || []).forEach((point, index) => {
+                    if (point) activeTools.push(makeTool("trace-point", id, index));
+                });
+            });
+            return activeTools;
+        }
         getSeriesIds().forEach((id) => {
-            tools.push(makeTool("series-top", id));
-            if (isSegmentMode()) tools.push(makeTool("series-bottom", id));
+            activeTools.push(makeTool("series-top", id));
+            if (isSegmentMode()) activeTools.push(makeTool("series-bottom", id));
         });
-        return tools;
+        return activeTools;
     }
 
     function currentCanvas() {
@@ -459,11 +628,12 @@
         if (!viewport) return null;
         let bestKind = null;
         let bestSeriesId = null;
+        let bestPointIndex = null;
         let bestDistance = Number.POSITIVE_INFINITY;
         const hitRadius = 14;
         const hitRadiusSq = hitRadius * hitRadius;
 
-        const testPoint = (kind, seriesId, point) => {
+        const testPoint = (kind, seriesId, pointIndex, point) => {
             if (!point) return;
             const screen = imageToScreen(point, viewport);
             const dx = screen.x - screenPoint.x;
@@ -472,20 +642,31 @@
             if (distanceSq <= hitRadiusSq && distanceSq < bestDistance) {
                 bestKind = kind;
                 bestSeriesId = seriesId;
+                bestPointIndex = pointIndex;
                 bestDistance = distanceSq;
             }
         };
 
-        testPoint("baseline", null, state.points.baseline);
-        testPoint("axis", null, state.points.axis);
+        testPoint("baseline", null, null, state.points.baseline);
+        testPoint("axis", null, null, state.points.axis);
+        if (isSeriesWorkflowMode()) {
+            testPoint("xOrigin", null, null, state.points.xOrigin);
+            testPoint("xTick", null, null, state.points.xTick);
+            state.traceOrder.forEach((id) => {
+                (state.tracePoints[id] || []).forEach((point, index) => {
+                    testPoint("trace-point", id, index, point);
+                });
+            });
+            return bestKind ? makeTool(bestKind, bestSeriesId, bestPointIndex) : null;
+        }
         state.seriesOrder.forEach((id) => {
             const seriesPoints = state.seriesPoints[id];
             if (!seriesPoints) return;
-            testPoint("series-top", id, seriesPoints.top);
-            if (isSegmentMode()) testPoint("series-bottom", id, seriesPoints.bottom);
+            testPoint("series-top", id, null, seriesPoints.top);
+            if (isSegmentMode()) testPoint("series-bottom", id, null, seriesPoints.bottom);
         });
 
-        return bestKind ? makeTool(bestKind, bestSeriesId) : null;
+        return bestKind ? makeTool(bestKind, bestSeriesId, bestPointIndex) : null;
     }
 
     function measurementBottomPoint(id) {
@@ -515,15 +696,7 @@
         return `${getSeriesLabel(id)} vs ${getSeriesLabel(referenceId)}`;
     }
 
-    function getResults() {
-        const raw = {};
-        const calibrated = {};
-        const comparisonsVsControl = {};
-        getSeriesIds().forEach((id) => {
-            raw[id] = rawMeasurementValue(id);
-            calibrated[id] = null;
-        });
-
+    function computeYAxisCalibration() {
         const baselineLine = state.points.baseline;
         const axisLine = state.points.axis;
         const baselineNumericValue = parseNumericInput(dom.baselineValue);
@@ -533,7 +706,7 @@
         const hasDistinctTickValue = validBaselineValue && validTickValue && Math.abs(tickValue - baselineNumericValue) > 1e-9;
         let spanPx = null;
         let valueSpan = null;
-        let axisMode = isSegmentMode()
+        let axisMode = isSegmentMode() && !isSeriesWorkflowMode()
             ? "Segment only"
             : (validBaselineValue ? `Baseline ${formatValue(baselineNumericValue)} only` : "Baseline value required");
 
@@ -542,7 +715,7 @@
             if (Math.abs(tickSpan) > 1e-6) {
                 spanPx = tickSpan;
                 valueSpan = tickValue - baselineNumericValue;
-                axisMode = isSegmentMode()
+                axisMode = isSegmentMode() && !isSeriesWorkflowMode()
                     ? `Segment scale ${formatValue(baselineNumericValue)} -> ${formatValue(tickValue)}`
                     : `Baseline ${formatValue(baselineNumericValue)} -> Tick ${formatValue(tickValue)}`;
             } else {
@@ -552,11 +725,81 @@
             axisMode = "Axis tick matches baseline value";
         }
 
+        return {
+            baselineLine,
+            axisLine,
+            baselineValue: baselineNumericValue,
+            axisTickValue: tickValue,
+            spanPx,
+            valueSpan,
+            axisMode,
+            canCalibrate: Number.isFinite(spanPx) && Number.isFinite(valueSpan)
+        };
+    }
+
+    function computeXAxisCalibration() {
+        const xOriginPoint = state.points.xOrigin;
+        const xTickPoint = state.points.xTick;
+        const originValue = parseNumericInput(dom.xOriginValue);
+        const tickValue = parseNumericInput(dom.xTickValue);
+        const validOriginValue = Number.isFinite(originValue);
+        const validTickValue = Number.isFinite(tickValue);
+        const hasDistinctTickValue = validOriginValue && validTickValue && Math.abs(tickValue - originValue) > 1e-9;
+        let spanPx = null;
+        let valueSpan = null;
+        let axisMode = validOriginValue ? `Origin ${formatValue(originValue)} only` : "X origin value required";
+
+        if (xOriginPoint && xTickPoint && hasDistinctTickValue) {
+            const tickSpan = xTickPoint.x - xOriginPoint.x;
+            if (Math.abs(tickSpan) > 1e-6) {
+                spanPx = tickSpan;
+                valueSpan = tickValue - originValue;
+                axisMode = `Origin ${formatValue(originValue)} -> Tick ${formatValue(tickValue)}`;
+            } else {
+                axisMode = "X tick overlaps origin";
+            }
+        } else if (xOriginPoint && xTickPoint && validOriginValue && validTickValue && !hasDistinctTickValue) {
+            axisMode = "X tick matches origin value";
+        }
+
+        return {
+            xOriginPoint,
+            xTickPoint,
+            xOriginValue: originValue,
+            xTickValue: tickValue,
+            spanPx,
+            valueSpan,
+            axisMode,
+            canCalibrate: Number.isFinite(spanPx) && Number.isFinite(valueSpan)
+        };
+    }
+
+    function calibrateYForPoint(point, calibration) {
+        if (!point || !calibration.canCalibrate) return null;
+        return calibration.baselineValue + ((calibration.baselineLine.y - point.y) / calibration.spanPx) * calibration.valueSpan;
+    }
+
+    function calibrateXForPoint(point, calibration) {
+        if (!point || !calibration.canCalibrate) return null;
+        return calibration.xOriginValue + ((point.x - calibration.xOriginPoint.x) / calibration.spanPx) * calibration.valueSpan;
+    }
+
+    function getResults() {
+        const raw = {};
+        const calibrated = {};
+        const comparisonsVsControl = {};
         getSeriesIds().forEach((id) => {
-            if (Number.isFinite(spanPx) && Number.isFinite(valueSpan) && Number.isFinite(raw[id])) {
+            raw[id] = rawMeasurementValue(id);
+            calibrated[id] = null;
+        });
+
+        const calibration = computeYAxisCalibration();
+
+        getSeriesIds().forEach((id) => {
+            if (calibration.canCalibrate && Number.isFinite(raw[id])) {
                 calibrated[id] = isSegmentMode()
-                    ? (raw[id] / spanPx) * valueSpan
-                    : baselineNumericValue + (raw[id] / spanPx) * valueSpan;
+                    ? (raw[id] / calibration.spanPx) * calibration.valueSpan
+                    : calibration.baselineValue + (raw[id] / calibration.spanPx) * calibration.valueSpan;
             }
         });
 
@@ -565,27 +808,87 @@
         });
 
         return {
+            workflowMode: "compare",
             measurementMode: dom.measurementMode.value,
-            axisMode,
-            baselineValue: baselineNumericValue,
-            axisTickValue: tickValue,
+            axisMode: calibration.axisMode,
+            baselineValue: calibration.baselineValue,
+            axisTickValue: calibration.axisTickValue,
             raw,
             calibrated,
             comparisonsVsControl
         };
     }
 
+    function getTraceResults() {
+        const yCalibration = computeYAxisCalibration();
+        const xCalibration = computeXAxisCalibration();
+        const traces = {};
+        let totalPointCount = 0;
+
+        getTraceIds().forEach((id) => {
+            const points = (state.tracePoints[id] || []).map((point, index) => ({
+                index,
+                xPx: point.x,
+                yPx: point.y,
+                xValue: calibrateXForPoint(point, xCalibration),
+                yValue: calibrateYForPoint(point, yCalibration)
+            }));
+            totalPointCount += points.length;
+            const finiteXPx = points.map((entry) => entry.xPx).filter(Number.isFinite);
+            const finiteYPx = points.map((entry) => entry.yPx).filter(Number.isFinite);
+            const finiteX = points.map((entry) => entry.xValue).filter(Number.isFinite);
+            const finiteY = points.map((entry) => entry.yValue).filter(Number.isFinite);
+            traces[id] = {
+                label: getTraceLabel(id),
+                count: points.length,
+                points,
+                xPxMin: finiteXPx.length ? Math.min(...finiteXPx) : null,
+                xPxMax: finiteXPx.length ? Math.max(...finiteXPx) : null,
+                yPxMin: finiteYPx.length ? Math.min(...finiteYPx) : null,
+                yPxMax: finiteYPx.length ? Math.max(...finiteYPx) : null,
+                xMin: finiteX.length ? Math.min(...finiteX) : null,
+                xMax: finiteX.length ? Math.max(...finiteX) : null,
+                yMin: finiteY.length ? Math.min(...finiteY) : null,
+                yMax: finiteY.length ? Math.max(...finiteY) : null
+            };
+        });
+
+        return {
+            workflowMode: "series",
+            yAxisMode: yCalibration.axisMode,
+            xAxisMode: xCalibration.axisMode,
+            baselineValue: yCalibration.baselineValue,
+            axisTickValue: yCalibration.axisTickValue,
+            xOriginValue: xCalibration.xOriginValue,
+            xTickValue: xCalibration.xTickValue,
+            xAxisLabel: cleanLabel(dom.xAxisLabel.value, "X"),
+            yAxisLabel: cleanLabel(dom.yAxisLabel.value, "Y"),
+            traces,
+            totalPointCount
+        };
+    }
+
+    function currentResults() {
+        return isSeriesWorkflowMode() ? getTraceResults() : getResults();
+    }
+
     function anyMeasurementPlaced() {
-        if (state.points.baseline || state.points.axis) return true;
+        if (state.points.baseline || state.points.axis || state.points.xOrigin || state.points.xTick) return true;
+        if (getTraceIds().some((id) => state.tracePoints[id] && state.tracePoints[id].length)) return true;
         return getSeriesIds().some((id) => state.seriesPoints[id].top || state.seriesPoints[id].bottom);
     }
 
     function clearMarks() {
         state.points.baseline = null;
         state.points.axis = null;
+        state.points.xOrigin = null;
+        state.points.xTick = null;
         getSeriesIds().forEach((id) => {
             state.seriesPoints[id].top = null;
             state.seriesPoints[id].bottom = null;
+        });
+        getTraceIds().forEach((id) => {
+            state.tracePoints[id] = [];
         });
     }
 
@@ -679,6 +982,16 @@
         createSeriesMeta,
         createSeriesPoints,
         setSeriesState,
+        normalizeTraceOrder,
+        createTraceMeta,
+        createTracePoints,
+        setTraceState,
+        getTraceIds,
+        getTraceLabel,
+        nextTraceId,
+        defaultTraceLabel,
+        appendTracePoint,
+        removeLastTracePoint,
         getSeriesIds,
         getTreatmentIds,
         nextSeriesId,
@@ -694,6 +1007,8 @@
         toolEquals,
         isSeriesTopTool,
         isSeriesBottomTool,
+        isTraceSeriesTool,
+        isTracePointTool,
         seriesIdFromTool,
         getMarkMeta,
         toolLabel,
@@ -704,6 +1019,7 @@
     };
     GraphCompare.measure = {
         isSegmentMode,
+        isSeriesWorkflowMode,
         currentCanvas,
         currentViewport,
         imageToScreen,
@@ -713,7 +1029,13 @@
         rawMeasurementValue,
         formatMeasurementValue,
         comparisonLabel,
+        computeYAxisCalibration,
+        computeXAxisCalibration,
+        calibrateXForPoint,
+        calibrateYForPoint,
         getResults,
+        getTraceResults,
+        currentResults,
         anyMeasurementPlaced
     };
     GraphCompare.stateOps = {

@@ -2,9 +2,9 @@
     const GraphCompare = window.ScientificGraphCompare;
     const { constants, state, dom, uiState, helpers, series, tools, measure } = GraphCompare;
     const { clearNode } = helpers;
-    const { getSeriesIds, getTreatmentIds, getSeriesLabel, getSeriesUnit, defaultSeriesLabel } = series;
+    const { getSeriesIds, getTreatmentIds, getSeriesLabel, getSeriesUnit, defaultSeriesLabel, getTraceIds, getTraceLabel, defaultTraceLabel } = series;
     const { makeTool, toolEquals, toolKey, getMarkMeta } = tools;
-    const { isSegmentMode, currentCanvas, currentViewport, imageToScreen, formatMeasurementValue, comparisonLabel, getResults, anyMeasurementPlaced } = measure;
+    const { isSegmentMode, isSeriesWorkflowMode, currentCanvas, currentViewport, imageToScreen, formatMeasurementValue, comparisonLabel, currentResults, anyMeasurementPlaced } = measure;
 
     function setCanvasSize() {
         const bounds = dom.canvasWrap.getBoundingClientRect();
@@ -45,7 +45,7 @@
 
     function getResultsSnapshot(forceRefresh = false) {
         if (forceRefresh || !uiState.latestResults) {
-            uiState.latestResults = getResults();
+            uiState.latestResults = currentResults();
         }
         return uiState.latestResults;
     }
@@ -96,6 +96,21 @@
         };
     }
 
+    function getTraceConfigFocusState() {
+        const active = document.activeElement;
+        if (!active || !dom.traceSeriesConfigList.contains(active)) return null;
+        if (!(active instanceof HTMLInputElement)) return null;
+        const seriesId = active.dataset.seriesId;
+        const field = active.dataset.field;
+        if (!seriesId || !field) return null;
+        return {
+            seriesId,
+            field,
+            selectionStart: active.selectionStart,
+            selectionEnd: active.selectionEnd
+        };
+    }
+
     function resultsStructureKey() {
         return JSON.stringify({
             mode: dom.measurementMode.value,
@@ -106,6 +121,35 @@
     }
 
     function ensureResultsPanelStructure() {
+        if (isSeriesWorkflowMode()) {
+            const key = JSON.stringify({
+                mode: "series",
+                order: state.traceOrder,
+                labels: getTraceIds().map((id) => getTraceLabel(id)),
+                xAxisLabel: dom.xAxisLabel.value,
+                yAxisLabel: dom.yAxisLabel.value
+            });
+            if (uiState.resultsStructureKey === key) return;
+            uiState.resultsStructureKey = key;
+            uiState.resultsRows = Object.create(null);
+            clearNode(dom.resultsDynamic);
+            clearNode(dom.seriesResultsDynamic);
+            getTraceIds().forEach((id) => {
+                const addRow = (rowKey, label) => {
+                    const labelNode = document.createElement("div");
+                    labelNode.textContent = label;
+                    const valueNode = document.createElement("div");
+                    valueNode.className = "val";
+                    dom.seriesResultsDynamic.appendChild(labelNode);
+                    dom.seriesResultsDynamic.appendChild(valueNode);
+                    uiState.resultsRows[rowKey] = { labelNode, valueNode };
+                };
+                addRow(`trace-count:${id}`, `${getTraceLabel(id)} points`);
+                addRow(`trace-x:${id}`, `${getTraceLabel(id)} ${dom.xAxisLabel.value || "X"} range`);
+                addRow(`trace-y:${id}`, `${getTraceLabel(id)} ${dom.yAxisLabel.value || "Y"} range`);
+            });
+            return;
+        }
         const key = resultsStructureKey();
         if (uiState.resultsStructureKey === key) return;
         uiState.resultsStructureKey = key;
@@ -163,6 +207,22 @@
             separate: dom.useSeparateUnits.checked,
             labels: getSeriesIds().map((id) => getSeriesLabel(id)),
             units: getSeriesIds().map((id) => state.seriesMeta[id] && state.seriesMeta[id].unit ? state.seriesMeta[id].unit : "")
+        });
+    }
+
+    function traceButtonsKey(hasSource) {
+        return JSON.stringify({
+            hasSource,
+            active: toolKey(state.activeTool),
+            labels: getTraceIds().map((id) => getTraceLabel(id)),
+            counts: getTraceIds().map((id) => (state.tracePoints[id] || []).length)
+        });
+    }
+
+    function traceConfigKey() {
+        return JSON.stringify({
+            order: state.traceOrder,
+            labels: getTraceIds().map((id) => getTraceLabel(id))
         });
     }
 
@@ -269,8 +329,75 @@
         }
     }
 
+    function renderTraceSeriesButtons(hasSource) {
+        const key = traceButtonsKey(hasSource);
+        if (uiState.traceButtonsKey === key) return;
+        uiState.traceButtonsKey = key;
+        clearNode(dom.traceSeriesButtons);
+        getTraceIds().forEach((id) => {
+            const button = document.createElement("button");
+            button.type = "button";
+            button.className = "tool-btn";
+            if (toolEquals(state.activeTool, makeTool("trace-series", id))) button.classList.add("primary");
+            button.disabled = !hasSource;
+            button.dataset.kind = "trace-series";
+            button.dataset.seriesId = id;
+            button.textContent = `Capture ${getTraceLabel(id)}`;
+            dom.traceSeriesButtons.appendChild(button);
+        });
+    }
+
+    function renderTraceSeriesConfigList() {
+        const key = traceConfigKey();
+        if (uiState.traceConfigKey === key) return;
+        uiState.traceConfigKey = key;
+        const focusState = getTraceConfigFocusState();
+        clearNode(dom.traceSeriesConfigList);
+        getTraceIds().forEach((id) => {
+            const row = document.createElement("div");
+            row.className = "row";
+
+            const labelLine = document.createElement("div");
+            labelLine.className = "input-line";
+            const labelTitle = document.createElement("label");
+            labelTitle.textContent = `${defaultTraceLabel(id)} Label`;
+            const labelInput = document.createElement("input");
+            labelInput.type = "text";
+            labelInput.value = getTraceLabel(id);
+            labelInput.placeholder = defaultTraceLabel(id);
+            labelInput.dataset.seriesId = id;
+            labelInput.dataset.field = "label";
+            labelInput.dataset.traceConfig = "true";
+            labelLine.appendChild(labelTitle);
+            labelLine.appendChild(labelInput);
+            row.appendChild(labelLine);
+            dom.traceSeriesConfigList.appendChild(row);
+        });
+
+        if (focusState) {
+            const selector = `input[data-series-id="${focusState.seriesId}"][data-field="${focusState.field}"][data-trace-config="true"]`;
+            const input = dom.traceSeriesConfigList.querySelector(selector);
+            if (input) {
+                input.focus({ preventScroll: true });
+                if (typeof focusState.selectionStart === "number" && typeof focusState.selectionEnd === "number") {
+                    try {
+                        input.setSelectionRange(focusState.selectionStart, focusState.selectionEnd);
+                    } catch (error) {}
+                }
+            }
+        }
+    }
+
     function hasMeasuredSeries(results) {
+        if (isSeriesWorkflowMode()) {
+            return getTraceIds().some((id) => results.traces[id] && results.traces[id].count > 0);
+        }
         return getSeriesIds().some((id) => Number.isFinite(results.raw[id]));
+    }
+
+    function formatRange(min, max) {
+        if (!Number.isFinite(min) || !Number.isFinite(max)) return "NA";
+        return `${helpers.formatValue(min)} -> ${helpers.formatValue(max)}`;
     }
 
     function updateRawRow(id, results) {
@@ -332,6 +459,23 @@
     }
 
     function syncResultsUi(results, mode = "full") {
+        if (isSeriesWorkflowMode()) {
+            ensureResultsPanelStructure();
+            dom.kvSeriesYAxisMode.textContent = results.yAxisMode;
+            dom.kvSeriesHeaderXAxisMode.textContent = results.xAxisMode;
+            getTraceIds().forEach((id) => {
+                const trace = results.traces[id];
+                const countRow = uiState.resultsRows[`trace-count:${id}`];
+                const xRow = uiState.resultsRows[`trace-x:${id}`];
+                const yRow = uiState.resultsRows[`trace-y:${id}`];
+                if (countRow) countRow.valueNode.textContent = String(trace ? trace.count : 0);
+                if (xRow) xRow.valueNode.textContent = trace ? formatRange(trace.xMin, trace.xMax) : "NA";
+                if (yRow) yRow.valueNode.textContent = trace ? formatRange(trace.yMin, trace.yMax) : "NA";
+            });
+            dom.btnExportCsv.disabled = !hasMeasuredSeries(results);
+            dom.btnCopyResults.disabled = !hasMeasuredSeries(results);
+            return;
+        }
         dom.kvAxisMode.textContent = results.axisMode;
         if (mode !== "results" || !state.drag.tool || !uiState.resultsStructureKey) {
             ensureResultsPanelStructure();
@@ -359,12 +503,27 @@
         dom.kvRoi.textContent = state.working.label;
         dom.kvActiveTool.textContent = tools.toolLabel(state.activeTool);
         dom.badgeMode.textContent = tools.toolLabel(state.activeTool);
+        dom.capturePanelHeading.textContent = isSeriesWorkflowMode() ? "Calibration" : "Compare / Calibration";
+        dom.workflowHint.textContent = isSeriesWorkflowMode()
+            ? "Series mode captures ordered X/Y traces. Use baseline + axis tick for Y calibration and X origin + X tick for X calibration."
+            : "Compare mode is the original bar/segment workflow. Series mode lets you capture many points into one or more labeled traces and export raw/calibrated X/Y data.";
 
         renderSeriesButtons(hasSource);
         renderSegmentButtons(hasSource);
         renderSeriesConfigList();
+        renderTraceSeriesButtons(hasSource);
+        renderTraceSeriesConfigList();
         syncResultsUi(results, mode);
 
+        const compareOnlyNodes = document.querySelectorAll(".compare-only");
+        const seriesOnlyNodes = document.querySelectorAll(".series-only");
+        compareOnlyNodes.forEach((node) => { node.hidden = isSeriesWorkflowMode(); });
+        seriesOnlyNodes.forEach((node) => { node.hidden = !isSeriesWorkflowMode(); });
+        dom.seriesPanel.hidden = !isSeriesWorkflowMode();
+        dom.compareResultsHeader.hidden = isSeriesWorkflowMode();
+        dom.resultsDynamic.hidden = isSeriesWorkflowMode();
+        dom.seriesResultsHeader.hidden = !isSeriesWorkflowMode();
+        dom.seriesResultsDynamic.hidden = !isSeriesWorkflowMode();
         dom.separateUnitsHint.hidden = !dom.useSeparateUnits.checked;
         dom.pdfControls.hidden = !state.pdf.doc;
         dom.canvasWrap.classList.toggle("pdf-mode", hasPdfSource);
@@ -377,19 +536,40 @@
         dom.btnResetRoi.disabled = !hasSource;
         dom.btnSetBaseline.disabled = !hasSource;
         dom.btnSetAxis.disabled = !hasSource;
+        dom.btnSetXOrigin.disabled = !hasSource;
+        dom.btnSetXTick.disabled = !hasSource;
         dom.btnSetBaseline.classList.toggle("primary", toolEquals(state.activeTool, makeTool("baseline")));
         dom.btnSetAxis.classList.toggle("primary", toolEquals(state.activeTool, makeTool("axis")));
+        dom.btnSetXOrigin.classList.toggle("primary", toolEquals(state.activeTool, makeTool("xOrigin")));
+        dom.btnSetXTick.classList.toggle("primary", toolEquals(state.activeTool, makeTool("xTick")));
         dom.btnSelectRoi.classList.toggle("primary", toolEquals(state.activeTool, makeTool("roi")));
         dom.btnClearMarks.disabled = !hasSource || !anyMeasurementPlaced();
         dom.btnSaveAnnotated.disabled = !hasSource;
         dom.btnSaveExample.disabled = !hasSource;
         dom.btnRemoveTreatment.disabled = getTreatmentIds().length <= constants.MIN_TREATMENT_COUNT;
+        dom.btnAddTraceSeries.disabled = !hasSource;
+        dom.btnRemoveTraceSeries.disabled = getTraceIds().length <= constants.MIN_TRACE_SERIES_COUNT;
+        dom.btnFinishSeries.disabled = !toolEquals(state.activeTool, makeTool("trace-series", state.activeTool && state.activeTool.seriesId));
+        dom.btnUndoTracePoint.disabled = !(state.activeTool && state.activeTool.kind === "trace-series" && state.tracePoints[state.activeTool.seriesId] && state.tracePoints[state.activeTool.seriesId].length);
+        dom.kvActiveSeries.textContent = state.activeTool && state.activeTool.kind === "trace-series" ? getTraceLabel(state.activeTool.seriesId) : "--";
+        dom.kvXAxisMode.textContent = isSeriesWorkflowMode() ? results.xAxisMode : "NA";
+        dom.badgeShortcut.textContent = isSeriesWorkflowMode()
+            ? "`R` ROI, `Z` Baseline line, `T` Y Tick, `O` X Origin, `K` X Tick, `1-9` Capture Series, Right click finish, `X` Clear, `Esc` Cancel"
+            : "`R` ROI, `Z` Baseline line, `T` Axis, `C` Control, `A`/`B` first treatments, `X` Clear, `Esc` Cancel";
+        dom.badgeWorkflow.textContent = isSeriesWorkflowMode()
+            ? "Manual trace capture with optional X/Y calibration"
+            : "Simple compare first, rectifier only if needed";
 
         dom.actionHint.textContent = toolEquals(state.activeTool, makeTool("roi"))
             ? "Drag a rectangle on the image. Mouse up crops the working view immediately."
-            : isSegmentMode()
+            : isSeriesWorkflowMode()
+                ? "Series mode still uses this section for ROI and Y-axis calibration. Set the baseline line and optional Y tick, then use Series Capture below for multi-point traces."
+                : isSegmentMode()
                 ? "Segment mode: set baseline and axis only if you want calibration, then place top and bottom markers for each series. Existing markers can be dragged directly."
                 : "Typical order: upload image, optionally select ROI, set the baseline line and its value, optionally set one different axis tick for scaling, then set control and the treatment markers. Existing markers can be dragged directly.";
+        dom.seriesActionHint.textContent = state.activeTool && state.activeTool.kind === "trace-series"
+            ? `Capturing ${getTraceLabel(state.activeTool.seriesId)}. Left click adds points in order. Right click or Finish Active Series stops capture.`
+            : "Choose a series, left click to add points in order, then right click or use Finish Active Series to stop capturing. Existing series points can still be dragged.";
     }
 
     function drawGuideLine(targetCtx, viewport, point, color) {
@@ -405,6 +585,23 @@
         targetCtx.beginPath();
         targetCtx.moveTo(left.x, left.y);
         targetCtx.lineTo(right.x, right.y);
+        targetCtx.stroke();
+        targetCtx.restore();
+    }
+
+    function drawVerticalGuideLine(targetCtx, viewport, point, color) {
+        if (!point) return;
+        const image = currentCanvas();
+        if (!image) return;
+        const top = imageToScreen({ x: point.x, y: 0 }, viewport);
+        const bottom = imageToScreen({ x: point.x, y: image.height }, viewport);
+        targetCtx.save();
+        targetCtx.strokeStyle = color;
+        targetCtx.lineWidth = 1.5;
+        targetCtx.setLineDash([8, 6]);
+        targetCtx.beginPath();
+        targetCtx.moveTo(top.x, top.y);
+        targetCtx.lineTo(bottom.x, bottom.y);
         targetCtx.stroke();
         targetCtx.restore();
     }
@@ -452,6 +649,46 @@
         targetCtx.restore();
     }
 
+    function drawTraceSeries(targetCtx, viewport, id, options = {}) {
+        const points = state.tracePoints[id] || [];
+        if (!points.length) return;
+        const meta = getMarkMeta(makeTool("trace-series", id));
+        const showLine = options.showLine !== false;
+        const showPoints = options.showPoints !== false;
+        const showLabels = options.showLabels !== false;
+
+        if (showLine) {
+            targetCtx.save();
+            targetCtx.strokeStyle = meta.color;
+            targetCtx.lineWidth = Math.max(2, viewport.scale * 0.2);
+            targetCtx.beginPath();
+            points.forEach((point, index) => {
+                const screen = imageToScreen(point, viewport);
+                if (index === 0) targetCtx.moveTo(screen.x, screen.y);
+                else targetCtx.lineTo(screen.x, screen.y);
+            });
+            if (points.length > 1) targetCtx.stroke();
+            targetCtx.restore();
+        }
+
+        if (showPoints) {
+            points.forEach((point, index) => {
+                drawMarker(targetCtx, viewport, makeTool("trace-point", id, index), point, 6, false);
+            });
+        }
+
+        if (showLabels) {
+            const lastPoint = imageToScreen(points[points.length - 1], viewport);
+            targetCtx.save();
+            targetCtx.font = `${Math.max(12, viewport.scale * 0.34)}px 'JetBrains Mono', monospace`;
+            targetCtx.fillStyle = "rgba(255,255,255,0.96)";
+            targetCtx.shadowColor = "rgba(0,0,0,0.65)";
+            targetCtx.shadowBlur = 6;
+            targetCtx.fillText(getTraceLabel(id), lastPoint.x + 10, lastPoint.y - 10);
+            targetCtx.restore();
+        }
+    }
+
     function drawRoiDraft(targetCtx, viewport) {
         if (!state.roiDraft) return;
         const start = imageToScreen(state.roiDraft.start, viewport);
@@ -471,6 +708,46 @@
     }
 
     function buildOverlayLines(results) {
+        if (isSeriesWorkflowMode()) {
+            const lines = [];
+            if (dom.overlayShowBaselineValue.checked && Number.isFinite(results.baselineValue) && (state.points.baseline || results.totalPointCount)) {
+                lines.push(`Y baseline: ${helpers.formatValue(results.baselineValue)}`);
+            }
+            if (dom.overlayShowAxisTickValue.checked && Number.isFinite(results.axisTickValue) && state.points.axis) {
+                lines.push(`Y tick: ${helpers.formatValue(results.axisTickValue)}`);
+            }
+            if (dom.overlayShowXAxisTickValue.checked && Number.isFinite(results.xOriginValue) && state.points.xOrigin) {
+                lines.push(`X origin: ${helpers.formatValue(results.xOriginValue)}`);
+            }
+            if (dom.overlayShowXAxisTickValue.checked && Number.isFinite(results.xTickValue) && state.points.xTick) {
+                lines.push(`X tick: ${helpers.formatValue(results.xTickValue)}`);
+            }
+            if (dom.overlayShowSeriesCounts.checked) {
+                getTraceIds().forEach((id) => {
+                    const trace = results.traces[id];
+                    if (trace && trace.count) lines.push(`${trace.label} points: ${trace.count}`);
+                });
+            }
+            if (dom.overlayShowRawPx.checked) {
+                getTraceIds().forEach((id) => {
+                    const trace = results.traces[id];
+                    if (trace && Number.isFinite(trace.xPxMin) && Number.isFinite(trace.yPxMin)) {
+                        lines.push(`${trace.label} x_px: ${helpers.fmtFloat(trace.xPxMin)} -> ${helpers.fmtFloat(trace.xPxMax)}`);
+                        lines.push(`${trace.label} y_px: ${helpers.fmtFloat(trace.yPxMin)} -> ${helpers.fmtFloat(trace.yPxMax)}`);
+                    }
+                });
+            }
+            if (dom.overlayShowValues.checked) {
+                getTraceIds().forEach((id) => {
+                    const trace = results.traces[id];
+                    if (trace && Number.isFinite(trace.xMin) && Number.isFinite(trace.yMin)) {
+                        lines.push(`${trace.label} ${results.xAxisLabel}: ${helpers.formatValue(trace.xMin)} -> ${helpers.formatValue(trace.xMax)}`);
+                        lines.push(`${trace.label} ${results.yAxisLabel}: ${helpers.formatValue(trace.yMin)} -> ${helpers.formatValue(trace.yMax)}`);
+                    }
+                });
+            }
+            return lines;
+        }
         const lines = [];
         const anyMeasured = hasMeasuredSeries(results);
         if (dom.overlayShowBaselineValue.checked && Number.isFinite(results.baselineValue) && (state.points.baseline || anyMeasured)) {
@@ -541,6 +818,17 @@
     }
 
     function legendEntries() {
+        if (isSeriesWorkflowMode()) {
+            const entries = [];
+            if (state.points.xTick) entries.push({ label: "X Tick", color: constants.FIXED_MARK_META.xTick.color });
+            if (state.points.xOrigin) entries.push({ label: "X Origin", color: constants.FIXED_MARK_META.xOrigin.color });
+            getTraceIds().forEach((id) => {
+                entries.push({ label: getTraceLabel(id), color: getMarkMeta(makeTool("trace-series", id)).color });
+            });
+            if (state.points.baseline) entries.push({ label: constants.FIXED_MARK_META.baseline.label, color: constants.FIXED_MARK_META.baseline.color });
+            if (state.points.axis) entries.push({ label: constants.FIXED_MARK_META.axis.label, color: constants.FIXED_MARK_META.axis.color });
+            return entries;
+        }
         const entries = [{ label: "Tick", color: constants.FIXED_MARK_META.axis.color }];
         getTreatmentIds().forEach((id) => {
             entries.push({ label: getSeriesLabel(id), color: getMarkMeta(makeTool("series-top", id)).color });
@@ -557,6 +845,7 @@
         const swatchSize = Math.max(10, viewport.scale * 0.3);
         const gap = 10;
         const entries = legendEntries();
+        if (!entries.length) return;
         const cacheKey = JSON.stringify({
             fontSize,
             labels: entries.map((entry) => entry.label)
@@ -618,15 +907,25 @@
         dom.ctx.drawImage(display.image, viewport.offsetX, viewport.offsetY, display.drawWidth, display.drawHeight);
         if (state.points.baseline) drawGuideLine(dom.ctx, viewport, state.points.baseline, "rgba(245,158,11,0.88)");
         if (state.points.axis) drawGuideLine(dom.ctx, viewport, state.points.axis, "rgba(253,224,71,0.82)");
-        getSeriesIds().forEach((id) => drawVerticalMeasure(dom.ctx, viewport, id));
-        drawMarker(dom.ctx, viewport, makeTool("baseline"), state.points.baseline);
-        drawMarker(dom.ctx, viewport, makeTool("axis"), state.points.axis);
-        getSeriesIds().forEach((id) => {
-            drawMarker(dom.ctx, viewport, makeTool("series-top", id), state.seriesPoints[id].top);
-            if (isSegmentMode()) {
-                drawMarker(dom.ctx, viewport, makeTool("series-bottom", id), state.seriesPoints[id].bottom);
-            }
-        });
+        if (isSeriesWorkflowMode()) {
+            if (state.points.xOrigin) drawVerticalGuideLine(dom.ctx, viewport, state.points.xOrigin, "rgba(192,132,252,0.84)");
+            if (state.points.xTick) drawVerticalGuideLine(dom.ctx, viewport, state.points.xTick, "rgba(249,168,212,0.84)");
+            drawMarker(dom.ctx, viewport, makeTool("baseline"), state.points.baseline);
+            drawMarker(dom.ctx, viewport, makeTool("axis"), state.points.axis);
+            drawMarker(dom.ctx, viewport, makeTool("xOrigin"), state.points.xOrigin);
+            drawMarker(dom.ctx, viewport, makeTool("xTick"), state.points.xTick);
+            getTraceIds().forEach((id) => drawTraceSeries(dom.ctx, viewport, id, { showLabels: true, showLine: true, showPoints: true }));
+        } else {
+            getSeriesIds().forEach((id) => drawVerticalMeasure(dom.ctx, viewport, id));
+            drawMarker(dom.ctx, viewport, makeTool("baseline"), state.points.baseline);
+            drawMarker(dom.ctx, viewport, makeTool("axis"), state.points.axis);
+            getSeriesIds().forEach((id) => {
+                drawMarker(dom.ctx, viewport, makeTool("series-top", id), state.seriesPoints[id].top);
+                if (isSegmentMode()) {
+                    drawMarker(dom.ctx, viewport, makeTool("series-bottom", id), state.seriesPoints[id].bottom);
+                }
+            });
+        }
         drawRoiDraft(dom.ctx, viewport);
         drawOverlayBox(dom.ctx, viewport);
         drawLegendBox(dom.ctx, viewport);
@@ -638,13 +937,17 @@
         updateUi,
         render,
         drawGuideLine,
+        drawVerticalGuideLine,
         drawVerticalMeasure,
         drawMarker,
+        drawTraceSeries,
         drawOverlayBox,
         drawLegendBox,
         renderSeriesButtons,
         renderSegmentButtons,
         renderSeriesConfigList,
+        renderTraceSeriesButtons,
+        renderTraceSeriesConfigList,
         buildOverlayLines
     };
 
