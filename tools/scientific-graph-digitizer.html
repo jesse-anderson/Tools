@@ -98,7 +98,7 @@
             <aside class="sidebar">
                 <section class="panel">
                     <h2>Fast scientific analysis</h2>
-                    <p>Upload an image or PDF, optionally crop to a region of interest, then place the baseline, optional axis tick, control, and treatment markers. Set the baseline value explicitly, then use a different axis tick only when you want value calibration.</p>
+                    <p>Upload an image or PDF, optionally crop to a region of interest, then place the baseline, optional axis tick, control, and treatment markers. Set the baseline value explicitly, use a different axis tick only when you want Y-value calibration, and optionally set X origin plus X tick when you want X readout or X/Y export.</p>
                 </section>
 
                 <section class="panel">
@@ -156,36 +156,11 @@
                         <label for="axisValue">Axis Tick Value (Optional)</label>
                         <input id="axisValue" type="number" step="any" value="100" />
                     </div>
-                    <div class="hint">Baseline is the graph's reference line, usually 0 but sometimes 50, -20, or another value. Use a different axis tick value only when you want numeric calibration.</div>
-                    <div class="row">
-                        <button class="tool-btn" id="btnSetBaseline" type="button">Set Baseline Line</button>
-                        <button class="tool-btn" id="btnSetAxis" type="button">Set Axis Tick</button>
-                    </div>
-                    <div class="row compare-only" id="seriesTopButtons"></div>
-                    <div class="row compare-only" id="segmentButtons" hidden style="display:none;"></div>
-                    <div class="row">
-                        <button class="tool-btn" id="btnClearMarks" type="button">Clear Marks</button>
-                    </div>
-                    <div class="hint" id="actionHint">Typical order: upload image, optionally select ROI, set the baseline line and its value, optionally set one different axis tick for scaling, then set control and the treatment markers.</div>
-                    <div class="kv">
-                        <div>Active tool</div><div class="val" id="kvActiveTool">View</div>
-                        <div>Cursor</div><div class="val" id="kvCursor">--</div>
-                    </div>
-                </section>
-
-                <section class="panel mode-block" id="seriesPanel" hidden>
-                    <h3>Series Capture</h3>
                     <div class="row">
                         <div class="input-line">
                             <label for="xAxisLabel">X Axis Label</label>
                             <input id="xAxisLabel" type="text" value="X" placeholder="Time (h), Concentration, etc." />
                         </div>
-                        <div class="input-line">
-                            <label for="yAxisLabel">Y Axis Label</label>
-                            <input id="yAxisLabel" type="text" value="Y" placeholder="OD600, pH, Response, etc." />
-                        </div>
-                    </div>
-                    <div class="row">
                         <div class="input-line">
                             <label for="xOriginValue">X Origin Value</label>
                             <input id="xOriginValue" type="number" step="any" value="0" />
@@ -195,11 +170,35 @@
                             <input id="xTickValue" type="number" step="any" value="10" />
                         </div>
                     </div>
-                    <div class="hint">Y calibration still uses the baseline line and optional axis tick above. X calibration uses two point markers along the horizontal axis: origin and one tick.</div>
+                    <div class="hint">Baseline is the graph's reference line, usually 0 but sometimes 50, -20, or another value. Use a different axis tick value only when you want numeric Y calibration. X calibration is optional in any workflow and uses two markers along the horizontal axis: origin and one tick.</div>
                     <div class="row">
+                        <button class="tool-btn" id="btnSetBaseline" type="button">Set Baseline Line</button>
+                        <button class="tool-btn" id="btnSetAxis" type="button">Set Axis Tick</button>
                         <button class="tool-btn" id="btnSetXOrigin" type="button">Set X Origin</button>
                         <button class="tool-btn" id="btnSetXTick" type="button">Set X Tick</button>
                     </div>
+                    <div class="row compare-only" id="seriesTopButtons"></div>
+                    <div class="row compare-only" id="segmentButtons" hidden style="display:none;"></div>
+                    <div class="row">
+                        <button class="tool-btn" id="btnClearMarks" type="button">Clear Marks</button>
+                    </div>
+                    <div class="hint" id="actionHint">Typical order: upload image, optionally select ROI, set the baseline line and its value, optionally set one different axis tick for scaling, then set control and the treatment markers.</div>
+                    <div class="kv">
+                        <div>Active tool</div><div class="val" id="kvActiveTool">View</div>
+                        <div>X axis mode</div><div class="val" id="kvXAxisMode">X origin value required</div>
+                        <div>Cursor</div><div class="val" id="kvCursor">--</div>
+                    </div>
+                </section>
+
+                <section class="panel mode-block" id="seriesPanel" hidden>
+                    <h3>Series Capture</h3>
+                    <div class="row">
+                        <div class="input-line">
+                            <label for="yAxisLabel">Y Axis Label</label>
+                            <input id="yAxisLabel" type="text" value="Y" placeholder="OD600, pH, Response, etc." />
+                        </div>
+                    </div>
+                    <div class="hint">Series capture still uses the shared calibration section above. Set the baseline line and optional Y tick for Y calibration, and optional X origin plus X tick for X calibration.</div>
                     <div class="row" id="traceSeriesButtons"></div>
                     <div class="row">
                         <button class="tool-btn" id="btnAddTraceSeries" type="button">Add Series</button>
@@ -211,7 +210,6 @@
                     <div id="traceSeriesConfigList"></div>
                     <div class="kv">
                         <div>Active series</div><div class="val" id="kvActiveSeries">--</div>
-                        <div>X axis mode</div><div class="val" id="kvXAxisMode">NA</div>
                     </div>
                 </section>
 

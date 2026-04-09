@@ -4,7 +4,7 @@
     const { clamp, normalizeRect, cropCanvas, canvasEventPoint } = helpers;
     const { getTreatmentIds, nextSeriesId, getTraceIds, getTraceLabel, nextTraceId, appendTracePoint, removeLastTracePoint, setTraceState } = series;
     const { makeTool, toolEquals, isSeriesTopTool, isSeriesBottomTool, isTraceSeriesTool, hitTestTool, setPointByTool } = tools;
-    const { currentCanvas, currentViewport, screenToImage, screenToImageClamped, isSegmentMode, isSeriesWorkflowMode } = measure;
+    const { currentCanvas, currentViewport, screenToImage, screenToImageClamped, isSegmentMode, isSeriesWorkflowMode, formatCursorReadout } = measure;
 
     function nextToolAfterPlacement(tool) {
         if (!tool) return null;
@@ -57,7 +57,7 @@
             state.pointer.inside = true;
             state.pointer.x = clampedImagePoint.x;
             state.pointer.y = clampedImagePoint.y;
-            dom.kvCursor.textContent = `${helpers.fmtFloat(clampedImagePoint.x, 2)}, ${helpers.fmtFloat(clampedImagePoint.y, 2)}`;
+            dom.kvCursor.textContent = formatCursorReadout(clampedImagePoint);
             dom.mainCanvas.style.cursor = "grabbing";
             ui.requestRender("results");
             return;
@@ -66,7 +66,7 @@
             state.pointer.inside = true;
             state.pointer.x = imagePoint.x;
             state.pointer.y = imagePoint.y;
-            dom.kvCursor.textContent = `${helpers.fmtFloat(imagePoint.x, 2)}, ${helpers.fmtFloat(imagePoint.y, 2)}`;
+            dom.kvCursor.textContent = formatCursorReadout(imagePoint);
         } else {
             state.pointer.inside = false;
             dom.kvCursor.textContent = "--";

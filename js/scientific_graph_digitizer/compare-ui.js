@@ -505,8 +505,8 @@
         dom.badgeMode.textContent = tools.toolLabel(state.activeTool);
         dom.capturePanelHeading.textContent = isSeriesWorkflowMode() ? "Calibration" : "Compare / Calibration";
         dom.workflowHint.textContent = isSeriesWorkflowMode()
-            ? "Series mode captures ordered X/Y traces. Use baseline + axis tick for Y calibration and X origin + X tick for X calibration."
-            : "Compare mode is the original bar/segment workflow. Series mode lets you capture many points into one or more labeled traces and export raw/calibrated X/Y data.";
+            ? "Series mode captures ordered X/Y traces. Use baseline + axis tick for Y calibration and optional X origin + X tick for X calibration."
+            : "Compare mode is the original bar/segment workflow, but optional X calibration is available here too for cursor X/Y readout. Series mode adds multi-point trace capture and X/Y export.";
 
         renderSeriesButtons(hasSource);
         renderSegmentButtons(hasSource);
@@ -552,21 +552,21 @@
         dom.btnFinishSeries.disabled = !toolEquals(state.activeTool, makeTool("trace-series", state.activeTool && state.activeTool.seriesId));
         dom.btnUndoTracePoint.disabled = !(state.activeTool && state.activeTool.kind === "trace-series" && state.tracePoints[state.activeTool.seriesId] && state.tracePoints[state.activeTool.seriesId].length);
         dom.kvActiveSeries.textContent = state.activeTool && state.activeTool.kind === "trace-series" ? getTraceLabel(state.activeTool.seriesId) : "--";
-        dom.kvXAxisMode.textContent = isSeriesWorkflowMode() ? results.xAxisMode : "NA";
+        dom.kvXAxisMode.textContent = results.xAxisMode || "X origin value required";
         dom.badgeShortcut.textContent = isSeriesWorkflowMode()
             ? "`R` ROI, `Z` Baseline line, `T` Y Tick, `O` X Origin, `K` X Tick, `1-9` Capture Series, Right click finish, `X` Clear, `Esc` Cancel"
-            : "`R` ROI, `Z` Baseline line, `T` Axis, `C` Control, `A`/`B` first treatments, `X` Clear, `Esc` Cancel";
+            : "`R` ROI, `Z` Baseline line, `T` Axis, `O` X Origin, `K` X Tick, `C` Control, `A`/`B` first treatments, `X` Clear, `Esc` Cancel";
         dom.badgeWorkflow.textContent = isSeriesWorkflowMode()
             ? "Manual trace capture with optional X/Y calibration"
-            : "Simple compare first, rectifier only if needed";
+            : "Manual compare with optional X/Y calibration";
 
         dom.actionHint.textContent = toolEquals(state.activeTool, makeTool("roi"))
             ? "Drag a rectangle on the image. Mouse up crops the working view immediately."
             : isSeriesWorkflowMode()
-                ? "Series mode still uses this section for ROI and Y-axis calibration. Set the baseline line and optional Y tick, then use Series Capture below for multi-point traces."
+                ? "Series mode still uses this section for ROI plus optional X/Y calibration. Set the baseline line and optional Y tick, optionally set X origin plus X tick, then use Series Capture below for multi-point traces."
                 : isSegmentMode()
-                ? "Segment mode: set baseline and axis only if you want calibration, then place top and bottom markers for each series. Existing markers can be dragged directly."
-                : "Typical order: upload image, optionally select ROI, set the baseline line and its value, optionally set one different axis tick for scaling, then set control and the treatment markers. Existing markers can be dragged directly.";
+                ? "Segment mode: set baseline and axis only if you want Y calibration, optionally set X origin plus X tick if you want cursor X readout, then place top and bottom markers for each series. Existing markers can be dragged directly."
+                : "Typical order: upload image, optionally select ROI, set the baseline line and its value, optionally set one different axis tick for Y scaling, optionally set X origin plus X tick for X readout, then set control and the treatment markers. Existing markers can be dragged directly.";
         dom.seriesActionHint.textContent = state.activeTool && state.activeTool.kind === "trace-series"
             ? `Capturing ${getTraceLabel(state.activeTool.seriesId)}. Left click adds points in order. Right click or Finish Active Series stops capture.`
             : "Choose a series, left click to add points in order, then right click or use Finish Active Series to stop capturing. Existing series points can still be dragged.";
@@ -829,7 +829,10 @@
             if (state.points.axis) entries.push({ label: constants.FIXED_MARK_META.axis.label, color: constants.FIXED_MARK_META.axis.color });
             return entries;
         }
-        const entries = [{ label: "Tick", color: constants.FIXED_MARK_META.axis.color }];
+        const entries = [];
+        if (state.points.xTick) entries.push({ label: "X Tick", color: constants.FIXED_MARK_META.xTick.color });
+        if (state.points.xOrigin) entries.push({ label: "X Origin", color: constants.FIXED_MARK_META.xOrigin.color });
+        entries.push({ label: "Tick", color: constants.FIXED_MARK_META.axis.color });
         getTreatmentIds().forEach((id) => {
             entries.push({ label: getSeriesLabel(id), color: getMarkMeta(makeTool("series-top", id)).color });
         });
@@ -907,9 +910,9 @@
         dom.ctx.drawImage(display.image, viewport.offsetX, viewport.offsetY, display.drawWidth, display.drawHeight);
         if (state.points.baseline) drawGuideLine(dom.ctx, viewport, state.points.baseline, "rgba(245,158,11,0.88)");
         if (state.points.axis) drawGuideLine(dom.ctx, viewport, state.points.axis, "rgba(253,224,71,0.82)");
+        if (state.points.xOrigin) drawVerticalGuideLine(dom.ctx, viewport, state.points.xOrigin, "rgba(192,132,252,0.84)");
+        if (state.points.xTick) drawVerticalGuideLine(dom.ctx, viewport, state.points.xTick, "rgba(249,168,212,0.84)");
         if (isSeriesWorkflowMode()) {
-            if (state.points.xOrigin) drawVerticalGuideLine(dom.ctx, viewport, state.points.xOrigin, "rgba(192,132,252,0.84)");
-            if (state.points.xTick) drawVerticalGuideLine(dom.ctx, viewport, state.points.xTick, "rgba(249,168,212,0.84)");
             drawMarker(dom.ctx, viewport, makeTool("baseline"), state.points.baseline);
             drawMarker(dom.ctx, viewport, makeTool("axis"), state.points.axis);
             drawMarker(dom.ctx, viewport, makeTool("xOrigin"), state.points.xOrigin);
@@ -919,6 +922,8 @@
             getSeriesIds().forEach((id) => drawVerticalMeasure(dom.ctx, viewport, id));
             drawMarker(dom.ctx, viewport, makeTool("baseline"), state.points.baseline);
             drawMarker(dom.ctx, viewport, makeTool("axis"), state.points.axis);
+            drawMarker(dom.ctx, viewport, makeTool("xOrigin"), state.points.xOrigin);
+            drawMarker(dom.ctx, viewport, makeTool("xTick"), state.points.xTick);
             getSeriesIds().forEach((id) => {
                 drawMarker(dom.ctx, viewport, makeTool("series-top", id), state.seriesPoints[id].top);
                 if (isSegmentMode()) {

@@ -546,9 +546,8 @@
     }
 
     function interactivePointTools() {
-        const activeTools = [makeTool("baseline"), makeTool("axis")];
+        const activeTools = [makeTool("baseline"), makeTool("axis"), makeTool("xOrigin"), makeTool("xTick")];
         if (isSeriesWorkflowMode()) {
-            activeTools.push(makeTool("xOrigin"), makeTool("xTick"));
             getTraceIds().forEach((id) => {
                 (state.tracePoints[id] || []).forEach((point, index) => {
                     if (point) activeTools.push(makeTool("trace-point", id, index));
@@ -784,10 +783,64 @@
         return calibration.xOriginValue + ((point.x - calibration.xOriginPoint.x) / calibration.spanPx) * calibration.valueSpan;
     }
 
+    function formatCursorReadout(point) {
+        if (!point) return "--";
+
+        const parts = [];
+        const xCalibration = computeXAxisCalibration();
+        const yCalibration = computeYAxisCalibration();
+        const xValue = calibrateXForPoint(point, xCalibration);
+        const yValue = calibrateYForPoint(point, yCalibration);
+
+        if (Number.isFinite(xValue)) {
+            parts.push(`${cleanLabel(dom.xAxisLabel.value, "X")}≈${formatValue(xValue)}`);
+        }
+
+        if (Number.isFinite(yValue)) {
+            if (isSeriesWorkflowMode()) {
+                parts.push(`${cleanLabel(dom.yAxisLabel.value, "Y")}≈${formatValue(yValue)}`);
+            } else {
+                const unit = cleanLabel(dom.unitLabel.value, "");
+                parts.push(unit ? `Y≈${formatValue(yValue)} ${unit}` : `Y≈${formatValue(yValue)}`);
+            }
+        }
+
+        parts.push(`px ${fmtFloat(point.x, 2)}, ${fmtFloat(point.y, 2)}`);
+        return parts.join(" | ");
+    }
+
+    // Override the earlier cursor formatter with an ASCII-only readout that
+    // always keeps raw pixel coordinates visible alongside any calibrated axes.
+    function formatCursorReadout(point) {
+        if (!point) return "--";
+
+        const parts = [];
+        const xCalibration = computeXAxisCalibration();
+        const yCalibration = computeYAxisCalibration();
+        const xValue = calibrateXForPoint(point, xCalibration);
+        const yValue = calibrateYForPoint(point, yCalibration);
+        const xLabel = cleanLabel(dom.xAxisLabel.value, "X");
+        const yLabel = isSeriesWorkflowMode() ? cleanLabel(dom.yAxisLabel.value, "Y") : "Y";
+
+        if (Number.isFinite(xValue)) {
+            parts.push(`${xLabel}=${formatValue(xValue)}`);
+        }
+
+        if (Number.isFinite(yValue)) {
+            const unit = !isSeriesWorkflowMode() ? cleanLabel(dom.unitLabel.value, "") : "";
+            parts.push(unit ? `${yLabel}=${formatValue(yValue)} ${unit}` : `${yLabel}=${formatValue(yValue)}`);
+        }
+
+        parts.push(`X px=${fmtFloat(point.x, 2)}`);
+        parts.push(`Y px=${fmtFloat(point.y, 2)}`);
+        return parts.join(" | ");
+    }
+
     function getResults() {
         const raw = {};
         const calibrated = {};
         const comparisonsVsControl = {};
+        const xCalibration = computeXAxisCalibration();
         getSeriesIds().forEach((id) => {
             raw[id] = rawMeasurementValue(id);
             calibrated[id] = null;
@@ -811,8 +864,12 @@
             workflowMode: "compare",
             measurementMode: dom.measurementMode.value,
             axisMode: calibration.axisMode,
+            xAxisMode: xCalibration.axisMode,
             baselineValue: calibration.baselineValue,
             axisTickValue: calibration.axisTickValue,
+            xOriginValue: xCalibration.xOriginValue,
+            xTickValue: xCalibration.xTickValue,
+            xAxisLabel: cleanLabel(dom.xAxisLabel.value, "X"),
             raw,
             calibrated,
             comparisonsVsControl
@@ -1033,6 +1090,7 @@
         computeXAxisCalibration,
         calibrateXForPoint,
         calibrateYForPoint,
+        formatCursorReadout,
         getResults,
         getTraceResults,
         currentResults,
