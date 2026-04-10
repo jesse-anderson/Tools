@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Token Throughput Visualizer | Tools Hub</title>
+    <!--
+    ============================================
+    TOKEN THROUGHPUT VISUALIZER v1.0.0
+    ============================================
+    Dependencies:
+    - No third-party JavaScript libraries
+    - JetBrains Mono (font)
+        SIL Open Font License 1.1
+        https://fonts.google.com/specimen/JetBrains+Mono
+    - Space Grotesk (font)
+        SIL Open Font License 1.1
+        https://fonts.google.com/specimen/Space+Grotesk
+
+    Last Updated: April 2026
+    ============================================
+    -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/shared.css">
+    <link rel="stylesheet" href="../css/token_throughput_visualizer/token-throughput-visualizer.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <div class="header-left">
+                    <a href="../tools.html" class="back-link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="19" y1="12" x2="5" y2="12"/>
+                            <polyline points="12 19 5 12 12 5"/>
+                        </svg>
+                        Back to Tools
+                    </a>
+                </div>
+                <div class="header-right">
+                    <div class="theme-toggle">
+                        <button data-theme-toggle="light" aria-pressed="false" title="Light mode">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="5"/>
+                                <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+                            </svg>
+                        </button>
+                        <button data-theme-toggle="dark" aria-pressed="false" title="Dark mode">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="tool-hero">
+                <div class="tool-icon-header it">
+                    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 3a9 9 0 1 0 9 9"/>
+                        <path d="M12 12l6-4"/>
+                        <path d="M12 6v2"/>
+                        <path d="M6.5 8.5l1.5 1"/>
+                        <path d="M6 13h2"/>
+                    </svg>
+                </div>
+                <div>
+                    <h1>Token Throughput Visualizer</h1>
+                    <p class="tagline">Offline comparison of token rate, time to first token, and streaming cadence.</p>
+                </div>
+            </div>
+        </header>
+
+        <main>
+            <div class="calculator-layout">
+                <section class="calculator-panel">
+                    <div class="panel-header">
+                        <div>
+                            <h2>Comparison</h2>
+                            <p>Compare two streaming configurations under the same output length and sample text.</p>
+                        </div>
+                        <div class="panel-actions">
+                            <button type="button" class="tool-btn" id="copyReportButton">
+                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                                </svg>
+                                <span>Copy Report</span>
+                            </button>
+                            <button type="button" class="tool-btn" id="copyLinkButton">
+                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M10 13a5 5 0 0 0 7.07 0l2.83-2.83a5 5 0 0 0-7.07-7.07l-1.41 1.41"/>
+                                    <path d="M14 11a5 5 0 0 0-7.07 0L4.1 13.83a5 5 0 1 0 7.07 7.07l1.41-1.41"/>
+                                </svg>
+                                <span>Copy Link</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <section class="config-section">
+                        <div class="section-heading">
+                            <h3>Shared Scenario</h3>
+                            <p>These inputs drive both lanes.</p>
+                        </div>
+                        <div class="controls-grid">
+                            <label class="field">
+                                <span class="field-label">Output length</span>
+                                <div class="number-with-suffix">
+                                    <input id="outputTokensInput" class="number-input" type="number" min="1" max="20000" step="1" value="300" inputmode="numeric">
+                                    <span class="field-suffix">tokens</span>
+                                </div>
+                                <span class="field-note">Longer outputs make throughput differences easier to see.</span>
+                            </label>
+
+                            <div class="field">
+                                <div class="field-label-row">
+                                    <span class="field-label">Sample preset</span>
+                                    <span class="field-note-inline" id="samplePresetStatus">Chat sample</span>
+                                </div>
+                                <div class="sample-preset-toggle" role="group" aria-label="Sample preset">
+                                    <button type="button" class="sample-preset-chip active" data-sample-preset="chat">Chat</button>
+                                    <button type="button" class="sample-preset-chip" data-sample-preset="prose">Prose</button>
+                                    <button type="button" class="sample-preset-chip" data-sample-preset="code">Code</button>
+                                </div>
+                                <span class="field-note">Loading a preset also resets lane density defaults.</span>
+                            </div>
+
+                            <label class="field field-full">
+                                <div class="field-label-row">
+                                    <span class="field-label">Sample output text</span>
+                                    <button type="button" class="text-action" id="resetSampleButton">Reload sample</button>
+                                </div>
+                                <textarea id="sampleOutputInput" class="sample-input" spellcheck="false"></textarea>
+                                <span class="field-note">Custom sample text clears the preset badge and is included in copied reports, local storage, and share links in trimmed form.</span>
+                            </label>
+                        </div>
+                    </section>
+
+                    <section class="config-section">
+                        <div class="section-heading">
+                            <h3>Lane Settings</h3>
+                            <p>Each lane gets its own rate, time to first token, density, and burst pattern.</p>
+                        </div>
+                        <div class="lane-config-grid">
+                            <article class="lane-config-card lane-a">
+                                <div class="lane-config-header">
+                                    <div>
+                                        <h4>Lane A</h4>
+                                        <p id="laneAConfigSummary">40 tok/s, TTFT 0.8 s, natural cadence</p>
+                                    </div>
+                                    <div class="lane-chip lane-a-chip">A</div>
+                                </div>
+                                <div class="lane-field-grid">
+                                    <label class="field">
+                                        <span class="field-label">Tokens per second</span>
+                                        <div class="number-with-suffix">
+                                            <input id="laneATokensPerSecondInput" class="number-input" type="number" min="1" max="500" step="0.1" value="40" inputmode="decimal">
+                                            <span class="field-suffix">tok/s</span>
+                                        </div>
+                                    </label>
+
+                                    <label class="field">
+                                        <span class="field-label">Time to first token</span>
+                                        <div class="number-with-suffix">
+                                            <input id="laneAStartupDelayInput" class="number-input" type="number" min="0" max="30" step="0.1" value="0.8" inputmode="decimal">
+                                            <span class="field-suffix">sec</span>
+                                        </div>
+                                    </label>
+
+                                    <label class="field">
+                                        <span class="field-label">Characters per token</span>
+                                        <div class="number-with-suffix">
+                                            <input id="laneACharsPerTokenInput" class="number-input" type="number" min="1" max="12" step="0.1" value="3.8" inputmode="decimal">
+                                            <span class="field-suffix">chars/tok</span>
+                                        </div>
+                                    </label>
+
+                                    <div class="field lane-field-full">
+                                        <span class="field-label">Burstiness</span>
+                                        <div class="burstiness-toggle" role="group" aria-label="Lane A burstiness">
+                                            <button type="button" class="burstiness-chip" data-lane="a" data-burstiness="smooth">Smooth</button>
+                                            <button type="button" class="burstiness-chip active" data-lane="a" data-burstiness="natural">Natural</button>
+                                            <button type="button" class="burstiness-chip" data-lane="a" data-burstiness="bursty">Bursty</button>
+                                        </div>
+                                        <span class="field-note">Higher burstiness keeps the same average rate but changes how the stream feels.</span>
+                                    </div>
+                                </div>
+                            </article>
+
+                            <article class="lane-config-card lane-b">
+                                <div class="lane-config-header">
+                                    <div>
+                                        <h4>Lane B</h4>
+                                        <p id="laneBConfigSummary">20 tok/s, TTFT 0.8 s, natural cadence</p>
+                                    </div>
+                                    <div class="lane-chip lane-b-chip">B</div>
+                                </div>
+                                <div class="lane-field-grid">
+                                    <label class="field">
+                                        <span class="field-label">Tokens per second</span>
+                                        <div class="number-with-suffix">
+                                            <input id="laneBTokensPerSecondInput" class="number-input" type="number" min="1" max="500" step="0.1" value="20" inputmode="decimal">
+                                            <span class="field-suffix">tok/s</span>
+                                        </div>
+                                    </label>
+
+                                    <label class="field">
+                                        <span class="field-label">Time to first token</span>
+                                        <div class="number-with-suffix">
+                                            <input id="laneBStartupDelayInput" class="number-input" type="number" min="0" max="30" step="0.1" value="0.8" inputmode="decimal">
+                                            <span class="field-suffix">sec</span>
+                                        </div>
+                                    </label>
+
+                                    <label class="field">
+                                        <span class="field-label">Characters per token</span>
+                                        <div class="number-with-suffix">
+                                            <input id="laneBCharsPerTokenInput" class="number-input" type="number" min="1" max="12" step="0.1" value="3.8" inputmode="decimal">
+                                            <span class="field-suffix">chars/tok</span>
+                                        </div>
+                                    </label>
+
+                                    <div class="field lane-field-full">
+                                        <span class="field-label">Burstiness</span>
+                                        <div class="burstiness-toggle" role="group" aria-label="Lane B burstiness">
+                                            <button type="button" class="burstiness-chip" data-lane="b" data-burstiness="smooth">Smooth</button>
+                                            <button type="button" class="burstiness-chip active" data-lane="b" data-burstiness="natural">Natural</button>
+                                            <button type="button" class="burstiness-chip" data-lane="b" data-burstiness="bursty">Bursty</button>
+                                        </div>
+                                        <span class="field-note">Use this to compare identical averages with different delivery cadence.</span>
+                                    </div>
+                                </div>
+                            </article>
+                        </div>
+                    </section>
+
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <span class="stat-card-label">Winner</span>
+                            <span class="stat-card-value" id="winnerValue">Lane A</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-card-label">Finish Delta</span>
+                            <span class="stat-card-value" id="finishDeltaValue">7.5 s</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-card-label">Lane A Total</span>
+                            <span class="stat-card-value" id="laneATotalTimeValue">8.3 s</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-card-label">Lane B Total</span>
+                            <span class="stat-card-value" id="laneBTotalTimeValue">15.8 s</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-card-label">Lane A Display</span>
+                            <span class="stat-card-value" id="laneAOutputRateValue">152 chars/s</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-card-label">Lane B Display</span>
+                            <span class="stat-card-value" id="laneBOutputRateValue">76 chars/s</span>
+                        </div>
+                    </div>
+
+                    <section class="stream-section">
+                        <div class="stream-header">
+                            <div class="stream-heading">
+                                <h3>Preview</h3>
+                                <p id="raceStatusText">Ready to compare the configured lanes.</p>
+                            </div>
+                            <div class="status-pill" id="racePhasePill">Idle</div>
+                        </div>
+                        <p class="stream-note" id="previewCoverageNote">Preview animates the full configured output for both lanes.</p>
+
+                        <div class="race-lanes">
+                            <article class="race-lane lane-a">
+                                <div class="race-lane-header">
+                                    <div>
+                                        <h4>Lane A</h4>
+                                        <p id="laneATagline">40 tok/s, TTFT 0.8 s, 3.8 chars/tok, natural</p>
+                                    </div>
+                                    <div class="lane-result-pill lane-a-pill" id="laneAResultPill">Ready</div>
+                                </div>
+                                <div class="stream-rail">
+                                    <div class="stream-progress lane-a-progress" id="laneAProgressBar"></div>
+                                </div>
+                                <div class="stream-meta">
+                                    <span><strong>Elapsed:</strong> <span class="mono" id="laneAElapsedValue">0.0 s</span></span>
+                                    <span><strong>Visible:</strong> <span class="mono" id="laneAVisibleTokensValue">0 / 300 tok</span></span>
+                                    <span><strong>Approx chars:</strong> <span class="mono" id="laneAVisibleCharsValue">0 / 1140 chars</span></span>
+                                </div>
+                                <pre id="laneAStreamOutput" class="stream-output" data-empty="true">Press Start to simulate a 300 token response.</pre>
+                            </article>
+
+                            <article class="race-lane lane-b">
+                                <div class="race-lane-header">
+                                    <div>
+                                        <h4>Lane B</h4>
+                                        <p id="laneBTagline">20 tok/s, TTFT 0.8 s, 3.8 chars/tok, natural</p>
+                                    </div>
+                                    <div class="lane-result-pill lane-b-pill" id="laneBResultPill">Ready</div>
+                                </div>
+                                <div class="stream-rail">
+                                    <div class="stream-progress lane-b-progress" id="laneBProgressBar"></div>
+                                </div>
+                                <div class="stream-meta">
+                                    <span><strong>Elapsed:</strong> <span class="mono" id="laneBElapsedValue">0.0 s</span></span>
+                                    <span><strong>Visible:</strong> <span class="mono" id="laneBVisibleTokensValue">0 / 300 tok</span></span>
+                                    <span><strong>Approx chars:</strong> <span class="mono" id="laneBVisibleCharsValue">0 / 1140 chars</span></span>
+                                </div>
+                                <pre id="laneBStreamOutput" class="stream-output" data-empty="true">Press Start to simulate a 300 token response.</pre>
+                            </article>
+                        </div>
+
+                        <div class="stream-controls">
+                            <button type="button" class="tool-btn primary" id="startRaceButton">Start</button>
+                            <button type="button" class="tool-btn" id="pauseRaceButton" disabled>Pause</button>
+                            <button type="button" class="tool-btn" id="resetRaceButton" disabled>Reset</button>
+                        </div>
+                    </section>
+
+                    <section class="report-section">
+                        <div class="section-heading">
+                            <h3>Report Summary</h3>
+                            <p>Copyable text for sharing the full scenario and race outcome.</p>
+                        </div>
+                        <textarea id="reportSummaryOutput" class="report-output" readonly spellcheck="false"></textarea>
+                    </section>
+                </section>
+
+                <aside class="sidebar">
+                    <div class="sidebar-card">
+                        <h3>Summary</h3>
+                        <div class="detail-row">
+                            <span class="detail-label">Winner</span>
+                            <span class="detail-value" id="winnerDetailValue">Lane A</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">First token</span>
+                            <span class="detail-value" id="firstTokenWinnerValue">Lane A</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Scenario</span>
+                            <span class="detail-value" id="activeScenarioValue">Different Rate</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Sample</span>
+                            <span class="detail-value" id="activeSampleValue">Chat</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Output tokens</span>
+                            <span class="detail-value" id="sharedOutputValue">300</span>
+                        </div>
+                    </div>
+
+                    <div class="sidebar-card">
+                        <h3>Milestones</h3>
+                        <div id="milestoneTable" class="milestone-table"></div>
+                    </div>
+
+                    <div class="sidebar-card">
+                        <h3>Scenario Presets</h3>
+                        <div class="preset-list">
+                            <button type="button" class="preset-button active" data-scenario-preset="fast-vs-slow">
+                                <span class="preset-title">Different Rate</span>
+                                <span class="preset-description">Same TTFT, different throughput.</span>
+                            </button>
+                            <button type="button" class="preset-button" data-scenario-preset="smooth-vs-bursty">
+                                <span class="preset-title">Different Cadence</span>
+                                <span class="preset-description">Same TTFT and rate, different cadence.</span>
+                            </button>
+                            <button type="button" class="preset-button" data-scenario-preset="latency-duel">
+                                <span class="preset-title">Latency vs Throughput</span>
+                                <span class="preset-description">Earlier first token versus higher steady-state rate.</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="sidebar-card note-card">
+                        <h3>Notes</h3>
+                        <p>This is an offline visualizer. Time to first token controls when visible output begins. Burstiness changes cadence without changing average rate. Share links carry trimmed state and do not require server storage.</p>
+                    </div>
+
+                    <div class="sidebar-card disclaimer-card">
+                        <h3>Usage Disclaimer</h3>
+                        <ul class="sidebar-list">
+                            <li>This tool is an approximation and visualization aid, not a tokenizer, billing meter, or provider benchmark.</li>
+                            <li>Throughput, cadence, and character density are modeled inputs. Real model output can differ because of tokenizer choice, server behavior, network latency, safety filters, and provider-side buffering.</li>
+                            <li>Copied reports and share links are for communication convenience only and should not be treated as contractual performance evidence.</li>
+                            <li>Custom sample text is stored locally in your browser and may be embedded in trimmed form in copied share links.</li>
+                            <li>This tool is provided as-is, with no warranty. Verify important measurements against real logs or provider telemetry.</li>
+                        </ul>
+                    </div>
+
+                    <div class="sidebar-card attribution-card">
+                        <h3>Attribution</h3>
+                        <ul class="sidebar-list">
+                            <li><a class="sidebar-link" href="https://fonts.google.com/specimen/JetBrains+Mono" target="_blank" rel="noopener">JetBrains Mono</a> is used for code and numeric UI. License: SIL Open Font License 1.1.</li>
+                            <li><a class="sidebar-link" href="https://fonts.google.com/specimen/Space+Grotesk" target="_blank" rel="noopener">Space Grotesk</a> is used for headings and interface text. License: SIL Open Font License 1.1.</li>
+                            <li><a class="sidebar-link" href="https://fonts.google.com/" target="_blank" rel="noopener">Google Fonts</a> is used for font delivery on this page.</li>
+                        </ul>
+                        <p class="sidebar-footnote">No third-party JavaScript libraries are used by this tool page.</p>
+                    </div>
+                </aside>
+            </div>
+        </main>
+
+        <footer data-footer></footer>
+    </div>
+
+    <script type="module" src="../js/shared.js"></script>
+    <script type="module" src="../js/footer.js"></script>
+    <script type="module" src="../js/token_throughput_visualizer/token-throughput-visualizer.js"></script>
+</body>
+</html>
