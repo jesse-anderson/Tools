@@ -150,11 +150,18 @@
                     </div>
                     <div class="input-line">
                         <label for="baselineValue">Baseline Value</label>
-                        <input id="baselineValue" type="number" step="any" value="0" />
+                        <input id="baselineValue" type="text" inputmode="decimal" value="0" />
                     </div>
                     <div class="input-line">
                         <label for="axisValue">Axis Tick Value (Optional)</label>
-                        <input id="axisValue" type="number" step="any" value="100" />
+                        <input id="axisValue" type="text" inputmode="decimal" value="100" />
+                    </div>
+                    <div class="input-line">
+                        <label for="yScaleMode">Y Axis Scale</label>
+                        <select id="yScaleMode">
+                            <option value="linear">Linear</option>
+                            <option value="log10">Log10</option>
+                        </select>
                     </div>
                     <div class="row">
                         <div class="input-line">
@@ -163,14 +170,21 @@
                         </div>
                         <div class="input-line">
                             <label for="xOriginValue">X Origin Value</label>
-                            <input id="xOriginValue" type="number" step="any" value="0" />
+                            <input id="xOriginValue" type="text" inputmode="decimal" value="0" />
                         </div>
                         <div class="input-line">
                             <label for="xTickValue">X Tick Value</label>
-                            <input id="xTickValue" type="number" step="any" value="10" />
+                            <input id="xTickValue" type="text" inputmode="decimal" value="10" />
+                        </div>
+                        <div class="input-line">
+                            <label for="xScaleMode">X Axis Scale</label>
+                            <select id="xScaleMode">
+                                <option value="linear">Linear</option>
+                                <option value="log10">Log10</option>
+                            </select>
                         </div>
                     </div>
-                    <div class="hint">Baseline is the graph's reference line, usually 0 but sometimes 50, -20, or another value. Use a different axis tick value only when you want numeric Y calibration. X calibration is optional in any workflow and uses two markers along the horizontal axis: origin and one tick.</div>
+                    <div class="hint">Baseline is the graph's reference line, usually 0 but sometimes 50, -20, or another value. Use a different axis tick value only when you want numeric Y calibration. X calibration is optional in any workflow and uses two markers along the horizontal axis: origin and one tick. For logarithmic axes, choose Log10 and enter positive tick labels such as 1e7 or 10^7.</div>
                     <div class="row">
                         <button class="tool-btn" id="btnSetBaseline" type="button">Set Baseline Line</button>
                         <button class="tool-btn" id="btnSetAxis" type="button">Set Axis Tick</button>
@@ -237,7 +251,7 @@
                     <div class="hint">Results Box Content</div>
                     <label class="check-row"><input id="overlayShowBaselineValue" type="checkbox" />Show baseline value</label>
                     <label class="check-row"><input id="overlayShowAxisTickValue" type="checkbox" />Show Y axis tick value</label>
-                    <label class="check-row series-only"><input id="overlayShowXAxisTickValue" type="checkbox" checked />Show X axis tick value</label>
+                    <label class="check-row"><input id="overlayShowXAxisTickValue" type="checkbox" checked />Show X axis tick value</label>
                     <label class="check-row"><input id="overlayShowRawPx" type="checkbox" />Show pixel values</label>
                     <label class="check-row"><input id="overlayShowValues" type="checkbox" checked />Show calibrated values</label>
                     <label class="check-row compare-only"><input id="overlayShowVsControl" type="checkbox" checked />Show percent vs control</label>

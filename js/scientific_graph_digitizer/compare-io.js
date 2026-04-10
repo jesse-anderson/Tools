@@ -23,6 +23,7 @@
     function normalizePreset(preset, canvas) {
         const width = canvas.width;
         const height = canvas.height;
+        const normalizeScale = (value) => value === "log10" ? "log10" : "linear";
         const legacyMeta = {
             control: { label: preset && preset.controlLabel, unit: preset && preset.controlUnit },
             a: { label: preset && preset.aLabel, unit: preset && preset.aUnit },
@@ -50,10 +51,12 @@
             measurementMode: preset && preset.measurementMode === "segment" ? "segment" : "baseline",
             baselineValue: Number.isFinite(preset && preset.baselineValue) ? preset.baselineValue : 0,
             axisTickValue: Number.isFinite(preset && preset.axisTickValue) ? preset.axisTickValue : 100,
+            yScaleMode: normalizeScale(preset && preset.yScaleMode),
             xAxisLabel: typeof (preset && preset.xAxisLabel) === "string" ? preset.xAxisLabel : "X",
             yAxisLabel: typeof (preset && preset.yAxisLabel) === "string" ? preset.yAxisLabel : "Y",
             xOriginValue: Number.isFinite(preset && preset.xOriginValue) ? preset.xOriginValue : 0,
             xTickValue: Number.isFinite(preset && preset.xTickValue) ? preset.xTickValue : 10,
+            xScaleMode: normalizeScale(preset && preset.xScaleMode),
             unitLabel: typeof (preset && preset.unitLabel) === "string" ? preset.unitLabel : "",
             useSeparateUnits: !!(preset && preset.useSeparateUnits),
             workingLabel: typeof (preset && preset.workingLabel) === "string" && preset.workingLabel.trim() ? preset.workingLabel : "Full image",
@@ -114,10 +117,12 @@
             measurementMode: dom.measurementMode.value,
             baselineValue: parseNumericInput(dom.baselineValue),
             axisTickValue: parseNumericInput(dom.axisValue),
+            yScaleMode: dom.yScaleMode.value,
             xAxisLabel: dom.xAxisLabel.value,
             yAxisLabel: dom.yAxisLabel.value,
             xOriginValue: parseNumericInput(dom.xOriginValue),
             xTickValue: parseNumericInput(dom.xTickValue),
+            xScaleMode: dom.xScaleMode.value,
             unitLabel: dom.unitLabel.value,
             useSeparateUnits: dom.useSeparateUnits.checked,
             seriesOrder: [...state.seriesOrder],
@@ -172,10 +177,12 @@
         dom.measurementMode.value = normalized.measurementMode;
         dom.baselineValue.value = String(normalized.baselineValue);
         dom.axisValue.value = String(normalized.axisTickValue);
+        dom.yScaleMode.value = normalized.yScaleMode;
         dom.xAxisLabel.value = normalized.xAxisLabel;
         dom.yAxisLabel.value = normalized.yAxisLabel;
         dom.xOriginValue.value = String(normalized.xOriginValue);
         dom.xTickValue.value = String(normalized.xTickValue);
+        dom.xScaleMode.value = normalized.xScaleMode;
         dom.unitLabel.value = normalized.unitLabel;
         dom.useSeparateUnits.checked = normalized.useSeparateUnits;
         state.working.label = normalized.workingLabel;
@@ -201,6 +208,8 @@
                 "y_value",
                 "x_label",
                 "y_label",
+                "x_scale",
+                "y_scale",
                 "source_filename",
                 "working_label"
             ]];
@@ -218,6 +227,8 @@
                         Number.isFinite(point.yValue) ? point.yValue.toFixed(6) : "",
                         results.xAxisLabel,
                         results.yAxisLabel,
+                        results.xScaleMode,
+                        results.yScaleMode,
                         state.source.filename || "",
                         state.working.label
                     ]);
@@ -243,15 +254,24 @@
             ["working_label", state.working.label],
             ["measurement_mode", dom.measurementMode.value],
             ["axis_mode", results.axisMode],
+            ["y_scale", results.yScaleMode],
+            ["x_axis_mode", results.xAxisMode],
+            ["x_scale", results.xScaleMode],
             ["series_order", state.seriesOrder.join("|")],
             ["shared_unit", getCommonUnit()],
             ["separate_units", dom.useSeparateUnits.checked ? "true" : "false"],
             ["baseline_value", Number.isFinite(results.baselineValue) ? results.baselineValue.toFixed(6) : ""],
             ["axis_tick_value", Number.isFinite(results.axisTickValue) ? results.axisTickValue.toFixed(6) : ""],
+            ["x_origin_value", Number.isFinite(results.xOriginValue) ? results.xOriginValue.toFixed(6) : ""],
+            ["x_tick_value", Number.isFinite(results.xTickValue) ? results.xTickValue.toFixed(6) : ""],
             ["baseline_x_px", state.points.baseline ? state.points.baseline.x.toFixed(4) : ""],
             ["baseline_y_px", state.points.baseline ? state.points.baseline.y.toFixed(4) : ""],
             ["axis_x_px", state.points.axis ? state.points.axis.x.toFixed(4) : ""],
-            ["axis_y_px", state.points.axis ? state.points.axis.y.toFixed(4) : ""]
+            ["axis_y_px", state.points.axis ? state.points.axis.y.toFixed(4) : ""],
+            ["x_origin_x_px", state.points.xOrigin ? state.points.xOrigin.x.toFixed(4) : ""],
+            ["x_origin_y_px", state.points.xOrigin ? state.points.xOrigin.y.toFixed(4) : ""],
+            ["x_tick_x_px", state.points.xTick ? state.points.xTick.x.toFixed(4) : ""],
+            ["x_tick_y_px", state.points.xTick ? state.points.xTick.y.toFixed(4) : ""]
         ];
 
         getSeriesIds().forEach((id) => {
@@ -308,9 +328,9 @@
         exportCtx.drawImage(image, 0, 0);
         if (dom.exportShowGuides.checked && state.points.baseline) GraphCompare.ui.drawGuideLine(exportCtx, viewport, state.points.baseline, "rgba(245,158,11,0.88)");
         if (dom.exportShowGuides.checked && state.points.axis) GraphCompare.ui.drawGuideLine(exportCtx, viewport, state.points.axis, "rgba(253,224,71,0.82)");
+        if (dom.exportShowGuides.checked && state.points.xOrigin) GraphCompare.ui.drawVerticalGuideLine(exportCtx, viewport, state.points.xOrigin, "rgba(192,132,252,0.84)");
+        if (dom.exportShowGuides.checked && state.points.xTick) GraphCompare.ui.drawVerticalGuideLine(exportCtx, viewport, state.points.xTick, "rgba(249,168,212,0.84)");
         if (isSeriesWorkflowMode()) {
-            if (dom.exportShowGuides.checked && state.points.xOrigin) GraphCompare.ui.drawVerticalGuideLine(exportCtx, viewport, state.points.xOrigin, "rgba(192,132,252,0.84)");
-            if (dom.exportShowGuides.checked && state.points.xTick) GraphCompare.ui.drawVerticalGuideLine(exportCtx, viewport, state.points.xTick, "rgba(249,168,212,0.84)");
             GraphCompare.ui.drawMarker(exportCtx, viewport, tools.makeTool("baseline"), state.points.baseline, 8, dom.exportShowMarkerLabels.checked);
             GraphCompare.ui.drawMarker(exportCtx, viewport, tools.makeTool("axis"), state.points.axis, 8, dom.exportShowMarkerLabels.checked);
             GraphCompare.ui.drawMarker(exportCtx, viewport, tools.makeTool("xOrigin"), state.points.xOrigin, 8, dom.exportShowMarkerLabels.checked);
@@ -328,6 +348,8 @@
             }
             GraphCompare.ui.drawMarker(exportCtx, viewport, tools.makeTool("baseline"), state.points.baseline, 8, dom.exportShowMarkerLabels.checked);
             GraphCompare.ui.drawMarker(exportCtx, viewport, tools.makeTool("axis"), state.points.axis, 8, dom.exportShowMarkerLabels.checked);
+            GraphCompare.ui.drawMarker(exportCtx, viewport, tools.makeTool("xOrigin"), state.points.xOrigin, 8, dom.exportShowMarkerLabels.checked);
+            GraphCompare.ui.drawMarker(exportCtx, viewport, tools.makeTool("xTick"), state.points.xTick, 8, dom.exportShowMarkerLabels.checked);
             getSeriesIds().forEach((id) => {
                 GraphCompare.ui.drawMarker(exportCtx, viewport, tools.makeTool("series-top", id), state.seriesPoints[id].top, 8, dom.exportShowMarkerLabels.checked);
                 if (isSegmentMode()) {

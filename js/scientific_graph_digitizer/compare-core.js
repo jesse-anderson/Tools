@@ -26,8 +26,10 @@
             measurementMode: "baseline",
             baselineValue: 0,
             axisTickValue: 100,
+            yScaleMode: "linear",
             unitLabel: "%",
             useSeparateUnits: false,
+            xScaleMode: "linear",
             seriesOrder: ["control", "a", "b"],
             seriesMeta: {
                 control: { label: "Control", unit: "" },
@@ -95,6 +97,7 @@
         measurementMode: document.getElementById("measurementMode"),
         baselineValue: document.getElementById("baselineValue"),
         axisValue: document.getElementById("axisValue"),
+        yScaleMode: document.getElementById("yScaleMode"),
         btnSetBaseline: document.getElementById("btnSetBaseline"),
         btnSetAxis: document.getElementById("btnSetAxis"),
         seriesTopButtons: document.getElementById("seriesTopButtons"),
@@ -125,6 +128,7 @@
         yAxisLabel: document.getElementById("yAxisLabel"),
         xOriginValue: document.getElementById("xOriginValue"),
         xTickValue: document.getElementById("xTickValue"),
+        xScaleMode: document.getElementById("xScaleMode"),
         btnSetXOrigin: document.getElementById("btnSetXOrigin"),
         btnSetXTick: document.getElementById("btnSetXTick"),
         traceSeriesButtons: document.getElementById("traceSeriesButtons"),
@@ -198,14 +202,41 @@
     }
 
     function formatValue(value) {
-        return Number.isFinite(value) ? Number(value).toFixed(4) : "NA";
+        if (!Number.isFinite(value)) return "NA";
+        const abs = Math.abs(value);
+        if ((abs >= 1000000 || (abs > 0 && abs < 0.001))) return Number(value).toExponential(4);
+        return Number(value).toFixed(4);
     }
 
     function parseNumericInput(input) {
         const raw = input && typeof input.value === "string" ? input.value.trim() : "";
         if (raw === "") return null;
-        const value = Number(raw);
+        const exponentMatch = raw.match(/^10\s*\^\s*([+-]?\d+(?:\.\d+)?)$/i);
+        const value = exponentMatch ? Math.pow(10, Number(exponentMatch[1])) : Number(raw);
         return Number.isFinite(value) ? value : null;
+    }
+
+    function axisScaleMode(input) {
+        return input && input.value === "log10" ? "log10" : "linear";
+    }
+
+    function axisScaleLabel(scaleMode) {
+        return scaleMode === "log10" ? "Log10" : "Linear";
+    }
+
+    function valuesValidForScale(firstValue, secondValue, scaleMode) {
+        if (!Number.isFinite(firstValue) || !Number.isFinite(secondValue)) return false;
+        return scaleMode !== "log10" || (firstValue > 0 && secondValue > 0);
+    }
+
+    function mapAxisValue(fraction, firstValue, secondValue, scaleMode) {
+        if (!Number.isFinite(fraction) || !valuesValidForScale(firstValue, secondValue, scaleMode)) return null;
+        if (scaleMode === "log10") {
+            const firstLog = Math.log10(firstValue);
+            const secondLog = Math.log10(secondValue);
+            return Math.pow(10, firstLog + fraction * (secondLog - firstLog));
+        }
+        return firstValue + fraction * (secondValue - firstValue);
     }
 
     function nowIso() {
@@ -688,7 +719,7 @@
     function formatMeasurementValue(value, id) {
         if (!Number.isFinite(value)) return "NA";
         const unit = getSeriesUnit(id);
-        return unit ? `${Number(value).toFixed(4)} ${unit}` : Number(value).toFixed(4);
+        return unit ? `${formatValue(value)} ${unit}` : formatValue(value);
     }
 
     function comparisonLabel(id, referenceId = "control") {
@@ -700,23 +731,28 @@
         const axisLine = state.points.axis;
         const baselineNumericValue = parseNumericInput(dom.baselineValue);
         const tickValue = parseNumericInput(dom.axisValue);
+        const scaleMode = axisScaleMode(dom.yScaleMode);
+        const scaleLabel = axisScaleLabel(scaleMode);
         const validBaselineValue = Number.isFinite(baselineNumericValue);
         const validTickValue = Number.isFinite(tickValue);
-        const hasDistinctTickValue = validBaselineValue && validTickValue && Math.abs(tickValue - baselineNumericValue) > 1e-9;
+        const validScaleValues = valuesValidForScale(baselineNumericValue, tickValue, scaleMode);
+        const hasDistinctTickValue = validScaleValues && Math.abs(tickValue - baselineNumericValue) > 1e-9;
         let spanPx = null;
         let valueSpan = null;
         let axisMode = isSegmentMode() && !isSeriesWorkflowMode()
             ? "Segment only"
-            : (validBaselineValue ? `Baseline ${formatValue(baselineNumericValue)} only` : "Baseline value required");
+            : (validBaselineValue ? `${scaleLabel} baseline ${formatValue(baselineNumericValue)} only` : "Baseline value required");
 
-        if (baselineLine && axisLine && hasDistinctTickValue) {
+        if (validBaselineValue && validTickValue && scaleMode === "log10" && !validScaleValues) {
+            axisMode = "Log10 Y requires positive baseline and tick values";
+        } else if (baselineLine && axisLine && hasDistinctTickValue) {
             const tickSpan = baselineLine.y - axisLine.y;
             if (Math.abs(tickSpan) > 1e-6) {
                 spanPx = tickSpan;
                 valueSpan = tickValue - baselineNumericValue;
                 axisMode = isSegmentMode() && !isSeriesWorkflowMode()
-                    ? `Segment scale ${formatValue(baselineNumericValue)} -> ${formatValue(tickValue)}`
-                    : `Baseline ${formatValue(baselineNumericValue)} -> Tick ${formatValue(tickValue)}`;
+                    ? `${scaleLabel} segment scale ${formatValue(baselineNumericValue)} -> ${formatValue(tickValue)}`
+                    : `${scaleLabel} baseline ${formatValue(baselineNumericValue)} -> tick ${formatValue(tickValue)}`;
             } else {
                 axisMode = "Axis tick overlaps baseline";
             }
@@ -729,6 +765,7 @@
             axisLine,
             baselineValue: baselineNumericValue,
             axisTickValue: tickValue,
+            scaleMode,
             spanPx,
             valueSpan,
             axisMode,
@@ -741,19 +778,24 @@
         const xTickPoint = state.points.xTick;
         const originValue = parseNumericInput(dom.xOriginValue);
         const tickValue = parseNumericInput(dom.xTickValue);
+        const scaleMode = axisScaleMode(dom.xScaleMode);
+        const scaleLabel = axisScaleLabel(scaleMode);
         const validOriginValue = Number.isFinite(originValue);
         const validTickValue = Number.isFinite(tickValue);
-        const hasDistinctTickValue = validOriginValue && validTickValue && Math.abs(tickValue - originValue) > 1e-9;
+        const validScaleValues = valuesValidForScale(originValue, tickValue, scaleMode);
+        const hasDistinctTickValue = validScaleValues && Math.abs(tickValue - originValue) > 1e-9;
         let spanPx = null;
         let valueSpan = null;
-        let axisMode = validOriginValue ? `Origin ${formatValue(originValue)} only` : "X origin value required";
+        let axisMode = validOriginValue ? `${scaleLabel} origin ${formatValue(originValue)} only` : "X origin value required";
 
-        if (xOriginPoint && xTickPoint && hasDistinctTickValue) {
+        if (validOriginValue && validTickValue && scaleMode === "log10" && !validScaleValues) {
+            axisMode = "Log10 X requires positive origin and tick values";
+        } else if (xOriginPoint && xTickPoint && hasDistinctTickValue) {
             const tickSpan = xTickPoint.x - xOriginPoint.x;
             if (Math.abs(tickSpan) > 1e-6) {
                 spanPx = tickSpan;
                 valueSpan = tickValue - originValue;
-                axisMode = `Origin ${formatValue(originValue)} -> Tick ${formatValue(tickValue)}`;
+                axisMode = `${scaleLabel} origin ${formatValue(originValue)} -> tick ${formatValue(tickValue)}`;
             } else {
                 axisMode = "X tick overlaps origin";
             }
@@ -766,6 +808,7 @@
             xTickPoint,
             xOriginValue: originValue,
             xTickValue: tickValue,
+            scaleMode,
             spanPx,
             valueSpan,
             axisMode,
@@ -775,42 +818,16 @@
 
     function calibrateYForPoint(point, calibration) {
         if (!point || !calibration.canCalibrate) return null;
-        return calibration.baselineValue + ((calibration.baselineLine.y - point.y) / calibration.spanPx) * calibration.valueSpan;
+        const fraction = (calibration.baselineLine.y - point.y) / calibration.spanPx;
+        return mapAxisValue(fraction, calibration.baselineValue, calibration.axisTickValue, calibration.scaleMode);
     }
 
     function calibrateXForPoint(point, calibration) {
         if (!point || !calibration.canCalibrate) return null;
-        return calibration.xOriginValue + ((point.x - calibration.xOriginPoint.x) / calibration.spanPx) * calibration.valueSpan;
+        const fraction = (point.x - calibration.xOriginPoint.x) / calibration.spanPx;
+        return mapAxisValue(fraction, calibration.xOriginValue, calibration.xTickValue, calibration.scaleMode);
     }
 
-    function formatCursorReadout(point) {
-        if (!point) return "--";
-
-        const parts = [];
-        const xCalibration = computeXAxisCalibration();
-        const yCalibration = computeYAxisCalibration();
-        const xValue = calibrateXForPoint(point, xCalibration);
-        const yValue = calibrateYForPoint(point, yCalibration);
-
-        if (Number.isFinite(xValue)) {
-            parts.push(`${cleanLabel(dom.xAxisLabel.value, "X")}≈${formatValue(xValue)}`);
-        }
-
-        if (Number.isFinite(yValue)) {
-            if (isSeriesWorkflowMode()) {
-                parts.push(`${cleanLabel(dom.yAxisLabel.value, "Y")}≈${formatValue(yValue)}`);
-            } else {
-                const unit = cleanLabel(dom.unitLabel.value, "");
-                parts.push(unit ? `Y≈${formatValue(yValue)} ${unit}` : `Y≈${formatValue(yValue)}`);
-            }
-        }
-
-        parts.push(`px ${fmtFloat(point.x, 2)}, ${fmtFloat(point.y, 2)}`);
-        return parts.join(" | ");
-    }
-
-    // Override the earlier cursor formatter with an ASCII-only readout that
-    // always keeps raw pixel coordinates visible alongside any calibrated axes.
     function formatCursorReadout(point) {
         if (!point) return "--";
 
@@ -850,9 +867,14 @@
 
         getSeriesIds().forEach((id) => {
             if (calibration.canCalibrate && Number.isFinite(raw[id])) {
-                calibrated[id] = isSegmentMode()
-                    ? (raw[id] / calibration.spanPx) * calibration.valueSpan
-                    : calibration.baselineValue + (raw[id] / calibration.spanPx) * calibration.valueSpan;
+                const topPoint = state.seriesPoints[id] ? state.seriesPoints[id].top : null;
+                if (isSegmentMode() && calibration.scaleMode === "log10") {
+                    calibrated[id] = null;
+                } else if (isSegmentMode()) {
+                    calibrated[id] = (raw[id] / calibration.spanPx) * calibration.valueSpan;
+                } else {
+                    calibrated[id] = calibrateYForPoint(topPoint, calibration);
+                }
             }
         });
 
@@ -863,12 +885,16 @@
         return {
             workflowMode: "compare",
             measurementMode: dom.measurementMode.value,
-            axisMode: calibration.axisMode,
+            axisMode: isSegmentMode() && calibration.scaleMode === "log10"
+                ? `${calibration.axisMode}; segment heights disabled on log scale`
+                : calibration.axisMode,
             xAxisMode: xCalibration.axisMode,
             baselineValue: calibration.baselineValue,
             axisTickValue: calibration.axisTickValue,
             xOriginValue: xCalibration.xOriginValue,
             xTickValue: xCalibration.xTickValue,
+            yScaleMode: calibration.scaleMode,
+            xScaleMode: xCalibration.scaleMode,
             xAxisLabel: cleanLabel(dom.xAxisLabel.value, "X"),
             raw,
             calibrated,
@@ -918,6 +944,8 @@
             axisTickValue: yCalibration.axisTickValue,
             xOriginValue: xCalibration.xOriginValue,
             xTickValue: xCalibration.xTickValue,
+            yScaleMode: yCalibration.scaleMode,
+            xScaleMode: xCalibration.scaleMode,
             xAxisLabel: cleanLabel(dom.xAxisLabel.value, "X"),
             yAxisLabel: cleanLabel(dom.yAxisLabel.value, "Y"),
             traces,

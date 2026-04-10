@@ -394,10 +394,12 @@
             ui.requestRender("full");
         });
 
-        [dom.baselineValue, dom.axisValue, dom.unitLabel, dom.xAxisLabel, dom.yAxisLabel, dom.xOriginValue, dom.xTickValue].forEach((input) => {
-            input.addEventListener("input", () => {
+        [dom.baselineValue, dom.axisValue, dom.yScaleMode, dom.unitLabel, dom.xAxisLabel, dom.yAxisLabel, dom.xOriginValue, dom.xTickValue, dom.xScaleMode].forEach((input) => {
+            const handleCalibrationInput = () => {
                 ui.requestRender("full");
-            });
+            };
+            input.addEventListener("input", handleCalibrationInput);
+            input.addEventListener("change", handleCalibrationInput);
         });
 
         dom.useSeparateUnits.addEventListener("change", () => {
