@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSV Profiler | Tools Hub</title>
+    <!--
+    ============================================
+    CSV PROFILER v1.0.0
+    ============================================
+    Dependencies:
+    - No third-party JavaScript libraries
+    - JetBrains Mono (font)
+        SIL Open Font License 1.1
+        https://fonts.google.com/specimen/JetBrains+Mono
+    - Space Grotesk (font)
+        SIL Open Font License 1.1
+        https://fonts.google.com/specimen/Space+Grotesk
+
+    Last Updated: April 2026
+    ============================================
+    -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/shared.css">
+    <link rel="stylesheet" href="../css/csv_profiler/csv-profiler.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <div class="header-left">
+                    <a href="../tools.html" class="back-link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="19" y1="12" x2="5" y2="12"/>
+                            <polyline points="12 19 5 12 12 5"/>
+                        </svg>
+                        Back to Tools
+                    </a>
+                </div>
+                <div class="header-right">
+                    <div class="theme-toggle">
+                        <button data-theme-toggle="light" aria-pressed="false" title="Light mode">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="5"/>
+                                <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+                            </svg>
+                        </button>
+                        <button data-theme-toggle="dark" aria-pressed="false" title="Dark mode">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="tool-hero">
+                <div class="tool-icon-header it">
+                    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M4 6c0-1.1 3.58-2 8-2s8 .9 8 2-3.58 2-8 2-8-.9-8-2z"/>
+                        <path d="M4 12c0 1.1 3.58 2 8 2s8-.9 8-2"/>
+                        <path d="M4 18c0 1.1 3.58 2 8 2s8-.9 8-2"/>
+                        <path d="M4 6v12"/>
+                        <path d="M20 6v12"/>
+                    </svg>
+                </div>
+                <div>
+                    <h1>CSV Profiler</h1>
+                    <p class="tagline">Local inspection of CSV and TSV structure, column quality, and schema shape.</p>
+                </div>
+            </div>
+            <div class="hero-badge-row">
+                <span class="privacy-badge local-only" title="All data processing happens in your browser. Nothing is sent to any server.">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                    </svg>
+                    100% Local | No Uploads
+                </span>
+            </div>
+        </header>
+
+        <main>
+            <div class="calculator-layout">
+                <section class="calculator-panel">
+                    <div class="panel-header">
+                        <div>
+                            <h2>Dataset Profile</h2>
+                            <p>Upload a delimited text file to infer column types, spot quality issues, preview rows, and generate a database-ready schema summary.</p>
+                        </div>
+                        <div class="panel-actions">
+                            <button type="button" class="tool-btn" id="copySqlButton" disabled>
+                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                                </svg>
+                                <span>Copy SQL</span>
+                            </button>
+                            <button type="button" class="tool-btn" id="copyJsonButton" disabled>
+                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="4" y="4" width="16" height="16" rx="2"/>
+                                    <path d="M9 9h.01"/>
+                                    <path d="M15 9h.01"/>
+                                    <path d="M8 15h8"/>
+                                </svg>
+                                <span>Copy JSON</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="error-banner" id="errorBanner">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <line x1="12" y1="8" x2="12" y2="12"/>
+                            <line x1="12" y1="16" x2="12.01" y2="16"/>
+                        </svg>
+                        <span id="errorText"></span>
+                    </div>
+
+                    <div class="upload-area" id="uploadArea">
+                        <input type="file" id="fileInput" accept=".csv,.tsv,text/csv,text/tab-separated-values,text/plain" hidden>
+                        <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <polyline points="17 8 12 3 7 8"/>
+                            <line x1="12" y1="3" x2="12" y2="15"/>
+                        </svg>
+                        <p class="upload-text">Drop a CSV or TSV file here</p>
+                        <p class="upload-subtext">or click to browse</p>
+                        <div class="upload-meta">
+                            <span>Hard limit: 20 MB</span>
+                            <span>Profiles up to 200,000 data rows</span>
+                            <span>Blocks rows above 250,000 chars</span>
+                        </div>
+                        <div class="upload-actions">
+                            <button type="button" class="tool-btn compact" id="loadGoodSampleButton">Load Good Sample</button>
+                            <button type="button" class="tool-btn compact" id="loadBadSampleButton">Load Bad Sample</button>
+                        </div>
+                        <div class="privacy-shield">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                            </svg>
+                            <span>All parsing stays in the browser.</span>
+                        </div>
+                    </div>
+
+                    <div class="file-info" id="fileInfo">
+                        <div class="file-icon">
+                            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                <polyline points="14 2 14 8 20 8"/>
+                                <path d="M8 13h8"/>
+                                <path d="M8 17h8"/>
+                            </svg>
+                        </div>
+                        <div class="file-details">
+                            <p class="file-name" id="fileName">dataset.csv</p>
+                            <p class="file-size" id="fileSize">0 KB</p>
+                        </div>
+                        <div class="file-actions">
+                            <button type="button" class="tool-btn compact" id="reloadButton">
+                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M23 4v6h-6"/>
+                                    <path d="M1 20v-6h6"/>
+                                    <path d="M3.51 9a9 9 0 0 1 14.13-3.36L23 10"/>
+                                    <path d="M20.49 15a9 9 0 0 1-14.13 3.36L1 14"/>
+                                </svg>
+                                <span>Reprofile</span>
+                            </button>
+                            <button type="button" class="close-file" id="closeFile" title="Close file">
+                                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="18" y1="6" x2="6" y2="18"/>
+                                    <line x1="6" y1="6" x2="18" y2="18"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="analysisContent" class="analysis-content">
+                        <div class="tabs" role="tablist" aria-label="CSV profiler views">
+                            <button class="tab active" data-tab="overview" role="tab" aria-selected="true">Overview</button>
+                            <button class="tab" data-tab="columns" role="tab" aria-selected="false">Columns</button>
+                            <button class="tab" data-tab="preview" role="tab" aria-selected="false">Preview</button>
+                            <button class="tab" data-tab="schema" role="tab" aria-selected="false">Schema</button>
+                        </div>
+
+                        <section class="tab-content active" id="overviewTab">
+                            <div class="summary-grid">
+                                <div class="stat-card">
+                                    <span class="stat-card-label">Rows Profiled</span>
+                                    <span class="stat-card-value" id="rowsProfiledValue">0</span>
+                                </div>
+                                <div class="stat-card">
+                                    <span class="stat-card-label">Columns</span>
+                                    <span class="stat-card-value" id="columnCountValue">0</span>
+                                </div>
+                                <div class="stat-card">
+                                    <span class="stat-card-label">Duplicate Rows</span>
+                                    <span class="stat-card-value" id="duplicateRowsValue">0</span>
+                                </div>
+                                <div class="stat-card">
+                                    <span class="stat-card-label">Inconsistent Rows</span>
+                                    <span class="stat-card-value" id="inconsistentRowsValue">0</span>
+                                </div>
+                                <div class="stat-card">
+                                    <span class="stat-card-label">Blank Rows Skipped</span>
+                                    <span class="stat-card-value" id="blankRowsValue">0</span>
+                                </div>
+                                <div class="stat-card">
+                                    <span class="stat-card-label">Parse Time</span>
+                                    <span class="stat-card-value" id="parseTimeValue">0 ms</span>
+                                </div>
+                            </div>
+
+                            <section class="section-block">
+                                <div class="section-heading">
+                                    <h3>Quality Notes</h3>
+                                    <p>High-level findings from the bounded profile.</p>
+                                </div>
+                                <div class="quality-notes" id="qualityNotes"></div>
+                            </section>
+
+                            <section class="section-block">
+                                <div class="section-heading">
+                                    <h3>Numeric Distributions</h3>
+                                    <p>Approximate bins based on sampled numeric values from profiled rows.</p>
+                                </div>
+                                <div class="histogram-grid" id="histogramGrid"></div>
+                            </section>
+                        </section>
+
+                        <section class="tab-content" id="columnsTab">
+                            <div class="columns-toolbar">
+                                <label class="search-field">
+                                    <span class="search-label">Filter columns</span>
+                                    <input type="search" id="columnSearchInput" class="search-input" placeholder="Name, type, note" spellcheck="false">
+                                </label>
+                                <div class="toolbar-meta" id="columnToolbarMeta">0 columns shown</div>
+                            </div>
+                            <div class="table-container">
+                                <table class="profile-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Column</th>
+                                            <th>Type</th>
+                                            <th>Nulls</th>
+                                            <th>Distinct</th>
+                                            <th>Profile</th>
+                                            <th>Sample</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="columnTableBody"></tbody>
+                                </table>
+                            </div>
+                        </section>
+
+                        <section class="tab-content" id="previewTab">
+                            <div class="section-block">
+                                <div class="section-heading">
+                                    <h3>Preview Rows</h3>
+                                    <p>First profiled rows after any detected or selected header row.</p>
+                                </div>
+                                <div class="table-container preview-table-container" id="previewTableContainer"></div>
+                            </div>
+                        </section>
+
+                        <section class="tab-content" id="schemaTab">
+                            <div class="schema-grid">
+                                <section class="schema-card">
+                                    <div class="schema-card-header">
+                                        <div>
+                                            <h3>CREATE TABLE</h3>
+                                            <p>Generated from inferred column types.</p>
+                                        </div>
+                                        <button type="button" class="tool-btn compact" id="copySqlInlineButton">
+                                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                                            </svg>
+                                            <span>Copy</span>
+                                        </button>
+                                    </div>
+                                    <textarea id="sqlSchemaOutput" class="schema-output" readonly spellcheck="false"></textarea>
+                                </section>
+
+                                <section class="schema-card">
+                                    <div class="schema-card-header">
+                                        <div>
+                                            <h3>JSON Schema Summary</h3>
+                                            <p>Machine-readable structure and profile metadata.</p>
+                                        </div>
+                                        <button type="button" class="tool-btn compact" id="copyJsonInlineButton">
+                                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                                            </svg>
+                                            <span>Copy</span>
+                                        </button>
+                                    </div>
+                                    <textarea id="jsonSchemaOutput" class="schema-output" readonly spellcheck="false"></textarea>
+                                </section>
+                            </div>
+                        </section>
+                    </div>
+                </section>
+
+                <aside class="sidebar">
+                    <div class="sidebar-card">
+                        <h3>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M4 6c0-1.1 3.58-2 8-2s8 .9 8 2-3.58 2-8 2-8-.9-8-2z"/>
+                                <path d="M4 12c0 1.1 3.58 2 8 2s8-.9 8-2"/>
+                                <path d="M4 18c0 1.1 3.58 2 8 2s8-.9 8-2"/>
+                                <path d="M4 6v12"/>
+                                <path d="M20 6v12"/>
+                            </svg>
+                            Dataset
+                        </h3>
+                        <div class="info-list">
+                            <div class="info-item">
+                                <span class="info-label">File</span>
+                                <span class="info-value" id="datasetFileValue">No file</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Size</span>
+                                <span class="info-value" id="datasetSizeValue">-</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Delimiter</span>
+                                <span class="info-value" id="datasetDelimiterValue">-</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Header</span>
+                                <span class="info-value" id="datasetHeaderValue">-</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Rows Profiled</span>
+                                <span class="info-value" id="datasetRowsValue">0</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Columns</span>
+                                <span class="info-value" id="datasetColumnsValue">0</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="sidebar-card">
+                        <h3>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 3v18"/>
+                                <path d="M5 8h14"/>
+                                <path d="M5 16h14"/>
+                            </svg>
+                            Parsing Controls
+                        </h3>
+                        <label class="control-field">
+                            <span class="control-label">Delimiter</span>
+                            <select id="delimiterSelect" class="control-select">
+                                <option value="auto">Auto detect</option>
+                                <option value="comma">Comma</option>
+                                <option value="tab">Tab</option>
+                                <option value="semicolon">Semicolon</option>
+                                <option value="pipe">Pipe</option>
+                            </select>
+                        </label>
+                        <label class="control-field">
+                            <span class="control-label">Header row</span>
+                            <select id="headerSelect" class="control-select">
+                                <option value="auto">Auto detect</option>
+                                <option value="present">Present</option>
+                                <option value="absent">Absent</option>
+                            </select>
+                        </label>
+                        <p class="sidebar-footnote">Changing either setting reparses the current file locally.</p>
+                    </div>
+
+                    <div class="sidebar-card">
+                        <h3>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 9v4"/>
+                                <path d="M12 17h.01"/>
+                                <circle cx="12" cy="12" r="10"/>
+                            </svg>
+                            Limits
+                        </h3>
+                        <ul class="sidebar-list">
+                            <li>Files above 20 MB are blocked before parsing.</li>
+                            <li>Profiling stops after 200,000 non-header data rows.</li>
+                            <li>Logical rows above 250,000 characters are blocked.</li>
+                            <li>Files above 512 columns are blocked.</li>
+                            <li>Distinct counts are exact up to 20,000 values per column.</li>
+                            <li>Histograms use sampled numeric values to keep memory bounded.</li>
+                        </ul>
+                        <p class="sidebar-footnote">Use "Load Good Sample" for a clean baseline. Use "Load Bad Sample" to exercise mixed comma, tab, semicolon, and pipe delimiters, ragged rows, duplicate rows, missing values, duplicate headers, and malformed quoting. The sample buttons preload comma delimiter and header-row mode.</p>
+                    </div>
+
+                    <div class="critical-warning">
+                        <div class="warning-title">
+                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                                <line x1="12" y1="9" x2="12" y2="13"/>
+                                <line x1="12" y1="17" x2="12.01" y2="17"/>
+                            </svg>
+                            Data Safety & Limitations
+                        </div>
+                        <div class="warning-text">
+                            <p><strong>Use at your own risk.</strong> This tool is provided for convenience only and is not a substitute for database administration, ETL validation, compliance review, backup verification, or production data quality controls.</p>
+                            <p><strong>No guarantees.</strong> Type inference, delimiter detection, duplicate counts, histograms, schema output, and quality notes are heuristic and may be incomplete, inaccurate, or misleading for malformed, encoded, truncated, very wide, or domain-specific files.</p>
+                            <p><strong>No liability.</strong> The creators and maintainers assume no responsibility or liability for decisions, imports, data loss, corruption, outages, compliance failures, or other damages arising from use of this tool or its generated output.</p>
+                            <p><strong>Local processing with browser limits.</strong> Files are read in your browser and are not intentionally uploaded by this page. Browser extensions, local policies, crashes, memory pressure, and device behavior remain outside this tool's control.</p>
+                            <p><strong>Verify independently.</strong> Before acting on results, validate the source data, schema, row counts, encodings, delimiters, and generated SQL with trusted tools and backups.</p>
+                        </div>
+                    </div>
+
+                    <div class="sidebar-card attribution-card">
+                        <h3>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                <polyline points="14 2 14 8 20 8"/>
+                                <line x1="8" y1="13" x2="16" y2="13"/>
+                                <line x1="8" y1="17" x2="16" y2="17"/>
+                            </svg>
+                            Attribution
+                        </h3>
+                        <ul class="sidebar-list">
+                            <li><a class="sidebar-link" href="https://fonts.google.com/specimen/JetBrains+Mono" target="_blank" rel="noopener">JetBrains Mono</a> is used for code, tables, and numeric labels. License: SIL Open Font License 1.1.</li>
+                            <li><a class="sidebar-link" href="https://fonts.google.com/specimen/Space+Grotesk" target="_blank" rel="noopener">Space Grotesk</a> is used for headings and interface text. License: SIL Open Font License 1.1.</li>
+                            <li><a class="sidebar-link" href="https://fonts.google.com/" target="_blank" rel="noopener">Google Fonts</a> is used for font delivery on this page.</li>
+                        </ul>
+                        <p class="sidebar-footnote">No third-party JavaScript libraries are used by this tool page.</p>
+                    </div>
+                </aside>
+            </div>
+        </main>
+
+        <footer data-footer></footer>
+    </div>
+
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+        <p class="loading-text" id="loadingText">Reading file...</p>
+        <div class="loading-progress">
+            <div class="loading-progress-bar" id="loadingProgressBar"></div>
+        </div>
+    </div>
+
+    <script type="module" src="../js/shared.js"></script>
+    <script type="module" src="../js/footer.js"></script>
+    <script type="module" src="../js/csv_profiler/csv-profiler.js"></script>
+</body>
+</html>
