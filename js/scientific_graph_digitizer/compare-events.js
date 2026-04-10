@@ -26,6 +26,12 @@
         return null;
     }
 
+    function formatBytes(bytes) {
+        if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+        if (bytes >= 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+        return `${bytes} bytes`;
+    }
+
     function placePoint(tool, point) {
         if (tool && tool.kind === "trace-series") {
             appendTracePoint(tool.seriesId, point);
@@ -39,12 +45,17 @@
     async function renderSelectedPdfPage() {
         if (!state.pdf.doc) return;
         const pageNumber = clamp(parseInt(dom.pdfPage.value || "1", 10) || 1, 1, state.pdf.doc.numPages);
-        const scale = clamp(parseFloat(dom.pdfScale.value || "4") || 4, 1, 10);
+        const rawScale = Number(dom.pdfScale.value || "4");
+        const scale = clamp(Number.isFinite(rawScale) ? rawScale : 4, 1, constants.PDF_RENDER_SCALE_MAX);
         dom.pdfPage.value = String(pageNumber);
         dom.pdfScale.value = String(scale);
         dom.pdfControls.hidden = false;
         ui.updateUi("full");
-        await io.renderPdfPage(pageNumber, scale);
+        try {
+            await io.renderPdfPage(pageNumber, scale);
+        } catch (error) {
+            alert(error && error.message ? error.message : "PDF page could not be rendered.");
+        }
     }
 
     function handlePointerMove(event) {
@@ -221,8 +232,13 @@
         dom.fileImage.addEventListener("change", async (event) => {
             const file = event.target.files && event.target.files[0];
             if (!file) return;
-            await io.loadImageFile(file);
-            dom.fileImage.value = "";
+            try {
+                await io.loadImageFile(file);
+            } catch (error) {
+                alert(error && error.message ? error.message : "Image could not be loaded.");
+            } finally {
+                dom.fileImage.value = "";
+            }
         });
 
         dom.btnLoadExample.addEventListener("click", async () => {
@@ -248,22 +264,29 @@
         dom.filePdf.addEventListener("change", async (event) => {
             const file = event.target.files && event.target.files[0];
             if (!file) return;
-            const ok = await io.loadPdfJsIfNeeded();
-            if (!ok) {
-                alert("PDF.js could not be loaded. Vendor pdf.js locally or allow CDN access.");
+            try {
+                if (file.size > constants.PDF_FILE_BYTE_MAX) {
+                    throw new Error(`PDF file is too large. Limit: ${formatBytes(constants.PDF_FILE_BYTE_MAX)}.`);
+                }
+                const ok = await io.loadPdfJsIfNeeded();
+                if (!ok) {
+                    alert("PDF.js could not be loaded. Vendor pdf.js locally or allow CDN access.");
+                    return;
+                }
+                const bytes = await file.arrayBuffer();
+                state.source.filename = file.name;
+                state.source.type = "pdf";
+                state.pdf.doc = await window.pdfjsLib.getDocument({ data: bytes }).promise;
+                dom.pdfPage.max = String(state.pdf.doc.numPages);
+                dom.pdfPage.value = "1";
+                dom.pdfControls.hidden = false;
+                ui.updateUi("full");
+                await renderSelectedPdfPage();
+            } catch (error) {
+                alert(error && error.message ? error.message : "PDF could not be loaded.");
+            } finally {
                 dom.filePdf.value = "";
-                return;
             }
-            const bytes = await file.arrayBuffer();
-            state.source.filename = file.name;
-            state.source.type = "pdf";
-            state.pdf.doc = await window.pdfjsLib.getDocument({ data: bytes }).promise;
-            dom.pdfPage.max = String(state.pdf.doc.numPages);
-            dom.pdfPage.value = "1";
-            dom.pdfControls.hidden = false;
-            ui.updateUi("full");
-            await renderSelectedPdfPage();
-            dom.filePdf.value = "";
         });
 
         dom.btnPdfPrev.addEventListener("click", async () => {

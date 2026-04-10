@@ -6,6 +6,11 @@
         PDFJS_LOCAL_MODULE_URL: "../vendor/pdfjs/pdf.min.mjs",
         PDFJS_CDN_MODULE_URL: "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs",
         PDFJS_WORKER_CDN: "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.mjs",
+        PDF_RENDER_SCALE_MAX: 16,
+        PDF_RENDER_PIXEL_MAX: 64_000_000,
+        IMAGE_FILE_BYTE_MAX: 25 * 1024 * 1024,
+        PDF_FILE_BYTE_MAX: 50 * 1024 * 1024,
+        IMAGE_PIXEL_MAX: 25_000_000,
         EXAMPLE_IMAGE_URL: "../img/scientific_graph_digitizer/graph-compare-example.jpeg",
         EXAMPLE_IMAGE_NAME: "graph-compare-example.jpeg",
         EXAMPLE_PRESET_STORAGE_KEY: "scientific_graph_compare.example_preset.v2",
@@ -211,8 +216,17 @@
     function parseNumericInput(input) {
         const raw = input && typeof input.value === "string" ? input.value.trim() : "";
         if (raw === "") return null;
-        const exponentMatch = raw.match(/^10\s*\^\s*([+-]?\d+(?:\.\d+)?)$/i);
-        const value = exponentMatch ? Math.pow(10, Number(exponentMatch[1])) : Number(raw);
+        const normalized = raw
+            .replace(/,/g, "")
+            .replace(/\s+/g, "")
+            .replace(/\u00d7/g, "x");
+        const powerMatch = normalized.match(/^10\^([+-]?(?:\d+(?:\.\d*)?|\.\d+))$/i);
+        const coefficientPowerMatch = normalized.match(/^([+-]?(?:\d+(?:\.\d*)?|\.\d+))(?:x|\*)10\^([+-]?(?:\d+(?:\.\d*)?|\.\d+))$/i);
+        const value = powerMatch
+            ? Math.pow(10, Number(powerMatch[1]))
+            : (coefficientPowerMatch
+                ? Number(coefficientPowerMatch[1]) * Math.pow(10, Number(coefficientPowerMatch[2]))
+                : Number(normalized));
         return Number.isFinite(value) ? value : null;
     }
 
@@ -744,7 +758,7 @@
             : (validBaselineValue ? `${scaleLabel} baseline ${formatValue(baselineNumericValue)} only` : "Baseline value required");
 
         if (validBaselineValue && validTickValue && scaleMode === "log10" && !validScaleValues) {
-            axisMode = "Log10 Y requires positive baseline and tick values";
+            axisMode = "Log10 Y requires positive baseline and tick values, e.g. 1 and 1E5";
         } else if (baselineLine && axisLine && hasDistinctTickValue) {
             const tickSpan = baselineLine.y - axisLine.y;
             if (Math.abs(tickSpan) > 1e-6) {
@@ -789,7 +803,7 @@
         let axisMode = validOriginValue ? `${scaleLabel} origin ${formatValue(originValue)} only` : "X origin value required";
 
         if (validOriginValue && validTickValue && scaleMode === "log10" && !validScaleValues) {
-            axisMode = "Log10 X requires positive origin and tick values";
+            axisMode = "Log10 X requires positive origin and tick values, e.g. 1 and 1E5";
         } else if (xOriginPoint && xTickPoint && hasDistinctTickValue) {
             const tickSpan = xTickPoint.x - xOriginPoint.x;
             if (Math.abs(tickSpan) > 1e-6) {

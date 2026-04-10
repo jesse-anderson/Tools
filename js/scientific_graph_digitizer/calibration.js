@@ -1,7 +1,17 @@
 export function parseNumeric(str) {
-  const normalized = String(str).trim();
+  const normalized = String(str)
+    .trim()
+    .replace(/,/g, "")
+    .replace(/\s+/g, "")
+    .replace(/\u00d7/g, "x");
   if (normalized === "") return null;
-  const value = Number(normalized);
+  const powerMatch = normalized.match(/^10\^([+-]?(?:\d+(?:\.\d*)?|\.\d+))$/i);
+  const coefficientPowerMatch = normalized.match(/^([+-]?(?:\d+(?:\.\d*)?|\.\d+))(?:x|\*)10\^([+-]?(?:\d+(?:\.\d*)?|\.\d+))$/i);
+  const value = powerMatch
+    ? Math.pow(10, Number(powerMatch[1]))
+    : (coefficientPowerMatch
+        ? Number(coefficientPowerMatch[1]) * Math.pow(10, Number(coefficientPowerMatch[2]))
+        : Number(normalized));
   return Number.isFinite(value) ? value : null;
 }
 

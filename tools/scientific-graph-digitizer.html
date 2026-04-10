@@ -132,7 +132,7 @@
                                 <label for="pdfScale">Render Scale</label>
                                 <span class="help-tip" tabindex="0" aria-label="Higher render scale gives a sharper PDF page but uses more memory and takes longer. Increase it gradually until the figure is readable." title="Higher render scale gives a sharper PDF page but uses more memory and takes longer. Increase it gradually until the figure is readable.">i</span>
                             </div>
-                            <input id="pdfScale" type="number" min="1" max="10" step="0.5" value="4" />
+                            <input id="pdfScale" type="number" min="1" max="16" step="0.5" value="4" />
                         </div>
                     </div>
                     <div class="kv">
@@ -184,7 +184,7 @@
                             </select>
                         </div>
                     </div>
-                    <div class="hint">Baseline is the graph's reference line, usually 0 but sometimes 50, -20, or another value. Use a different axis tick value only when you want numeric Y calibration. X calibration is optional in any workflow and uses two markers along the horizontal axis: origin and one tick. For logarithmic axes, choose Log10 and enter positive tick labels such as 1e7 or 10^7.</div>
+                    <div class="hint">Baseline is the graph's reference line, usually 0 but sometimes 50, -20, or another value. Use a different axis tick value only when you want numeric Y calibration. X calibration is optional in any workflow and uses two markers along the horizontal axis: origin and one tick. For Log10 axes, both endpoint values must be positive. Examples: 1E5, 10^5, 5x10^7, or 5*10^7.</div>
                     <div class="row">
                         <button class="tool-btn" id="btnSetBaseline" type="button">Set Baseline Line</button>
                         <button class="tool-btn" id="btnSetAxis" type="button">Set Axis Tick</button>

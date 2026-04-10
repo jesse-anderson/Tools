@@ -20,6 +20,41 @@
         return new Promise((resolve) => canvas.toBlob((blob) => resolve(blob), type, quality));
     }
 
+    function formatBytes(bytes) {
+        if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+        if (bytes >= 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+        return `${bytes} bytes`;
+    }
+
+    function assertFileSize(file, maxBytes, label) {
+        if (file.size > maxBytes) {
+            throw new Error(`${label} is too large. Limit: ${formatBytes(maxBytes)}.`);
+        }
+    }
+
+    function assertCanvasPixelLimit(width, height, maxPixels, label) {
+        const pixels = width * height;
+        if (pixels > maxPixels) {
+            throw new Error(`${label} is too large to render safely at this scale. Limit: ${maxPixels.toLocaleString()} pixels.`);
+        }
+    }
+
+    function readImageDimensions(file) {
+        return new Promise((resolve, reject) => {
+            const image = new Image();
+            const url = URL.createObjectURL(file);
+            image.onload = () => {
+                URL.revokeObjectURL(url);
+                resolve({ width: image.naturalWidth, height: image.naturalHeight });
+            };
+            image.onerror = () => {
+                URL.revokeObjectURL(url);
+                reject(new Error("Image dimensions could not be read."));
+            };
+            image.src = url;
+        });
+    }
+
     function normalizePreset(preset, canvas) {
         const width = canvas.width;
         const height = canvas.height;
@@ -412,6 +447,9 @@
     }
 
     async function loadImageFile(file) {
+        assertFileSize(file, constants.IMAGE_FILE_BYTE_MAX, "Image file");
+        const dimensions = await readImageDimensions(file);
+        assertCanvasPixelLimit(dimensions.width, dimensions.height, constants.IMAGE_PIXEL_MAX, "Image");
         const bitmap = await createImageBitmap(file);
         const canvas = createCanvasFromBitmap(bitmap);
         if (bitmap.close) {
@@ -443,8 +481,11 @@
         const page = await state.pdf.doc.getPage(pageNumber);
         const viewport = page.getViewport({ scale });
         const canvas = document.createElement("canvas");
-        canvas.width = Math.max(1, Math.floor(viewport.width));
-        canvas.height = Math.max(1, Math.floor(viewport.height));
+        const width = Math.max(1, Math.floor(viewport.width));
+        const height = Math.max(1, Math.floor(viewport.height));
+        assertCanvasPixelLimit(width, height, constants.PDF_RENDER_PIXEL_MAX, "Rendered PDF page");
+        canvas.width = width;
+        canvas.height = height;
         const renderCtx = canvas.getContext("2d");
         await page.render({ canvasContext: renderCtx, viewport }).promise;
         stateOps.setSourceCanvas(canvas, state.source.filename || "document.pdf", "pdf");
