@@ -513,7 +513,7 @@ function buildQualityNotes(summary) {
         notes.push({
             level: 'warning',
             title: 'Profile truncated by row cap',
-            detail: `Profiling stopped after ${summary.rowsProfiled.toLocaleString('en-US')} data rows to keep the browser workload bounded.`
+            detail: `Profiling stopped after ${summary.rowsProfiled.toLocaleString('en-US')} data rows to limit browser memory use and parsing time.`
         });
     }
 
@@ -538,7 +538,7 @@ function buildQualityNotes(summary) {
         notes.push({
             level: 'warning',
             title: 'Duplicate rows found',
-            detail: `${summary.duplicateRows.toLocaleString('en-US')} duplicate rows were detected within the profiled slice.`
+            detail: `${summary.duplicateRows.toLocaleString('en-US')} duplicate rows were detected in the profiled rows.`
         });
     }
 
@@ -579,8 +579,8 @@ function buildQualityNotes(summary) {
     if (notes.length === 0) {
         notes.push({
             level: 'info',
-            title: 'No major structural issues in the profiled slice',
-            detail: 'Delimiter and row shape look consistent within the bounded analysis window.'
+            title: 'No major structural issues detected',
+            detail: 'Delimiter and row shape look consistent in the profiled rows.'
         });
     }
 

@@ -1,0 +1,763 @@
+<!--
+============================================
+YOGURT CFU/G ESTIMATOR v0.1.0
+============================================
+Description: Browser-based yogurt starter and incubation
+estimator for initial and final CFU/g with species-aware
+growth curves for common yogurt cultures.
+
+Dependencies:
+- No third-party runtime libraries beyond shared repo assets
+
+Project: Tools Hub by Jesse Anderson
+Repository: https://github.com/jesse-anderson/Tools
+License: GPL-3.0 - https://github.com/jesse-anderson/Tools/blob/main/LICENSE
+============================================
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yogurt CFU/g Estimator | Tools Hub</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/shared.css">
+    <link rel="stylesheet" href="../css/yogurt_cfu_estimator/yogurt-cfu-estimator.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <div class="header-left">
+                    <a href="../tools.html" class="back-link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <line x1="19" y1="12" x2="5" y2="12"></line>
+                            <polyline points="12 19 5 12 12 5"></polyline>
+                        </svg>
+                        Back to Tools
+                    </a>
+                </div>
+                <div class="header-right">
+                    <div class="theme-toggle">
+                        <button data-theme-toggle="light" aria-pressed="false" title="Light mode">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                <circle cx="12" cy="12" r="5"></circle>
+                                <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path>
+                            </svg>
+                        </button>
+                        <button data-theme-toggle="dark" aria-pressed="false" title="Dark mode">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tool-header">
+                <div class="tool-icon-header biochemical">
+                    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <path d="M9 3h6"></path>
+                        <path d="M10 3v6l-5 8a3 3 0 0 0 2.58 4.5h8.84A3 3 0 0 0 19 17l-5-8V3"></path>
+                        <path d="M8.5 14h7"></path>
+                    </svg>
+                </div>
+                <div>
+                    <h1>Yogurt CFU/g Estimator</h1>
+                    <p class="tagline">// LITERATURE-ANCHORED | CFU ENVELOPE | FERMENTATION</p>
+                </div>
+            </div>
+        </header>
+
+        <main class="tool-layout">
+            <section class="panel control-panel">
+                <div class="panel-header">
+                    <div>
+                        <h2>Recipe Inputs</h2>
+                        <p>Estimate viable culture concentration from starter load, incubation, and refrigerated storage assumptions.</p>
+                    </div>
+                    <div class="button-row">
+                        <button class="tool-btn" id="loadExampleBtn" type="button">Load Example</button>
+                        <button class="tool-btn" id="downloadCsvBtn" type="button">Download CSV</button>
+                        <button class="tool-btn danger" id="resetBtn" type="button">Reset</button>
+                    </div>
+                </div>
+
+                <div class="status-line" id="statusLine" aria-live="polite">Ready.</div>
+
+                <div class="scope-warning-block" role="note" aria-label="Model scope, safety limitation, and liability disclaimer">
+                    <strong>Model Scope / Use At Your Own Risk</strong>
+                    <p>This model estimates yogurt fermentation trends, viable starter concentration, refrigerated post-acidification, and coarse texture proxies. Real batches vary by strain, milk treatment, inoculum age, solids, thermal history, and refrigerator profile.</p>
+                    <p><strong>Not food safety advice.</strong> This tool is not a pathogen-safety model, regulatory compliance tool, sterilization validator, production process authority, or substitute for pH/temperature/plate-count measurement.</p>
+                    <p><strong>No warranty or liability.</strong> The tool is provided as-is. The creators and maintainers assume no responsibility or liability for errors, omissions, spoiled batches, unsafe food handling, failed processes, compliance issues, losses, or decisions made from this tool or its output.</p>
+                    <p><strong>Verify independently.</strong> Use calibrated thermometers, pH meters, validated procedures, published references, appropriate food-safety guidance, and qualified professionals before using results for safety, production, regulatory, commercial, clinical, or other consequence-bearing decisions.</p>
+                </div>
+
+                <div class="section-block">
+                    <h3>Milk And Starter</h3>
+                    <div class="control-grid">
+                        <label class="input-line">
+                            <span>Milk amount</span>
+                            <input id="milkAmount" type="number" min="0" step="0.1" value="64">
+                        </label>
+                        <label class="input-line">
+                            <span>Milk unit</span>
+                            <select id="milkUnit">
+                                <option value="fl_oz">fl oz</option>
+                                <option value="g">g</option>
+                                <option value="mL">mL</option>
+                                <option value="cup">cups</option>
+                                <option value="quart">quarts</option>
+                                <option value="L">L</option>
+                            </select>
+                        </label>
+                        <label class="input-line">
+                            <span>Starter amount</span>
+                            <input id="starterAmount" type="number" min="0" step="0.1" value="1">
+                        </label>
+                        <label class="input-line">
+                            <span>Starter unit</span>
+                            <select id="starterUnit">
+                                <option value="tsp">tsp</option>
+                                <option value="tbsp">tbsp</option>
+                                <option value="g">g</option>
+                                <option value="oz_wt">oz wt</option>
+                            </select>
+                        </label>
+                        <label class="input-line">
+                            <span>Starter mode</span>
+                            <select id="starterMode">
+                                <option value="storeYogurt">Store Yogurt Starter</option>
+                                <option value="freezeDried">Freeze-Dried Starter</option>
+                                <option value="manualTotal">Manual Total CFU/g</option>
+                                <option value="manualSpecies">Manual Per Species</option>
+                            </select>
+                        </label>
+                        <label class="input-line">
+                            <span>Substrate mode</span>
+                            <select id="substrateMode">
+                                <option value="standardMilk">Standard milk</option>
+                                <option value="lactoseHydrolyzed">Lactose-hydrolyzed milk</option>
+                            </select>
+                        </label>
+                        <label class="input-line">
+                            <span>Additional solids</span>
+                            <input id="extraMassG" type="number" min="0" step="1" value="0">
+                        </label>
+                    </div>
+                </div>
+
+                <div class="section-block">
+                    <h3>Starter Viability</h3>
+                    <div class="control-grid">
+                        <label class="input-line" id="totalStarterLine">
+                            <span>Total starter CFU/g</span>
+                            <input id="starterCfuTotal" type="text" inputmode="decimal" value="1E8">
+                        </label>
+                        <label class="input-line manual-species hidden" id="starterStLine">
+                            <span><em>S. thermophilus</em> starter CFU/g</span>
+                            <input id="starterCfuSt" type="text" inputmode="decimal" value="5E7">
+                        </label>
+                        <label class="input-line manual-species hidden" id="starterLbLine">
+                            <span><em>L. bulgaricus</em> starter CFU/g</span>
+                            <input id="starterCfuLb" type="text" inputmode="decimal" value="5E7">
+                        </label>
+                        <label class="input-line split-only" id="splitStLine">
+                            <span><em>S. thermophilus</em> split (%)</span>
+                            <input id="splitStPercent" type="number" min="0" max="100" step="1" value="50">
+                        </label>
+                        <label class="input-line split-only" id="splitLbLine">
+                            <span><em>L. bulgaricus</em> split (%)</span>
+                            <input id="splitLbPercent" type="number" min="0" max="100" step="1" value="50">
+                        </label>
+                    </div>
+                </div>
+
+                <div class="section-block">
+                    <h3>Incubation</h3>
+                    <div class="control-grid">
+                        <label class="input-line">
+                            <span>Incubation time (hr)</span>
+                            <input id="incubationHours" type="number" min="0" max="72" step="0.25" value="8">
+                        </label>
+                        <div class="input-line temperature-pair-line">
+                            <span>Temperature</span>
+                            <div class="temperature-pair-grid">
+                                <label class="temperature-mini-field">
+                                    <span>°C</span>
+                                    <input id="temperatureC" type="number" min="20" max="60" step="0.1" value="42">
+                                </label>
+                                <label class="temperature-mini-field">
+                                    <span>°F</span>
+                                    <input id="temperatureF" type="number" min="68" max="140" step="0.1" value="107.6">
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section-block">
+                    <h3>Storage / Post-Acidification</h3>
+                    <div class="control-grid">
+                        <label class="input-line">
+                            <span>Refrigerated storage (day)</span>
+                            <input id="storageDays" type="number" min="0" max="50" step="1" value="0">
+                        </label>
+                    </div>
+                    <p class="section-note">`0` disables refrigerated storage. Storage pH is anchored to published refrigerated pH curves near 4 C with a hybrid absolute/delta fit, but is suppressed when incubation does not reach a viable acidified yogurt state. Storage CFU uses a separate published retention envelope derived from refrigerated viable-count datasets.</p>
+                </div>
+
+                <details class="advanced-panel">
+                    <summary>Advanced Model Parameters</summary>
+                    <p class="section-note">These inputs are editable model parameters. The optimum-temperature defaults are literature-anchored starting points; lag, maximum slope, and plateau are tunable model values rather than strain-certified constants.</p>
+                    <div class="advanced-grid">
+                        <div class="species-parameter-card">
+                            <h4><em>S. thermophilus</em></h4>
+                            <label class="input-line">
+                                <span>Lag (hr)</span>
+                                <input id="stLagHr" type="number" min="0" max="24" step="0.1" value="0.75">
+                            </label>
+                            <label class="input-line">
+                                <span>Max slope (log10/hr)</span>
+                                <input id="stMuOpt" type="number" min="0" max="3" step="0.01" value="0.95">
+                            </label>
+                            <label class="input-line">
+                                <span>Plateau log10 CFU/g</span>
+                                <input id="stLmax" type="number" min="3" max="12" step="0.01" value="8.9">
+                            </label>
+                            <div class="input-line temperature-pair-line">
+                                <span>Optimum temp</span>
+                                <div class="temperature-pair-grid">
+                                    <label class="temperature-mini-field">
+                                        <span>°C</span>
+                                        <input id="stOptimumC" type="number" min="20" max="60" step="0.1" value="41.0">
+                                    </label>
+                                    <label class="temperature-mini-field">
+                                        <span>°F</span>
+                                        <input id="stOptimumF" type="number" min="68" max="140" step="0.1" value="105.8">
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="species-parameter-card">
+                            <h4><em>L. bulgaricus</em></h4>
+                            <label class="input-line">
+                                <span>Lag (hr)</span>
+                                <input id="lbLagHr" type="number" min="0" max="24" step="0.1" value="1.25">
+                            </label>
+                            <label class="input-line">
+                                <span>Max slope (log10/hr)</span>
+                                <input id="lbMuOpt" type="number" min="0" max="3" step="0.01" value="0.75">
+                            </label>
+                            <label class="input-line">
+                                <span>Plateau log10 CFU/g</span>
+                                <input id="lbLmax" type="number" min="3" max="12" step="0.01" value="8.6">
+                            </label>
+                            <div class="input-line temperature-pair-line">
+                                <span>Optimum temp</span>
+                                <div class="temperature-pair-grid">
+                                    <label class="temperature-mini-field">
+                                        <span>°C</span>
+                                        <input id="lbOptimumC" type="number" min="20" max="60" step="0.1" value="43.5">
+                                    </label>
+                                    <label class="temperature-mini-field">
+                                        <span>°F</span>
+                                        <input id="lbOptimumF" type="number" min="68" max="140" step="0.1" value="110.3">
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </details>
+            </section>
+
+            <section class="panel visualization-panel">
+                <div class="metrics-grid">
+                    <article class="metric-card">
+                        <span class="metric-label">Initial Total</span>
+                        <strong class="metric-value" id="initialTotalValue">--</strong>
+                        <span class="metric-meta" id="initialTotalLog">--</span>
+                    </article>
+                    <article class="metric-card">
+                        <span class="metric-label">Final Total</span>
+                        <strong class="metric-value" id="finalTotalValue">--</strong>
+                        <span class="metric-meta" id="finalTotalLog">--</span>
+                    </article>
+                    <article class="metric-card">
+                        <span class="metric-label">Stored Total</span>
+                        <strong class="metric-value" id="storedTotalValue">--</strong>
+                        <span class="metric-meta" id="storedTotalLog">--</span>
+                    </article>
+                    <article class="metric-card">
+                        <span class="metric-label">Final Low / High</span>
+                        <strong class="metric-value" id="finalBandValue">--</strong>
+                        <span class="metric-meta" id="finalBandMeta">--</span>
+                    </article>
+                    <article class="metric-card">
+                        <span class="metric-label">Final Modeled pH</span>
+                        <strong class="metric-value" id="finalPhValue">--</strong>
+                        <span class="metric-meta" id="finalPhMeta">--</span>
+                    </article>
+                    <article class="metric-card">
+                        <span class="metric-label">Stored pH</span>
+                        <strong class="metric-value" id="storedPhValue">--</strong>
+                        <span class="metric-meta" id="storedPhMeta">--</span>
+                    </article>
+                    <article class="metric-card">
+                        <span class="metric-label">Storage ΔpH</span>
+                        <strong class="metric-value" id="storageDeltaValue">--</strong>
+                        <span class="metric-meta" id="storageDeltaMeta">--</span>
+                    </article>
+                    <article class="metric-card">
+                        <span class="metric-label">Storage CFU Shift</span>
+                        <strong class="metric-value" id="storageCfuShiftValue">--</strong>
+                        <span class="metric-meta" id="storageCfuShiftMeta">--</span>
+                    </article>
+                    <article class="metric-card">
+                        <span class="metric-label">Set Proxy</span>
+                        <strong class="metric-value" id="setProxyValue">--</strong>
+                        <span class="metric-meta" id="setProxyMeta">--</span>
+                    </article>
+                    <article class="metric-card">
+                        <span class="metric-label">Syneresis Proxy</span>
+                        <strong class="metric-value" id="syneresisProxyValue">--</strong>
+                        <span class="metric-meta" id="syneresisProxyMeta">--</span>
+                    </article>
+                    <article class="metric-card">
+                        <span class="metric-label">Batch Mass</span>
+                        <strong class="metric-value" id="batchMassValue">--</strong>
+                        <span class="metric-meta">Assumes milk density 1.03 g/mL</span>
+                    </article>
+                    <article class="metric-card">
+                        <span class="metric-label">Starter Loading</span>
+                        <strong class="metric-value" id="starterLoadingValue">--</strong>
+                        <span class="metric-meta" id="starterLoadingMeta">--</span>
+                    </article>
+                    <article class="metric-card">
+                        <span class="metric-label">Dominant Endpoint Species</span>
+                        <strong class="metric-value" id="dominantSpeciesValue">--</strong>
+                        <span class="metric-meta" id="dominantSpeciesMeta">--</span>
+                    </article>
+                </div>
+                <div class="uncertainty-band-note" id="uncertaintyBandNote">
+                    Low/high bands are deterministic scenario bounds. The plotted curves remain the likely scenario.
+                </div>
+
+                <div class="chart-panel-header">
+                    <div>
+                        <h2>Growth Curves</h2>
+                        <p>Likely deterministic `CFU/g` estimate over incubation time. Use this as a process estimate, not a direct lab substitute. Hover for 15-minute snapshots.</p>
+                    </div>
+                    <div class="chart-legend">
+                        <span><i class="legend-swatch total"></i>Total</span>
+                        <span><i class="legend-swatch st"></i><em>S. thermophilus</em></span>
+                        <span><i class="legend-swatch lb"></i><em>L. bulgaricus</em></span>
+                    </div>
+                </div>
+
+                <div class="chart-shell" id="chartShell">
+                    <svg id="growthChart" viewBox="0 0 900 480" role="img" aria-label="Yogurt culture growth chart"></svg>
+                    <div class="chart-tooltip hidden" id="chartTooltip"></div>
+                </div>
+
+                <details class="driver-panel">
+                    <summary>pH / Acidification Proxy</summary>
+                    <div class="driver-panel-copy">
+                        This panel tracks an internal modeled pH state over incubation time. It uses a 42 C incubation backbone built from digitized published modified-Gompertz fits, then applies smaller secondary corrections for temperature, inoculum, substrate mode, and thermal stress. It remains a fermentation-state model rather than a direct pH meter reading or titratable-acidity assay.
+                    </div>
+                    <ul class="driver-definition-list">
+                        <li><strong>Solid magenta line:</strong> modeled pH trajectory during incubation. It drops as realized coculture growth accumulates and slows further growth later in fermentation.</li>
+                        <li><strong>Dashed guide at pH 4.6:</strong> literature-facing reference threshold. Ge et al. compared time to reach pH 4.6 across starter ratios, so this guide is used in the validation table.</li>
+                        <li><strong>Species response:</strong> the model makes <em>S. thermophilus</em> more pH-sensitive than <em>L. bulgaricus</em> at low pH so acidification and final viability are not treated as the same outcome.</li>
+                    </ul>
+                    <div class="driver-reference-block">
+                        <strong>Anchor And Direction References</strong>
+                        <div class="driver-panel-copy">
+                            These papers serve two roles in the estimator: direct incubation-phase pH anchors and directional constraints. They support the displayed pH curve and refrigerated storage layer, but they do not yet justify a fully mechanistic acid-production or rheology model.
+                        </div>
+                        <ul class="driver-reference-list">
+                            <li><a href="https://pubmed.ncbi.nlm.nih.gov/27920772/" target="_blank" rel="noopener noreferrer">Linares et al. 2016</a>: supports a 1:1 coculture anchor at 42 C with pH below 5 after 5 hr and about 4.4 by 8 hr.</li>
+                            <li><a href="https://pubmed.ncbi.nlm.nih.gov/33076224/" target="_blank" rel="noopener noreferrer">Popovic et al. 2020</a>: supports a 1:2 mixed-starter anchor at 42 C with pH about 4.74 after 5 hr.</li>
+                            <li><a href="https://pubmed.ncbi.nlm.nih.gov/37427487/" target="_blank" rel="noopener noreferrer">Li et al. 2023</a>: supports faster acidification at 42 C than 37 C even when final viable LAB are higher at 37 C.</li>
+                            <li><a href="https://pubmed.ncbi.nlm.nih.gov/36903370/" target="_blank" rel="noopener noreferrer">Dan et al. 2023</a>: supports starter-ratio effects on pH and titratable acidity during fermentation.</li>
+                            <li><a href="https://pubmed.ncbi.nlm.nih.gov/37641256/" target="_blank" rel="noopener noreferrer">Ge et al. 2024</a>: supports comparing starter ratios by time to pH 4.6 and by later storage/post-acidification behavior.</li>
+                            <li><a href="https://pubmed.ncbi.nlm.nih.gov/36740644/" target="_blank" rel="noopener noreferrer">Salmazo et al. 2023</a>: supports explicitly treating temperature and pH as growth-response dimensions rather than leaving pH out of the model.</li>
+                        </ul>
+                    </div>
+                    <details class="driver-model-details">
+                        <summary>pH Modeling Details</summary>
+                        <div class="driver-panel-copy">
+                            Incubation-phase pH is modeled with a modified Gompertz acidification curve rather than a freehand proxy. This follows the common sigmoidal treatment of yogurt acidification in the literature and exposes interpretable parameters instead of only a shape.
+                        </div>
+                        <div class="model-equation-block">
+                            <code>pH(t) = pH0 - A * exp(-exp(((mu * e) / A) * (lambda - t) + 1))</code>
+                        </div>
+                        <ul class="driver-definition-list">
+                            <li><strong>pH0:</strong> initial milk pH before appreciable fermentation.</li>
+                            <li><strong>A:</strong> total modeled pH drop, where <code>A = pH0 - pH_inf</code>.</li>
+                            <li><strong>mu:</strong> maximum acidification rate in pH units per hour.</li>
+                            <li><strong>lambda:</strong> apparent acidification lag before the sharp pH drop.</li>
+                            <li><strong>pH_inf:</strong> fitted terminal incubation pH for the displayed ratio, temperature, substrate mode, and inoculum level.</li>
+                        </ul>
+                        <div class="driver-panel-copy">
+                            In the estimator, <code>mu</code>, <code>lambda</code>, and <code>pH_inf</code> are driven by a fitted response surface over temperature, starter ratio, substrate mode, and inoculum strength. The resulting pH curve then feeds back into the species growth step through species-specific low-pH inhibition, so the pH model affects both the chart and the final CFU estimates.
+                        </div>
+                        <div class="driver-panel-copy">
+                            Scope: incubation-phase fitting plus refrigerated post-acidification pH drift. Refrigerated CFU retention is handled by a separate published retention envelope, and the pH-growth feedback is not yet a full Baranyi-Roberts plus Rosso/cardinal coupled model.
+                        </div>
+                        <div class="driver-panel-copy">
+                            Derivation detail: the 42 C ratio effect comes from interpolation between published ratio anchors such as 1:2, 1:1, 2:1, 19:1, and 100:1, rather than from unnamed ratio-basis features. Temperature, inoculum, substrate mode, and thermal suppression are still applied afterward as smaller empirical corrections.
+                        </div>
+                        <div class="driver-panel-copy">
+                            The values below are fixed for the displayed formulation. Only <code>t</code> varies along the plotted curve.
+                        </div>
+                        <div class="model-table-block">
+                            <h4>Displayed Gompertz Parameters</h4>
+                            <div class="model-table-wrap">
+                                <table class="model-detail-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Parameter</th>
+                                            <th>Reported value</th>
+                                            <th>How it is derived</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="phModelParameterBody">
+                                        <tr>
+                                            <td colspan="3">No pH model values available yet.</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="model-table-block">
+                            <h4>Displayed Driver Terms</h4>
+                            <div class="driver-panel-copy">
+                                These intermediate terms show which published ratio anchors are being blended for the displayed formulation and which smaller empirical corrections are still applied afterward.
+                            </div>
+                            <div class="model-table-wrap">
+                                <table class="model-detail-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Driver term</th>
+                                            <th>Reported value</th>
+                                            <th>Meaning</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="phModelDriverBody">
+                                        <tr>
+                                            <td colspan="3">No driver terms available yet.</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="driver-panel-copy">
+                            Modeling references:
+                            <a href="https://doi.org/10.1016/S0260-8774(99)00096-5" target="_blank" rel="noopener noreferrer">De Brabandere &amp; De Baerdemaeker 1999</a>
+                            for acidification descriptors and
+                            <a href="https://pubmed.ncbi.nlm.nih.gov/36740644/" target="_blank" rel="noopener noreferrer">Salmazo et al. 2023</a>
+                            for temperature/pH-dependent starter growth modeling.
+                        </div>
+                    </details>
+                    <div class="chart-shell compact-chart-shell">
+                        <svg id="phChart" viewBox="0 0 900 320" role="img" aria-label="Modeled pH chart"></svg>
+                    </div>
+                </details>
+
+                <details class="driver-panel">
+                    <summary>Substrate / Driver Proxy</summary>
+                    <div class="driver-panel-copy">
+                        Model-driver view only. These are internal model quantities, not direct laboratory assay outputs.
+                    </div>
+                    <ul class="driver-definition-list">
+                        <li><strong>Orange line:</strong> internal substrate reserve proxy (%). It represents the remaining fraction of modeled accessible fermentation headroom. It is conceptually tied to nutrient-limited batch-growth ideas, but it is not a direct lactose concentration measurement.</li>
+                        <li><strong>Green dashed line:</strong> internal growth-limitation factor (%). It is a dimensionless multiplier applied to the unconstrained next-step growth increment. `100%` means no substrate-based suppression; `0%` means full suppression of the next-step increment. This is conceptually analogous to substrate-limitation terms used in Monod-type and Logistic-Monod growth models, but it is not itself a direct Monod fit.</li>
+                        <li><strong>Lactose-hydrolyzed milk:</strong> changes accessibility and late-stage constraint behavior in a directional, literature-informed way, mainly to reflect the reported increase in <em>L. bulgaricus</em> cell numbers in hydrolyzed milk coculture.</li>
+                    </ul>
+                    <div class="driver-panel-copy">
+                        A green dashed value of `65%` means about `65%` of the next-step growth increment is allowed through, not that growth is increased by `65%`.
+                    </div>
+                    <div class="driver-reference-block">
+                        <strong>Concept References</strong>
+                        <div class="driver-panel-copy">
+                            These references support the general nutrient-limited growth framing used here. They do not directly validate the exact orange and green internal proxy curves shown by the estimator.
+                        </div>
+                        <ul class="driver-reference-list">
+                            <li><a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC98929/" target="_blank" rel="noopener noreferrer">Growth Kinetics of Suspended Microbial Cells</a>: distinguishes nutrient-limited biomass yield constraints from substrate-controlled growth-rate terms and summarizes Monod-type growth modeling.</li>
+                            <li><a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC7027892/" target="_blank" rel="noopener noreferrer">Hybrid Logistic-Monod Cell Growth Model</a>: shows how batch-growth limitation can be expressed with a combined substrate and carrying-capacity style formulation.</li>
+                            <li><a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC3626568/" target="_blank" rel="noopener noreferrer">The Last Generation of Bacterial Growth in Limiting Nutrient</a>: summarizes the Monod-law basis for nutrient-limited bacterial growth.</li>
+                            <li><a href="https://pubmed.ncbi.nlm.nih.gov/33309355/" target="_blank" rel="noopener noreferrer">Yamamoto et al. 2021</a>: supports the directional difference between standard and lactose-hydrolyzed milk in the estimator's substrate mode.</li>
+                        </ul>
+                    </div>
+                    <div class="chart-shell compact-chart-shell">
+                        <svg id="substrateChart" viewBox="0 0 900 320" role="img" aria-label="Substrate proxy chart"></svg>
+                    </div>
+                </details>
+
+                <details class="driver-panel">
+                    <summary>Storage / Post-Acidification</summary>
+                    <div class="driver-panel-copy">
+                        This panel treats refrigerated storage as a separate post-fermentation phase. It does not extend the incubation Gompertz curve. Storage pH uses a hybrid absolute/delta fit to published storage curves and is gated off when the incubation endpoint is not a viable acidified yogurt state. Storage CFU is modeled as a separate published retention envelope because the available literature does not support reducing viability loss to pH alone.
+                    </div>
+                    <ul class="driver-definition-list">
+                        <li><strong>Blue line:</strong> modeled refrigerated pH after incubation is complete, plotted against storage day.</li>
+                        <li><strong>Storage delta pH:</strong> the net pH change from the modeled fermentation endpoint to the modeled stored pH at the selected day. The internal fit uses published absolute storage pH values and published storage deltas so endpoint pH residuals do not carry through storage one-for-one. If the endpoint remains under-acidified or heat-collapsed, this storage pH drift is suppressed.</li>
+                        <li><strong>CFU retention chart:</strong> total and species-specific viable-count retention during refrigerated storage, plotted in log10 CFU/g.</li>
+                        <li><strong>Scope:</strong> refrigerated pH drift plus published CFU retention envelopes near 4 C. It is not a user-specific refrigerator temperature model or strain-specific survival fit.</li>
+                    </ul>
+                    <div class="driver-reference-block">
+                        <strong>Storage References</strong>
+                        <ul class="driver-reference-list">
+                            <li><a href="https://pubmed.ncbi.nlm.nih.gov/33076224/" target="_blank" rel="noopener noreferrer">Popovic et al. 2020</a>: provides refrigerated pH drift for a mixed 1:2 starter through 28 days.</li>
+                            <li><a href="https://pubmed.ncbi.nlm.nih.gov/37641256/" target="_blank" rel="noopener noreferrer">Ge et al. 2024</a>: provides ratio-sensitive refrigerated pH drift across 1:1 through 100:1 and identifies 19:1 as a low-post-acidification ratio.</li>
+                            <li><a href="https://doi.org/10.4315/0362-028X-47.10.781" target="_blank" rel="noopener noreferrer">Hamann and Marth 1984</a>: provides refrigerated viable-count curves for <em>S. thermophilus</em>, <em>L. bulgaricus</em>, and total yogurt organisms at 5 C and 10 C.</li>
+                            <li><a href="https://pubmed.ncbi.nlm.nih.gov/25190881/" target="_blank" rel="noopener noreferrer">Anbukkarasi et al. 2014</a>: provides short-storage pH, acidity, lactose/galactose, and starter counts at 4 C.</li>
+                        </ul>
+                    </div>
+                    <div class="model-table-block">
+                        <h4>Displayed Storage Model Values</h4>
+                        <div class="model-table-wrap">
+                            <table class="model-detail-table">
+                                <thead>
+                                    <tr>
+                                        <th>Term</th>
+                                        <th>Value</th>
+                                        <th>Definition</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="storageModelBody">
+                                    <tr>
+                                        <td colspan="3">No storage model values available yet.</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="chart-shell compact-chart-shell">
+                        <svg id="storageChart" viewBox="0 0 900 320" role="img" aria-label="Storage and post-acidification chart"></svg>
+                    </div>
+                    <div class="chart-shell compact-chart-shell">
+                        <svg id="storageCfuChart" viewBox="0 0 900 320" role="img" aria-label="Refrigerated storage CFU retention chart"></svg>
+                    </div>
+                </details>
+
+                <details class="driver-panel">
+                    <summary>Texture / Set Proxy</summary>
+                    <div class="driver-panel-copy">
+                        This panel reports a coarse set and syneresis proxy. It uses the modeled acidification state plus Ramchandran and Shah texture anchors, so it should be read as a screening estimate rather than a direct texture-analyzer or rheometer output.
+                    </div>
+                    <ul class="driver-definition-list">
+                        <li><strong>Set score:</strong> normalized proxy driven mainly by endpoint pH, time after pH 4.6, storage maturation, added solids, and over-acidification penalty.</li>
+                        <li><strong>Firmness proxy:</strong> mapped against Ramchandran and Shah Figure 2 low-fat yogurt firmness anchors.</li>
+                        <li><strong>Syneresis proxy:</strong> mapped against Ramchandran and Shah Figure 3 spontaneous whey separation anchors.</li>
+                        <li><strong>Yield stress proxy:</strong> mapped against Ramchandran and Shah Table 4 Herschel-Bulkley yield-stress anchors.</li>
+                    </ul>
+                    <div class="driver-reference-block">
+                        <strong>Texture References</strong>
+                        <ul class="driver-reference-list">
+                            <li><a href="https://pubmed.ncbi.nlm.nih.gov/19233782/" target="_blank" rel="noopener noreferrer">Ramchandran and Shah 2009</a>: provides firmness, whey separation, yield stress, EPS content, and relative starter-survival context during 4 C storage.</li>
+                        </ul>
+                    </div>
+                    <div class="model-table-block">
+                        <h4>Displayed Texture Values</h4>
+                        <div class="model-table-wrap">
+                            <table class="model-detail-table">
+                                <thead>
+                                    <tr>
+                                        <th>Output</th>
+                                        <th>Value</th>
+                                        <th>Interpretation</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="textureProxyBody">
+                                    <tr>
+                                        <td colspan="3">No texture proxy available yet.</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="model-table-block">
+                        <h4>Texture Proxy Coefficients</h4>
+                        <div class="model-table-wrap">
+                            <table class="model-detail-table">
+                                <thead>
+                                    <tr>
+                                        <th>Term</th>
+                                        <th>Value</th>
+                                        <th>Definition</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="textureCoefficientBody">
+                                    <tr>
+                                        <td colspan="3">No texture coefficient values available yet.</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </details>
+
+                <div class="data-table-panel">
+                    <div class="table-header">
+                        <h3>Estimated Batch Profile</h3>
+                        <span class="table-note">Initial and incubation-endpoint likely concentration estimates plus deterministic low/high endpoint bands for the displayed inputs above. Stored totals are summarized in the metric cards when storage is enabled.</span>
+                    </div>
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Species</th>
+                                    <th>Initial CFU/g</th>
+                                    <th>Incubated CFU/g</th>
+                                    <th>Stored Endpoint CFU/g</th>
+                                    <th>Incubated Low / High</th>
+                                    <th>Displayed Endpoint Share</th>
+                                </tr>
+                            </thead>
+                            <tbody id="speciesTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <details class="data-table-panel validation-panel">
+                    <summary>
+                        <span>Literature Back-Checks</span>
+                        <span class="table-note">Collapsed by default. Rows compare the model against published anchor points, trend checks, and envelope checks. They show agreement and known gaps, not batch-specific prediction.</span>
+                    </summary>
+                    <div class="validation-panel-body">
+                        <div class="table-wrap validation-table-wrap">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Check</th>
+                                        <th>Benchmark</th>
+                                        <th>Model</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="literatureChecksBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </details>
+            </section>
+
+            <aside class="side-column">
+                <section class="panel side-card">
+                    <h3>Assumptions</h3>
+                    <ul class="note-list">
+                        <li>CFU/g is viable culturability, not biomass mass.</li>
+                        <li>Growth is capped with a bounded lag-plus-plateau model.</li>
+                        <li>Temperature effects are simplified with separate growth-speed and viability-retention penalties.</li>
+                        <li>Modeled pH is a fitted fermentation-state proxy, not a direct pH-meter reading.</li>
+                        <li>Final mass is treated as the initial mixture mass for v0.1.</li>
+                        <li>Substrate is modeled as a fermentation proxy, not a direct lactose or metabolite assay.</li>
+                        <li>Storage mode applies a hybrid absolute/delta refrigerated pH layer plus published CFU retention envelopes; both are anchored near 4 C, and storage pH drift is gated by endpoint fermentation success.</li>
+                    </ul>
+                </section>
+
+                <section class="panel side-card">
+                    <h3>Warnings</h3>
+                    <ul class="warning-list" id="warningList">
+                        <li class="ok">No warnings.</li>
+                    </ul>
+                </section>
+
+                <section class="panel side-card">
+                    <h3>Validation Notes</h3>
+                    <ul class="note-list">
+                        <li>The inoculum back-calculation is the most constrained output in the current model.</li>
+                        <li>The incubation-phase pH curve uses a 42 C Gompertz backbone fitted to published incubation curves, but fast-acidifying strain systems can still fall outside the current fit.</li>
+                        <li>Storage/post-acidification combines refrigerated pH drift, published viable-count retention envelopes, and a coarse texture/set proxy; these are screening estimates, not strain-specific predictions.</li>
+                        <li>The Literature Back-Checks table summarizes the main published anchors, residual size, and current gaps.</li>
+                    </ul>
+                </section>
+
+                <section class="panel side-card">
+                    <h3>Literature Basis</h3>
+                    <ul class="reference-list">
+                        <li>
+                            <span class="reference-heading">Reference:</span>
+                            <a href="https://pubmed.ncbi.nlm.nih.gov/36903370/" target="_blank" rel="noopener noreferrer">Dan et al. 2023</a>
+                            <span class="reference-detail"><strong>Note:</strong> Starter ratio changes viable counts and fermentation outcomes.</span>
+                        </li>
+                        <li>
+                            <span class="reference-heading">Reference:</span>
+                            <a href="https://pubmed.ncbi.nlm.nih.gov/37641256/" target="_blank" rel="noopener noreferrer">Ge et al. 2024</a>
+                            <span class="reference-detail"><strong>Note:</strong> St:Lb ratio sweeps materially change fermentation behavior, and the optimum need not be 1:1.</span>
+                        </li>
+                        <li>
+                            <span class="reference-heading">Reference:</span>
+                            <a href="https://pubmed.ncbi.nlm.nih.gov/16754859/" target="_blank" rel="noopener noreferrer">van de Guchte et al. 2006</a>
+                            <span class="reference-detail"><strong>Note:</strong> Describes <em>L. bulgaricus</em> adaptation to the milk environment and explicitly discusses protocooperation with <em>S. thermophilus</em>; included as biological background rather than as a direct kinetic-fit source.</span>
+                        </li>
+                        <li>
+                            <span class="reference-heading">Reference:</span>
+                            <a href="https://pubmed.ncbi.nlm.nih.gov/33309355/" target="_blank" rel="noopener noreferrer">Yamamoto et al. 2021</a>
+                            <span class="reference-detail"><strong>Note:</strong> Lactose state changes culture behavior, so substrate should not be treated as a fixed generic factor.</span>
+                        </li>
+                        <li>
+                            <span class="reference-heading">Reference:</span>
+                            <a href="https://pubmed.ncbi.nlm.nih.gov/27920772/" target="_blank" rel="noopener noreferrer">Linares et al. 2016</a>
+                            <span class="reference-detail"><strong>Note:</strong> Gives a concrete 1:1 coculture acidification anchor at 42 C, including pH below 5 after 5 hr and about 4.4 by 8 hr.</span>
+                        </li>
+                        <li>
+                            <span class="reference-heading">Reference:</span>
+                            <a href="https://pubmed.ncbi.nlm.nih.gov/33076224/" target="_blank" rel="noopener noreferrer">Popovic et al. 2020</a>
+                            <span class="reference-detail"><strong>Note:</strong> Gives a concrete 1:2 mixed-starter pH anchor of about 4.74 after 5 hr at 42 C.</span>
+                        </li>
+                        <li>
+                            <span class="reference-heading">Reference:</span>
+                            <a href="https://pubmed.ncbi.nlm.nih.gov/37427487/" target="_blank" rel="noopener noreferrer">Li et al. 2023</a>
+                            <span class="reference-detail"><strong>Note:</strong> Temperature and ratio affect viable populations; acidification optimum and viability optimum can differ.</span>
+                        </li>
+                        <li>
+                            <span class="reference-heading">Reference:</span>
+                            <a href="https://pubmed.ncbi.nlm.nih.gov/36740644/" target="_blank" rel="noopener noreferrer">Salmazo et al. 2023</a>
+                            <span class="reference-detail"><strong>Note:</strong> Temperature and pH jointly shape growth response, so the fermentation model should not leave pH completely external.</span>
+                        </li>
+                        <li>
+                            <span class="reference-heading">Reference:</span>
+                            <a href="https://pubmed.ncbi.nlm.nih.gov/22022447/" target="_blank" rel="noopener noreferrer">Li et al. 2011</a>
+                            <span class="reference-detail"><strong>Note:</strong> A shift from 42 C to 50 C triggers a heat-shock response in <em>S. thermophilus</em>, so 50 C should be treated as stress territory rather than normal fermentation.</span>
+                        </li>
+                        <li>
+                            <span class="reference-heading">Reference:</span>
+                            <a href="https://pubmed.ncbi.nlm.nih.gov/11872450/" target="_blank" rel="noopener noreferrer">Gouesbet et al. 2002</a>
+                            <span class="reference-detail"><strong>Note:</strong> Shows severe heat-shock injury in <em>L. bulgaricus</em> at 65 C, including a rapid early drop in viable survivors and non-monotonic recovery behavior; used here as a high-temperature collapse anchor rather than a normal fermentation condition.</span>
+                        </li>
+                        <li>
+                            <span class="reference-heading">Reference:</span>
+                            <a href="https://pubmed.ncbi.nlm.nih.gov/28071005/" target="_blank" rel="noopener noreferrer">Shu et al. 2016</a>
+                            <span class="reference-detail"><strong>Note:</strong> Goat-yogurt adjunct study showing that temperature, strain ratio, and inoculum size affect viable counts in a probiotic system containing <em>L. acidophilus</em> and <em>B. bifidum</em>; included only as out-of-scope adjunct context.</span>
+                        </li>
+                        <li>
+                            <span class="reference-heading">Reference:</span>
+                            <a href="https://pubmed.ncbi.nlm.nih.gov/25151879/" target="_blank" rel="noopener noreferrer">Varga et al. 2014</a>
+                            <span class="reference-detail"><strong>Note:</strong> ABT-type fermented camel/cow milk storage study including <em>B. animalis</em> subsp. <em>lactis</em> BB-12; included only as adjunct-culture storage context outside the default model.</span>
+                        </li>
+                    </ul>
+                    <p class="reference-note">
+                        Modeling decision informed by the references above:
+                    </p>
+                    <p class="reference-note">
+                        Scope remains with classical yogurt:
+                        <em>S. thermophilus</em> + <em>L. bulgaricus</em>.
+                        Additional probiotic species should be a separate adjunct mode, not silently folded into the default model.
+                    </p>
+                </section>
+            </aside>
+        </main>
+
+        <footer data-footer></footer>
+    </div>
+
+    <script src="../js/shared.js"></script>
+    <script src="../js/footer.js"></script>
+    <script type="module" src="../js/yogurt_cfu_estimator/yogurt-cfu-estimator.js"></script>
+</body>
+</html>

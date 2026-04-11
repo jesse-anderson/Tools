@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visual Integration Tool | Tools Hub</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/shared.css">
+    <link rel="stylesheet" href="../css/visual_integration/visual-integration.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <div class="header-left">
+                    <a href="../tools.html" class="back-link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="19" y1="12" x2="5" y2="12"/>
+                            <polyline points="12 19 5 12 12 5"/>
+                        </svg>
+                        Back to Tools
+                    </a>
+                </div>
+                <div class="header-right">
+                    <div class="theme-toggle">
+                        <button data-theme-toggle="light" aria-pressed="false" title="Light mode">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="5"/>
+                                <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+                            </svg>
+                        </button>
+                        <button data-theme-toggle="dark" aria-pressed="false" title="Dark mode">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="tool-title-row">
+                <div class="tool-icon-header engineering">AUC</div>
+                <div>
+                    <h1>Visual Integration Tool</h1>
+                    <p class="tagline">// TRAPEZOIDAL RULE | AREA UNDER CURVE | DATA SERIES</p>
+                </div>
+            </div>
+        </header>
+
+        <main>
+            <div class="integration-layout">
+                <!-- Left Panel: Controls -->
+                <div class="controls-panel">
+                    
+                    <!-- Plot Calibration -->
+                    <div class="panel-card">
+                        <div class="panel-header">
+                            <h2>Calibration</h2>
+                        </div>
+                        <p class="help-text calibration-help">Type linear-axis values, then optionally click the target icons to visually map them on the canvas. Scientific literals such as 1E5, 10^5, and 5x10^7 are accepted.</p>
+                        <div class="input-grid">
+                            <div class="input-group">
+                                <label for="xMinVal">X Min</label>
+                                <div class="calibration-anchor-row">
+                                    <input type="text" inputmode="decimal" id="xMinVal" value="0">
+                                    <button class="action-btn small icon-button cal-anchor-btn" data-anchor="xMinNorm" title="Set X Min position on canvas" aria-label="Set X Min position on canvas">
+                                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                                            <circle cx="12" cy="12" r="5"></circle>
+                                            <line x1="12" y1="1" x2="12" y2="7"></line>
+                                            <line x1="12" y1="17" x2="12" y2="23"></line>
+                                            <line x1="1" y1="12" x2="7" y2="12"></line>
+                                            <line x1="17" y1="12" x2="23" y2="12"></line>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="input-group">
+                                <label for="xMaxVal">X Max</label>
+                                <div class="calibration-anchor-row">
+                                    <input type="text" inputmode="decimal" id="xMaxVal" value="10">
+                                    <button class="action-btn small icon-button cal-anchor-btn" data-anchor="xMaxNorm" title="Set X Max position on canvas" aria-label="Set X Max position on canvas">
+                                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                                            <circle cx="12" cy="12" r="5"></circle>
+                                            <line x1="12" y1="1" x2="12" y2="7"></line>
+                                            <line x1="12" y1="17" x2="12" y2="23"></line>
+                                            <line x1="1" y1="12" x2="7" y2="12"></line>
+                                            <line x1="17" y1="12" x2="23" y2="12"></line>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="input-group">
+                                <label for="yMinVal">Y Min</label>
+                                <div class="calibration-anchor-row">
+                                    <input type="text" inputmode="decimal" id="yMinVal" value="-5">
+                                    <button class="action-btn small icon-button cal-anchor-btn" data-anchor="yMinNorm" title="Set Y Min position on canvas" aria-label="Set Y Min position on canvas">
+                                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                                            <circle cx="12" cy="12" r="5"></circle>
+                                            <line x1="12" y1="1" x2="12" y2="7"></line>
+                                            <line x1="12" y1="17" x2="12" y2="23"></line>
+                                            <line x1="1" y1="12" x2="7" y2="12"></line>
+                                            <line x1="17" y1="12" x2="23" y2="12"></line>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="input-group">
+                                <label for="yMaxVal">Y Max</label>
+                                <div class="calibration-anchor-row">
+                                    <input type="text" inputmode="decimal" id="yMaxVal" value="10">
+                                    <button class="action-btn small icon-button cal-anchor-btn" data-anchor="yMaxNorm" title="Set Y Max position on canvas" aria-label="Set Y Max position on canvas">
+                                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                                            <circle cx="12" cy="12" r="5"></circle>
+                                            <line x1="12" y1="1" x2="12" y2="7"></line>
+                                            <line x1="12" y1="17" x2="12" y2="23"></line>
+                                            <line x1="1" y1="12" x2="7" y2="12"></line>
+                                            <line x1="17" y1="12" x2="23" y2="12"></line>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="input-group full-width calibration-baseline">
+                            <label for="baselineVal">Integration Baseline (Y)</label>
+                            <input type="text" inputmode="decimal" id="baselineVal" value="0">
+                            <small class="help-text">Area is calculated relative to this Y-value.</small>
+                        </div>
+                    </div>
+
+                    <!-- Series Management -->
+                    <div class="panel-card">
+                        <div class="panel-header">
+                            <h2>Data Series</h2>
+                            <button id="addSeriesBtn" class="action-btn small">+ Add Series</button>
+                        </div>
+                        <div id="seriesContainer" class="series-list">
+                            <!-- Series items will be dynamically injected here -->
+                        </div>
+                    </div>
+
+                    <!-- Results -->
+                    <div class="panel-card">
+                        <div class="panel-header">
+                            <h2>Results (AUC)</h2>
+                        </div>
+                        <div id="resultsContainer" class="results-list">
+                            <!-- Results will be dynamically injected here -->
+                        </div>
+                    </div>
+
+                    <div class="panel-card disclaimer-card">
+                        <div class="panel-header">
+                            <h2>Engineering Disclaimer</h2>
+                        </div>
+                        <div class="warning-text">
+                            <p><strong>Use at your own risk.</strong> This tool is a visual measurement and numerical integration aid. It is not professional engineering advice, regulatory evidence, laboratory instrumentation, or a substitute for source data.</p>
+                            <p><strong>No warranty.</strong> Area, calibration, point placement, image scaling, PDF rendering, and exported results may be inaccurate, incomplete, or misleading because of user input, source image quality, axis interpretation, browser rendering, or implementation defects.</p>
+                            <p><strong>Linear-axis only.</strong> Calculations assume linear X and Y axes. Do not use this tool for logarithmic, categorical, distorted, perspective, or transformed plots unless you have independently converted and validated the data.</p>
+                            <p><strong>No liability.</strong> The creators and maintainers assume no responsibility or liability for errors, omissions, damages, failed designs, failed submissions, compliance issues, data loss, or decisions made from this tool or its output.</p>
+                            <p><strong>Verify independently.</strong> Validate important results against original data, calibrated instruments, trusted numerical software, published references, or a qualified professional before using them in engineering, scientific, clinical, legal, financial, safety, or production decisions.</p>
+                        </div>
+                    </div>
+
+                    <div class="panel-card attribution-card">
+                        <div class="panel-header">
+                            <h2>Third-Party Attribution</h2>
+                        </div>
+                        <ul class="sidebar-list">
+                            <li><a class="sidebar-link" href="https://mozilla.github.io/pdf.js/" target="_blank" rel="noopener">PDF.js</a> is used for optional PDF page rendering. License: <a class="sidebar-link" href="https://github.com/mozilla/pdf.js/blob/master/LICENSE" target="_blank" rel="noopener">Apache License 2.0</a>.</li>
+                            <li><a class="sidebar-link" href="https://cdnjs.com/libraries/pdf.js" target="_blank" rel="noopener">cdnjs</a> may be used to load PDF.js and its worker when local vendor files are unavailable.</li>
+                            <li><a class="sidebar-link" href="https://fonts.google.com/specimen/JetBrains+Mono" target="_blank" rel="noopener">JetBrains Mono</a> is used for numeric and control UI. License: SIL Open Font License 1.1.</li>
+                            <li><a class="sidebar-link" href="https://fonts.google.com/specimen/Space+Grotesk" target="_blank" rel="noopener">Space Grotesk</a> is used for headings and interface text. License: SIL Open Font License 1.1.</li>
+                            <li><a class="sidebar-link" href="https://fonts.google.com/" target="_blank" rel="noopener">Google Fonts</a> is used for font delivery on this page.</li>
+                        </ul>
+                        <p class="sidebar-footnote">Files are processed in the browser by this page. Loading PDF support may still request third-party scripts if PDF.js is not hosted locally.</p>
+                    </div>
+                </div>
+
+                <!-- Right Panel: Canvas Area -->
+                <div class="canvas-panel">
+                    <div class="canvas-header">
+                        <div class="canvas-controls canvas-controls-wrap">
+                            <label class="toggle-control">
+                                <input type="checkbox" id="showGrid" checked>
+                                <span class="toggle-slider"></span>
+                                Show Grid
+                            </label>
+                            <label class="toggle-control">
+                                <input type="checkbox" id="showAuc" checked>
+                                <span class="toggle-slider"></span>
+                                Show AUC
+                            </label>
+                            <button id="clearPointsBtn" class="action-btn small danger">Clear Active Series</button>
+                            <div class="control-spacer"></div>
+                            <button id="loadExampleBtn" class="action-btn small">Load Example</button>
+                            <label class="action-btn small upload-btn">
+                                <input type="file" id="bgUpload" accept="image/*,application/pdf" hidden>
+                                Upload Image/PDF
+                            </label>
+                            <button id="btnSelectRoi" class="action-btn small" hidden>Select ROI</button>
+                            <button id="btnResetRoi" class="action-btn small" hidden>Reset ROI</button>
+                            <button id="clearBgBtn" class="action-btn small danger" hidden>Clear BG</button>
+                        </div>
+                        <div id="pdfControls" class="canvas-controls pdf-controls" hidden>
+                            <button id="btnPdfPrev" class="action-btn small" aria-label="Previous PDF page">&lt;</button>
+                            <div class="input-group inline-input">
+                                <label for="pdfPage">Page</label>
+                                <input type="number" id="pdfPage" min="1" value="1">
+                            </div>
+                            <span id="pdfPageMeta" class="help-text">1 / 1</span>
+                            <button id="btnPdfNext" class="action-btn small" aria-label="Next PDF page">&gt;</button>
+                            
+                            <div class="control-divider"></div>
+                            
+                            <div class="input-group inline-input">
+                                <label for="pdfScale">Render Scale</label>
+                                <input type="number" id="pdfScale" min="1" max="16" step="0.5" value="4">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="canvas-container">
+                        <canvas id="integrationCanvas"></canvas>
+                        <div id="canvasOverlayText" class="canvas-overlay">Click to add points to the active series.</div>
+                    </div>
+                    
+                    <div class="import-export-controls">
+                        <textarea id="csvDataInput" placeholder="Paste x,y pairs to import numeric points. Supports 1E5, 10^5, and 5x10^7. One comma or tab separated pair per line."></textarea>
+                        <div class="utility-button-row">
+                            <button id="importDataBtn" class="action-btn">Import Data</button>
+                            <button id="copyResultsBtn" class="action-btn">Copy Results</button>
+                            <button id="exportResultsBtn" class="action-btn">Export CSV</button>
+                            <button id="downloadAnnotatedBtn" class="action-btn">Download PNG</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+        <footer data-footer></footer>
+    </div>
+
+    <script src="../js/shared.js"></script>
+    <script src="../js/footer.js"></script>
+    <script type="module" src="../js/visual_integration/main.js"></script>
+</body>
+</html>

@@ -86,7 +86,7 @@
                     <div class="panel-header">
                         <div>
                             <h2>Dataset Profile</h2>
-                            <p>Upload a delimited text file to infer column types, spot quality issues, preview rows, and generate a database-ready schema summary.</p>
+                            <p>Upload a delimited text file to inspect structure, infer column types, preview rows, and generate SQL and JSON summaries.</p>
                         </div>
                         <div class="panel-actions">
                             <button type="button" class="tool-btn" id="copySqlButton" disabled>
@@ -214,7 +214,7 @@
                             <section class="section-block">
                                 <div class="section-heading">
                                     <h3>Quality Notes</h3>
-                                    <p>High-level findings from the bounded profile.</p>
+                                    <p>High-level findings from the current profiled rows.</p>
                                 </div>
                                 <div class="quality-notes" id="qualityNotes"></div>
                             </section>
@@ -285,8 +285,8 @@
                                 <section class="schema-card">
                                     <div class="schema-card-header">
                                         <div>
-                                            <h3>JSON Schema Summary</h3>
-                                            <p>Machine-readable structure and profile metadata.</p>
+                                            <h3>JSON Summary</h3>
+                                            <p>Profile output and inferred structure in JSON format.</p>
                                         </div>
                                         <button type="button" class="tool-btn compact" id="copyJsonInlineButton">
                                             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
@@ -388,7 +388,7 @@
                             <li>Logical rows above 250,000 characters are blocked.</li>
                             <li>Files above 512 columns are blocked.</li>
                             <li>Distinct counts are exact up to 20,000 values per column.</li>
-                            <li>Histograms use sampled numeric values to keep memory bounded.</li>
+                            <li>Histograms use sampled numeric values to limit memory use.</li>
                         </ul>
                         <p class="sidebar-footnote">Use "Load Good Sample" for a clean baseline. Use "Load Bad Sample" to exercise mixed comma, tab, semicolon, and pipe delimiters, ragged rows, duplicate rows, missing values, duplicate headers, and malformed quoting. The sample buttons preload comma delimiter and header-row mode.</p>
                     </div>

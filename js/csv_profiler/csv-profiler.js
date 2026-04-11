@@ -283,7 +283,7 @@ function renderHistograms() {
     dom.histogramGrid.replaceChildren();
 
     if (state.profile.histogramColumns.length === 0) {
-        dom.histogramGrid.append(createEmptyState('No numeric columns in the profiled slice.'));
+        dom.histogramGrid.append(createEmptyState('No numeric columns in the current profile.'));
         return;
     }
 
