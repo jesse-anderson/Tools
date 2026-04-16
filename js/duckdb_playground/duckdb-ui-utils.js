@@ -12,8 +12,8 @@
  * ============================================
  */
 
-import * as DuckDBCore from './duckdb-init.js';
-import { STATE } from './duckdb-state.js';
+import * as DuckDBImport from './duckdb-import.js';
+import { STATE, FILE_SIZE_LIMIT, EXPERIMENTAL_SIZE_LIMIT, executeConfirmCallback } from './duckdb-state.js';
 import * as UIInit from './duckdb-ui-init.js';
 import * as UIRender from './duckdb-ui-render.js';
 
@@ -123,15 +123,15 @@ export function handleShowAboutModal() {
 
 export async function handleConfirmAction() {
     closeModal('confirmModal');
-    await DuckDBCore.executeConfirmCallback();
+    await executeConfirmCallback();
 }
 
 export function handleTableCollision(action) {
-    DuckDBCore.handleTableCollision(action, showToast, UIRender.refreshSchemaRender);
+    DuckDBImport.handleTableCollision(action, showToast, UIRender.refreshSchemaRender);
 }
 
 export function handleImportSelectedSheet() {
-    DuckDBCore.importSelectedSheet(showToast, UIRender.refreshSchemaRender);
+    DuckDBImport.importSelectedSheet(showToast, UIRender.refreshSchemaRender);
 }
 
 // ============================================
@@ -270,8 +270,8 @@ window.clearResults = clearResults;
 window.showToast = showToast;
 
 // Re-export constants for reference
-window.FILE_SIZE_LIMIT = DuckDBCore.FILE_SIZE_LIMIT;
-window.EXPERIMENTAL_SIZE_LIMIT = DuckDBCore.EXPERIMENTAL_SIZE_LIMIT;
+window.FILE_SIZE_LIMIT = FILE_SIZE_LIMIT;
+window.EXPERIMENTAL_SIZE_LIMIT = EXPERIMENTAL_SIZE_LIMIT;
 
 // Export renderChart globally for theme switching
 window.renderChart = UIRender.renderChart;

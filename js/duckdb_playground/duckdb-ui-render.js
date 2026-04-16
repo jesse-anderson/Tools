@@ -12,8 +12,9 @@
  * ============================================
  */
 
-import * as DuckDBCore from './duckdb-init.js';
-import { STATE } from './duckdb-state.js';
+import * as DuckDBImport from './duckdb-import.js';
+import * as DuckDBOps from './duckdb-operations.js';
+import { STATE, MAX_DISPLAY_ROWS, MAX_QUERY_TABS, setConfirmCallback } from './duckdb-state.js';
 
 // Chart instance shared across modules
 let chartInstance = null;
@@ -98,7 +99,7 @@ export { escapeHtml, escapeJsString, formatNumber, formatRelativeTime, showToast
 // ============================================
 
 export async function refreshSchemaRender() {
-    await DuckDBCore.refreshSchema();
+    await DuckDBImport.refreshSchema();
     renderSchema();
 }
 
@@ -109,7 +110,7 @@ export function renderSchema() {
 
     if (!tableList) return;
 
-    const tables = DuckDBCore.STATE.tables;
+    const tables = STATE.tables;
 
     if (tables.length === 0) {
         emptyState.style.display = 'flex';
@@ -162,11 +163,11 @@ export async function toggleTableExpand(element) {
 
     if (!wasExpanded) {
         const tableName = element.dataset.table;
-        const table = DuckDBCore.STATE.tables.find(t => t.name === tableName);
+        const table = STATE.tables.find(t => t.name === tableName);
 
         if (table && table.rowCount === null) {
             try {
-                const count = await DuckDBCore.getTableRowCount(tableName);
+                const count = await DuckDBImport.getTableRowCount(tableName);
                 table.rowCount = count;
 
                 const rowCountEl = element.querySelector('.row-count');
@@ -190,8 +191,8 @@ export function previewTable(tableName) {
 }
 
 export function confirmDropTable(tableName) {
-    DuckDBCore.setConfirmCallback(async () => {
-        await DuckDBCore.dropTable(tableName, refreshSchemaRender, showToast);
+    setConfirmCallback(async () => {
+        await DuckDBImport.dropTable(tableName, refreshSchemaRender, showToast);
     });
     document.getElementById('confirmTitle').textContent = 'Drop Table';
     document.getElementById('confirmMessage').textContent = `Are you sure you want to drop table '${tableName}'? This cannot be undone.`;
@@ -239,7 +240,7 @@ export function displayResults(result) {
     wrapper.style.display = 'block';
     footer.style.display = 'flex';
 
-    const maxDisplay = DuckDBCore.MAX_DISPLAY_ROWS;
+    const maxDisplay = MAX_DISPLAY_ROWS;
     const displayRows = rows.slice(0, maxDisplay);
     const truncated = rows.length > maxDisplay;
 
@@ -380,7 +381,7 @@ export function showError(error) {
 }
 
 export function clearResults() {
-    DuckDBCore.STATE.currentResult = null;
+    STATE.currentResult = null;
 
     const wrapper = document.getElementById('resultsTableWrapper');
     const errorDisplay = document.getElementById('errorDisplay');
@@ -453,8 +454,8 @@ export function renderQueryTabs() {
     const tabsContainer = document.getElementById('queryTabs');
     if (!tabsContainer) return;
 
-    const tabs = DuckDBCore.STATE.queryTabs;
-    const activeTabId = DuckDBCore.STATE.activeTabId;
+    const tabs = STATE.queryTabs;
+    const activeTabId = STATE.activeTabId;
 
     let html = tabs.map(tab => {
         const jsEscapedId = escapeJsString(tab.id);
@@ -472,7 +473,7 @@ export function renderQueryTabs() {
     `}).join('');
 
     html += `
-        <button class="add-tab-btn" onclick="window.duckdbUI?.handleAddTab?.()" ${tabs.length >= DuckDBCore.MAX_QUERY_TABS ? 'disabled' : ''} title="Add new tab">
+        <button class="add-tab-btn" onclick="window.duckdbUI?.handleAddTab?.()" ${tabs.length >= MAX_QUERY_TABS ? 'disabled' : ''} title="Add new tab">
             +
         </button>
     `;
@@ -481,40 +482,40 @@ export function renderQueryTabs() {
 }
 
 export function handleSwitchTab(tabId) {
-    const sql = DuckDBCore.switchTab(tabId);
+    const sql = DuckDBOps.switchTab(tabId);
     const editor = document.getElementById('sqlEditor');
     if (editor && sql !== null) {
         editor.value = sql;
     }
     renderQueryTabs();
-    DuckDBCore.saveTabs();
+    DuckDBOps.saveTabs();
 }
 
 export function handleAddTab() {
-    const newId = DuckDBCore.addTab();
+    const newId = DuckDBOps.addTab();
     if (newId) {
         handleSwitchTab(newId);
     }
 }
 
 export function handleCloseTab(tabId) {
-    const newActiveTab = DuckDBCore.closeTab(tabId);
+    const newActiveTab = DuckDBOps.closeTab(tabId);
     if (newActiveTab) {
         const editor = document.getElementById('sqlEditor');
         if (editor) editor.value = newActiveTab.sql || '';
     }
     renderQueryTabs();
-    DuckDBCore.saveTabs();
+    DuckDBOps.saveTabs();
 }
 
 export function handleRenameTab(tabId) {
-    const tab = DuckDBCore.STATE.queryTabs.find(t => t.id === tabId);
+    const tab = STATE.queryTabs.find(t => t.id === tabId);
     if (!tab) return;
 
     const newName = prompt('Enter new tab name:', tab.name);
-    if (DuckDBCore.renameTab(tabId, newName)) {
+    if (DuckDBOps.renameTab(tabId, newName)) {
         renderQueryTabs();
-        DuckDBCore.saveTabs();
+        DuckDBOps.saveTabs();
     }
 }
 
@@ -523,16 +524,16 @@ export function handleRenameTab(tabId) {
 // ============================================
 
 export function addToHistoryUI(entry) {
-    DuckDBCore.addToHistory(entry);
+    DuckDBOps.addToHistory(entry);
     renderHistory();
-    DuckDBCore.saveHistory();
+    DuckDBOps.saveHistory();
 }
 
 export function renderHistory() {
     const list = document.getElementById('historyList');
     if (!list) return;
 
-    const history = DuckDBCore.getHistory(20);
+    const history = DuckDBOps.getHistory(20);
 
     if (history.length === 0) {
         list.innerHTML = `
@@ -568,7 +569,7 @@ export function renderHistory() {
     list.querySelectorAll('.history-item[data-history-index]').forEach(item => {
         const handler = () => {
             const index = parseInt(item.dataset.historyIndex);
-            const sql = DuckDBCore.getHistorySQL(index);
+            const sql = DuckDBOps.getHistorySQL(index);
             if (sql) {
                 const editor = document.getElementById('sqlEditor');
                 if (editor) editor.value = sql;
@@ -585,9 +586,9 @@ export function renderHistory() {
 }
 
 export function handleClearHistory() {
-    DuckDBCore.clearHistory();
+    DuckDBOps.clearHistory();
     renderHistory();
-    DuckDBCore.saveHistory();
+    DuckDBOps.saveHistory();
     showToast('History cleared', 'success');
 }
 
@@ -628,10 +629,10 @@ export function handleSwitchView(view) {
 }
 
 export function renderChart() {
-    if (!DuckDBCore.STATE.currentResult || !window.Chart) return;
+    if (!STATE.currentResult || !window.Chart) return;
 
-    const rows = DuckDBCore.STATE.currentResult.toArray();
-    const schema = DuckDBCore.STATE.currentResult.schema;
+    const rows = STATE.currentResult.toArray();
+    const schema = STATE.currentResult.schema;
     const columnNames = schema.fields.map(f => f.name);
     const columnTypes = schema.fields.map(f => f.type.toString());
 

@@ -13,7 +13,9 @@
  */
 
 import * as DuckDBCore from './duckdb-init.js';
-import { STATE } from './duckdb-state.js';
+import * as DuckDBImport from './duckdb-import.js';
+import * as DuckDBOps from './duckdb-operations.js';
+import { STATE, executeConfirmCallback } from './duckdb-state.js';
 
 // Import render functions dynamically to avoid circular deps
 let RenderModule = null;
@@ -30,7 +32,7 @@ export { STATE } from './duckdb-state.js';
 export { DuckDBCore };
 
 // Make STATE available globally
-window.STATE = DuckDBCore.STATE;
+window.STATE = STATE;
 
 // ============================================
 // INITIALIZATION
@@ -41,11 +43,11 @@ export async function initPlayground() {
     DuckDBCore.setUIHelpers(showModal, closeModal, closeAllDropdowns);
 
     // Load theme
-    const theme = DuckDBCore.loadTheme();
+    const theme = DuckDBOps.loadTheme();
     applyTheme(theme);
 
     // Load settings
-    DuckDBCore.loadSettings();
+    DuckDBOps.loadSettings();
 
     // Initialize DuckDB
     await DuckDBCore.initDuckDB(
@@ -101,11 +103,11 @@ function showInitError(error) {
 }
 
 async function loadSavedState() {
-    DuckDBCore.loadTabs();
-    DuckDBCore.loadHistory();
+    DuckDBOps.loadTabs();
+    DuckDBOps.loadHistory();
     const Render = await getRenderModule();
     Render.renderHistory();
-    const activeTab = DuckDBCore.STATE.queryTabs.find(t => t.id === DuckDBCore.STATE.activeTabId);
+    const activeTab = STATE.queryTabs.find(t => t.id === STATE.activeTabId);
     if (activeTab) {
         const editor = document.getElementById('sqlEditor');
         if (editor) editor.value = activeTab.sql || '';
@@ -133,7 +135,7 @@ function setupEventListeners() {
             e.preventDefault();
             dropZone.classList.remove('drag-over');
             if (e.dataTransfer.files.length > 0) {
-                DuckDBCore.handleFileSelect(e.dataTransfer.files, showToast, refreshSchemaRender);
+                DuckDBImport.handleFileSelect(e.dataTransfer.files, showToast, refreshSchemaRender);
             }
         });
 
@@ -163,7 +165,7 @@ function setupEventListeners() {
         });
 
         sqlEditor.addEventListener('input', () => {
-            DuckDBCore.saveTabs();
+            DuckDBOps.saveTabs();
         });
     }
 
@@ -204,7 +206,7 @@ export function handleKeyboardShortcuts(e) {
 
     // Escape - Cancel query or close modal
     if (e.key === 'Escape') {
-        if (DuckDBCore.STATE.isQueryRunning) {
+        if (STATE.isQueryRunning) {
             handleCancelQuery();
         } else {
             document.querySelectorAll('.modal-overlay.active').forEach(modal => {
@@ -239,7 +241,7 @@ export function handleKeyboardShortcuts(e) {
     if (e.ctrlKey && e.key >= '1' && e.key <= '8') {
         e.preventDefault();
         const index = parseInt(e.key) - 1;
-        const tabs = DuckDBCore.STATE.queryTabs;
+        const tabs = STATE.queryTabs;
         if (tabs[index]) {
             handleSwitchTab(tabs[index].id);
         }
@@ -248,13 +250,13 @@ export function handleKeyboardShortcuts(e) {
 }
 
 async function handleVisibilityChange() {
-    if (document.visibilityState === 'visible' && DuckDBCore.STATE.isInitialized) {
+    if (document.visibilityState === 'visible' && STATE.isInitialized) {
         try {
             const isHealthy = await DuckDBCore.checkConnectionHealth();
             if (isHealthy) {
                 await refreshSchemaRender();
             } else {
-                DuckDBCore.STATE.tables = [];
+                STATE.tables = [];
                 const Render = await getRenderModule();
                 Render.renderSchema();
                 showToast('Database connection was reset. Please reload your data.', 'warning');
@@ -274,7 +276,7 @@ export async function handleRunQuery() {
     const sql = document.getElementById('sqlEditor').value.trim();
     updateRunButton(true);
 
-    DuckDBCore.runQuery(
+    DuckDBOps.runQuery(
         sql,
         showToast,
         Render.addToHistoryUI,
@@ -336,7 +338,7 @@ export async function applyTheme(theme) {
 }
 
 export function handleSetTheme(theme) {
-    DuckDBCore.setTheme(theme);
+    DuckDBOps.setTheme(theme);
     applyTheme(theme);
 }
 
@@ -345,7 +347,7 @@ export function handleSetTheme(theme) {
 // ============================================
 
 export function handleToggleExperimentalMode() {
-    const enabled = DuckDBCore.toggleExperimentalMode();
+    const enabled = DuckDBOps.toggleExperimentalMode();
     const toggle = document.getElementById('experimentalToggle');
     if (toggle) toggle.checked = enabled;
 
@@ -361,12 +363,12 @@ export function handleToggleExperimentalMode() {
 // ============================================
 
 export async function handleSaveSession() {
-    DuckDBCore.saveSession(showToast);
+    DuckDBOps.saveSession(showToast);
 }
 
 export async function handleLoadSession(files) {
     const Render = await getRenderModule();
-    DuckDBCore.loadSession(files, showToast, Render.renderQueryTabs);
+    DuckDBOps.loadSession(files, showToast, Render.renderQueryTabs);
 }
 
 // ============================================
@@ -374,7 +376,7 @@ export async function handleLoadSession(files) {
 // ============================================
 
 export async function handleLoadSampleData(dataset) {
-    DuckDBCore.loadSampleData(dataset, showToast, refreshSchemaRender);
+    DuckDBOps.loadSampleData(dataset, showToast, refreshSchemaRender);
 }
 
 // ============================================
@@ -383,7 +385,7 @@ export async function handleLoadSampleData(dataset) {
 
 export function handleExport(format) {
     const sql = document.getElementById('sqlEditor').value;
-    DuckDBCore.exportResults(format, sql, showToast);
+    DuckDBOps.exportResults(format, sql, showToast);
 }
 
 // ============================================
@@ -442,7 +444,7 @@ export async function handleSwitchTab(tabId) {
 
 export async function handleAddTab() {
     const Render = await getRenderModule();
-    const newId = DuckDBCore.addTab();
+    const newId = DuckDBOps.addTab();
     if (newId) {
         Render.handleSwitchTab(newId);
     }
@@ -555,14 +557,14 @@ export function handleShowAboutModal() {
 
 export async function handleConfirmAction() {
     closeModal('confirmModal');
-    await DuckDBCore.executeConfirmCallback();
+    await executeConfirmCallback();
 }
 
 export async function handleTableCollision(action) {
     const Render = await getRenderModule();
-    DuckDBCore.handleTableCollision(action, showToast, Render.refreshSchemaRender);
+    DuckDBImport.handleTableCollision(action, showToast, Render.refreshSchemaRender);
 }
 
 export function handleImportSelectedSheet() {
-    DuckDBCore.importSelectedSheet(showToast, refreshSchemaRender);
+    DuckDBImport.importSelectedSheet(showToast, refreshSchemaRender);
 }

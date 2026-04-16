@@ -22,7 +22,7 @@ export { STATE } from './duckdb-state.js';
 // UTILITY FUNCTIONS
 // ============================================
 
-function escapeSQLIdentifier(identifier) {
+export function escapeSQLIdentifier(identifier) {
     const escaped = identifier.replace(/"/g, '""');
     return `"${escaped}"`;
 }
