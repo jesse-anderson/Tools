@@ -1,0 +1,12 @@
+{
+  "name": "tools-smoke-tests",
+  "private": true,
+  "scripts": {
+    "test:tools-smoke": "playwright test --config=playwright.config.cjs",
+    "test:tools-smoke:headed": "playwright test --config=playwright.config.cjs --headed",
+    "test:tools-smoke:ui": "playwright test --config=playwright.config.cjs --ui"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.54.0"
+  }
+}
