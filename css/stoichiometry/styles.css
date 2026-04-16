@@ -1,0 +1,514 @@
+/* ============================================
+   STOICHIOMETRY CALCULATOR - POLISHED STYLES
+   ============================================ */
+
+/* Layout */
+.tool-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-top: 24px;
+}
+
+.tool-header-copy {
+    min-width: 0;
+}
+
+.main-layout {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 24px;
+    margin-top: 24px;
+}
+
+@media (max-width: 1200px) {
+    .main-layout {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .main-layout {
+        gap: 16px;
+    }
+
+    .panel {
+        padding: 16px;
+    }
+
+    .stoich-table {
+        font-size: 0.75rem;
+    }
+
+    .stoich-table th, .stoich-table td {
+        padding: 8px 4px;
+    }
+
+    .equation-display {
+        font-size: 1.25rem;
+    }
+
+    .main-input {
+        padding: 10px 12px;
+        font-size: 0.95rem;
+    }
+
+    /* Prevent table from squishing too much */
+    .table-container {
+        margin-top: 8px;
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+    }
+}
+
+/* Panels & Cards */
+.panel {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: var(--shadow-md);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 24px;
+}
+
+.panel-header h2 {
+    margin: 0 0 4px 0;
+    font-size: 1.25rem;
+    color: var(--text-primary);
+}
+
+.panel-header p {
+    margin: 0;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+/* Status Badges */
+.status-badges {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.status-badge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.2s ease;
+}
+
+.status-badge.ok { border-color: rgba(34, 197, 94, 0.4); color: var(--accent-success); background: rgba(34, 197, 94, 0.05); }
+.status-badge.warn { border-color: rgba(234, 179, 8, 0.4); color: var(--accent-warning); background: rgba(234, 179, 8, 0.05); }
+.status-badge.err { border-color: rgba(239, 68, 68, 0.4); color: var(--accent-error); background: rgba(239, 68, 68, 0.05); }
+
+/* Equation Readout */
+.equation-readout {
+    position: relative;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 32px;
+    text-align: center;
+    margin-bottom: 24px;
+}
+
+.equation-display {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 2.25rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+/* Input Styles */
+.equation-input-group {
+    display: flex;
+    gap: 12px;
+}
+
+.main-input {
+    flex: 1;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.1rem;
+    padding: 14px 18px;
+    border-radius: 10px;
+    border: 2px solid var(--border-color);
+    background: var(--bg-input);
+    color: var(--text-primary);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.main-input:focus {
+    outline: none;
+    border-color: var(--accent-biochemical);
+    box-shadow: 0 0 0 3px rgba(139, 195, 74, 0.16);
+}
+
+/* Data Table */
+.table-container {
+    overflow-x: auto;
+    margin-top: 12px;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 8px;
+}
+
+.table-container::-webkit-scrollbar {
+    height: 6px;
+}
+
+.table-container::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 3px;
+}
+
+.stoich-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0 8px;
+}
+
+.stoich-table th {
+    text-align: left;
+    padding: 12px 16px;
+    color: var(--text-muted);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    min-width: 100px;
+}
+
+.stoich-table th:first-child {
+    min-width: 180px;
+}
+
+.stoich-table tr.row-item {
+    background: var(--bg-secondary);
+    transition: all 0.2s ease;
+}
+
+.stoich-table tr.row-item:hover {
+    transform: translateX(4px);
+    background: var(--bg-card-hover);
+}
+
+.stoich-table td {
+    padding: 16px;
+    vertical-align: middle;
+}
+
+.stoich-table td:first-child { border-top-left-radius: 10px; border-bottom-left-radius: 10px; }
+.stoich-table td:last-child { border-top-right-radius: 10px; border-bottom-right-radius: 10px; }
+
+/* Composition Bar */
+.composition-container {
+    width: 100%;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 3px;
+    overflow: hidden;
+    display: flex;
+    margin-top: 8px;
+}
+
+.comp-segment {
+    height: 100%;
+    transition: width 0.3s ease;
+}
+
+/* Sidebar Specifics */
+.sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    position: sticky;
+    top: 24px;
+}
+
+.metric-card {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.metric-label {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.metric-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--accent-biochemical);
+    font-family: 'Space Grotesk', sans-serif;
+}
+
+/* Token Preview */
+.token-preview {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+    min-height: 24px;
+}
+
+.example-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 16px;
+}
+
+.example-btn {
+    cursor: pointer;
+}
+
+.token-chip {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    padding: 2px 8px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    color: var(--text-secondary);
+    animation: fadeIn 0.2s ease;
+}
+
+/* Tooltips */
+.help-chip {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--bg-input);
+    color: var(--text-muted);
+    font-size: 9px;
+    font-weight: 700;
+    cursor: help;
+    margin-left: 4px;
+    border: 1px solid var(--border-color);
+}
+
+.help-chip::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: 125%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    font-family: sans-serif;
+    font-size: 0.75rem;
+    font-weight: 400;
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.2s ease;
+    box-shadow: var(--shadow-lg);
+    z-index: 100;
+}
+
+.help-chip:hover::after,
+.help-chip[aria-expanded="true"]::after {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Row States */
+.limiting-row {
+    border-left: 4px solid var(--accent-warning) !important;
+    background: rgba(234, 179, 8, 0.05) !important;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse-yellow {
+    0% { background-color: var(--bg-secondary); }
+    50% { background-color: rgba(234, 179, 8, 0.15); }
+    100% { background-color: var(--bg-secondary); }
+}
+
+.animate-pulse {
+    animation: pulse-yellow 1s ease-in-out infinite;
+}
+
+/* Animations */
+@keyframes slideUpFade {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-in {
+    animation: slideUpFade 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Helpers */
+.hidden { display: none !important; }
+
+.error-message {
+    margin-top: 16px;
+    padding: 12px 16px;
+    background: rgba(239, 68, 68, 0.1);
+    border-left: 4px solid var(--accent-error);
+    border-radius: 4px;
+    color: var(--accent-error);
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.formula-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.formula-label.product { color: var(--accent-it); }
+
+/* Liability disclaimer */
+.liability-disclaimer {
+    margin-top: 24px;
+    padding: 14px 16px;
+    border-radius: 12px;
+    border: 1px solid var(--accent-warning);
+    background-color: var(--accent-warning-dim);
+    color: var(--text-primary);
+}
+
+.liability-disclaimer strong {
+    display: block;
+    margin-bottom: 6px;
+    color: var(--accent-warning);
+}
+
+.liability-disclaimer p {
+    margin: 0;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    color: var(--text-secondary);
+}
+
+.liability-disclaimer p + p {
+    margin-top: 8px;
+}
+
+.liability-disclaimer p strong {
+    display: inline;
+    margin: 0;
+    color: var(--text-primary);
+}
+
+/* Sidebar metric cards (extracted from inline styles) */
+.metric-card + .metric-card {
+    margin-top: 20px;
+}
+
+.legend-swatch {
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    flex-shrink: 0;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.75rem;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.copy-pill {
+    cursor: pointer;
+    padding: 6px 12px;
+    font-size: 0.6rem;
+    position: absolute;
+    top: 12px;
+    right: 12px;
+}
+
+.copy-icon {
+    margin-right: 4px;
+}
+
+.status-pill {
+    background: var(--accent-biochemical-dim);
+    color: var(--accent-biochemical);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 999px;
+}
+
+.excess-cell {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+    text-align: center;
+}
+
+.excess-cell--limiting { color: var(--accent-warning); }
+.excess-cell--consumed { color: var(--text-muted); }
+.excess-cell--excess   { color: var(--accent-success); }
+.excess-cell--idle     { color: var(--text-muted); }
+
+.td-mono {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+}
+
+.metric-status {
+    width: fit-content;
+    margin-top: 4px;
+}
+
+.stacked-panel {
+    margin-top: 24px;
+}
+
+.legend-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.under-determined-warning {
+    margin-top: 12px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    border: 1px solid rgba(234, 179, 8, 0.4);
+    background: rgba(234, 179, 8, 0.05);
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+}
+
+.under-determined-warning strong {
+    color: var(--accent-warning);
+}
+

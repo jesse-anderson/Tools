@@ -1,0 +1,926 @@
+<!--
+============================================
+SPECIES DOUBLING REFERENCE v2.0.0
+============================================
+Description: Condition-aware reference for microbial doubling times,
+maximum specific growth rates, and temperature-dependent benchmarks
+relevant to yogurt fermentation and common lab comparisons.
+
+Dependencies: None (Vanilla JavaScript)
+
+Project: Tools Hub by Jesse Anderson
+Repository: https://github.com/jesse-anderson/Tools
+License: GPL-3.0
+============================================
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Species Doubling Reference | Tools Hub</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="../css/shared.css">
+    <link rel="stylesheet" href="../css/species_doubling_reference/species-doubling-reference.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <div class="header-left">
+                    <a href="../tools.html" class="back-link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+                            <line x1="19" y1="12" x2="5" y2="12"></line>
+                            <polyline points="12 19 5 12 12 5"></polyline>
+                        </svg>
+                        Back to Tools
+                    </a>
+                </div>
+                <div class="header-right">
+                    <div class="theme-toggle">
+                        <button type="button" data-theme-toggle="light" aria-pressed="false" title="Light mode">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+                                <circle cx="12" cy="12" r="5"></circle>
+                                <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path>
+                            </svg>
+                        </button>
+                        <button type="button" data-theme-toggle="dark" aria-pressed="false" title="Dark mode">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+                                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tool-header">
+                <div class="tool-icon-header biochemical">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="M8 12h8"></path>
+                        <path d="M12 8v8"></path>
+                    </svg>
+                </div>
+                <div>
+                    <p class="reference-kicker">Condition-aware microbial kinetics</p>
+                    <h1>Species Doubling Reference</h1>
+                    <p class="tagline">Peer-reviewed starter, probiotic, and benchmark growth data for dairy and lab contexts</p>
+                </div>
+            </div>
+        </header>
+
+        <main class="reference-layout">
+            <section class="reference-panel" aria-labelledby="reference-title">
+                <div class="reference-intro">
+                    <div>
+                        <h2 id="reference-title">Bacterial Growth Database</h2>
+                        <p class="reference-description">
+                            Doubling times shown here are exponential-phase monoculture reference values. They vary with strain,
+                            substrate, oxygen, pH control, and buffering, so each card includes the reported temperature or
+                            medium-specific conditions when the paper provides them. Mixed-culture or cofermentation behavior
+                            can be materially faster than the values shown here and should not be inferred from these rows.
+                        </p>
+                    </div>
+
+                    <div class="reference-stats" aria-label="Reference summary">
+                        <div class="summary-chip">
+                            <span class="summary-chip-label">Entries</span>
+                            <strong>10 species</strong>
+                        </div>
+                        <div class="summary-chip">
+                            <span class="summary-chip-label">Scope</span>
+                            <strong>Dairy + lab</strong>
+                        </div>
+                        <div class="summary-chip">
+                            <span class="summary-chip-label">Primary years</span>
+                            <strong>2000-2023</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="scope-warning-block" role="note" aria-label="Reference scope, safety limitation, and liability disclaimer">
+                    <strong>Reference Scope / Use At Your Own Risk</strong>
+                    <p>This page summarizes literature-reported microbial growth kinetics for comparison and educational use. Real doubling behavior varies with strain lineage, inoculum age, oxygen handling, medium composition, pH control, buffering, milk treatment, and measurement method.</p>
+                    <p><strong>Monoculture reference only.</strong> The displayed t<sub>d</sub> values are mono-culture or single-organism benchmarks under the cited conditions. They should not be treated as direct mixed-culture, cofermentation, or symbiotic growth rates.</p>
+                    <p><strong>Not food safety advice.</strong> This is not a pathogen-safety model, HACCP tool, fermentation process validation, compliance reference, or substitute for direct pH, temperature, CFU, or contamination testing.</p>
+                    <p><strong>No warranty. No liability. No suitability claim. You assume all risk.</strong> The tool is provided as-is, without warranty of accuracy, completeness, merchantability, fitness for a particular purpose, or regulatory acceptability. The creators and maintainers expressly disclaim responsibility and liability for contamination events, spoiled batches, failed ferments, incorrect strain assumptions, product claims, shelf-life decisions, process release decisions, compliance failures, commercial losses, downstream damages, or any other consequence arising from use or misuse of this page.</p>
+                    <p><strong>Not a release criterion.</strong> Do not use this reference by itself to clear product for consumption, sale, labeling, patient use, or manufacturing decisions.</p>
+                    <p><strong>Cofermentation caveat.</strong> Protocooperation and cofermentation can yield effective doubling behavior far shorter than the mono-culture values shown here, especially for starter pairs such as S. thermophilus and L. bulgaricus.</p>
+                    <p><strong>Verify independently.</strong> Check the cited papers, validate conditions against your actual substrate, strain, and culture mix, and use qualified food-safety, microbiology, or production guidance before using any value for safety-critical, commercial, clinical, or regulatory decisions.</p>
+                </div>
+
+                <section class="compare-panel" aria-labelledby="compare-title">
+                    <div class="compare-header">
+                        <div>
+                            <h2 id="compare-title">Compare Up To Six Species</h2>
+                            <p class="compare-description">Select one reported mono-culture t<sub>d</sub> behavior per species. The chart normalizes all selections to the same starting abundance, plots doublings over custom time, and estimates a normalized endpoint share from independent mono-culture growth only. It is a back-of-the-envelope overlay, not a cofermentation model.</p>
+                        </div>
+                    </div>
+
+                    <div class="compare-toolbar">
+                        <div class="compare-time-group">
+                            <label class="compare-field compare-field--compact">
+                                <span>Plot duration</span>
+                                <input type="number" min="0.1" step="0.1" value="12" inputmode="decimal" aria-describedby="compare-duration-help" data-compare-duration-value>
+                            </label>
+                            <label class="compare-field compare-field--compact">
+                                <span>Time unit</span>
+                                <select data-compare-duration-unit>
+                                    <option value="minutes">minutes</option>
+                                    <option value="hours" selected>hours</option>
+                                    <option value="days">days</option>
+                                </select>
+                            </label>
+                            <p class="compare-field-note" id="compare-duration-help">Live update. Enter a positive duration to refresh the plot and normalized endpoint share.</p>
+                        </div>
+
+                        <div class="compare-actions">
+                            <button type="button" class="compare-button" data-add-species>Add species</button>
+                            <button type="button" class="compare-button" data-export-plot>Export plot</button>
+                        </div>
+                    </div>
+
+                    <div class="compare-row-list" data-compare-rows></div>
+
+                    <div class="compare-status-line" data-compare-status aria-live="polite"></div>
+                    <div class="compare-warning" data-temp-warning hidden>
+                        <strong>Delta Temp &gt; 2C.</strong>
+                        <span data-temp-warning-text></span>
+                    </div>
+
+                    <div class="compare-summary-grid" aria-label="Comparison summary">
+                        <div class="compare-summary-card">
+                            <span class="compare-summary-label">Selected species</span>
+                            <strong data-summary-count>0</strong>
+                        </div>
+                        <div class="compare-summary-card">
+                            <span class="compare-summary-label">Fastest t<sub>d</sub></span>
+                            <strong data-summary-fastest>n/a</strong>
+                        </div>
+                        <div class="compare-summary-card">
+                            <span class="compare-summary-label">Largest normalized share</span>
+                            <strong data-summary-dominant>n/a</strong>
+                        </div>
+                        <div class="compare-summary-card">
+                            <span class="compare-summary-label">Temperature spread</span>
+                            <strong data-summary-delta-temp>n/a</strong>
+                        </div>
+                    </div>
+
+                    <div class="compare-chart-card">
+                        <div class="compare-chart-header">
+                            <h3>Doubling Behavior Plot</h3>
+                            <p>Y-axis shows doublings from the same normalized starting point. Fold change is 2<sup>doublings</sup>.</p>
+                        </div>
+                        <div class="compare-legend" data-compare-legend aria-live="polite"></div>
+                        <div class="compare-chart-shell">
+                            <svg class="compare-chart" data-compare-chart viewBox="0 0 760 360" role="img" aria-labelledby="compare-chart-title compare-chart-desc">
+                                <title id="compare-chart-title">Species doubling comparison chart</title>
+                                <desc id="compare-chart-desc">Normalized comparison of selected species doubling behaviors over time.</desc>
+                            </svg>
+                        </div>
+                        <div class="composition-panel">
+                            <div class="composition-header">
+                                <h4>Normalized Endpoint Share</h4>
+                                <p>Percentages below rescale each row's independent mono-culture endpoint from the same starting abundance. They are useful for quick endpoint comparison only and are not mixed-culture composition predictions.</p>
+                            </div>
+                            <div class="composition-list" data-composition-list aria-live="polite"></div>
+                        </div>
+                    </div>
+                </section>
+
+                <div class="reference-toolbar" aria-label="Reference filters">
+                    <div class="toolbar-row">
+                        <div class="search-wrapper" data-search-wrapper>
+                            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+                                <circle cx="11" cy="11" r="8"></circle>
+                                <path d="M21 21l-4.35-4.35"></path>
+                            </svg>
+                            <input
+                                id="species-reference-search"
+                                class="search-input"
+                                type="search"
+                                placeholder="Filter by species, medium, temperature, or source"
+                                autocomplete="off"
+                                data-species-search
+                            >
+                            <button type="button" class="search-clear" aria-label="Clear species search" data-search-clear>&times;</button>
+                        </div>
+                        <p class="search-results-count" data-results-count aria-live="polite"></p>
+                    </div>
+
+                    <div class="filter-group" role="group" aria-label="Filter species categories">
+                        <button type="button" class="filter-chip active" data-filter-button data-filter="all" aria-pressed="true">All</button>
+                        <button type="button" class="filter-chip" data-filter-button data-filter="starter" aria-pressed="false">Starters</button>
+                        <button type="button" class="filter-chip" data-filter-button data-filter="probiotic" aria-pressed="false">Probiotics</button>
+                        <button type="button" class="filter-chip" data-filter-button data-filter="benchmark" aria-pressed="false">Benchmarks</button>
+                    </div>
+                </div>
+
+                <div class="empty-state" data-empty-state hidden>
+                    <h3>No matching species</h3>
+                    <p>Try a broader species name, a different medium, or clear the active filter.</p>
+                </div>
+
+                <section class="species-section" data-species-section="starter" aria-labelledby="starter-title">
+                    <div class="section-header">
+                        <div>
+                            <h2 id="starter-title">Primary Yogurt Starters</h2>
+                            <p class="section-description">Fast acidifiers and proteolytic partners used to drive classic yogurt fermentation.</p>
+                        </div>
+                    </div>
+
+                    <div class="species-grid">
+                        <article class="species-card species-card--starter" data-species-card data-category="starter">
+                            <div class="card-header">
+                                <div>
+                                    <h3 class="species-name">S. thermophilus</h3>
+                                    <p class="species-full-name">Streptococcus thermophilus</p>
+                                </div>
+                                <span class="status-pill status-pill--starter">Starter</span>
+                            </div>
+
+                            <p class="card-copy">Fast thermophilic starter that scavenges oxygen and produces metabolites that help its symbiotic partner acidify milk.</p>
+
+                            <dl class="growth-metrics" aria-label="Growth metrics for Streptococcus thermophilus">
+                                <div class="metric-item">
+                                    <dt>t<sub>d</sub> (dairy)</dt>
+                                    <dd>30-45 min</dd>
+                                </div>
+                                <div class="metric-item">
+                                    <dt>&mu;max</dt>
+                                    <dd>1.23 +/- 0.09 h<sup>-1</sup></dd>
+                                </div>
+                                <div class="metric-item">
+                                    <dt>T<sub>opt</sub></dt>
+                                    <dd>~41&deg;C</dd>
+                                </div>
+                                <div class="metric-item">
+                                    <dt>Reference medium</dt>
+                                    <dd>Whey + yeast extract</dd>
+                                </div>
+                            </dl>
+
+                            <div class="condition-panel">
+                                <h4>Reported conditions</h4>
+                                <ul class="condition-list">
+                                    <li><strong>36&deg;C, pH 5.7:</strong> &mu;max 0.759 h<sup>-1</sup>, t<sub>d</sub> ~55 min</li>
+                                    <li><strong>40&deg;C, pH 6.5:</strong> &mu;max 1.186-1.247 h<sup>-1</sup>, t<sub>d</sub> ~33-35 min</li>
+                                    <li><strong>44&deg;C, pH 7.3:</strong> &mu;max 1.087 h<sup>-1</sup>, t<sub>d</sub> ~38 min</li>
+                                </ul>
+                            </div>
+
+                            <div class="citation-box">
+                                <p class="citation-label">Sources</p>
+                                <ul class="citation-list">
+                                    <li>
+                                        <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC9943998/" target="_blank" rel="noopener noreferrer" class="ref-link">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+                                                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                                                <path d="M15 3h6v6"></path>
+                                                <path d="M10 14 21 3"></path>
+                                            </svg>
+                                            Sosa-Mendoza et al. 2023 (PMC9943998)
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a href="https://pubmed.ncbi.nlm.nih.gov/1556137/" target="_blank" rel="noopener noreferrer" class="ref-link">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+                                                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                                                <path d="M15 3h6v6"></path>
+                                                <path d="M10 14 21 3"></path>
+                                            </svg>
+                                            Beal &amp; Corrieu 1991 (controlled pH context)
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </article>
+
+                        <article class="species-card species-card--starter" data-species-card data-category="starter">
+                            <div class="card-header">
+                                <div>
+                                    <h3 class="species-name">L. bulgaricus</h3>
+                                    <p class="species-full-name">Lactobacillus delbrueckii subsp. bulgaricus</p>
+                                </div>
+                                <span class="status-pill status-pill--starter">Starter</span>
+                            </div>
+
+                            <p class="card-copy">Proteolytic thermophile that supplies peptides and drives acidification after S. thermophilus establishes the fermentation.</p>
+
+                            <dl class="growth-metrics" aria-label="Growth metrics for Lactobacillus delbrueckii subsp. bulgaricus">
+                                <div class="metric-item">
+                                    <dt>t<sub>d</sub></dt>
+                                    <dd>40-75 min (mean ~60)</dd>
+                                </div>
+                                <div class="metric-item">
+                                    <dt>&mu;max</dt>
+                                    <dd>1.25 +/- 0.08 h<sup>-1</sup></dd>
+                                </div>
+                                <div class="metric-item">
+                                    <dt>T<sub>opt</sub></dt>
+                                    <dd>43.5&deg;C</dd>
+                                </div>
+                                <div class="metric-item">
+                                    <dt>Reference context</dt>
+                                    <dd>MPL lactose medium / whey models</dd>
+                                </div>
+                            </dl>
+
+                            <div class="condition-panel">
+                                <h4>Reported conditions</h4>
+                                <ul class="condition-list">
+                                    <li><strong>42&deg;C, MPL chemically defined lactose medium:</strong> t<sub>d</sub> ~60 min; 40-75 min across 22 strains</li>
+                                    <li><strong>44&deg;C, pH 5.7:</strong> &mu;max 1.013-1.330 h<sup>-1</sup>, t<sub>d</sub> ~31-41 min</li>
+                                    <li><strong>48&deg;C, pH 4.9:</strong> &mu;max 1.024 h<sup>-1</sup>, t<sub>d</sub> ~41 min</li>
+                                </ul>
+                            </div>
+
+                            <div class="citation-box">
+                                <p class="citation-label">Sources</p>
+                                <ul class="citation-list">
+                                    <li>
+                                        <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC9943998/" target="_blank" rel="noopener noreferrer" class="ref-link">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+                                                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                                                <path d="M15 3h6v6"></path>
+                                                <path d="M10 14 21 3"></path>
+                                            </svg>
+                                            Sosa-Mendoza et al. 2023 (PMC9943998)
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC92460/" target="_blank" rel="noopener noreferrer" class="ref-link">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+                                                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                                                <path d="M15 3h6v6"></path>
+                                                <path d="M10 14 21 3"></path>
+                                            </svg>
+                                            Adeghate &amp; Bisschops 2000 (PMC92460)
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="species-section" data-species-section="probiotic" aria-labelledby="probiotic-title">
+                    <div class="section-header">
+                        <div>
+                            <h2 id="probiotic-title">Probiotic Adjunct Cultures</h2>
+                            <p class="section-description">Supplemental cultures used for survival, labeling, and functionality rather than sheer acidification speed.</p>
+                        </div>
+                    </div>
+
+                    <div class="species-grid">
+                        <article class="species-card species-card--probiotic" data-species-card data-category="probiotic">
+                            <div class="card-header">
+                                <div>
+                                    <h3 class="species-name">L. acidophilus</h3>
+                                    <p class="species-full-name">Lactobacillus acidophilus</p>
+                                </div>
+                                <span class="status-pill status-pill--probiotic">Probiotic</span>
+                            </div>
+
+                            <p class="card-copy">Common adjunct probiotic that can grow well in lab culture but often slows down in milk because peptide availability becomes limiting.</p>
+
+                            <dl class="growth-metrics" aria-label="Growth metrics for Lactobacillus acidophilus">
+                                <div class="metric-item">
+                                    <dt>t<sub>d</sub> (lab)</dt>
+                                    <dd>~54 min</dd>
+                                </div>
+                                <div class="metric-item">
+                                    <dt>t<sub>d</sub> (dairy)</dt>
+                                    <dd>60-150 min</dd>
+                                </div>
+                                <div class="metric-item">
+                                    <dt>&mu;max</dt>
+                                    <dd>0.22-0.77 h<sup>-1</sup></dd>
+                                </div>
+                                <div class="metric-item">
+                                    <dt>T<sub>opt</sub></dt>
+                                    <dd>37-42&deg;C</dd>
+                                </div>
+                            </dl>
+
+                            <div class="condition-panel">
+                                <h4>Reported conditions</h4>
+                                <ul class="condition-list">
+                                    <li><strong>Constant culture:</strong> generation time ~54 min in controlled lab growth</li>
+                                    <li><strong>Skim milk fermentation:</strong> early, mid, and late log phases documented during milk adaptation</li>
+                                    <li><strong>Dairy benchmark:</strong> 60-150 min reported range across milk-oriented strains</li>
+                                </ul>
+                            </div>
+
+                            <div class="citation-box">
+                                <p class="citation-label">Sources</p>
+                                <ul class="citation-list">
+                                    <li>
+                                        <a href="https://pubmed.ncbi.nlm.nih.gov/15071634/" target="_blank" rel="noopener noreferrer" class="ref-link">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+                                                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                                                <path d="M15 3h6v6"></path>
+                                                <path d="M10 14 21 3"></path>
+                                            </svg>
+                                            Gu et al. 1998 (PubMed 15071634)
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a href="https://pubmed.ncbi.nlm.nih.gov/19233780/" target="_blank" rel="noopener noreferrer" class="ref-link">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+                                                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                                                <path d="M15 3h6v6"></path>
+                                                <path d="M10 14 21 3"></path>
+                                            </svg>
+                                            Azcarate-Peril et al. 2009 (milk growth context)
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </article>
+
+                        <article class="species-card species-card--probiotic" data-species-card data-category="probiotic">
+                            <div class="card-header">
+                                <div>
+                                    <h3 class="species-name">L. reuteri</h3>
+                                    <p class="species-full-name">Limosilactobacillus reuteri</p>
+                                </div>
+                                <span class="status-pill status-pill--probiotic">Probiotic</span>
+                            </div>
+
+                            <p class="card-copy">Useful probiotic adjunct, but slower than starter cultures in conventional dairy unless the substrate is made easier to metabolize.</p>
+
+                            <dl class="growth-metrics" aria-label="Growth metrics for Limosilactobacillus reuteri">
+                                <div class="metric-item">
+                                    <dt>t<sub>d</sub> (MRS)</dt>
+                                    <dd>~130 min</dd>
+                                </div>
+                                <div class="metric-item">
+                                    <dt>t<sub>d</sub> (SSF)</dt>
+                                    <dd>~58 min</dd>
+                                </div>
+                                <div class="metric-item">
+                                    <dt>&mu;max</dt>
+                                    <dd>0.14-0.31 h<sup>-1</sup></dd>
+                                </div>
+                                <div class="metric-item">
+                                    <dt>T<sub>opt</sub></dt>
+                                    <dd>37&deg;C</dd>
+                                </div>
+                            </dl>
+
+                            <div class="condition-panel">
+                                <h4>Reported conditions</h4>
+                                <ul class="condition-list">
+                                    <li><strong>37&deg;C, MRS broth, pH 6.2:</strong> GT 2.17 h, &mu;max 0.14 h<sup>-1</sup></li>
+                                    <li><strong>37&deg;C, SSF flour blend, pH 6.0:</strong> GT 0.96 h, &mu;max 0.31 h<sup>-1</sup></li>
+                                    <li><strong>Fermentation takeaway:</strong> substrate choice cuts doubling time by more than half</li>
+                                </ul>
+                            </div>
+
+                            <div class="citation-box">
+                                <p class="citation-label">Source</p>
+                                <ul class="citation-list">
+                                    <li>
+                                        <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC7760101/" target="_blank" rel="noopener noreferrer" class="ref-link">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+                                                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                                                <path d="M15 3h6v6"></path>
+                                                <path d="M10 14 21 3"></path>
+                                            </svg>
+                                            Paczos-Grzeda et al. 2020 (PMC7760101)
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </article>
+
+                        <article class="species-card species-card--probiotic" data-species-card data-category="probiotic">
+                            <div class="card-header">
+                                <div>
+                                    <h3 class="species-name">L. rhamnosus</h3>
+                                    <p class="species-full-name">Lacticaseibacillus rhamnosus</p>
+                                </div>
+                                <span class="status-pill status-pill--probiotic">Probiotic</span>
+                            </div>
+
+                            <p class="card-copy">Widely used probiotic adjunct that grows acceptably at yogurt temperatures but usually trails the starter pair in raw acidification speed.</p>
+
+                            <dl class="growth-metrics" aria-label="Growth metrics for Lacticaseibacillus rhamnosus">
+                                <div class="metric-item">
+                                    <dt>t<sub>d</sub> (MRS)</dt>
+                                    <dd>~157 min</dd>
+                                </div>
+                                <div class="metric-item">
+                                    <dt>t<sub>d</sub> (SSF)</dt>
+                                    <dd>~85 min</dd>
+                                </div>
+                                <div class="metric-item">
+                                    <dt>&mu;max</dt>
+                                    <dd>0.12-0.21 h<sup>-1</sup></dd>
+                                </div>
+                                <div class="metric-item">
+                                    <dt>T<sub>opt</sub></dt>
+                                    <dd>37-44&deg;C</dd>
+                                </div>
+                            </dl>
+
+                            <div class="condition-panel">
+                                <h4>Reported conditions</h4>
+                                <ul class="condition-list">
+                                    <li><strong>37&deg;C, MRS broth, pH 6.2:</strong> GT 2.61 h, &mu;max 0.12 h<sup>-1</sup></li>
+                                    <li><strong>37&deg;C, SSF flour blend, pH 6.0:</strong> GT 1.41 h, &mu;max 0.21 h<sup>-1</sup></li>
+                                    <li><strong>SSF lag phase:</strong> ~1.98 h before acceleration</li>
+                                </ul>
+                            </div>
+
+                            <div class="citation-box">
+                                <p class="citation-label">Source</p>
+                                <ul class="citation-list">
+                                    <li>
+                                        <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC7760101/" target="_blank" rel="noopener noreferrer" class="ref-link">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+                                                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                                                <path d="M15 3h6v6"></path>
+                                                <path d="M10 14 21 3"></path>
+                                            </svg>
+                                            Paczos-Grzeda et al. 2020 (PMC7760101)
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </article>
+
+                        <article class="species-card species-card--probiotic" data-species-card data-category="probiotic">
+                            <div class="card-header">
+                                <div>
+                                    <h3 class="species-name">L. plantarum</h3>
+                                    <p class="species-full-name">Lactiplantibacillus plantarum</p>
+                                </div>
+                                <span class="status-pill status-pill--probiotic">Probiotic</span>
+                            </div>
+
+                            <p class="card-copy">Flexible acid-tolerant adjunct that appears more often in mixed or plant fermentations, but can still be benchmarked against dairy media.</p>
+
+                            <dl class="growth-metrics" aria-label="Growth metrics for Lactiplantibacillus plantarum">
+                                <div class="metric-item">
+                                    <dt>t<sub>d</sub> (MRS)</dt>
+                                    <dd>~124 min</dd>
+                                </div>
+                                <div class="metric-item">
+                                    <dt>t<sub>d</sub> (SSF)</dt>
+                                    <dd>~82 min</dd>
+                                </div>
+                                <div class="metric-item">
+                                    <dt>&mu;max</dt>
+                                    <dd>0.15-0.22 h<sup>-1</sup></dd>
+                                </div>
+                                <div class="metric-item">
+                                    <dt>T<sub>opt</sub></dt>
+                                    <dd>30-37&deg;C</dd>
+                                </div>
+                            </dl>
+
+                            <div class="condition-panel">
+                                <h4>Reported conditions</h4>
+                                <ul class="condition-list">
+                                    <li><strong>37&deg;C, MRS broth, pH 6.2:</strong> GT 2.06 h, &mu;max 0.15 h<sup>-1</sup></li>
+                                    <li><strong>37&deg;C, SSF flour blend, pH 6.0:</strong> GT 1.37 h, &mu;max 0.22 h<sup>-1</sup></li>
+                                    <li><strong>SSF adaptation:</strong> no clear lag phase reported</li>
+                                </ul>
+                            </div>
+
+                            <div class="citation-box">
+                                <p class="citation-label">Source</p>
+                                <ul class="citation-list">
+                                    <li>
+                                        <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC7760101/" target="_blank" rel="noopener noreferrer" class="ref-link">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+                                                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                                                <path d="M15 3h6v6"></path>
+                                                <path d="M10 14 21 3"></path>
+                                            </svg>
+                                            Paczos-Grzeda et al. 2020 (PMC7760101)
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </article>
+
+                        <article class="species-card species-card--probiotic" data-species-card data-category="probiotic">
+                            <div class="card-header">
+                                <div>
+                                    <h3 class="species-name">L. casei / paracasei</h3>
+                                    <p class="species-full-name">Casei group reference</p>
+                                </div>
+                                <span class="status-pill status-pill--probiotic">Probiotic</span>
+                            </div>
+
+                            <p class="card-copy">Commercial labels often collapse this group, so the reference combines paracasei kinetics with a whey-based casei benchmark where helpful.</p>
+
+                            <dl class="growth-metrics" aria-label="Growth metrics for the casei group">
+                                <div class="metric-item">
+                                    <dt>t<sub>d</sub> (MRS)</dt>
+                                    <dd>~99 min</dd>
+                                </div>
+                                <div class="metric-item">
+                                    <dt>t<sub>d</sub> (SSF)</dt>
+                                    <dd>~66 min</dd>
+                                </div>
+                                <div class="metric-item">
+                                    <dt>&mu;max</dt>
+                                    <dd>0.18-0.27 h<sup>-1</sup></dd>
+                                </div>
+                                <div class="metric-item">
+                                    <dt>T<sub>opt</sub></dt>
+                                    <dd>37&deg;C</dd>
+                                </div>
+                            </dl>
+
+                            <div class="condition-panel">
+                                <h4>Reported conditions</h4>
+                                <ul class="condition-list">
+                                    <li><strong>37&deg;C, MRS broth, pH 6.2:</strong> L. paracasei GT 1.65 h, &mu;max 0.18 h<sup>-1</sup></li>
+                                    <li><strong>37&deg;C, SSF flour blend, pH 6.0:</strong> L. paracasei GT 1.10 h, &mu;max 0.27 h<sup>-1</sup></li>
+                                    <li><strong>37&deg;C, whey + lactose:</strong> L. casei &mu;max 0.299 h<sup>-1</sup> in deproteinized cheese whey</li>
+                                </ul>
+                            </div>
+
+                            <div class="citation-box">
+                                <p class="citation-label">Sources</p>
+                                <ul class="citation-list">
+                                    <li>
+                                        <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC7760101/" target="_blank" rel="noopener noreferrer" class="ref-link">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+                                                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                                                <path d="M15 3h6v6"></path>
+                                                <path d="M10 14 21 3"></path>
+                                            </svg>
+                                            Paczos-Grzeda et al. 2020 (PMC7760101)
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC5470453/" target="_blank" rel="noopener noreferrer" class="ref-link">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+                                                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                                                <path d="M15 3h6v6"></path>
+                                                <path d="M10 14 21 3"></path>
+                                            </svg>
+                                            Amrane et al. 2017 (PMC5470453)
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </article>
+
+                        <article class="species-card species-card--probiotic" data-species-card data-category="probiotic">
+                            <div class="card-header">
+                                <div>
+                                    <h3 class="species-name">B. animalis subsp. lactis</h3>
+                                    <p class="species-full-name">BB-12-type bifidobacterial benchmark</p>
+                                </div>
+                                <span class="status-pill status-pill--probiotic">Probiotic</span>
+                            </div>
+
+                            <p class="card-copy">Anaerobic bifidobacterial adjunct used for probiotic positioning rather than fast dairy acidification, with growth strongly tied to substrate and oxygen handling.</p>
+
+                            <dl class="growth-metrics" aria-label="Growth metrics for Bifidobacterium animalis subsp. lactis">
+                                <div class="metric-item">
+                                    <dt>t<sub>d</sub></dt>
+                                    <dd>~106 min</dd>
+                                </div>
+                                <div class="metric-item">
+                                    <dt>&mu;max</dt>
+                                    <dd>~0.39 h<sup>-1</sup></dd>
+                                </div>
+                                <div class="metric-item">
+                                    <dt>T<sub>opt</sub></dt>
+                                    <dd>37&deg;C</dd>
+                                </div>
+                                <div class="metric-item">
+                                    <dt>Condition</dt>
+                                    <dd>Anaerobic fortified MRS broth</dd>
+                                </div>
+                            </dl>
+
+                            <div class="condition-panel">
+                                <h4>Reported conditions</h4>
+                                <ul class="condition-list">
+                                    <li><strong>37&deg;C, fortified MRS broth with glucose:</strong> &mu;max 0.40 +/- 0.03 h<sup>-1</sup>, t<sub>d</sub> ~104 min</li>
+                                    <li><strong>37&deg;C, fortified MRS broth with lactose:</strong> &mu;max 0.38 +/- 0.03 h<sup>-1</sup>, t<sub>d</sub> ~109 min</li>
+                                    <li><strong>Interpretation:</strong> practical benchmark is about 100-110 min under anaerobic broth conditions</li>
+                                </ul>
+                            </div>
+
+                            <div class="citation-box">
+                                <p class="citation-label">Source</p>
+                                <ul class="citation-list">
+                                    <li>
+                                        <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC3837816/" target="_blank" rel="noopener noreferrer" class="ref-link">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+                                                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                                                <path d="M15 3h6v6"></path>
+                                                <path d="M10 14 21 3"></path>
+                                            </svg>
+                                            Barrangou et al. 2013 (PMC3837816)
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="species-section" data-species-section="benchmark" aria-labelledby="benchmark-title">
+                    <div class="section-header">
+                        <div>
+                            <h2 id="benchmark-title">Kinetic Benchmarks</h2>
+                            <p class="section-description">Reference organisms that help anchor how fast or slow the yogurt-relevant cultures are by comparison.</p>
+                        </div>
+                    </div>
+
+                    <div class="species-grid">
+                        <article class="species-card species-card--benchmark" data-species-card data-category="benchmark">
+                            <div class="card-header">
+                                <div>
+                                    <h3 class="species-name">E. coli K-12</h3>
+                                    <p class="species-full-name">Rich-medium laboratory benchmark</p>
+                                </div>
+                                <span class="status-pill status-pill--benchmark">Benchmark</span>
+                            </div>
+
+                            <p class="card-copy">Standard lab comparator for very rapid growth in rich broth; included as a ceiling for what fast bacterial doubling looks like.</p>
+
+                            <dl class="growth-metrics" aria-label="Growth metrics for Escherichia coli K-12">
+                                <div class="metric-item">
+                                    <dt>t<sub>d</sub></dt>
+                                    <dd>~20 min</dd>
+                                </div>
+                                <div class="metric-item">
+                                    <dt>&mu;max</dt>
+                                    <dd>~2.08 h<sup>-1</sup></dd>
+                                </div>
+                                <div class="metric-item">
+                                    <dt>T<sub>opt</sub></dt>
+                                    <dd>37&deg;C</dd>
+                                </div>
+                                <div class="metric-item">
+                                    <dt>Medium</dt>
+                                    <dd>LB broth</dd>
+                                </div>
+                            </dl>
+
+                            <div class="condition-panel">
+                                <h4>Reported conditions</h4>
+                                <ul class="condition-list">
+                                    <li><strong>37&deg;C, rich medium:</strong> classic textbook-like doubling near 20 min</li>
+                                </ul>
+                            </div>
+
+                            <div class="citation-box">
+                                <p class="citation-label">Source</p>
+                                <ul class="citation-list">
+                                    <li>
+                                        <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC2168924/" target="_blank" rel="noopener noreferrer" class="ref-link">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+                                                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                                                <path d="M15 3h6v6"></path>
+                                                <path d="M10 14 21 3"></path>
+                                            </svg>
+                                            Sezonov et al. 2007 (PMC2168924)
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </article>
+
+                        <article class="species-card species-card--benchmark" data-species-card data-category="benchmark">
+                            <div class="card-header">
+                                <div>
+                                    <h3 class="species-name">L. monocytogenes</h3>
+                                    <p class="species-full-name">Listeria monocytogenes</p>
+                                </div>
+                                <span class="status-pill status-pill--benchmark">Benchmark</span>
+                            </div>
+
+                            <p class="card-copy">Food-safety benchmark that tolerates cold storage and broad environmental stress, making it a useful contrast to fermentation-focused organisms.</p>
+
+                            <dl class="growth-metrics" aria-label="Growth metrics for Listeria monocytogenes">
+                                <div class="metric-item">
+                                    <dt>t<sub>d</sub> (37&deg;C)</dt>
+                                    <dd>45-60 min</dd>
+                                </div>
+                                <div class="metric-item">
+                                    <dt>T<sub>opt</sub></dt>
+                                    <dd>37&deg;C</dd>
+                                </div>
+                                <div class="metric-item">
+                                    <dt>Cold growth</dt>
+                                    <dd>Possible near 0-4&deg;C</dd>
+                                </div>
+                                <div class="metric-item">
+                                    <dt>Medium</dt>
+                                    <dd>BHI broth</dd>
+                                </div>
+                            </dl>
+
+                            <div class="condition-panel">
+                                <h4>Reported conditions</h4>
+                                <ul class="condition-list">
+                                    <li><strong>37&deg;C, BHI:</strong> doubling time approximately 45-60 min</li>
+                                    <li><strong>14&deg;C, diluted BHI:</strong> doubling times 12.4-19.9 h reported for food-environment isolates</li>
+                                    <li><strong>Cold storage risk:</strong> growth can still occur during refrigeration rather than fully stopping</li>
+                                </ul>
+                            </div>
+
+                            <div class="citation-box">
+                                <p class="citation-label">Sources</p>
+                                <ul class="citation-list">
+                                    <li>
+                                        <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC3920655/" target="_blank" rel="noopener noreferrer" class="ref-link">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+                                                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                                                <path d="M15 3h6v6"></path>
+                                                <path d="M10 14 21 3"></path>
+                                            </svg>
+                                            Freitag et al. 2014 (PMC3920655)
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC8190317/" target="_blank" rel="noopener noreferrer" class="ref-link">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+                                                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                                                <path d="M15 3h6v6"></path>
+                                                <path d="M10 14 21 3"></path>
+                                            </svg>
+                                            McAuliffe et al. 2021 (PMC8190317)
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </article>
+                    </div>
+                </section>
+            </section>
+
+            <aside class="side-column">
+                <section class="reference-side-card">
+                    <h2>How to Read It</h2>
+                    <ul class="note-list">
+                        <li><strong>t<sub>d</sub></strong> is doubling time during exponential growth, not total fermentation time.</li>
+                        <li><strong>&mu;max</strong> is the maximum specific growth rate reported by the paper.</li>
+                        <li>When a paper gave multiple temperature or medium conditions, up to three are listed in each card.</li>
+                        <li>All listed reference rows should be read as mono-culture benchmarks unless a source explicitly says otherwise.</li>
+                    </ul>
+                </section>
+
+                <section class="reference-side-card">
+                    <h2>Formula</h2>
+                    <p class="formula-copy">Use the standard exponential relationship to convert between growth rate and doubling time.</p>
+                    <div class="formula-block" aria-label="Growth rate formula">
+                        <span>&mu; = ln(2) / t<sub>d</sub></span>
+                        <span>t<sub>d</sub> = ln(2) / &mu;</span>
+                    </div>
+                </section>
+
+                <section class="reference-side-card">
+                    <h2>Media Definitions</h2>
+                    <ul class="note-list">
+                        <li><strong>MRS:</strong> de Man, Rogosa, and Sharpe broth, a common lactic-acid-bacteria laboratory medium.</li>
+                        <li><strong>MPL:</strong> the chemically defined medium used for L. bulgaricus growth testing in Adeghate &amp; Bisschops.</li>
+                        <li><strong>SSF:</strong> semi-solid fermentation flour blend used in the probiotic kinetics paper; it is not milk.</li>
+                        <li><strong>BHI:</strong> brain heart infusion broth; "diluted BHI" is a lower-nutrient variant used in some Listeria studies.</li>
+                    </ul>
+                </section>
+
+                <section class="reference-side-card">
+                    <h2>Interpretation Notes</h2>
+                    <ul class="note-list">
+                        <li>Starter values favor dairy-facing benchmarks instead of the most aggressive constant-pH maxima.</li>
+                        <li>Cofermentation or protocooperation can drive effective doubling times far below the mono-culture values shown here.</li>
+                        <li>Do not use this page to infer mixed-culture kinetics without direct literature support for that exact pairing and substrate.</li>
+                        <li>SSF rows in the probiotic cards are not milk; they show how much substrate design can change growth.</li>
+                        <li>Bifidobacterial values are especially strain- and oxygen-sensitive, so treat them as practical benchmarks.</li>
+                    </ul>
+                </section>
+
+                <section class="reference-side-card">
+                    <h2>Data Status</h2>
+                    <p class="status-copy">Static reference page updated with peer-reviewed PubMed or PMC links and condition-specific notes. No client data is stored or transmitted.</p>
+                </section>
+            </aside>
+        </main>
+
+        <footer data-footer></footer>
+    </div>
+
+    <script type="module" src="../js/shared.js"></script>
+    <script type="module" src="../js/footer.js"></script>
+    <script type="module" src="../js/species_doubling_reference/species-doubling-reference.js"></script>
+</body>
+</html>

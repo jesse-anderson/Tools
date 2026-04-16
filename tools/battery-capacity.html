@@ -1,0 +1,583 @@
+<!--
+============================================
+BATTERY CAPACITY CALCULATOR v1.3.0
+============================================
+Description: Estimate runtime from battery model assumptions,
+pack topology, regulator behavior, and either constant current,
+multi-state load profiles, or average power inputs.
+
+Dependencies: None (Vanilla JavaScript)
+
+Project: Tools Hub by Jesse Anderson
+Repository: https://github.com/jesse-anderson/Tools
+License: GPL-3.0
+
+Features:
+- Constant-current, load-profile, and power-based estimates
+- Chemistry presets with usable-fraction guidance
+- Direct pack or derived cell-pack modeling
+- Regulator topology, efficiency, and quiescent current
+- Peak-current feasibility checks
+- Optional peak regulator efficiency for burst-load modeling
+- Real-time updates with debounce
+============================================
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Battery Capacity Calculator | Tools Hub</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/shared.css">
+    <link rel="stylesheet" href="../css/battery_capacity/battery-capacity.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-row">
+                <a href="../tools.html" class="back-link">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <path d="M15 18l-6-6 6-6"></path>
+                    </svg>
+                    Back to Tools
+                </a>
+
+                <div class="theme-toggle" aria-label="Theme toggle">
+                    <button data-theme-toggle="light" aria-pressed="false" title="Light mode">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <circle cx="12" cy="12" r="5"></circle>
+                            <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path>
+                        </svg>
+                    </button>
+                    <button data-theme-toggle="dark" aria-pressed="false" title="Dark mode">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <div class="tool-header-content">
+                <div class="tool-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <path d="M12 3v18"></path>
+                        <rect x="6" y="6" width="12" height="12" rx="2"></rect>
+                    </svg>
+                </div>
+                <div>
+                    <h1>Battery Capacity Calculator</h1>
+                    <p class="tagline">// PACK MODEL | LOAD PROFILE | BURST CHECK</p>
+                </div>
+            </div>
+        </header>
+
+        <main class="calculator-layout">
+            <section class="calculator-panel">
+                <div class="panel-header">
+                    <div>
+                        <h2>Battery And Load Estimator</h2>
+                        <p>Estimate runtime from nominal pack assumptions, load behavior, regulator losses, and optional burst-current limits. This is an engineering sizing tool, not a chemistry-resolved discharge simulator.</p>
+                    </div>
+                    <div class="button-row">
+                        <button id="setBaselineBtn" class="tool-btn" type="button">Set Baseline</button>
+                        <button id="clearBaselineBtn" class="tool-btn" type="button" disabled>Clear Baseline</button>
+                        <button id="resetBtn" class="tool-btn" type="button">Reset</button>
+                        <button id="calculateBtn" class="tool-btn primary" type="button">Update Estimate</button>
+                    </div>
+                </div>
+
+                <div class="input-section">
+                    <div class="section-card">
+                        <h3>Battery Model</h3>
+
+                        <div class="control-grid compact-grid">
+                            <label class="input-line">
+                                <span class="label-with-help">Battery model mode
+                                    <span class="help-chip" role="button" tabindex="0" aria-label="Battery model mode help">i
+                                        <span class="help-pop">Use direct pack entry when the pack rating is already known. Use cell pack derivation when you want the tool to build pack voltage and capacity from cells in series and parallel.</span>
+                                    </span>
+                                </span>
+                                <select id="batteryModelMode" class="main-select">
+                                    <option value="directPack">Direct pack entry</option>
+                                    <option value="cellPack">Cell pack derivation</option>
+                                </select>
+                            </label>
+
+                            <label class="input-line">
+                                <span class="label-with-help">Chemistry preset
+                                    <span class="help-chip" role="button" tabindex="0" aria-label="Chemistry preset help">i
+                                        <span class="help-pop">This seeds a nominal cell voltage and a conservative usable fraction. It is a design starting point, not a full chemistry model.</span>
+                                    </span>
+                                </span>
+                                <select id="chemistryPreset" class="main-select">
+                                    <option value="custom">Custom / manual</option>
+                                    <option value="liIon">Li-ion / LiPo</option>
+                                    <option value="lifepo4">LiFePO4</option>
+                                    <option value="nimh">NiMH</option>
+                                    <option value="alkaline">Alkaline</option>
+                                    <option value="leadAcid">Lead-acid</option>
+                                </select>
+                            </label>
+                        </div>
+
+                        <p id="chemistryNote" class="helper-text">Chemistry presets seed typical cell voltage and a conservative usable fraction. Treat them as design defaults, not hard battery guarantees.</p>
+
+                        <div class="battery-panel" data-battery-panel="directPack">
+                            <div class="control-grid">
+                                <label class="input-line">
+                                    <span>Pack capacity</span>
+                                    <div class="field-row">
+                                        <input type="number" id="capacity" class="main-input" min="0" step="any" value="2000">
+                                        <select id="capacityUnit" class="unit-select">
+                                            <option value="mAh">mAh</option>
+                                            <option value="Ah">Ah</option>
+                                        </select>
+                                    </div>
+                                </label>
+
+                                <label class="input-line">
+                                    <span>Pack nominal voltage</span>
+                                    <input type="number" id="batteryVoltage" class="main-input" min="0" step="any" value="3.7">
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="battery-panel" data-battery-panel="cellPack" hidden>
+                            <div class="control-grid">
+                                <label class="input-line">
+                                    <span>Cell capacity</span>
+                                    <div class="field-row">
+                                        <input type="number" id="cellCapacity" class="main-input" min="0" step="any" value="2000">
+                                        <select id="cellCapacityUnit" class="unit-select">
+                                            <option value="mAh">mAh</option>
+                                            <option value="Ah">Ah</option>
+                                        </select>
+                                    </div>
+                                </label>
+
+                                <label class="input-line">
+                                    <span>Cell nominal voltage</span>
+                                    <input type="number" id="cellNominalVoltage" class="main-input" min="0" step="any" value="3.7">
+                                </label>
+
+                                <label class="input-line">
+                                    <span>Cells in series</span>
+                                    <input type="number" id="seriesCells" class="main-input" min="1" step="1" value="1">
+                                </label>
+
+                                <label class="input-line">
+                                    <span>Cells in parallel</span>
+                                    <input type="number" id="parallelCells" class="main-input" min="1" step="1" value="1">
+                                </label>
+                            </div>
+
+                            <div class="derived-summary">
+                                <div class="derived-label">Derived pack summary</div>
+                                <div id="derivedPackSummary" class="derived-value">1s1p pack. Derived values update from cell capacity and nominal voltage.</div>
+                            </div>
+                        </div>
+
+                        <div class="control-grid">
+                            <label class="input-line">
+                                <span class="label-with-help">Usable battery fraction (%)
+                                    <span class="help-chip" role="button" tabindex="0" aria-label="Usable battery fraction help">i
+                                        <span class="help-pop">This is the share of nominal battery energy you expect to use in practice after leaving reserve for cutoff voltage, aging, burst sag, and conservative design margin.</span>
+                                    </span>
+                                </span>
+                                <input type="number" id="usableFraction" class="main-input" min="1" max="100" step="1" value="90">
+                            </label>
+
+                            <label class="input-line">
+                                <span class="label-with-help">Load/system voltage
+                                    <span class="help-chip" role="button" tabindex="0" aria-label="Load system voltage help">i
+                                        <span class="help-pop">Use the voltage seen by the device after regulation. Leave it blank when the load runs directly from the battery pack voltage.</span>
+                                    </span>
+                                </span>
+                                <input type="number" id="loadVoltage" class="main-input" min="0" step="any" placeholder="Blank = same as battery">
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="section-card">
+                        <h3>Regulator And Peak Limits</h3>
+
+                        <div class="control-grid">
+                            <label class="input-line">
+                                <span class="label-with-help">Regulator topology
+                                    <span class="help-chip" role="button" tabindex="0" aria-label="Regulator topology help">i
+                                        <span class="help-pop">Direct feed means no converter stage. Fixed means use the entered efficiency like a buck or boost approximation. LDO treats battery current as roughly equal to load current plus quiescent current.</span>
+                                    </span>
+                                </span>
+                                <select id="regulatorType" class="main-select">
+                                    <option value="direct">Direct battery feed</option>
+                                    <option value="fixed">Buck / boost / buck-boost</option>
+                                    <option value="ldo">LDO</option>
+                                </select>
+                            </label>
+
+                            <label class="input-line">
+                                <span class="label-with-help">Regulator efficiency (%)
+                                    <span class="help-chip" role="button" tabindex="0" aria-label="Regulator efficiency help">i
+                                        <span class="help-pop">This is the fraction of input power that reaches the load. A 90% efficient regulator wastes about 10% of battery-side power as heat and conversion loss.</span>
+                                    </span>
+                                </span>
+                                <input type="number" id="regulatorEfficiency" class="main-input" min="1" max="100" step="1" value="90">
+                            </label>
+
+                            <label class="input-line">
+                                <span class="label-with-help">Peak regulator efficiency (%)
+                                    <span class="help-chip" role="button" tabindex="0" aria-label="Peak regulator efficiency help">i
+                                        <span class="help-pop">Optional. Converters often run lower efficiency during burst load than at their rated average efficiency. When provided, this value is used for peak battery current only. Leave blank to reuse the average efficiency.</span>
+                                    </span>
+                                </span>
+                                <input type="number" id="regulatorPeakEfficiency" class="main-input" min="1" max="100" step="1" placeholder="Blank = same as average">
+                            </label>
+
+                            <label class="input-line">
+                                <span class="label-with-help">Regulator quiescent current
+                                    <span class="help-chip" role="button" tabindex="0" aria-label="Regulator quiescent current help">i
+                                        <span class="help-pop">This is the current the regulator itself consumes just to stay alive, even when the load is very small or asleep. It can dominate long-sleep battery life in low-power embedded systems.</span>
+                                    </span>
+                                </span>
+                                <div class="field-row">
+                                    <input type="number" id="regulatorQuiescent" class="main-input" min="0" step="any" value="0">
+                                    <select id="regulatorQuiescentUnit" class="unit-select">
+                                        <option value="uA" selected>uA</option>
+                                        <option value="mA">mA</option>
+                                        <option value="A">A</option>
+                                    </select>
+                                </div>
+                            </label>
+
+                            <label class="input-line">
+                                <span class="label-with-help">Peak load current (optional)
+                                    <span class="help-chip" role="button" tabindex="0" aria-label="Peak load current help">i
+                                        <span class="help-pop">Use this for startup spikes, radio bursts, motor inrush, or other short events that average current hides. It is used for feasibility checks, not average runtime.</span>
+                                    </span>
+                                </span>
+                                <div class="field-row">
+                                    <input type="number" id="peakLoadCurrent" class="main-input" min="0" step="any" placeholder="Leave blank if unknown">
+                                    <select id="peakLoadCurrentUnit" class="unit-select">
+                                        <option value="uA">uA</option>
+                                        <option value="mA" selected>mA</option>
+                                        <option value="A">A</option>
+                                    </select>
+                                </div>
+                            </label>
+
+                            <label class="input-line">
+                                <span class="label-with-help">Regulator output current limit
+                                    <span class="help-chip" role="button" tabindex="0" aria-label="Regulator output current limit help">i
+                                        <span class="help-pop">Enter the maximum current the regulator can safely supply to the load. This helps catch designs where runtime looks fine but burst current may still brown out the system.</span>
+                                    </span>
+                                </span>
+                                <div class="field-row">
+                                    <input type="number" id="regulatorCurrentLimit" class="main-input" min="0" step="any" placeholder="Optional">
+                                    <select id="regulatorCurrentLimitUnit" class="unit-select">
+                                        <option value="uA">uA</option>
+                                        <option value="mA" selected>mA</option>
+                                        <option value="A">A</option>
+                                    </select>
+                                </div>
+                            </label>
+
+                            <label class="input-line">
+                                <span class="label-with-help">Battery-side current limit
+                                    <span class="help-chip" role="button" tabindex="0" aria-label="Battery-side current limit help">i
+                                        <span class="help-pop">Use this when the cell, pack, holder, protection board, or wiring has a known current ceiling. This is checked against the estimated battery-side peak current.</span>
+                                    </span>
+                                </span>
+                                <div class="field-row">
+                                    <input type="number" id="batteryCurrentLimit" class="main-input" min="0" step="any" placeholder="Optional">
+                                    <select id="batteryCurrentLimitUnit" class="unit-select">
+                                        <option value="uA">uA</option>
+                                        <option value="mA" selected>mA</option>
+                                        <option value="A">A</option>
+                                    </select>
+                                </div>
+                            </label>
+                        </div>
+
+                        <p id="regulatorNote" class="helper-text">Direct feed assumes no converter stage. Fixed-efficiency regulators use the entered efficiency. LDO mode treats battery current as approximately load current plus quiescent current.</p>
+                    </div>
+
+                    <div class="section-card">
+                        <h3>Load Estimate Mode</h3>
+
+                        <div class="control-grid compact-grid">
+                            <label class="input-line">
+                                <span class="label-with-help">Embedded preset
+                                    <span class="help-chip" role="button" tabindex="0" aria-label="Embedded preset help">i
+                                        <span class="help-pop">Presets load a realistic starting profile for common embedded workloads. They are meant to save setup time, not replace measured current data.</span>
+                                    </span>
+                                </span>
+                                <select id="embeddedPreset" class="main-select">
+                                    <option value="manual">Manual / no preset</option>
+                                    <option value="esp32Wifi">ESP32 Wi-Fi burst node</option>
+                                    <option value="esp32Ble">ESP32 BLE beacon</option>
+                                    <option value="loraSensor">LoRa sensor node</option>
+                                    <option value="alwaysOnMcu">Always-on MCU + sensor</option>
+                                </select>
+                            </label>
+
+                            <div class="preset-actions">
+                                <span class="preset-label">Preset actions</span>
+                                <button id="applyPresetBtn" class="tool-btn" type="button">Apply Preset</button>
+                            </div>
+                        </div>
+
+                        <p id="presetNote" class="helper-text">Preset mode seeds a realistic starting point for embedded workloads without locking the fields.</p>
+
+                        <div class="control-grid compact-grid">
+                            <label class="input-line">
+                                <span class="label-with-help">Mode
+                                    <span class="help-chip" role="button" tabindex="0" aria-label="Load mode help">i
+                                        <span class="help-pop">Use constant current when a measured average already exists, multi-state profile when the device cycles through wake and sleep states, and average power when the load is specified in watts.</span>
+                                    </span>
+                                </span>
+                                <select id="modeSelect" class="main-select">
+                                    <option value="constantCurrent">Constant current</option>
+                                    <option value="stateProfile">Multi-state load profile</option>
+                                    <option value="power">Average power</option>
+                                </select>
+                            </label>
+                        </div>
+
+                        <div class="mode-panel" data-mode-panel="constantCurrent">
+                            <h4>Constant Current Load</h4>
+                            <div class="control-grid compact-grid">
+                                <label class="input-line">
+                                    <span>Average load current</span>
+                                    <div class="field-row">
+                                        <input type="number" id="constantCurrent" class="main-input" min="0" step="any" value="100">
+                                        <select id="constantCurrentUnit" class="unit-select">
+                                            <option value="uA">uA</option>
+                                            <option value="mA" selected>mA</option>
+                                            <option value="A">A</option>
+                                        </select>
+                                    </div>
+                                </label>
+                            </div>
+                            <p class="helper-text">Use this when average current is already measured or known from the device data sheet or field logging.</p>
+                        </div>
+
+                        <div class="mode-panel" data-mode-panel="stateProfile" hidden>
+                            <div class="profile-header">
+                                <h4>Multi-State Load Profile</h4>
+                                <button id="addStateBtn" class="tool-btn" type="button">Add State</button>
+                            </div>
+                            <div id="profileRowsContainer" class="profile-rows"></div>
+                            <p class="helper-text" id="profileHelper">Use one row per repeated state in a cycle. The tool computes cycle-average current and derives runtime from the resulting average load.</p>
+                        </div>
+
+                        <div class="mode-panel" data-mode-panel="power" hidden>
+                            <h4>Average Power Load</h4>
+                            <div class="control-grid compact-grid">
+                                <label class="input-line">
+                                    <span>Average load power</span>
+                                    <div class="field-row">
+                                        <input type="number" id="averagePower" class="main-input" min="0" step="any" value="330">
+                                        <select id="averagePowerUnit" class="unit-select">
+                                            <option value="mW" selected>mW</option>
+                                            <option value="W">W</option>
+                                        </select>
+                                    </div>
+                                </label>
+                            </div>
+                            <p class="helper-text">Use this when the load is specified by average power rather than current.</p>
+                        </div>
+                    </div>
+
+                    <div class="section-card">
+                        <h3>Scenario Library</h3>
+
+                        <div class="control-grid compact-grid">
+                            <label class="input-line">
+                                <span>Scenario name</span>
+                                <input type="text" id="scenarioName" class="main-input" maxlength="48" placeholder="Example: ESP32 field node v1">
+                            </label>
+
+                            <label class="input-line">
+                                <span>Saved scenarios</span>
+                                <select id="savedScenarioSelect" class="main-select">
+                                    <option value="">No saved scenarios</option>
+                                </select>
+                            </label>
+                        </div>
+
+                        <div class="button-row scenario-actions">
+                            <button id="saveScenarioBtn" class="tool-btn" type="button">Save Current</button>
+                            <button id="loadScenarioBtn" class="tool-btn" type="button" disabled>Load Selected</button>
+                            <button id="useSavedBaselineBtn" class="tool-btn" type="button" disabled>Use Selected As Baseline</button>
+                            <button id="deleteScenarioBtn" class="tool-btn danger" type="button" disabled>Delete Selected</button>
+                        </div>
+
+                        <p id="scenarioStatus" class="helper-text">Saved scenarios stay in local storage on this browser. Use a saved scenario as the baseline to compare a current design against a past case.</p>
+                    </div>
+
+                    <div class="results-section">
+                        <h3>Estimate Results</h3>
+                        <div id="resultContainer" class="result-container">
+                            <div class="results-grid">
+                                <div class="metric-card">
+                                    <div class="metric-label">Estimated Runtime</div>
+                                    <div id="runtimeResult" class="metric-value">--</div>
+                                    <div id="runtimeMeta" class="metric-meta">Runtime appears here after calculation.</div>
+                                </div>
+
+                                <div class="metric-card">
+                                    <div class="metric-label">Usable Battery Energy</div>
+                                    <div id="usableEnergyResult" class="metric-value">--</div>
+                                    <div id="usableEnergyMeta" class="metric-meta">Derived from pack voltage, capacity, and usable fraction.</div>
+                                </div>
+
+                                <div class="metric-card">
+                                    <div class="metric-label">Average Load Current</div>
+                                    <div id="avgLoadCurrentResult" class="metric-value">--</div>
+                                    <div id="avgLoadCurrentMeta" class="metric-meta">Device-side average current at the load voltage.</div>
+                                </div>
+
+                                <div class="metric-card">
+                                    <div class="metric-label">Average Load Power</div>
+                                    <div id="avgLoadPowerResult" class="metric-value">--</div>
+                                    <div id="avgLoadPowerMeta" class="metric-meta">Average device-side power used for runtime conversion.</div>
+                                </div>
+
+                                <div class="metric-card">
+                                    <div class="metric-label">Battery-Side Avg Current</div>
+                                    <div id="batteryCurrentResult" class="metric-value">--</div>
+                                    <div id="batteryCurrentMeta" class="metric-meta">Equivalent battery current after conversion losses and quiescent draw.</div>
+                                </div>
+
+                                <div class="metric-card">
+                                    <div class="metric-label">Peak Battery Current</div>
+                                    <div id="peakBatteryCurrentResult" class="metric-value">--</div>
+                                    <div id="peakBatteryCurrentMeta" class="metric-meta">Peak battery-side current used for feasibility checks.</div>
+                                </div>
+
+                                <div class="metric-card">
+                                    <div class="metric-label">Feasibility Check</div>
+                                    <div id="feasibilityResult" class="metric-value">--</div>
+                                    <div id="feasibilityMeta" class="metric-meta">Burst-current warnings and entered limits appear here.</div>
+                                </div>
+
+                                <div class="metric-card">
+                                    <div class="metric-label">Battery Model Summary</div>
+                                    <div id="batteryModelResult" class="metric-value">--</div>
+                                    <div id="batteryModelMeta" class="metric-meta">Pack model and regulator assumptions appear here.</div>
+                                </div>
+                            </div>
+
+                            <div class="analysis-grid">
+                                <div class="analysis-card">
+                                    <div class="metric-label">Baseline Compare</div>
+                                    <div id="compareResult" class="metric-value">No baseline</div>
+                                    <div id="compareMeta" class="metric-meta">Capture a baseline, then change the design to compare runtime and peak-current impact.</div>
+                                </div>
+
+                                <div class="analysis-card">
+                                    <div class="metric-label">Runtime Drivers</div>
+                                    <div id="contributionSummary" class="metric-meta">Contribution breakdown appears here after calculation.</div>
+                                    <div id="contributionList" class="contribution-list"></div>
+                                </div>
+                            </div>
+
+                            <div class="info-box">
+                                <h4>How it works</h4>
+                                <p id="formulaSummary">Usable battery energy = pack capacity x nominal voltage x usable fraction. Runtime = usable battery energy / battery-side average power.</p>
+                                <p id="assumptionSummary">This estimate assumes nominal voltage and average load behavior. It does not model detailed discharge curves, transient voltage sag, temperature effects, or cell aging.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <aside class="sidebar">
+                <div class="info-panel">
+                    <h3>How To Use This</h3>
+                    <ol class="info-steps">
+                        <li><strong>Choose the battery model:</strong> use direct pack entry when the pack is already known, or cell pack derivation when you are still sizing series and parallel count.</li>
+                        <li><strong>Set the conversion path:</strong> choose direct feed for battery-to-load systems, fixed for buck or boost style regulators, and LDO when the load current roughly matches input current.</li>
+                        <li><strong>Pick the load mode:</strong> constant current for measured averages, multi-state profile for wake/sleep devices, and average power when the load is specified in watts.</li>
+                        <li><strong>Add limits if bursts matter:</strong> peak load current and current limits help catch regulator or battery sizing issues that average-current estimates miss.</li>
+                    </ol>
+
+                    <ul>
+                        <li><strong>Direct pack entry:</strong> Use when you already know pack capacity and nominal voltage.</li>
+                        <li><strong>Cell pack derivation:</strong> Use when sizing a pack from cell voltage, capacity, and series/parallel count.</li>
+                        <li><strong>Multi-state profile:</strong> Use for embedded systems with wake, transmit, sample, idle, and sleep states.</li>
+                        <li><strong>Embedded presets:</strong> Use them as realistic starting points, then replace the defaults with measured current data whenever possible.</li>
+                    </ul>
+
+                    <h3>Important Limits</h3>
+                    <ul>
+                        <li><strong>Usable fraction:</strong> This is a design reserve, not a chemistry model.</li>
+                        <li><strong>Regulator topology:</strong> Fixed-efficiency mode is a simplification. LDO mode treats input current as roughly equal to load current.</li>
+                        <li><strong>Burst warnings:</strong> Enter peak current and current limits if startup, radio, or transmit spikes matter.</li>
+                    </ul>
+
+                    <h3>Scope</h3>
+                    <p>This tool is intended for runtime estimation and first-pass power budgeting. It is not a replacement for discharge testing, regulator thermal review, or oscilloscope/current-probe validation of transient behavior.</p>
+
+                    <div class="liability-disclaimer" role="note" aria-label="Scope, accuracy, and liability disclaimer">
+                        <strong>Estimates only — use at your own risk</strong>
+                        <p>This calculator produces first-pass runtime and power-budget estimates from the values you enter and a small set of simplifying assumptions. It does <strong>not</strong> model detailed discharge curves, voltage sag under load, cell aging or cycle life, temperature derating, self-discharge, regulator transient response, inrush behavior, parasitic load, charger losses, BMS overhead, or the safety, fire, or thermal-runaway behavior of any chemistry.</p>
+                        <p>Battery and regulator data sheets, cell-to-cell variation, manufacturing tolerance, real-world load profiles, and ambient conditions can shift actual runtime substantially in either direction. Validate every design with measured discharge data, calibrated current probes, thermal testing, and the chemistry-specific safety guidance from the cell vendor before committing to a build, a flight envelope, a deployment, or a production run.</p>
+                        <p><strong>No warranty or liability.</strong> The tool is provided as-is, with no warranty of accuracy, fitness, or merchantability. The author and maintainers accept no responsibility or liability for any loss, damage, injury, fire, equipment failure, mission failure, downtime, regulatory exposure, certification outcome, business decision, or other consequence arising from use of this tool or its output. Independently verify all figures against vendor data sheets, measured behavior, and qualified engineering judgment before acting on them.</p>
+                    </div>
+                </div>
+            </aside>
+        </main>
+
+        <footer data-footer></footer>
+
+        <template id="profileRowTemplate">
+            <div class="profile-row">
+                <div class="profile-row-grid">
+                    <label class="input-line">
+                        <span>State name</span>
+                        <input type="text" class="main-input profile-name-input" maxlength="32" value="State">
+                    </label>
+
+                    <label class="input-line">
+                        <span>Current</span>
+                        <div class="field-row">
+                            <input type="number" class="main-input profile-current-input" min="0" step="any" value="10">
+                            <select class="unit-select profile-current-unit">
+                                <option value="uA">uA</option>
+                                <option value="mA" selected>mA</option>
+                                <option value="A">A</option>
+                            </select>
+                        </div>
+                    </label>
+
+                    <label class="input-line">
+                        <span>Duration</span>
+                        <div class="field-row">
+                            <input type="number" class="main-input profile-duration-input" min="0" step="any" value="1">
+                            <select class="unit-select profile-duration-unit">
+                                <option value="ms">ms</option>
+                                <option value="s" selected>s</option>
+                                <option value="min">min</option>
+                                <option value="hr">hr</option>
+                            </select>
+                        </div>
+                    </label>
+
+                    <div class="profile-action">
+                        <button class="tool-btn danger remove-state-btn" type="button">Remove</button>
+                    </div>
+                </div>
+            </div>
+        </template>
+    </div>
+
+    <script src="../js/shared.js"></script>
+    <script type="module" src="../js/footer.js"></script>
+    <script type="module" src="../js/battery_capacity/battery-capacity.js"></script>
+</body>
+</html>

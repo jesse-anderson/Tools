@@ -1,0 +1,310 @@
+<!--
+============================================
+LOCAL LLM TCO CALCULATOR v1.4.1
+============================================
+Description: Browser-based tool to calculate the Total Cost of Ownership (TCO) 
+for local LLM inference, comparing hardware amortization and electricity costs 
+against cloud provider pay-per-token and monthly subscription models.
+
+Dependencies: Chart.js v4.4.1 (MIT License)
+
+Project: Tools Hub by Jesse Anderson
+Repository: https://github.com/jesse-anderson/Tools
+License: GPL-3.0
+============================================
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Local LLM TCO Calculator | Tools Hub</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Shared CSS -->
+    <link rel="stylesheet" href="../css/shared.css">
+
+    <!-- Tool-Specific CSS -->
+    <link rel="stylesheet" href="../css/local_llm_opex/local-llm-opex.css">
+
+    <!-- External Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" integrity="sha384-9nhczxUqK87bcKHh20fSQcTGD4qq5GhayNYSYWqwBkINBhOfQLg/P5HG5lF1urn4" crossorigin="anonymous"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <div class="header-left">
+                    <a href="../tools.html" class="back-link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="19" y1="12" x2="5" y2="12"/>
+                            <polyline points="12 19 5 12 12 5"/>
+                        </svg>
+                        Back to Tools
+                    </a>
+                </div>
+                <div class="header-right">
+                    <div class="theme-toggle">
+                        <button data-theme-toggle="light" aria-pressed="false" title="Light mode">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="5"/>
+                                <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+                            </svg>
+                        </button>
+                        <button data-theme-toggle="dark" aria-pressed="false" title="Dark mode">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="tool-header">
+                <div class="tool-icon-header educational" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="4" y="4" width="16" height="16" rx="3"></rect>
+                        <path d="M9 9h6"></path>
+                        <path d="M9 13h6"></path>
+                        <path d="M12 4V2"></path>
+                        <path d="M12 22v-2"></path>
+                    </svg>
+                </div>
+                <div class="tool-header-copy">
+                    <h1>Local LLM TCO Calculator</h1>
+                    <p class="tagline">Estimate hardware, power, throughput, and cloud cost on the same basis.</p>
+                </div>
+            </div>
+        </header>
+
+        <main class="calculator-layout">
+            <!-- Left Panel: Inputs -->
+            <div class="calculator-panel">
+                <div class="panel-header">
+                    <h2>Inputs</h2>
+                    <p>Adjust the hardware, duty cycle, power draw, and comparison assumptions used in the estimate.</p>
+                </div>
+
+                <div class="input-sections">
+                    <!-- Hardware Section -->
+                    <div class="input-group section">
+                        <h3>Hardware Configuration</h3>
+                        <div class="input-row">
+                            <div class="input-item">
+                                <label for="purchasePrice">Hardware Price ($)</label>
+                                <input type="number" id="purchasePrice" class="main-input" value="1000" min="0" max="1000000" step="50" aria-describedby="purchasePriceDesc">
+                                <span id="purchasePriceDesc" class="visually-hidden">Total initial hardware expenditure in USD.</span>
+                            </div>
+                            <div class="input-item">
+                                <label for="lifespanYears">Useful Lifespan (Years)</label>
+                                <input type="number" id="lifespanYears" class="main-input" value="3" min="0.1" max="20" step="1" aria-describedby="lifespanDesc">
+                                <span id="lifespanDesc" class="visually-hidden">How long the hardware will be used before replacement.</span>
+                            </div>
+                        </div>
+                        <div class="input-row">
+                            <div class="input-item">
+                                <label for="dailyUsage">On-Time (Hours/Day)</label>
+                                <input type="number" id="dailyUsage" class="main-input" value="8" min="0" max="24" step="1" aria-describedby="dailyUsageDesc">
+                                <span id="dailyUsageDesc" class="visually-hidden">Hours per day the computer is powered on.</span>
+                            </div>
+                            <div class="input-item">
+                                <label for="dutyCycle">Duty Cycle (% generating)</label>
+                                <input type="number" id="dutyCycle" class="main-input" value="10" min="0" max="100" step="1" aria-describedby="dutyCycleDesc">
+                                <span id="dutyCycleDesc" class="visually-hidden">Percentage of power-on time spent performing inference.</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Power Section -->
+                    <div class="input-group section">
+                        <h3>Power Consumption</h3>
+                        <div class="input-row">
+                            <div class="input-item">
+                                <label for="activePowerDraw">Inference Power (Watts)</label>
+                                <input type="number" id="activePowerDraw" class="main-input" value="350" min="0" max="10000" step="10" aria-describedby="activePowerDesc">
+                                <span id="activePowerDesc" class="visually-hidden">Power usage during active token generation.</span>
+                            </div>
+                            <div class="input-item">
+                                <label for="idlePowerDraw">Idle Power (Watts)</label>
+                                <input type="number" id="idlePowerDraw" class="main-input" value="50" min="0" max="5000" step="5" aria-describedby="idlePowerDesc">
+                                <span id="idlePowerDesc" class="visually-hidden">Baseline power usage while idle.</span>
+                            </div>
+                        </div>
+                        <div class="input-row">
+                            <div class="input-item full-width">
+                                <label for="electricityRate">Electricity Rate ($/kWh)</label>
+                                <input type="number" id="electricityRate" class="main-input" value="0.16" min="0" max="10" step="0.01" aria-describedby="elecRateDesc">
+                                <span id="elecRateDesc" class="visually-hidden">Local cost of electricity per kilowatt-hour.</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Inference Performance -->
+                    <div class="input-group section">
+                        <h3>Performance Benchmarks</h3>
+                        <div class="input-row">
+                            <div class="input-item full-width">
+                                <label for="tokensPerSecond">Sustained TPS (Gen Speed)</label>
+                                <input type="number" id="tokensPerSecond" class="main-input" value="50" min="0.1" max="100000" step="1" aria-describedby="tpsDesc">
+                                <span id="tpsDesc" class="visually-hidden">Average speed of token generation.</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- API Comparison Section -->
+                    <div class="input-group section">
+                        <h3>API & Subscription Comparison</h3>
+                        <div class="input-row">
+                            <div class="input-item">
+                                <label for="apiModel">Cloud Provider (Token Tier)</label>
+                                <select id="apiModel" class="main-input" aria-label="Select cloud model for comparison">
+                                    <option value="claude-sonnet-4-6">Claude Sonnet 4.6 ($15/M)</option>
+                                    <option value="gpt-5.4">GPT-5.4 ($15/M)</option>
+                                    <option value="gpt-5.4-mini">GPT-5.4 mini ($4.5/M)</option>
+                                    <option value="gemini-2.5-flash">Gemini 2.5 Flash ($2.5/M)</option>
+                                    <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash-Lite ($0.4/M)</option>
+                                </select>
+                            </div>
+                            <div class="input-item">
+                                <label for="subscriptionPlan">Monthly Subscription</label>
+                                <select id="subscriptionPlan" class="main-input" aria-label="Select monthly plan for comparison">
+                                    <option value="pro">Pro ($20/mo)</option>
+                                    <option value="team">Team ($30/mo)</option>
+                                    <option value="enterprise">Enterprise ($100/mo)</option>
+                                    <option value="custom">Custom...</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="input-row hidden" id="customSubscriptionPriceGroup">
+                            <div class="input-item">
+                                <label for="customSubscriptionPrice">Custom Price ($/mo)</label>
+                                <input type="number" id="customSubscriptionPrice" class="main-input" value="20" min="0" max="10000" step="1" aria-label="Custom monthly plan cost">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Reset Button -->
+                    <div class="input-row center">
+                        <button id="resetBtn" class="tool-btn secondary" aria-label="Reset calculator to default values">
+                            <svg class="button-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                                <path d="M3 3v5h5"/>
+                            </svg>
+                            Reset Calculator
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sidebar (Results) -->
+            <aside class="sidebar">
+                <div class="results-section">
+                    <h3>Results</h3>
+
+                    <div class="result-box highlight" role="status" aria-live="polite" aria-atomic="true">
+                        <div class="result-row">
+                            <span class="result-label">Marginal Cost (Elec/1M):</span>
+                            <span class="result-value">$<span id="varCostValue">0.00</span></span>
+                        </div>
+                        <div class="result-row">
+                            <span class="result-label">Fully Loaded ($/1M):</span>
+                            <span class="result-value">$<span id="fullyLoadedValue">0.00</span></span>
+                        </div>
+                        <div class="result-row">
+                            <span class="result-label">Total Monthly TCO:</span>
+                            <span class="result-value">$<span id="monthlyTCOValue">0.00</span></span>
+                        </div>
+                        <div class="result-row">
+                            <span class="result-label">Est. Monthly Tokens:</span>
+                            <span class="result-value"><span id="estTokenVolume">0.0M</span></span>
+                        </div>
+                    </div>
+
+                    <div class="result-box result-breakdown" role="status" aria-live="polite">
+                        <div class="result-row">
+                            <span>Electricity Portion:</span>
+                            <span>$<span id="elecBreakdown">0.00</span></span>
+                        </div>
+                        <div class="result-row">
+                            <span>Hardware Portion:</span>
+                            <span>$<span id="hardBreakdown">0.00</span></span>
+                        </div>
+                    </div>
+
+                    <div class="comparison-box" id="comparisonResult">
+                        <h4>Token-for-Token (Fully Loaded)</h4>
+                        <p><span id="apiModelLabel">Claude Sonnet 4.6 (Out):</span> $<span id="cloudCostValue">0.00</span> vs Local $<span id="localCostValue">0.00</span></p>
+                        <div class="savings-indicator" id="savingsIndicator">
+                            <span id="savingsText">-</span>
+                        </div>
+                    </div>
+
+                    <div class="chart-container" role="figure">
+                        <canvas id="comparisonChart" role="img"></canvas>
+                        <span id="comparisonChartAria" class="visually-hidden" aria-live="polite"></span>
+                    </div>
+
+                    <div class="comparison-box" id="throughputResult">
+                        <h4>Throughput &amp; Wall-Clock Time</h4>
+                        <div class="throughput-grid">
+                            <div>
+                                <span class="throughput-label">Local</span>
+                                <span class="throughput-value"><span id="localTpsDisplay">—</span> tok/s</span>
+                                <span class="throughput-sub"><span id="localTimePerMillion">—</span> per 1M tokens</span>
+                            </div>
+                            <div>
+                                <span class="throughput-label">Cloud (typical)</span>
+                                <span class="throughput-value"><span id="cloudTpsDisplay">—</span> tok/s</span>
+                                <span class="throughput-sub"><span id="cloudTimePerMillion">—</span> per 1M tokens</span>
+                            </div>
+                        </div>
+                        <div class="savings-indicator" id="throughputRatio">—</div>
+                    </div>
+
+                    <div class="comparison-box" id="subscriptionComparisonResult">
+                        <h4>Monthly TCO vs Plan</h4>
+                        <p>Ownership: $<span id="localMonthlyValueDisplay">---</span> vs Subscription</p>
+                        <div class="savings-indicator" id="subSavingsIndicator">
+                            <span id="subSavingsText">-</span>
+                        </div>
+                    </div>
+
+                    <div class="chart-container" role="figure">
+                        <canvas id="monthlyComparisonChart" role="img"></canvas>
+                        <span id="monthlyChartAria" class="visually-hidden" aria-live="polite"></span>
+                    </div>
+
+                    <div class="result-note">
+                        <p><strong>What this captures:</strong> Hardware amortization, electricity, estimated token output, and a direct cost-per-million comparison against the selected cloud default.</p>
+                        <p><strong>What this does not capture:</strong> Model quality, latency variance, cooling, networking, setup time, support burden, compliance requirements, credits, or negotiated vendor pricing. Treat the cloud defaults as placeholders and verify current numbers before relying on them.</p>
+                        <p class="technical-note">Calculation logic: "Marginal Cost" is the extra electricity cost of generation (Active minus Idle power). "Fully Loaded" amortizes hardware + total electricity over the estimated monthly token volume — this is the apples-to-apples comparison against cloud $/M output prices, which themselves include the provider's hardware, infra, and margin.</p>
+                    </div>
+
+                    <div class="liability-disclaimer" role="note" aria-label="Scope, accuracy, and liability disclaimer">
+                        <strong>Estimates only — use at your own risk</strong>
+                        <p>This calculator produces rough financial and throughput estimates based on the values you enter and a small set of simplifying assumptions. It does <strong>not</strong> model real-world variation in electricity tariffs (time-of-use, demand charges, taxes), hardware depreciation curves, cooling overhead, networking, software licensing, model accuracy, regulatory or compliance costs, downtime, support, opportunity cost of operator time, or the actual sustained throughput of any cloud provider in your region.</p>
+                        <p>Cloud per-token prices and "typical" cloud throughput values shown here are illustrative defaults captured at the time of authoring; published prices, model availability, rate limits, and streaming speeds change frequently. Verify current pricing and benchmark real performance before making any purchasing, contracting, capacity-planning, or budgeting decision.</p>
+                        <p><strong>No warranty or liability.</strong> The tool is provided as-is, with no warranty of accuracy, fitness, or merchantability. The author and maintainers accept no responsibility or liability for any loss, damage, business decision, missed savings, contractual exposure, hardware failure, vendor selection, downtime, or other consequence arising from use of this tool or its output. Independently verify all figures with vendor invoices, measured power draw, and current published pricing before acting on them.</p>
+                    </div>
+
+                    <div class="license-attribution">
+                        Visualization powered by <a href="https://github.com/chartjs/Chart.js/blob/main/LICENSE.md" target="_blank" rel="noopener">Chart.js (MIT)</a>
+                    </div>
+                </div>
+            </aside>
+        </main>
+
+        <footer data-footer></footer>
+    </div>
+
+    <!-- Shared JS -->
+    <script type="module" src="../js/shared.js"></script>
+    <script type="module" src="../js/footer.js"></script>
+
+    <!-- Tool-Specific JS Module -->
+    <script type="module" src="../js/local_llm_opex/local-llm-opex.js"></script>
+</body>
+</html>

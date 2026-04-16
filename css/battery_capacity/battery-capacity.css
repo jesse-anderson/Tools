@@ -1,0 +1,603 @@
+/* Battery Capacity Calculator - CSS Styles */
+
+.container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+header {
+  padding: 1rem 0 0;
+}
+
+.header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--accent-engineering);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.tool-header-content {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.tool-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  background: var(--accent-engineering);
+}
+
+.tool-header-content h1 {
+  margin: 0;
+  font-size: 1.85rem;
+  color: var(--text-primary);
+}
+
+.calculator-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 1.5rem;
+  padding: 1.5rem 0 2rem;
+  flex-grow: 1;
+}
+
+.calculator-panel,
+.sidebar {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: var(--shadow-md);
+}
+
+.panel-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.panel-header h2 {
+  margin: 0 0 0.35rem;
+  font-size: 1.3rem;
+  color: var(--accent-engineering);
+}
+
+.panel-header p {
+  color: var(--text-secondary);
+  line-height: 1.5;
+  max-width: 58rem;
+}
+
+.button-row {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.scenario-actions {
+  margin-top: 1rem;
+}
+
+.input-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.section-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  padding: 1.25rem;
+}
+
+.section-card h3 {
+  margin: 0 0 1rem;
+  font-size: 1.1rem;
+  color: var(--text-primary);
+}
+
+.control-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.compact-grid {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.input-line {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.input-line span {
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.label-with-help {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
+.help-chip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  border: 1px solid var(--accent-engineering);
+  color: var(--accent-engineering);
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 500;
+  line-height: 1;
+  cursor: help;
+  user-select: none;
+}
+
+.help-chip:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.22);
+}
+
+.help-pop {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 0.45rem);
+  width: min(300px, calc(100vw - 3rem));
+  padding: 0.7rem 0.8rem;
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-card);
+  box-shadow: var(--shadow-md);
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  font-weight: 400;
+  line-height: 1.45;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  z-index: 20;
+}
+
+.help-chip:hover .help-pop,
+.help-chip:focus-visible .help-pop {
+  opacity: 1;
+  visibility: visible;
+}
+
+.preset-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  justify-content: flex-end;
+}
+
+.preset-label {
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.field-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 112px;
+  gap: 0.75rem;
+}
+
+.main-input,
+.main-select,
+.unit-select {
+  width: 100%;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-input);
+  color: var(--text-primary);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.95rem;
+}
+
+.main-input:focus,
+.main-select:focus,
+.unit-select:focus {
+  outline: none;
+  border-color: var(--accent-engineering);
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.18);
+}
+
+.helper-text {
+  margin-top: 0.85rem;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.battery-panel[hidden],
+.mode-panel[hidden] {
+  display: none;
+}
+
+.battery-panel,
+.mode-panel {
+  margin-top: 1rem;
+}
+
+.derived-summary {
+  margin-top: 1rem;
+  padding: 0.9rem 1rem;
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-card);
+}
+
+.derived-label {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.derived-value {
+  margin-top: 0.45rem;
+  color: var(--text-primary);
+  line-height: 1.5;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.92rem;
+}
+
+.profile-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.profile-header h4,
+.mode-panel h4 {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 1rem;
+}
+
+.profile-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.profile-row {
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  background: var(--bg-card);
+  padding: 1rem;
+}
+
+.profile-row-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr 1fr 120px;
+  gap: 0.9rem;
+  align-items: end;
+}
+
+.profile-action {
+  display: flex;
+  align-items: stretch;
+}
+
+.profile-action .tool-btn {
+  width: 100%;
+}
+
+.results-section h3 {
+  margin: 0 0 1rem;
+  color: var(--text-primary);
+}
+
+.result-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.analysis-grid {
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr);
+  gap: 1rem;
+}
+
+.analysis-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 1rem;
+}
+
+.contribution-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  margin-top: 0.85rem;
+}
+
+.contribution-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) 84px 120px;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background: var(--bg-secondary);
+}
+
+.contribution-name {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.contribution-share,
+.contribution-value {
+  color: var(--text-secondary);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.88rem;
+  text-align: right;
+}
+
+.results-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.metric-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 1rem;
+  min-height: 128px;
+}
+
+.metric-label {
+  color: var(--text-muted);
+  font-size: 0.74rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.metric-value {
+  margin-top: 0.45rem;
+  color: var(--text-primary);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1.18rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.metric-meta {
+  margin-top: 0.6rem;
+  color: var(--text-secondary);
+  font-size: 0.84rem;
+  line-height: 1.45;
+}
+
+.info-box {
+  background: rgba(245, 158, 11, 0.1);
+  border-left: 3px solid var(--accent-engineering);
+  border-radius: 10px;
+  padding: 1rem;
+}
+
+.info-box h4 {
+  margin: 0 0 0.45rem;
+  color: var(--text-primary);
+}
+
+.info-box p {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.55;
+  margin: 0.45rem 0 0;
+}
+
+.info-box p:first-of-type {
+  margin-top: 0;
+}
+
+.sidebar {
+  align-self: start;
+}
+
+.info-panel h3 {
+  margin: 0 0 0.8rem;
+  color: var(--text-primary);
+  font-size: 1.05rem;
+}
+
+.info-panel h3:not(:first-child) {
+  margin-top: 1.4rem;
+}
+
+.info-panel ul {
+  padding-left: 1.15rem;
+  color: var(--text-secondary);
+}
+
+.info-panel ol {
+  padding-left: 1.25rem;
+  color: var(--text-secondary);
+}
+
+.info-steps {
+  margin: 0 0 1.15rem;
+}
+
+.info-panel li {
+  margin-bottom: 0.55rem;
+  line-height: 1.45;
+}
+
+.info-panel p {
+  color: var(--text-secondary);
+  font-size: 0.92rem;
+  line-height: 1.55;
+}
+
+.liability-disclaimer {
+  margin-top: 20px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--accent-warning);
+  background-color: var(--accent-warning-dim);
+  color: var(--text-primary);
+}
+
+.liability-disclaimer strong {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--accent-warning);
+}
+
+.liability-disclaimer p {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.liability-disclaimer p + p {
+  margin-top: 8px;
+}
+
+.liability-disclaimer p strong {
+  display: inline;
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.error-message {
+  color: var(--accent-error);
+  font-size: 0.92rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--accent-error);
+  border-radius: 10px;
+  background: var(--accent-error-dim);
+}
+
+.error-input {
+  border-color: var(--accent-error) !important;
+}
+
+.input-line.is-disabled {
+  opacity: 0.62;
+}
+
+.input-line.is-disabled .main-input,
+.input-line.is-disabled .main-select,
+.input-line.is-disabled .unit-select {
+  cursor: not-allowed;
+}
+
+@media (max-width: 1400px) {
+  .results-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .analysis-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 1200px) {
+  .results-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .profile-row-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 980px) {
+  .calculator-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    align-self: stretch;
+  }
+}
+
+@media (max-width: 760px) {
+  .panel-header,
+  .header-row,
+  .tool-header-content,
+  .profile-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .control-grid,
+  .compact-grid,
+  .analysis-grid,
+  .results-grid,
+  .profile-row-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .field-row {
+    grid-template-columns: 1fr;
+  }
+
+  .calculator-panel,
+  .sidebar {
+    padding: 1rem;
+  }
+
+  .contribution-row {
+    grid-template-columns: 1fr;
+  }
+
+  .contribution-share,
+  .contribution-value {
+    text-align: left;
+  }
+
+  .tool-icon {
+    width: 42px;
+    height: 42px;
+  }
+
+  .tool-header-content h1 {
+    font-size: 1.5rem;
+  }
+}

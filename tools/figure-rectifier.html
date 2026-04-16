@@ -1,0 +1,2799 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Figure Rectifier | Tools Hub</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="../css/shared.css" />
+
+    <style>
+        /* ============================================================
+           Figure Rectifier — Tools Hub page (single-file tool)
+           Runs entirely client-side. No server processing/storage.
+           ============================================================ */
+
+        /* Layout */
+        .calculator-layout {
+            display: grid;
+            grid-template-columns: 360px 1fr;
+            gap: 24px;
+            min-height: calc(100vh - 300px);
+            align-items: start;
+        }
+
+        .calculator-panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            position: sticky;
+            top: 16px;
+            max-height: calc(100vh - 120px);
+            overflow: auto;
+        }
+
+        .panel-header {
+            margin-bottom: 4px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .panel-header h2 { font-size: 1.25rem; margin-bottom: 6px; }
+        .panel-header p { color: var(--text-secondary); font-size: 0.9375rem; line-height: 1.45; }
+
+        .section {
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            background: var(--bg-secondary);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .section h3 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 0.85rem;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: var(--text-primary);
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+        .section .hint {
+            color: var(--text-muted);
+            font-size: 0.8125rem;
+            line-height: 1.45;
+            margin-top: -6px;
+        }
+
+        /* Controls */
+        .row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .tool-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8125rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            user-select: none;
+            white-space: nowrap;
+        }
+        .tool-btn:hover { border-color: var(--accent-engineering); background: var(--bg-secondary); }
+        .tool-btn.primary {
+            border-color: rgba(59,130,246,0.45);
+        }
+        .tool-btn.danger {
+            color: #ef4444;
+            border-color: rgba(239,68,68,0.35);
+        }
+        .tool-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .segmented {
+            display: flex;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            overflow: hidden;
+            background: var(--bg-card);
+        }
+        .segmented button {
+            flex: 1;
+            padding: 9px 10px;
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.78rem;
+            cursor: pointer;
+            transition: all 0.18s;
+        }
+        .segmented button.active {
+            color: var(--text-primary);
+            background: var(--bg-secondary);
+            outline: 1px solid rgba(59,130,246,0.25);
+        }
+
+        .input-line {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .input-line label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            font-family: 'Space Grotesk', sans-serif;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            font-weight: 700;
+        }
+        .input-line input[type="number"],
+        .input-line input[type="text"],
+        .input-line select {
+            width: 100%;
+            padding: 10px 10px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-card);
+            color: var(--text-primary);
+            border-radius: 8px;
+            outline: none;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+        }
+        .input-line input[type="number"]:focus,
+        .input-line input[type="text"]:focus,
+        .input-line select:focus {
+            border-color: var(--accent-engineering);
+        }
+
+        .toggle {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.8125rem;
+            color: var(--text-primary);
+        }
+        .toggle input { transform: translateY(1px); }
+
+        .mono-kv {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 8px 12px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.78rem;
+            color: var(--text-secondary);
+        }
+        .mono-kv .val {
+            color: var(--text-primary);
+            font-weight: 700;
+        }
+
+        /* Workspace */
+        .workspace {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            min-height: 640px;
+        }
+
+        .workspace-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .workspace-header-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 10px;
+            border-radius: 999px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-secondary);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.78rem;
+            color: var(--text-secondary);
+        }
+        .badge strong { color: var(--text-primary); }
+
+        .canvas-wrap {
+            position: relative;
+            background: #0b0f19;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.08);
+            overflow: hidden;
+            min-height: 520px;
+        }
+
+        canvas#mainCanvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+            cursor: crosshair;
+        }
+
+        /* Picture-in-picture preview */
+        .pip {
+            position: absolute;
+            right: 12px;
+            bottom: 12px;
+            width: 260px;
+            height: 180px;
+            border-radius: 10px;
+            border: 1px solid rgba(255,255,255,0.20);
+            background: rgba(0,0,0,0.55);
+            backdrop-filter: blur(4px);
+            overflow: hidden;
+            display: none;
+        }
+        .pip-header {
+            padding: 8px 10px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.72rem;
+            color: rgba(255,255,255,0.85);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255,255,255,0.14);
+        }
+        .pip canvas {
+            width: 100%;
+            height: calc(100% - 34px);
+            display: block;
+        }
+
+        /* Loupe */
+        .loupe {
+            position: absolute;
+            left: 12px;
+            bottom: 12px;
+            width: 170px;
+            height: 170px;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.20);
+            background: rgba(0,0,0,0.55);
+            backdrop-filter: blur(4px);
+            overflow: hidden;
+            display: none;
+        }
+        .loupe-header {
+            padding: 8px 10px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.72rem;
+            color: rgba(255,255,255,0.85);
+            border-bottom: 1px solid rgba(255,255,255,0.14);
+        }
+        .loupe canvas {
+            width: 100%;
+            height: calc(100% - 34px);
+            display: block;
+        }
+
+        /* Disclaimer */
+        .disclaimer {
+            border: 1px solid rgba(239, 68, 68, 0.35);
+            background: rgba(239, 68, 68, 0.08);
+            border-radius: 12px;
+            padding: 14px;
+            color: var(--text-primary);
+        }
+        .disclaimer h3 {
+            margin: 0 0 8px 0;
+            font-size: 0.85rem;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+        .disclaimer p {
+            margin: 0;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            line-height: 1.5;
+        }
+
+        @media (max-width: 1100px) {
+            .calculator-layout { grid-template-columns: 1fr; }
+            .calculator-panel { position: relative; top: 0; max-height: none; }
+            .pip { width: 220px; height: 160px; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <header>
+        <div class="header-content">
+            <div class="header-left">
+                <a href="../tools.html" class="back-link">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="19" y1="12" x2="5" y2="12"></line>
+                        <polyline points="12 19 5 12 12 5"></polyline>
+                    </svg>
+                    Back to Tools
+                </a>
+            </div>
+            <div class="header-right">
+                <div class="theme-toggle">
+                    <button data-theme-toggle="light" aria-pressed="false" title="Light mode">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="5"></circle>
+                            <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path>
+                        </svg>
+                    </button>
+                    <button data-theme-toggle="dark" aria-pressed="false" title="Dark mode">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div style="margin-top: 24px; display: flex; align-items: center; gap: 16px;">
+            <div class="tool-icon-header engineering">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M4 7h16M4 12h16M4 17h16"></path>
+                    <path d="M8 3h8"></path>
+                </svg>
+            </div>
+            <div>
+                <h1>Figure Rectifier</h1>
+                <p class="tagline">// CROP • DESKEW • RECTIFY • CALIBRATE</p>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="calculator-layout">
+            <!-- LEFT: Controls -->
+            <div class="calculator-panel">
+                <div class="panel-header">
+                    <h2>Preprocess figures for digitization</h2>
+                    <p>
+                        Import a figure, crop the ROI, correct rotation/perspective, optionally calibrate axes, and export a
+                        rectified PNG + JSON mapping.
+                    </p>
+                </div>
+
+                <div class="section">
+                    <h3>
+                        Input Data
+                        <span class="badge" id="badgeSource"><strong>Source:</strong>&nbsp;<span id="srcType">—</span></span>
+                    </h3>
+
+                    <div class="row">
+                        <label class="tool-btn" style="cursor:pointer;">
+                            <input id="fileImage" type="file" accept="image/png,image/jpeg,image/webp" style="display:none;" />
+                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="17 8 12 3 7 8"></polyline>
+                                <line x1="12" y1="3" x2="12" y2="15"></line>
+                            </svg>
+                            Upload Image
+                        </label>
+
+                        <label class="tool-btn" style="cursor:pointer;">
+                            <input id="filePdf" type="file" accept="application/pdf" style="display:none;" />
+                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                <polyline points="14 2 14 8 20 8"></polyline>
+                            </svg>
+                            Upload PDF
+                        </label>
+
+                        <button class="tool-btn" id="btnStartCapture">
+                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="2" y="7" width="16" height="14" rx="2" ry="2"></rect>
+                                <path d="M16 13h2l4 4V7l-4 4h-2"></path>
+                            </svg>
+                            Capture Screen
+                        </button>
+                    </div>
+
+                    <div class="row" id="pdfControls" style="display:none;">
+                        <div class="input-line" style="flex:1; min-width:120px;">
+                            <label>PDF Page</label>
+                            <input id="pdfPage" type="number" min="1" value="1" />
+                        </div>
+                        <div class="input-line" style="flex:1; min-width:120px;">
+                            <label>Render Scale</label>
+                            <input id="pdfScale" type="number" min="0.25" step="0.25" value="2.0" />
+                        </div>
+                        <button class="tool-btn primary" id="btnRenderPdf">Render Page</button>
+                    </div>
+
+                    <div class="row" id="captureControls" style="display:none;">
+                        <button class="tool-btn primary" id="btnCaptureFrame">Capture Frame</button>
+                        <button class="tool-btn danger" id="btnStopCapture">Stop</button>
+                        <span style="color:var(--text-muted); font-size:0.8rem;">(Requires HTTPS)</span>
+                    </div>
+
+                    <div class="mono-kv">
+                        <div>Original size</div><div class="val" id="kvOrig">—</div>
+                        <div>Working stage</div><div class="val" id="kvStage">—</div>
+                        <div>Zoom</div><div class="val" id="kvZoom">—</div>
+                        <div>Cursor</div><div class="val" id="kvCursor">—</div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h3>Workspace Mode</h3>
+                    <div class="segmented" role="tablist" aria-label="Mode">
+                        <button id="modeCrop" class="active" type="button">Crop</button>
+                        <button id="modeWarp" type="button">Warp</button>
+                        <button id="modeCal" type="button">Calibrate</button>
+                    </div>
+                    <div class="hint">
+                        Pan: drag background • Zoom: mouse wheel • Precision: arrow keys (Shift = 10px). In Warp mode, drag
+                        corners labeled TL/TR/BR/BL. In Calibrate mode, click points on the rectified image.
+                    </div>
+                    <div class="row">
+                        <button class="tool-btn" id="btnFit">Fit</button>
+                        <button class="tool-btn" id="btnResetView">Reset View</button>
+                        <button class="tool-btn danger" id="btnResetAll">Reset All</button>
+                    </div>
+                </div>
+
+                <div class="section" id="sectionCrop">
+                    <h3>Crop (ROI)</h3>
+                    <div class="row">
+                        <button class="tool-btn primary" id="btnApplyCrop">Apply Crop</button>
+                        <button class="tool-btn" id="btnResetCrop">Reset Crop</button>
+                    </div>
+                    <div class="toggle">
+                        <input id="lockAspect" type="checkbox" />
+                        <label for="lockAspect">Lock aspect ratio (optional)</label>
+                    </div>
+                    <div class="mono-kv">
+                        <div>ROI (orig px)</div><div class="val" id="kvCrop">—</div>
+                    </div>
+                </div>
+
+                <div class="section" id="sectionRotate">
+                    <h3>Deskew (Rotate)</h3>
+                    <div class="input-line">
+                        <label>Rotation (degrees)</label>
+                        <input id="rotDeg" type="number" step="0.05" value="0" />
+                    </div>
+                    <div class="row">
+                        <button class="tool-btn primary" id="btnApplyRot">Apply Rotation</button>
+                        <button class="tool-btn" id="btnResetRot">Reset Rotation</button>
+                    </div>
+                    <div class="hint">Rotation is applied after crop and before perspective warp.</div>
+                </div>
+
+                <div class="section" id="sectionWarp">
+                    <h3>Perspective Warp</h3>
+
+                    <div class="row">
+                        <button class="tool-btn" id="btnInitWarp">Initialize Corners</button>
+                        <button class="tool-btn primary" id="btnApplyWarp">Apply Warp</button>
+                        <button class="tool-btn" id="btnResetWarp">Reset Warp</button>
+                    </div>
+
+                    <div class="toggle">
+                        <input id="showGrid" type="checkbox" checked />
+                        <label for="showGrid">Show grid overlay (preview)</label>
+                    </div>
+                    <div class="toggle">
+                        <input id="showPip" type="checkbox" />
+                        <label for="showPip">Show rectified preview (PiP)</label>
+                    </div>
+
+                    <div class="row">
+                        <div class="input-line" style="flex:1; min-width:120px;">
+                            <label>Output width</label>
+                            <input id="dstW" type="number" min="8" value="0" />
+                        </div>
+                        <div class="input-line" style="flex:1; min-width:120px;">
+                            <label>Output height</label>
+                            <input id="dstH" type="number" min="8" value="0" />
+                        </div>
+                        <button class="tool-btn" id="btnAutoDst">Auto</button>
+                    </div>
+
+                    <div class="toggle">
+                        <input id="fullResExport" type="checkbox" />
+                        <label for="fullResExport">Reprocess at full resolution on export (slower)</label>
+                    </div>
+
+                    <div class="mono-kv">
+                        <div>Pre-warp size</div><div class="val" id="kvPrewarp">—</div>
+                        <div>Rectified size</div><div class="val" id="kvRect">—</div>
+                    </div>
+
+                    <div class="hint">
+                        Drag TL/TR/BR/BL points. Use arrow keys to nudge the active point (Shift = 10px). Hover shows pixel and
+                        (if calibrated) data coords.
+                    </div>
+                </div>
+
+                <div class="section" id="sectionCal">
+                    <h3>Axis Calibration (Optional)</h3>
+                    <div class="toggle">
+                        <input id="enableCal" type="checkbox" />
+                        <label for="enableCal">Enable calibration & live cursor readout</label>
+                    </div>
+
+                    <div class="row">
+                        <div class="input-line" style="flex:1; min-width:140px;">
+                            <label>X scale</label>
+                            <select id="xScale">
+                                <option value="linear" selected>Linear</option>
+                                <option value="log10">Log10</option>
+                            </select>
+                        </div>
+                        <div class="input-line" style="flex:1; min-width:140px;">
+                            <label>Y scale</label>
+                            <select id="yScale">
+                                <option value="linear" selected>Linear</option>
+                                <option value="log10">Log10</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="toggle">
+                        <input id="invertY" type="checkbox" checked />
+                        <label for="invertY">Invert Y (common for plots; pixel y increases downward)</label>
+                    </div>
+
+                    <div class="row">
+                        <button class="tool-btn" id="btnSetX1">Set X Point 1</button>
+                        <button class="tool-btn" id="btnSetX2">Set X Point 2</button>
+                    </div>
+
+                    <div class="row">
+                        <div class="input-line" style="flex:1; min-width:120px;">
+                            <label>X1 value</label>
+                            <input id="x1Val" type="text" value="0" />
+                        </div>
+                        <div class="input-line" style="flex:1; min-width:120px;">
+                            <label>X2 value</label>
+                            <input id="x2Val" type="text" value="1" />
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <button class="tool-btn" id="btnSetY1">Set Y Point 1</button>
+                        <button class="tool-btn" id="btnSetY2">Set Y Point 2</button>
+                    </div>
+
+                    <div class="row">
+                        <div class="input-line" style="flex:1; min-width:120px;">
+                            <label>Y1 value</label>
+                            <input id="y1Val" type="text" value="0" />
+                        </div>
+                        <div class="input-line" style="flex:1; min-width:120px;">
+                            <label>Y2 value</label>
+                            <input id="y2Val" type="text" value="1" />
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <button class="tool-btn" id="btnClearCal">Clear Calibration</button>
+                    </div>
+
+                    <div class="mono-kv">
+                        <div>X points</div><div class="val" id="kvCalX">—</div>
+                        <div>Y points</div><div class="val" id="kvCalY">—</div>
+                    </div>
+
+                    <div class="hint">
+                        Calibration is applied on the <strong>rectified</strong> image. Switch to Warp mode and Apply Warp first.
+                        Then switch to Calibrate and click points.
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h3>Export</h3>
+                    <div class="row">
+                        <button class="tool-btn primary" id="btnExportPng" disabled>Export Rectified PNG</button>
+                        <button class="tool-btn" id="btnExportJson" disabled>Export Transform JSON</button>
+                    </div>
+                    <div class="row">
+                        <button class="tool-btn" id="btnExportBundle" disabled>Export Bundle JSON (PNG+metadata)</button>
+                    </div>
+                    <div class="hint">
+                        Exports are designed to feed the downstream digitizer tool, but are useful standalone.
+                    </div>
+                </div>
+
+                <div class="disclaimer">
+                    <h3>Critical Engineering Disclaimer</h3>
+                    <p>
+                        This tool performs manual geometric correction and optional axis calibration. Results depend strongly on
+                        accurate corner placement and calibration points. Always validate against known reference values. Runs
+                        entirely in your browser (no server processing or storage).
+                    </p>
+                </div>
+            </div>
+
+            <!-- RIGHT: Canvas workspace -->
+            <div class="workspace">
+                <div class="workspace-header">
+                    <div class="workspace-header-left">
+                        <span class="badge" id="badgeMode"><strong>Mode:</strong>&nbsp;<span id="uiMode">Crop</span></span>
+                        <span class="badge"><strong>Stage:</strong>&nbsp;<span id="uiStage">—</span></span>
+                        <span class="badge"><strong>Working:</strong>&nbsp;<span id="uiWorking">—</span></span>
+                    </div>
+                    <div class="workspace-header-right">
+                        <span class="badge"><strong>Tip:</strong>&nbsp;Hold <span style="color:#fff;">Shift</span> for 10px nudges</span>
+                    </div>
+                </div>
+
+                <div class="canvas-wrap" id="canvasWrap">
+                    <canvas id="mainCanvas"></canvas>
+
+                    <div class="pip" id="pip">
+                        <div class="pip-header">
+                            <span>Rectified Preview</span>
+                            <span id="pipDims">—</span>
+                        </div>
+                        <canvas id="pipCanvas"></canvas>
+                    </div>
+
+                    <div class="loupe" id="loupe">
+                        <div class="loupe-header">Loupe</div>
+                        <canvas id="loupeCanvas"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer data-footer></footer>
+</div>
+
+<script src="../js/shared.js"></script>
+<script src="../js/footer.js"></script>
+
+<!--
+PDF.js dependency note:
+- Preferred: host pdf.min.js + pdf.worker.min.js locally under your repo (e.g., /vendor/pdfjs/).
+- For convenience, this page attempts to load pdf.js from a CDN if it is not already present.
+- If you want zero external network fetches (beyond your own hosting), vendor the files and set PDFJS_LOCAL_URL below.
+-->
+<script src="../js/scientific_graph_digitizer/browser-globals.js"></script>
+<script>
+    const {
+        FIGURE_RECTIFIER_TOOL: TOOL,
+        createInitialState,
+        resetStateInPlace,
+        parseNumeric: parseNumericValue,
+        calibrationReady: calibrationReadyForState,
+        cursorToData: cursorToDataForState,
+        computeFullResExportData,
+        buildExportJson: buildExportJsonFromContext,
+        exportPngAndJson: exportPngAndJsonFromContext
+    } = window.ScientificGraphDigitizerCore;
+
+    // ============================================================
+    // Figure Rectifier — Implementation (Vanilla JS + Canvas 2D)
+    // ============================================================
+
+    // ---------------------------
+    // DOM
+    // ---------------------------
+    const mainCanvas = document.getElementById('mainCanvas');
+    const canvasWrap = document.getElementById('canvasWrap');
+
+    const pip = document.getElementById('pip');
+    const pipCanvas = document.getElementById('pipCanvas');
+    const pipDims = document.getElementById('pipDims');
+
+    const loupe = document.getElementById('loupe');
+    const loupeCanvas = document.getElementById('loupeCanvas');
+
+    const fileImage = document.getElementById('fileImage');
+    const filePdf = document.getElementById('filePdf');
+    const btnStartCapture = document.getElementById('btnStartCapture');
+
+    const pdfControls = document.getElementById('pdfControls');
+    const pdfPage = document.getElementById('pdfPage');
+    const pdfScale = document.getElementById('pdfScale');
+    const btnRenderPdf = document.getElementById('btnRenderPdf');
+
+    const captureControls = document.getElementById('captureControls');
+    const btnCaptureFrame = document.getElementById('btnCaptureFrame');
+    const btnStopCapture = document.getElementById('btnStopCapture');
+
+    const modeCrop = document.getElementById('modeCrop');
+    const modeWarp = document.getElementById('modeWarp');
+    const modeCal = document.getElementById('modeCal');
+
+    const btnFit = document.getElementById('btnFit');
+    const btnResetView = document.getElementById('btnResetView');
+    const btnResetAll = document.getElementById('btnResetAll');
+
+    const btnApplyCrop = document.getElementById('btnApplyCrop');
+    const btnResetCrop = document.getElementById('btnResetCrop');
+    const lockAspect = document.getElementById('lockAspect');
+
+    const rotDeg = document.getElementById('rotDeg');
+    const btnApplyRot = document.getElementById('btnApplyRot');
+    const btnResetRot = document.getElementById('btnResetRot');
+
+    const btnInitWarp = document.getElementById('btnInitWarp');
+    const btnApplyWarp = document.getElementById('btnApplyWarp');
+    const btnResetWarp = document.getElementById('btnResetWarp');
+    const showGrid = document.getElementById('showGrid');
+    const showPip = document.getElementById('showPip');
+    const dstW = document.getElementById('dstW');
+    const dstH = document.getElementById('dstH');
+    const btnAutoDst = document.getElementById('btnAutoDst');
+    const fullResExport = document.getElementById('fullResExport');
+
+    const enableCal = document.getElementById('enableCal');
+    const xScale = document.getElementById('xScale');
+    const yScale = document.getElementById('yScale');
+    const invertY = document.getElementById('invertY');
+    const btnSetX1 = document.getElementById('btnSetX1');
+    const btnSetX2 = document.getElementById('btnSetX2');
+    const btnSetY1 = document.getElementById('btnSetY1');
+    const btnSetY2 = document.getElementById('btnSetY2');
+    const x1Val = document.getElementById('x1Val');
+    const x2Val = document.getElementById('x2Val');
+    const y1Val = document.getElementById('y1Val');
+    const y2Val = document.getElementById('y2Val');
+    const btnClearCal = document.getElementById('btnClearCal');
+
+    const btnExportPng = document.getElementById('btnExportPng');
+    const btnExportJson = document.getElementById('btnExportJson');
+    const btnExportBundle = document.getElementById('btnExportBundle');
+
+    // UI labels
+    const badgeSource = document.getElementById('badgeSource');
+    const srcType = document.getElementById('srcType');
+    const kvOrig = document.getElementById('kvOrig');
+    const kvStage = document.getElementById('kvStage');
+    const kvZoom = document.getElementById('kvZoom');
+    const kvCursor = document.getElementById('kvCursor');
+    const kvCrop = document.getElementById('kvCrop');
+    const kvPrewarp = document.getElementById('kvPrewarp');
+    const kvRect = document.getElementById('kvRect');
+    const kvCalX = document.getElementById('kvCalX');
+    const kvCalY = document.getElementById('kvCalY');
+
+    const uiMode = document.getElementById('uiMode');
+    const uiStage = document.getElementById('uiStage');
+    const uiWorking = document.getElementById('uiWorking');
+
+    // Sections
+    const sectionCrop = document.getElementById('sectionCrop');
+    const sectionRotate = document.getElementById('sectionRotate');
+    const sectionWarp = document.getElementById('sectionWarp');
+    const sectionCal = document.getElementById('sectionCal');
+
+    // ---------------------------
+    // Canvas context
+    // ---------------------------
+    const ctx = mainCanvas.getContext('2d', { willReadFrequently: true });
+    const pipCtx = pipCanvas.getContext('2d', { willReadFrequently: true });
+    const loupeCtx = loupeCanvas.getContext('2d', { willReadFrequently: true });
+
+    // ---------------------------
+    // PDF.js dynamic loader (optional)
+    // ---------------------------
+    const PDFJS_LOCAL_URL = "../vendor/pdfjs/pdf.min.js"; // if you vendor it
+    const PDFJS_CDN_URL = "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.min.js";
+    const PDFJS_WORKER_CDN = "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.js";
+
+    let pdfjsReady = false;
+
+    function loadPdfJsIfNeeded() {
+        return new Promise((resolve) => {
+            if (window.pdfjsLib && window.pdfjsLib.getDocument) {
+                pdfjsReady = true;
+                try { window.pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS_WORKER_CDN; } catch(e) {}
+                resolve(true);
+                return;
+            }
+
+            const tryLoad = (src) => new Promise((res) => {
+                const s = document.createElement('script');
+                s.src = src;
+                s.onload = () => res(true);
+                s.onerror = () => res(false);
+                document.head.appendChild(s);
+            });
+
+            (async () => {
+                // Try local first
+                let ok = await tryLoad(PDFJS_LOCAL_URL);
+                if (!ok) ok = await tryLoad(PDFJS_CDN_URL);
+
+                if (ok && window.pdfjsLib && window.pdfjsLib.getDocument) {
+                    pdfjsReady = true;
+                    try { window.pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS_WORKER_CDN; } catch(e) {}
+                    resolve(true);
+                } else {
+                    pdfjsReady = false;
+                    resolve(false);
+                }
+            })();
+        });
+    }
+
+    // ---------------------------
+    // Tool state
+    // ---------------------------
+
+    const STATE = createInitialState();
+
+    // ---------------------------
+    // Constants
+    // ---------------------------
+    const MAX_PREWARP_DIM = 3600;     // working prewarp max dimension (px) for interactivity
+    const PIP_MAX_DIM = 500;         // PiP preview max dimension
+    const LOUPE_SIZE = 136;          // internal loupe canvas size (px)
+    const LOUPE_ZOOM = 8;            // how much to magnify around cursor/handle
+
+    const HANDLE_R = 7;              // handle radius in screen px
+    const HANDLE_HIT_R = 12;         // hit radius in screen px
+
+    const GRID_DIVS = 10;            // grid divisions for overlay
+
+    // ---------------------------
+    // Utilities
+    // ---------------------------
+    const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+    function fmtPx(n) {
+        if (!isFinite(n)) return "—";
+        return Math.round(n).toLocaleString();
+    }
+
+    function fmtFloat(n, digits=3) {
+        if (!isFinite(n)) return "—";
+        return Number(n).toFixed(digits);
+    }
+
+    function dist(a, b) {
+        const dx = a.x - b.x;
+        const dy = a.y - b.y;
+        return Math.hypot(dx, dy);
+    }
+
+    function deepCopy(obj) {
+        return JSON.parse(JSON.stringify(obj));
+    }
+
+    function nowIso() {
+        return new Date().toISOString();
+    }
+
+    function downloadBlob(filename, blob) {
+        const a = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 8000);
+    }
+
+    async function canvasToBlob(canvas, type="image/png", quality=0.92) {
+        return new Promise((resolve) => {
+            canvas.toBlob((b) => resolve(b), type, quality);
+        });
+    }
+
+    async function blobToDataUrl(blob) {
+        return new Promise((resolve) => {
+            const fr = new FileReader();
+            fr.onload = () => resolve(fr.result);
+            fr.readAsDataURL(blob);
+        });
+    }
+
+    function getCanvasCssRect() {
+        return mainCanvas.getBoundingClientRect();
+    }
+
+    function setCanvasSizeToWrapper() {
+        const rect = canvasWrap.getBoundingClientRect();
+        const dpr = window.devicePixelRatio || 1;
+        mainCanvas.width = Math.max(2, Math.floor(rect.width * dpr));
+        mainCanvas.height = Math.max(2, Math.floor(rect.height * dpr));
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0); // draw in CSS pixels
+    }
+
+    function setMiniCanvasSize(canvas, ctx2d, cssW, cssH) {
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = Math.max(2, Math.floor(cssW * dpr));
+        canvas.height = Math.max(2, Math.floor(cssH * dpr));
+        ctx2d.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+
+    // Screen <-> stage coord mapping using STATE.view.
+    // Stage coords = pixel coords of the image currently being displayed in the main viewport.
+    function stageToScreen(pt) {
+        return {
+            x: pt.x * STATE.view.scale + STATE.view.tx,
+            y: pt.y * STATE.view.scale + STATE.view.ty
+        };
+    }
+    function screenToStage(pt) {
+        return {
+            x: (pt.x - STATE.view.tx) / STATE.view.scale,
+            y: (pt.y - STATE.view.ty) / STATE.view.scale
+        };
+    }
+
+    function clearCanvas() {
+        const rect = getCanvasCssRect();
+        ctx.clearRect(0, 0, rect.width, rect.height);
+    }
+
+    function drawCheckerboardBackground() {
+        const rect = getCanvasCssRect();
+        const size = 18;
+        for (let y = 0; y < rect.height; y += size) {
+            for (let x = 0; x < rect.width; x += size) {
+                const odd = ((x/size)|0) ^ ((y/size)|0);
+                ctx.fillStyle = odd ? "rgba(255,255,255,0.03)" : "rgba(255,255,255,0.01)";
+                ctx.fillRect(x, y, size, size);
+            }
+        }
+    }
+
+    // ---------------------------
+    // Image pipeline helpers
+    // ---------------------------
+
+    async function loadImageFile(file) {
+        const bitmap = await createImageBitmap(file);
+        STATE.source.type = "image";
+        STATE.source.filename = file.name;
+        STATE.source.origW = bitmap.width;
+        STATE.source.origH = bitmap.height;
+        STATE.source.bitmap = bitmap;
+
+        resetPipelineAfterSourceChange();
+
+        STATE.ui.stage = "source";
+        STATE.ui.workingNote = "Original";
+
+        // Default crop box = full image
+        STATE.cropBoxStage = { x: 0, y: 0, w: bitmap.width, h: bitmap.height };
+        STATE.cropOriginal = null; // none => full image
+
+        updateUI();
+        fitViewToStageImage();
+        requestRender();
+    }
+
+    async function loadCanvasAsSource(canvas, filename, sourceType) {
+        const blob = await canvasToBlob(canvas, "image/png");
+        const bitmap = await createImageBitmap(blob);
+
+        STATE.source.type = sourceType;
+        STATE.source.filename = filename;
+        STATE.source.origW = bitmap.width;
+        STATE.source.origH = bitmap.height;
+        STATE.source.bitmap = bitmap;
+
+        resetPipelineAfterSourceChange();
+
+        STATE.ui.stage = "source";
+        STATE.ui.workingNote = "Original";
+
+        STATE.cropBoxStage = { x: 0, y: 0, w: bitmap.width, h: bitmap.height };
+        STATE.cropOriginal = null;
+
+        updateUI();
+        fitViewToStageImage();
+        requestRender();
+    }
+
+    function resetPipelineAfterSourceChange() {
+        STATE.cropOriginal = null;
+        STATE.rotationDeg = 0;
+        rotDeg.value = "0";
+
+        // Clear prewarp, warp, rectified, calibration
+        STATE.preWarp = { fullW: 0, fullH: 0, workScale: 1.0, canvas: null, ctx: null };
+        STATE.warp = { quad: null, dstW: 0, dstH: 0, H: null, Hinv: null };
+        STATE.rectified = { canvas: null, ctx: null };
+
+        clearCalibration(true);
+
+        // Disable exports until warp applied
+        setExportEnabled(false);
+    }
+
+    function setExportEnabled(enabled) {
+        btnExportPng.disabled = !enabled;
+        btnExportJson.disabled = !enabled;
+        btnExportBundle.disabled = !enabled;
+    }
+
+    function getCropOriginalOrFull() {
+        if (!STATE.source.bitmap) return null;
+        if (STATE.cropOriginal) return deepCopy(STATE.cropOriginal);
+        return { x: 0, y: 0, w: STATE.source.origW, h: STATE.source.origH };
+    }
+
+    function computeRotatedBounds(w, h, deg) {
+        const theta = deg * Math.PI / 180;
+        const c = Math.cos(theta);
+        const s = Math.sin(theta);
+        const newW = Math.abs(w * c) + Math.abs(h * s);
+        const newH = Math.abs(w * s) + Math.abs(h * c);
+        return { w: Math.ceil(newW), h: Math.ceil(newH) };
+    }
+
+    function ensurePreWarpCanvas() {
+        const crop = getCropOriginalOrFull();
+        if (!crop) return;
+
+        const rot = STATE.rotationDeg || 0;
+        const rotBounds = computeRotatedBounds(crop.w, crop.h, rot);
+
+        STATE.preWarp.fullW = rotBounds.w;
+        STATE.preWarp.fullH = rotBounds.h;
+
+        const maxDim = Math.max(rotBounds.w, rotBounds.h);
+        const scale = Math.min(1, MAX_PREWARP_DIM / maxDim);
+        STATE.preWarp.workScale = scale;
+
+        const cw = Math.max(2, Math.floor(rotBounds.w * scale));
+        const ch = Math.max(2, Math.floor(rotBounds.h * scale));
+
+        const c = document.createElement('canvas');
+        c.width = cw;
+        c.height = ch;
+        const cctx = c.getContext('2d', { willReadFrequently: true });
+
+        // Draw cropped region, rotated about its center, into expanded canvas.
+        // Strategy:
+        // 1) draw cropped region into temp at scaled crop size
+        // 2) rotate into final preWarp canvas (expanded)
+        const temp = document.createElement('canvas');
+        temp.width = Math.max(2, Math.floor(crop.w * scale));
+        temp.height = Math.max(2, Math.floor(crop.h * scale));
+        const tctx = temp.getContext('2d');
+
+        tctx.clearRect(0, 0, temp.width, temp.height);
+        tctx.imageSmoothingEnabled = true;
+        tctx.imageSmoothingQuality = "high";
+
+        // draw crop from original bitmap to temp
+        tctx.drawImage(
+            STATE.source.bitmap,
+            crop.x, crop.y, crop.w, crop.h,
+            0, 0, temp.width, temp.height
+        );
+
+        // rotate temp into c
+        cctx.clearRect(0, 0, cw, ch);
+        cctx.imageSmoothingEnabled = true;
+        cctx.imageSmoothingQuality = "high";
+
+        cctx.save();
+        cctx.translate(cw / 2, ch / 2);
+        cctx.rotate(rot * Math.PI / 180);
+        cctx.translate(-temp.width / 2, -temp.height / 2);
+        cctx.drawImage(temp, 0, 0);
+        cctx.restore();
+
+        STATE.preWarp.canvas = c;
+        STATE.preWarp.ctx = cctx;
+
+        // If warp points exist, keep them; otherwise initialize default quad.
+        if (!STATE.warp.quad) {
+            initWarpQuadDefault();
+        }
+
+        // Update auto dst if needed
+        autoComputeDstFromQuad();
+    }
+
+    function initWarpQuadDefault() {
+        if (!STATE.preWarp.canvas) return;
+
+        // Default quad slightly inset from edges
+        const w = STATE.preWarp.canvas.width;
+        const h = STATE.preWarp.canvas.height;
+        const pad = Math.max(12, Math.floor(Math.min(w, h) * 0.04));
+
+        STATE.warp.quad = [
+            { x: pad, y: pad },                 // TL
+            { x: w - pad, y: pad },             // TR
+            { x: w - pad, y: h - pad },         // BR
+            { x: pad, y: h - pad }              // BL
+        ];
+    }
+
+    function autoComputeDstFromQuad() {
+        const q = STATE.warp.quad;
+        if (!q) return;
+
+        const top = dist(q[0], q[1]);
+        const bottom = dist(q[3], q[2]);
+        const left = dist(q[0], q[3]);
+        const right = dist(q[1], q[2]);
+
+        const w = Math.max(8, Math.round((top + bottom) / 2));
+        const h = Math.max(8, Math.round((left + right) / 2));
+
+        STATE.warp.dstW = w;
+        STATE.warp.dstH = h;
+
+        dstW.value = String(w);
+        dstH.value = String(h);
+    }
+
+    function ensureRectifiedCanvas(dstWpx, dstHpx) {
+        const c = document.createElement('canvas');
+        c.width = Math.max(2, dstWpx);
+        c.height = Math.max(2, dstHpx);
+        const cctx = c.getContext('2d', { willReadFrequently: true });
+        STATE.rectified.canvas = c;
+        STATE.rectified.ctx = cctx;
+    }
+
+    // ---------------------------
+    // Homography + warp implementation
+    // ---------------------------
+
+    // Compute homography H that maps src->dst.
+    // Inputs:
+    // - src: 4 points in source coords (TL,TR,BR,BL)
+    // - dst: 4 points in destination coords (TL,TR,BR,BL)
+    //
+    // We solve for 8 unknowns (h11..h32) with h33 = 1.
+    // Standard DLT system:
+    // [ x y 1  0 0 0  -u*x -u*y ] [h11..h32]^T = u
+    // [ 0 0 0  x y 1  -v*x -v*y ]                v
+    //
+    // Returns 3x3 matrix.
+    function computeHomography(src, dst) {
+        // Build 8x8 A and 8x1 b
+        const A = new Array(8).fill(0).map(() => new Float64Array(8));
+        const b = new Float64Array(8);
+
+        for (let i = 0; i < 4; i++) {
+            const x = src[i].x;
+            const y = src[i].y;
+            const u = dst[i].x;
+            const v = dst[i].y;
+
+            // row 2*i
+            A[2*i][0] = x;
+            A[2*i][1] = y;
+            A[2*i][2] = 1;
+            A[2*i][3] = 0;
+            A[2*i][4] = 0;
+            A[2*i][5] = 0;
+            A[2*i][6] = -u * x;
+            A[2*i][7] = -u * y;
+            b[2*i] = u;
+
+            // row 2*i+1
+            A[2*i+1][0] = 0;
+            A[2*i+1][1] = 0;
+            A[2*i+1][2] = 0;
+            A[2*i+1][3] = x;
+            A[2*i+1][4] = y;
+            A[2*i+1][5] = 1;
+            A[2*i+1][6] = -v * x;
+            A[2*i+1][7] = -v * y;
+            b[2*i+1] = v;
+        }
+
+        // Solve A h = b via Gaussian elimination with partial pivoting
+        const h = solveLinearSystem(A, b); // Float64Array length 8
+        if (!h) return null;
+
+        return [
+            [h[0], h[1], h[2]],
+            [h[3], h[4], h[5]],
+            [h[6], h[7], 1]
+        ];
+    }
+
+    function invert3x3(M) {
+        const a = M[0][0], b = M[0][1], c = M[0][2];
+        const d = M[1][0], e = M[1][1], f = M[1][2];
+        const g = M[2][0], h = M[2][1], i = M[2][2];
+
+        const A =   (e*i - f*h);
+        const B = - (d*i - f*g);
+        const C =   (d*h - e*g);
+        const D = - (b*i - c*h);
+        const E =   (a*i - c*g);
+        const F = - (a*h - b*g);
+        const G =   (b*f - c*e);
+        const H = - (a*f - c*d);
+        const I =   (a*e - b*d);
+
+        const det = a*A + b*B + c*C;
+        if (Math.abs(det) < 1e-12) return null;
+
+        const invDet = 1 / det;
+
+        return [
+            [A*invDet, D*invDet, G*invDet],
+            [B*invDet, E*invDet, H*invDet],
+            [C*invDet, F*invDet, I*invDet]
+        ];
+    }
+
+    function applyHomographyPoint(H, x, y) {
+        const X = H[0][0]*x + H[0][1]*y + H[0][2];
+        const Y = H[1][0]*x + H[1][1]*y + H[1][2];
+        const W = H[2][0]*x + H[2][1]*y + H[2][2];
+        if (W === 0) return { x: Infinity, y: Infinity };
+        return { x: X / W, y: Y / W };
+    }
+
+    // Basic Gaussian elimination solver for Float64 arrays.
+    // A: array of Float64Array rows (n x n), b: Float64Array (n)
+    function solveLinearSystem(A, b) {
+        const n = b.length;
+        // Build augmented matrix
+        const M = new Array(n);
+        for (let r = 0; r < n; r++) {
+            M[r] = new Float64Array(n + 1);
+            for (let c = 0; c < n; c++) M[r][c] = A[r][c];
+            M[r][n] = b[r];
+        }
+
+        // Forward elimination
+        for (let col = 0; col < n; col++) {
+            // Pivot
+            let pivotRow = col;
+            let maxAbs = Math.abs(M[col][col]);
+            for (let r = col + 1; r < n; r++) {
+                const v = Math.abs(M[r][col]);
+                if (v > maxAbs) { maxAbs = v; pivotRow = r; }
+            }
+            if (maxAbs < 1e-14) return null;
+
+            if (pivotRow !== col) {
+                const tmp = M[col];
+                M[col] = M[pivotRow];
+                M[pivotRow] = tmp;
+            }
+
+            // Normalize pivot row
+            const pivot = M[col][col];
+            for (let c = col; c <= n; c++) M[col][c] /= pivot;
+
+            // Eliminate below
+            for (let r = col + 1; r < n; r++) {
+                const factor = M[r][col];
+                if (factor === 0) continue;
+                for (let c = col; c <= n; c++) {
+                    M[r][c] -= factor * M[col][c];
+                }
+            }
+        }
+
+        // Back substitution
+        const x = new Float64Array(n);
+        for (let r = n - 1; r >= 0; r--) {
+            let sum = M[r][n];
+            for (let c = r + 1; c < n; c++) sum -= M[r][c] * x[c];
+            x[r] = sum; // pivot already normalized
+        }
+        return x;
+    }
+
+    // Warp a canvas via inverse mapping with bilinear sampling.
+    // srcCanvas: prewarp canvas
+    // quad: source quad points (TL,TR,BR,BL) in src coords
+    // dstWpx, dstHpx: output dimensions
+    // Returns { canvas, H, Hinv }
+    function warpCanvas(srcCanvas, quad, dstWpx, dstHpx) {
+        const dst = [
+            { x: 0, y: 0 },
+            { x: dstWpx - 1, y: 0 },
+            { x: dstWpx - 1, y: dstHpx - 1 },
+            { x: 0, y: dstHpx - 1 }
+        ];
+
+        const H = computeHomography(quad, dst);
+        if (!H) return null;
+        const Hinv = invert3x3(H);
+        if (!Hinv) return null;
+
+        const out = document.createElement('canvas');
+        out.width = dstWpx;
+        out.height = dstHpx;
+        const octx = out.getContext('2d', { willReadFrequently: true });
+
+        const sctx = srcCanvas.getContext('2d', { willReadFrequently: true });
+        const sImg = sctx.getImageData(0, 0, srcCanvas.width, srcCanvas.height);
+        const sData = sImg.data;
+
+        const oImg = octx.createImageData(dstWpx, dstHpx);
+        const oData = oImg.data;
+
+        const sw = srcCanvas.width;
+        const sh = srcCanvas.height;
+
+        // Bilinear sample function
+        function sampleBilinear(x, y) {
+            // clamp to bounds
+            x = clamp(x, 0, sw - 1);
+            y = clamp(y, 0, sh - 1);
+
+            const x0 = Math.floor(x);
+            const y0 = Math.floor(y);
+            const x1 = Math.min(sw - 1, x0 + 1);
+            const y1 = Math.min(sh - 1, y0 + 1);
+
+            const dx = x - x0;
+            const dy = y - y0;
+
+            const i00 = (y0 * sw + x0) * 4;
+            const i10 = (y0 * sw + x1) * 4;
+            const i01 = (y1 * sw + x0) * 4;
+            const i11 = (y1 * sw + x1) * 4;
+
+            // Interpolate each channel
+            const w00 = (1 - dx) * (1 - dy);
+            const w10 = dx * (1 - dy);
+            const w01 = (1 - dx) * dy;
+            const w11 = dx * dy;
+
+            const r = sData[i00] * w00 + sData[i10] * w10 + sData[i01] * w01 + sData[i11] * w11;
+            const g = sData[i00+1] * w00 + sData[i10+1] * w10 + sData[i01+1] * w01 + sData[i11+1] * w11;
+            const b = sData[i00+2] * w00 + sData[i10+2] * w10 + sData[i01+2] * w01 + sData[i11+2] * w11;
+            const a = sData[i00+3] * w00 + sData[i10+3] * w10 + sData[i01+3] * w01 + sData[i11+3] * w11;
+
+            return [r, g, b, a];
+        }
+
+        // Inverse map each output pixel to input
+        let idx = 0;
+        for (let y = 0; y < dstHpx; y++) {
+            for (let x = 0; x < dstWpx; x++) {
+                const p = applyHomographyPoint(Hinv, x, y);
+                const [r, g, b, a] = sampleBilinear(p.x, p.y);
+
+                oData[idx] = r;
+                oData[idx+1] = g;
+                oData[idx+2] = b;
+                oData[idx+3] = a;
+                idx += 4;
+            }
+        }
+
+        octx.putImageData(oImg, 0, 0);
+        return { canvas: out, H, Hinv };
+    }
+
+    // ---------------------------
+    // Calibration mapping functions
+    // ---------------------------
+
+    function parseNumeric(str) {
+        return parseNumericValue(str);
+    }
+
+    function calibrationReady() {
+        return calibrationReadyForState(STATE);
+    }
+
+    function cursorToData(px, py) {
+        return cursorToDataForState(STATE, px, py);
+    }
+
+    function clearCalibration(silent=false) {
+        STATE.calibration.enabled = false;
+        STATE.calibration.xScale = "linear";
+        STATE.calibration.yScale = "linear";
+        STATE.calibration.invertY = true;
+        STATE.calibration.x1 = null;
+        STATE.calibration.x2 = null;
+        STATE.calibration.y1 = null;
+        STATE.calibration.y2 = null;
+
+        enableCal.checked = false;
+        xScale.value = "linear";
+        yScale.value = "linear";
+        invertY.checked = true;
+
+        kvCalX.textContent = "—";
+        kvCalY.textContent = "—";
+
+        if (!silent) requestRender();
+    }
+
+    // ---------------------------
+    // UI / rendering helpers
+    // ---------------------------
+
+    function updateUI() {
+        // Source badge
+        srcType.textContent = STATE.source.type ? STATE.source.type : "—";
+        kvOrig.textContent = (STATE.source.origW && STATE.source.origH) ? `${fmtPx(STATE.source.origW)} × ${fmtPx(STATE.source.origH)}` : "—";
+
+        // Stage labels
+        kvStage.textContent = STATE.ui.stage;
+        uiStage.textContent = STATE.ui.stage;
+
+        // Working note
+        uiWorking.textContent = STATE.ui.workingNote || "—";
+
+        // Crop info
+        if (STATE.cropOriginal) {
+            const c = STATE.cropOriginal;
+            kvCrop.textContent = `${fmtPx(c.x)},${fmtPx(c.y)} ${fmtPx(c.w)}×${fmtPx(c.h)}`;
+        } else if (STATE.source.bitmap) {
+            kvCrop.textContent = `0,0 ${fmtPx(STATE.source.origW)}×${fmtPx(STATE.source.origH)} (full)`;
+        } else {
+            kvCrop.textContent = "—";
+        }
+
+        // Prewarp info
+        if (STATE.preWarp.canvas) {
+            kvPrewarp.textContent = `${fmtPx(STATE.preWarp.canvas.width)}×${fmtPx(STATE.preWarp.canvas.height)} (work)`;
+        } else {
+            kvPrewarp.textContent = "—";
+        }
+
+        // Rectified info
+        if (STATE.rectified.canvas) {
+            kvRect.textContent = `${fmtPx(STATE.rectified.canvas.width)}×${fmtPx(STATE.rectified.canvas.height)}`;
+        } else {
+            kvRect.textContent = "—";
+        }
+
+        // Mode label
+        uiMode.textContent = STATE.ui.mode[0].toUpperCase() + STATE.ui.mode.slice(1);
+        badgeSource.style.display = STATE.source.type ? "inline-flex" : "none";
+
+        // Sections visibility
+        sectionCrop.style.display = (STATE.ui.mode === "crop") ? "flex" : "none";
+        // Rotate always visible if there's a source; it applies after crop.
+        sectionRotate.style.display = (STATE.source.bitmap) ? "flex" : "none";
+        sectionWarp.style.display = (STATE.ui.mode === "warp") ? "flex" : "none";
+        sectionCal.style.display = (STATE.ui.mode === "calibrate") ? "flex" : "none";
+
+        // Mode tabs
+        modeCrop.classList.toggle('active', STATE.ui.mode === "crop");
+        modeWarp.classList.toggle('active', STATE.ui.mode === "warp");
+        modeCal.classList.toggle('active', STATE.ui.mode === "calibrate");
+
+        // Export enablement
+        const canExport = !!STATE.rectified.canvas;
+        setExportEnabled(canExport);
+
+        // PDF controls only when PDF loaded
+        pdfControls.style.display = (STATE.source.type === "pdf") ? "flex" : "none";
+
+        // PiP toggle
+        pip.style.display = showPip.checked ? "block" : "none";
+        if (!showPip.checked) pipDims.textContent = "—";
+
+        // Calibration UI
+        STATE.calibration.enabled = enableCal.checked;
+        STATE.calibration.xScale = xScale.value;
+        STATE.calibration.yScale = yScale.value;
+        STATE.calibration.invertY = invertY.checked;
+
+        // Buttons state
+        const hasSource = !!STATE.source.bitmap;
+        btnApplyCrop.disabled = !hasSource;
+        btnResetCrop.disabled = !hasSource;
+        btnApplyRot.disabled = !hasSource;
+        btnResetRot.disabled = !hasSource;
+
+        const hasPrewarp = !!STATE.preWarp.canvas;
+        btnInitWarp.disabled = !hasPrewarp;
+        btnApplyWarp.disabled = !hasPrewarp;
+        btnResetWarp.disabled = !hasPrewarp;
+
+        const hasRect = !!STATE.rectified.canvas;
+        btnSetX1.disabled = !hasRect;
+        btnSetX2.disabled = !hasRect;
+        btnSetY1.disabled = !hasRect;
+        btnSetY2.disabled = !hasRect;
+        btnClearCal.disabled = !hasRect;
+
+        // Cursor display
+        kvCursor.textContent = STATE.ui.hasPointer ? `${fmtFloat(STATE.ui.pointer.x,2)}, ${fmtFloat(STATE.ui.pointer.y,2)}` : "—";
+        kvZoom.textContent = `${Math.round(STATE.view.scale * 100)}%`;
+
+        // Calibration summary
+        kvCalX.textContent = (STATE.calibration.x1 && STATE.calibration.x2)
+            ? `(${fmtFloat(STATE.calibration.x1.px,1)}→${STATE.calibration.x1.v}) (${fmtFloat(STATE.calibration.x2.px,1)}→${STATE.calibration.x2.v})`
+            : "—";
+        kvCalY.textContent = (STATE.calibration.y1 && STATE.calibration.y2)
+            ? `(${fmtFloat(STATE.calibration.y1.py,1)}→${STATE.calibration.y1.v}) (${fmtFloat(STATE.calibration.y2.py,1)}→${STATE.calibration.y2.v})`
+            : "—";
+    }
+
+    function currentStageImage() {
+        // Returns { canvasLike, w, h, stageName }
+        // canvasLike can be ImageBitmap or Canvas.
+        if (!STATE.source.bitmap) return null;
+
+        if (STATE.ui.mode === "crop") {
+            // Crop is performed on source stage (original bitmap)
+            return { img: STATE.source.bitmap, w: STATE.source.origW, h: STATE.source.origH, stageName: "source" };
+        }
+
+        if (STATE.ui.mode === "warp") {
+            // Warp is performed on preWarp stage
+            if (!STATE.preWarp.canvas) ensurePreWarpCanvas();
+            if (!STATE.preWarp.canvas) return null;
+            return { img: STATE.preWarp.canvas, w: STATE.preWarp.canvas.width, h: STATE.preWarp.canvas.height, stageName: "prewarp" };
+        }
+
+        if (STATE.ui.mode === "calibrate") {
+            // Calibration on rectified stage
+            if (!STATE.rectified.canvas) return null;
+            return { img: STATE.rectified.canvas, w: STATE.rectified.canvas.width, h: STATE.rectified.canvas.height, stageName: "rectified" };
+        }
+
+        return null;
+    }
+
+    function fitViewToStageImage() {
+        const stage = currentStageImage();
+        if (!stage) return;
+
+        const rect = getCanvasCssRect();
+        const pad = 20;
+        const availableW = Math.max(10, rect.width - pad * 2);
+        const availableH = Math.max(10, rect.height - pad * 2);
+
+        const sx = availableW / stage.w;
+        const sy = availableH / stage.h;
+        const s = Math.min(sx, sy);
+
+        STATE.view.scale = clamp(s, 0.05, 30);
+
+        const imgW = stage.w * STATE.view.scale;
+        const imgH = stage.h * STATE.view.scale;
+
+        STATE.view.tx = (rect.width - imgW) / 2;
+        STATE.view.ty = (rect.height - imgH) / 2;
+
+        updateUI();
+        requestRender();
+    }
+
+    function resetView() {
+        STATE.view.scale = 1;
+        STATE.view.tx = 0;
+        STATE.view.ty = 0;
+        fitViewToStageImage();
+    }
+
+    // Draw helpers for overlays
+    function drawHandleScreen(x, y, label=null, active=false) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(x, y, HANDLE_R, 0, Math.PI * 2);
+        ctx.fillStyle = active ? "rgba(59,130,246,0.95)" : "rgba(255,255,255,0.92)";
+        ctx.fill();
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = active ? "rgba(255,255,255,0.9)" : "rgba(59,130,246,0.85)";
+        ctx.stroke();
+
+        if (label) {
+            ctx.font = "12px 'JetBrains Mono', monospace";
+            ctx.fillStyle = "rgba(255,255,255,0.95)";
+            ctx.shadowColor = "rgba(0,0,0,0.6)";
+            ctx.shadowBlur = 6;
+            ctx.fillText(label, x + 10, y - 10);
+        }
+        ctx.restore();
+    }
+
+    function drawRectOverlayStage(rectStage, active=false) {
+        if (!rectStage) return;
+        const p0 = stageToScreen({ x: rectStage.x, y: rectStage.y });
+        const p1 = stageToScreen({ x: rectStage.x + rectStage.w, y: rectStage.y + rectStage.h });
+
+        const x = p0.x;
+        const y = p0.y;
+        const w = p1.x - p0.x;
+        const h = p1.y - p0.y;
+
+        ctx.save();
+        ctx.strokeStyle = active ? "rgba(59,130,246,0.95)" : "rgba(255,255,255,0.75)";
+        ctx.lineWidth = 2;
+        ctx.setLineDash([6, 4]);
+        ctx.strokeRect(x, y, w, h);
+        ctx.setLineDash([]);
+
+        // handles at corners
+        const corners = [
+            { x: x, y: y, name: "tl" },
+            { x: x + w, y: y, name: "tr" },
+            { x: x + w, y: y + h, name: "br" },
+            { x: x, y: y + h, name: "bl" }
+        ];
+        corners.forEach(c => drawHandleScreen(c.x, c.y, null, active));
+
+        ctx.restore();
+    }
+
+    function hitTestRectHandles(screenPt, rectStage) {
+        if (!rectStage) return null;
+        const p0 = stageToScreen({ x: rectStage.x, y: rectStage.y });
+        const p1 = stageToScreen({ x: rectStage.x + rectStage.w, y: rectStage.y + rectStage.h });
+
+        const corners = [
+            { x: p0.x, y: p0.y, which: "tl" },
+            { x: p1.x, y: p0.y, which: "tr" },
+            { x: p1.x, y: p1.y, which: "br" },
+            { x: p0.x, y: p1.y, which: "bl" }
+        ];
+
+        for (const c of corners) {
+            if (Math.hypot(screenPt.x - c.x, screenPt.y - c.y) <= HANDLE_HIT_R) return { type: "corner", which: c.which };
+        }
+
+        // Inside rect => move
+        const minX = Math.min(p0.x, p1.x), maxX = Math.max(p0.x, p1.x);
+        const minY = Math.min(p0.y, p1.y), maxY = Math.max(p0.y, p1.y);
+        if (screenPt.x >= minX && screenPt.x <= maxX && screenPt.y >= minY && screenPt.y <= maxY) return { type: "inside", which: "move" };
+
+        return null;
+    }
+
+    function hitTestWarpPoints(screenPt) {
+        if (!STATE.warp.quad) return null;
+        const labels = ["TL", "TR", "BR", "BL"];
+        for (let i = 0; i < 4; i++) {
+            const sp = stageToScreen(STATE.warp.quad[i]);
+            if (Math.hypot(screenPt.x - sp.x, screenPt.y - sp.y) <= HANDLE_HIT_R) {
+                return { type: "warp", index: i, label: labels[i] };
+            }
+        }
+        return null;
+    }
+
+    // ---------------------------
+    // Render loop
+    // ---------------------------
+    let needsRender = false;
+
+    function requestRender() {
+        if (needsRender) return;
+        needsRender = true;
+        requestAnimationFrame(() => {
+            needsRender = false;
+            render();
+        });
+    }
+
+    function render() {
+        setCanvasSizeToWrapper();
+        updateUI();
+
+        clearCanvas();
+        drawCheckerboardBackground();
+
+        const stage = currentStageImage();
+        if (!stage) {
+            drawEmptyState();
+            return;
+        }
+
+        // Draw stage image with pan/zoom
+        const rect = getCanvasCssRect();
+        ctx.save();
+        ctx.translate(STATE.view.tx, STATE.view.ty);
+        ctx.scale(STATE.view.scale, STATE.view.scale);
+
+        // Image draw
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = "high";
+        ctx.drawImage(stage.img, 0, 0, stage.w, stage.h);
+
+        ctx.restore();
+
+        // Overlays
+        if (STATE.ui.mode === "crop") {
+            // Crop overlay uses stage coords (same as original coords since stage is bitmap)
+            drawRectOverlayStage(STATE.cropBoxStage, true);
+
+            // Show guide text
+            drawOverlayText(`Crop ROI • drag corners to resize • drag inside to move`, 12, 18);
+        }
+
+        if (STATE.ui.mode === "warp") {
+            // Draw quad overlay
+            if (STATE.warp.quad) {
+                drawWarpOverlay();
+            }
+            drawOverlayText(`Warp corners TL/TR/BR/BL • Apply Warp to generate rectified image`, 12, 18);
+
+            // PiP preview (optional)
+            if (showPip.checked) {
+                renderPipPreview();
+            }
+        }
+
+        if (STATE.ui.mode === "calibrate") {
+            drawOverlayText(`Calibration • click Set X/Y buttons then click points on the image`, 12, 18);
+            drawCalibrationOverlay();
+        }
+
+        // Loupe (when dragging a handle)
+        renderLoupe();
+    }
+
+    function drawEmptyState() {
+        const rect = getCanvasCssRect();
+        ctx.save();
+        ctx.fillStyle = "rgba(255,255,255,0.85)";
+        ctx.font = "600 18px 'Space Grotesk', sans-serif";
+        ctx.fillText("Import an image, PDF, or screen capture to begin.", 24, 60);
+
+        ctx.fillStyle = "rgba(255,255,255,0.65)";
+        ctx.font = "14px 'JetBrains Mono', monospace";
+        ctx.fillText("Upload → Crop → Rotate → Warp → (Optional) Calibrate → Export", 24, 90);
+        ctx.restore();
+    }
+
+    function drawOverlayText(text, x, y) {
+        ctx.save();
+        ctx.font = "12px 'JetBrains Mono', monospace";
+        ctx.fillStyle = "rgba(0,0,0,0.55)";
+        ctx.fillRect(x-6, y-14, ctx.measureText(text).width + 12, 20);
+        ctx.fillStyle = "rgba(255,255,255,0.92)";
+        ctx.fillText(text, x, y);
+        ctx.restore();
+    }
+
+    function drawWarpOverlay() {
+        const q = STATE.warp.quad;
+        if (!q) return;
+
+        const labels = ["TL", "TR", "BR", "BL"];
+
+        // Edges
+        ctx.save();
+        ctx.strokeStyle = "rgba(59,130,246,0.95)";
+        ctx.lineWidth = 2;
+
+        const p0 = stageToScreen(q[0]);
+        const p1 = stageToScreen(q[1]);
+        const p2 = stageToScreen(q[2]);
+        const p3 = stageToScreen(q[3]);
+
+        ctx.beginPath();
+        ctx.moveTo(p0.x, p0.y);
+        ctx.lineTo(p1.x, p1.y);
+        ctx.lineTo(p2.x, p2.y);
+        ctx.lineTo(p3.x, p3.y);
+        ctx.closePath();
+        ctx.stroke();
+
+        // Handles + labels
+        for (let i = 0; i < 4; i++) {
+            const sp = stageToScreen(q[i]);
+            const active = (STATE.ui.activeHandle && STATE.ui.activeHandle.type === "warp" && STATE.ui.activeHandle.index === i);
+            drawHandleScreen(sp.x, sp.y, labels[i], active);
+        }
+
+        ctx.restore();
+    }
+
+    function drawCalibrationOverlay() {
+        if (!STATE.rectified.canvas) return;
+
+        // Mark calibration points if present
+        const c = STATE.calibration;
+        const markers = [];
+        if (c.x1) markers.push({ p: c.x1, label: "X1" });
+        if (c.x2) markers.push({ p: c.x2, label: "X2" });
+        if (c.y1) markers.push({ p: c.y1, label: "Y1" });
+        if (c.y2) markers.push({ p: c.y2, label: "Y2" });
+
+        ctx.save();
+        for (const m of markers) {
+            const sp = stageToScreen({ x: m.p.px, y: m.p.py });
+            drawHandleScreen(sp.x, sp.y, m.label, false);
+        }
+
+        // If cursor present and calibration ready, show data readout
+        if (STATE.ui.hasPointer && calibrationReady()) {
+            const data = cursorToData(STATE.ui.pointer.x, STATE.ui.pointer.y);
+            if (data) {
+                const text = `x=${fmtFloat(data.x, 6)}  y=${fmtFloat(data.y, 6)}`;
+                drawOverlayText(text, 12, 40);
+            }
+        }
+
+        ctx.restore();
+    }
+
+    function renderPipPreview() {
+        if (!STATE.preWarp.canvas || !STATE.warp.quad) return;
+
+        const w = Math.max(8, parseInt(dstW.value || "0", 10) || 0);
+        const h = Math.max(8, parseInt(dstH.value || "0", 10) || 0);
+        if (!w || !h) return;
+
+        // Limit preview for performance
+        const maxDim = Math.max(w, h);
+        const s = Math.min(1, PIP_MAX_DIM / maxDim);
+        const pw = Math.max(2, Math.floor(w * s));
+        const ph = Math.max(2, Math.floor(h * s));
+
+        setMiniCanvasSize(pipCanvas, pipCtx, pip.clientWidth, pip.clientHeight - 34);
+
+        // Create warp preview at reduced resolution
+        // Scale quad points accordingly to match preview scaling on dst size
+        // (We keep source quad same; dst scaling is handled by using smaller dst canvas)
+        const preview = warpCanvas(STATE.preWarp.canvas, STATE.warp.quad, pw, ph);
+        if (!preview) return;
+
+        // Draw to pip canvas (fit)
+        pipCtx.clearRect(0, 0, pipCanvas.clientWidth, pipCanvas.clientHeight);
+        pipCtx.imageSmoothingEnabled = true;
+        pipCtx.imageSmoothingQuality = "high";
+
+        const cw = pipCanvas.getBoundingClientRect().width;
+        const ch = pipCanvas.getBoundingClientRect().height;
+
+        pipCtx.save();
+        // fill background
+        pipCtx.fillStyle = "rgba(0,0,0,0.35)";
+        pipCtx.fillRect(0, 0, cw, ch);
+
+        // Fit preview
+        const sx = cw / pw;
+        const sy = ch / ph;
+        const sc = Math.min(sx, sy);
+        const dw = pw * sc;
+        const dh = ph * sc;
+        const dx = (cw - dw) / 2;
+        const dy = (ch - dh) / 2;
+
+        pipCtx.drawImage(preview.canvas, dx, dy, dw, dh);
+
+        // Optional grid overlay
+        if (showGrid.checked) {
+            pipCtx.strokeStyle = "rgba(255,255,255,0.25)";
+            pipCtx.lineWidth = 1;
+            for (let i = 1; i < GRID_DIVS; i++) {
+                const gx = dx + (dw * i / GRID_DIVS);
+                const gy = dy + (dh * i / GRID_DIVS);
+                pipCtx.beginPath(); pipCtx.moveTo(gx, dy); pipCtx.lineTo(gx, dy + dh); pipCtx.stroke();
+                pipCtx.beginPath(); pipCtx.moveTo(dx, gy); pipCtx.lineTo(dx + dw, gy); pipCtx.stroke();
+            }
+        }
+
+        pipCtx.restore();
+
+        pipDims.textContent = `${pw}×${ph}`;
+    }
+
+    function renderLoupe() {
+        const active = STATE.ui.activeHandle;
+        if (!active || !STATE.ui.hasPointer) {
+            loupe.style.display = "none";
+            return;
+        }
+
+        // We show loupe when dragging crop handles OR warp points
+        if (!(STATE.drag.active && (STATE.drag.kind === "warp-point" || STATE.drag.kind === "crop-handle"))) {
+            loupe.style.display = "none";
+            return;
+        }
+
+        const stage = currentStageImage();
+        if (!stage) {
+            loupe.style.display = "none";
+            return;
+        }
+
+        loupe.style.display = "block";
+        setMiniCanvasSize(loupeCanvas, loupeCtx, loupe.clientWidth, loupe.clientHeight - 34);
+
+        const cx = STATE.ui.pointer.x;
+        const cy = STATE.ui.pointer.y;
+
+        // Determine source region in stage coords
+        const half = LOUPE_SIZE / (2 * LOUPE_ZOOM);
+        const sx0 = clamp(cx - half, 0, stage.w - 1);
+        const sy0 = clamp(cy - half, 0, stage.h - 1);
+        const sx1 = clamp(cx + half, 0, stage.w - 1);
+        const sy1 = clamp(cy + half, 0, stage.h - 1);
+
+        const sw = Math.max(1, sx1 - sx0);
+        const sh = Math.max(1, sy1 - sy0);
+
+        loupeCtx.clearRect(0, 0, loupeCanvas.getBoundingClientRect().width, loupeCanvas.getBoundingClientRect().height);
+        loupeCtx.imageSmoothingEnabled = false;
+
+        // Draw zoomed patch into loupe
+        const lw = loupeCanvas.getBoundingClientRect().width;
+        const lh = loupeCanvas.getBoundingClientRect().height;
+
+        loupeCtx.drawImage(stage.img, sx0, sy0, sw, sh, 0, 0, lw, lh);
+
+        // Crosshair
+        loupeCtx.save();
+        loupeCtx.strokeStyle = "rgba(59,130,246,0.9)";
+        loupeCtx.lineWidth = 1;
+        loupeCtx.beginPath(); loupeCtx.moveTo(lw/2, 0); loupeCtx.lineTo(lw/2, lh); loupeCtx.stroke();
+        loupeCtx.beginPath(); loupeCtx.moveTo(0, lh/2); loupeCtx.lineTo(lw, lh/2); loupeCtx.stroke();
+        loupeCtx.restore();
+    }
+
+    // ---------------------------
+    // Mode switching
+    // ---------------------------
+    function setMode(mode) {
+        STATE.ui.mode = mode;
+
+        if (mode === "crop") {
+            STATE.ui.stage = STATE.source.bitmap ? "source" : "empty";
+            STATE.ui.workingNote = "Original";
+            // Ensure crop box exists
+            if (STATE.source.bitmap && !STATE.cropBoxStage) {
+                STATE.cropBoxStage = { x: 0, y: 0, w: STATE.source.origW, h: STATE.source.origH };
+            }
+        }
+
+        if (mode === "warp") {
+            if (!STATE.source.bitmap) {
+                STATE.ui.stage = "empty";
+            } else {
+                ensurePreWarpCanvas();
+                STATE.ui.stage = "prewarp";
+                STATE.ui.workingNote = `Pre-warp (workScale=${fmtFloat(STATE.preWarp.workScale,3)})`;
+            }
+        }
+
+        if (mode === "calibrate") {
+            STATE.ui.stage = STATE.rectified.canvas ? "rectified" : (STATE.source.bitmap ? "source" : "empty");
+            STATE.ui.workingNote = STATE.rectified.canvas ? "Rectified" : "—";
+        }
+
+        // When switching modes, fit view to that stage
+        fitViewToStageImage();
+
+        updateUI();
+        requestRender();
+    }
+
+    // ---------------------------
+    // Crop operations
+    // ---------------------------
+    function normalizeRect(r) {
+        let x = r.x, y = r.y, w = r.w, h = r.h;
+        if (w < 0) { x += w; w = -w; }
+        if (h < 0) { y += h; h = -h; }
+        return { x, y, w, h };
+    }
+
+    function applyCrop() {
+        if (!STATE.source.bitmap || !STATE.cropBoxStage) return;
+
+        const r = normalizeRect(STATE.cropBoxStage);
+        const x = clamp(Math.round(r.x), 0, STATE.source.origW - 1);
+        const y = clamp(Math.round(r.y), 0, STATE.source.origH - 1);
+        const w = clamp(Math.round(r.w), 1, STATE.source.origW - x);
+        const h = clamp(Math.round(r.h), 1, STATE.source.origH - y);
+
+        STATE.cropOriginal = { x, y, w, h };
+        kvCrop.textContent = `${fmtPx(x)},${fmtPx(y)} ${fmtPx(w)}×${fmtPx(h)}`;
+
+        // When crop changes, invalidate downstream
+        STATE.rotationDeg = parseFloat(rotDeg.value || "0") || 0;
+        STATE.preWarp = { fullW: 0, fullH: 0, workScale: 1.0, canvas: null, ctx: null };
+        STATE.warp = { quad: null, dstW: 0, dstH: 0, H: null, Hinv: null };
+        STATE.rectified = { canvas: null, ctx: null };
+        setExportEnabled(false);
+
+        // Move to warp stage for convenience if user wants
+        ensurePreWarpCanvas();
+        STATE.ui.stage = "prewarp";
+        STATE.ui.workingNote = `Pre-warp (workScale=${fmtFloat(STATE.preWarp.workScale,3)})`;
+
+        updateUI();
+        if (STATE.ui.mode !== "crop") setMode(STATE.ui.mode);
+        requestRender();
+    }
+
+    function resetCropToFull() {
+        if (!STATE.source.bitmap) return;
+        STATE.cropOriginal = null;
+        STATE.cropBoxStage = { x: 0, y: 0, w: STATE.source.origW, h: STATE.source.origH };
+        kvCrop.textContent = `0,0 ${fmtPx(STATE.source.origW)}×${fmtPx(STATE.source.origH)} (full)`;
+
+        // Invalidate downstream
+        STATE.preWarp = { fullW: 0, fullH: 0, workScale: 1.0, canvas: null, ctx: null };
+        STATE.warp = { quad: null, dstW: 0, dstH: 0, H: null, Hinv: null };
+        STATE.rectified = { canvas: null, ctx: null };
+        setExportEnabled(false);
+
+        requestRender();
+    }
+
+    // ---------------------------
+    // Rotation operations
+    // ---------------------------
+    function applyRotation() {
+        if (!STATE.source.bitmap) return;
+        const deg = parseFloat(rotDeg.value || "0") || 0;
+        STATE.rotationDeg = deg;
+
+        // Invalidate downstream and rebuild prewarp
+        STATE.preWarp = { fullW: 0, fullH: 0, workScale: 1.0, canvas: null, ctx: null };
+        STATE.warp = { quad: null, dstW: 0, dstH: 0, H: null, Hinv: null };
+        STATE.rectified = { canvas: null, ctx: null };
+        setExportEnabled(false);
+
+        ensurePreWarpCanvas();
+
+        if (STATE.ui.mode === "warp") {
+            fitViewToStageImage();
+        }
+
+        requestRender();
+    }
+
+    function resetRotation() {
+        STATE.rotationDeg = 0;
+        rotDeg.value = "0";
+        applyRotation();
+    }
+
+    // ---------------------------
+    // Warp operations
+    // ---------------------------
+    function initWarpFromCurrent() {
+        ensurePreWarpCanvas();
+        initWarpQuadDefault();
+        autoComputeDstFromQuad();
+        requestRender();
+    }
+
+    function applyWarp() {
+        ensurePreWarpCanvas();
+        if (!STATE.preWarp.canvas || !STATE.warp.quad) return;
+
+        const w = Math.max(8, parseInt(dstW.value || "0", 10) || 0);
+        const h = Math.max(8, parseInt(dstH.value || "0", 10) || 0);
+        if (!w || !h) return;
+
+        STATE.warp.dstW = w;
+        STATE.warp.dstH = h;
+
+        const result = warpCanvas(STATE.preWarp.canvas, STATE.warp.quad, w, h);
+        if (!result) {
+            alert("Warp failed (singular transform). Adjust corner points and try again.");
+            return;
+        }
+
+        STATE.warp.H = result.H;
+        STATE.warp.Hinv = result.Hinv;
+
+        STATE.rectified.canvas = result.canvas;
+        STATE.rectified.ctx = result.canvas.getContext('2d', { willReadFrequently: true });
+
+        // Update stage
+        if (STATE.ui.mode === "calibrate") {
+            STATE.ui.stage = "rectified";
+            STATE.ui.workingNote = "Rectified";
+            fitViewToStageImage();
+        }
+
+        setExportEnabled(true);
+        requestRender();
+    }
+
+    function resetWarp() {
+        STATE.warp.quad = null;
+        STATE.warp.dstW = 0;
+        STATE.warp.dstH = 0;
+        dstW.value = "0";
+        dstH.value = "0";
+        STATE.warp.H = null;
+        STATE.warp.Hinv = null;
+
+        STATE.rectified = { canvas: null, ctx: null };
+        setExportEnabled(false);
+
+        ensurePreWarpCanvas(); // will init quad
+        requestRender();
+    }
+
+    // ---------------------------
+    // Export
+    // ---------------------------
+    function buildExportJson(fullRes=false) {
+        const fullResExportData = fullRes ? computeFullResExportData({
+            state: STATE,
+            getCropOriginalOrFull,
+            computeRotatedBounds,
+            warpCanvas,
+            documentRef: document,
+            alertFn: (message) => alert(message)
+        }) : null;
+
+        if (fullRes && !fullResExportData) return null;
+
+        return buildExportJsonFromContext({
+            state: STATE,
+            tool: TOOL,
+            getCropOriginalOrFull,
+            nowIso,
+            deepCopy,
+            fullRes,
+            computeRotatedBounds,
+            warpCanvas,
+            documentRef: document,
+            alertFn: (message) => alert(message),
+            fullResExportData
+        });
+    }
+
+    async function exportPngAndJson({ bundle=false } = {}) {
+        return exportPngAndJsonFromContext({
+            bundle,
+            state: STATE,
+            tool: TOOL,
+            fullResExportChecked: fullResExport.checked,
+            getCropOriginalOrFull,
+            nowIso,
+            deepCopy,
+            canvasToBlob,
+            downloadBlob,
+            blobToDataUrl,
+            computeRotatedBounds,
+            warpCanvas,
+            documentRef: document,
+            alertFn: (message) => alert(message)
+        });
+    }
+
+    // ---------------------------
+    // Pointer interactions
+    // ---------------------------
+    function canvasEventToScreenPt(ev) {
+        const r = getCanvasCssRect();
+        return { x: ev.clientX - r.left, y: ev.clientY - r.top };
+    }
+
+    function updatePointer(ev) {
+        const sp = canvasEventToScreenPt(ev);
+        const stagePt = screenToStage(sp);
+        STATE.ui.pointer = stagePt;
+        STATE.ui.hasPointer = true;
+
+        // Clamp pointer within stage
+        const stage = currentStageImage();
+        if (stage) {
+            STATE.ui.pointer.x = clamp(STATE.ui.pointer.x, 0, stage.w - 1);
+            STATE.ui.pointer.y = clamp(STATE.ui.pointer.y, 0, stage.h - 1);
+        }
+
+        // Update cursor readout
+        kvCursor.textContent = `${fmtFloat(STATE.ui.pointer.x,2)}, ${fmtFloat(STATE.ui.pointer.y,2)}`;
+
+        requestRender();
+    }
+
+    function clearPointer() {
+        STATE.ui.hasPointer = false;
+        kvCursor.textContent = "—";
+        requestRender();
+    }
+
+    // Crop drag logic
+    function startCropDrag(kind, which, screenPt) {
+        STATE.drag.active = true;
+        STATE.drag.kind = kind;
+        STATE.drag.which = which;
+        STATE.drag.start = { ...screenPt };
+        STATE.drag.last = { ...screenPt };
+        STATE.drag.startRect = STATE.cropBoxStage ? deepCopy(STATE.cropBoxStage) : null;
+
+        // For aspect lock, store ratio when starting a new crop
+        if (lockAspect.checked && STATE.cropBoxStage) {
+            const r = normalizeRect(STATE.cropBoxStage);
+            if (r.h !== 0) STATE.cropAspect = r.w / r.h;
+        } else {
+            STATE.cropAspect = null;
+        }
+    }
+
+    function updateCropDrag(screenPt) {
+        if (!STATE.cropBoxStage) return;
+        const stage = currentStageImage();
+        if (!stage) return;
+
+        const dx = (screenPt.x - STATE.drag.last.sx) / STATE.view.scale;
+        const dy = (screenPt.y - STATE.drag.last.sy) / STATE.view.scale;
+
+        let r = deepCopy(STATE.cropBoxStage);
+
+        if (STATE.drag.kind === "crop-move") {
+            r.x += dx;
+            r.y += dy;
+        } else if (STATE.drag.kind === "crop-handle") {
+            // Adjust corners based on which
+            const which = STATE.drag.which; // tl,tr,br,bl
+            if (which === "tl") { r.x += dx; r.y += dy; r.w -= dx; r.h -= dy; }
+            if (which === "tr") { r.y += dy; r.w += dx; r.h -= dy; }
+            if (which === "br") { r.w += dx; r.h += dy; }
+            if (which === "bl") { r.x += dx; r.w -= dx; r.h += dy; }
+
+            if (lockAspect.checked) {
+                const nr = normalizeRect(r);
+                const ratio = STATE.cropAspect || (nr.h !== 0 ? nr.w / nr.h : null);
+                if (ratio) {
+                    // Adjust h to match w/ratio, keep anchor opposite corner
+                    const newH = nr.w / ratio;
+                    const dh2 = newH - nr.h;
+                    // We approximate by expanding/contracting on the relevant side depending on which corner dragged.
+                    if (which === "tl" || which === "tr") {
+                        r.y -= dh2;
+                        r.h += dh2;
+                    } else {
+                        r.h += dh2;
+                    }
+                }
+            }
+        } else if (STATE.drag.kind === "crop-new") {
+            // Create rect from start to current
+            const startStage = screenToStage({ x: STATE.drag.start.sx, y: STATE.drag.start.sy });
+            const curStage = screenToStage(screenPt);
+            r = { x: startStage.x, y: startStage.y, w: (curStage.x - startStage.x), h: (curStage.y - startStage.y) };
+            if (lockAspect.checked) {
+                const ratio = STATE.cropAspect || 1;
+                // enforce ratio using w
+                const signH = r.h >= 0 ? 1 : -1;
+                r.h = signH * (Math.abs(r.w) / ratio);
+            }
+        }
+
+        // Clamp to stage bounds
+        const nr = normalizeRect(r);
+        const x = clamp(nr.x, 0, stage.w - 1);
+        const y = clamp(nr.y, 0, stage.h - 1);
+        const w = clamp(nr.w, 1, stage.w - x);
+        const h = clamp(nr.h, 1, stage.h - y);
+
+        STATE.cropBoxStage = { x, y, w, h };
+
+        STATE.drag.last = { ...screenPt };
+
+        requestRender();
+    }
+
+    function endDrag() {
+        STATE.drag.active = false;
+        STATE.drag.kind = null;
+        STATE.drag.which = null;
+        STATE.drag.startRect = null;
+        STATE.drag.startPoint = null;
+        STATE.ui.activeHandle = null;
+        requestRender();
+    }
+
+    // Warp drag logic
+    function startWarpDrag(index, screenPt) {
+        STATE.drag.active = true;
+        STATE.drag.kind = "warp-point";
+        STATE.drag.which = index;
+        STATE.drag.start = { ...screenPt };
+        STATE.drag.last = { ...screenPt };
+        STATE.drag.startPoint = deepCopy(STATE.warp.quad[index]);
+        STATE.ui.activeHandle = { type: "warp", index };
+    }
+
+    function updateWarpDrag(screenPt) {
+        if (!STATE.warp.quad) return;
+
+        const i = STATE.drag.which;
+        const dx = (screenPt.x - STATE.drag.last.sx) / STATE.view.scale;
+        const dy = (screenPt.y - STATE.drag.last.sy) / STATE.view.scale;
+
+        const p = STATE.warp.quad[i];
+        p.x += dx;
+        p.y += dy;
+
+        // Clamp within prewarp bounds
+        const stage = currentStageImage();
+        if (stage) {
+            p.x = clamp(p.x, 0, stage.w - 1);
+            p.y = clamp(p.y, 0, stage.h - 1);
+        }
+
+        STATE.drag.last = { ...screenPt };
+
+        // Auto update dst if user wants; we keep their manual input if they changed it.
+        // Here we only update if dstW/dstH match current stored auto computed values (heuristic).
+        requestRender();
+    }
+
+    // Keyboard nudges
+    function nudgeActiveHandle(dx, dy) {
+        const step = (window.__shiftHeld ? 10 : 1);
+        const ddx = dx * step;
+        const ddy = dy * step;
+
+        if (STATE.ui.mode === "warp" && STATE.ui.activeHandle && STATE.ui.activeHandle.type === "warp") {
+            const i = STATE.ui.activeHandle.index;
+            if (!STATE.warp.quad) return;
+            const stage = currentStageImage();
+            if (!stage) return;
+            STATE.warp.quad[i].x = clamp(STATE.warp.quad[i].x + ddx, 0, stage.w - 1);
+            STATE.warp.quad[i].y = clamp(STATE.warp.quad[i].y + ddy, 0, stage.h - 1);
+            requestRender();
+        }
+
+        if (STATE.ui.mode === "crop" && STATE.ui.activeHandle && STATE.ui.activeHandle.type === "crop") {
+            // Optional: nudge crop by moving whole rect
+            if (!STATE.cropBoxStage) return;
+            const stage = currentStageImage();
+            if (!stage) return;
+
+            const nr = normalizeRect(STATE.cropBoxStage);
+            let x = nr.x + ddx;
+            let y = nr.y + ddy;
+            x = clamp(x, 0, stage.w - nr.w);
+            y = clamp(y, 0, stage.h - nr.h);
+
+            STATE.cropBoxStage = { x, y, w: nr.w, h: nr.h };
+            requestRender();
+        }
+    }
+
+    // ---------------------------
+    // Calibration point selection
+    // ---------------------------
+    let calPickMode = null; // "x1" | "x2" | "y1" | "y2" | null
+
+    function setCalPickMode(kind) {
+        if (!STATE.rectified.canvas) return;
+        if (!enableCal.checked) enableCal.checked = true;
+        STATE.calibration.enabled = true;
+
+        calPickMode = kind;
+
+        // Visual affordance: highlight buttons
+        btnSetX1.classList.toggle('primary', kind === "x1");
+        btnSetX2.classList.toggle('primary', kind === "x2");
+        btnSetY1.classList.toggle('primary', kind === "y1");
+        btnSetY2.classList.toggle('primary', kind === "y2");
+
+        requestRender();
+    }
+
+    function clearCalPickMode() {
+        calPickMode = null;
+        btnSetX1.classList.remove('primary');
+        btnSetX2.classList.remove('primary');
+        btnSetY1.classList.remove('primary');
+        btnSetY2.classList.remove('primary');
+    }
+
+    function applyCalibrationClick(px, py) {
+        if (!calPickMode) return;
+
+        // validate values for log scale when user entered them
+        const vx1 = parseNumeric(x1Val.value);
+        const vx2 = parseNumeric(x2Val.value);
+        const vy1 = parseNumeric(y1Val.value);
+        const vy2 = parseNumeric(y2Val.value);
+
+        if (vx1 === null || vx2 === null || vy1 === null || vy2 === null) {
+            alert("Calibration values must be numeric.");
+            return;
+        }
+
+        // If log scale, values must be > 0
+        if (xScale.value === "log10" && (vx1 <= 0 || vx2 <= 0)) {
+            alert("Log10 X scale requires X1 and X2 values > 0.");
+            return;
+        }
+        if (yScale.value === "log10" && (vy1 <= 0 || vy2 <= 0)) {
+            alert("Log10 Y scale requires Y1 and Y2 values > 0.");
+            return;
+        }
+
+        // Apply
+        if (calPickMode === "x1") STATE.calibration.x1 = { px, py, v: vx1 };
+        if (calPickMode === "x2") STATE.calibration.x2 = { px, py, v: vx2 };
+        if (calPickMode === "y1") STATE.calibration.y1 = { px, py, v: vy1 };
+        if (calPickMode === "y2") STATE.calibration.y2 = { px, py, v: vy2 };
+
+        clearCalPickMode();
+        requestRender();
+    }
+
+    // ---------------------------
+    // Event handlers
+    // ---------------------------
+
+    fileImage.addEventListener('change', async (ev) => {
+        const f = ev.target.files && ev.target.files[0];
+        if (!f) return;
+        await loadImageFile(f);
+        fileImage.value = "";
+    });
+
+    filePdf.addEventListener('change', async (ev) => {
+        const f = ev.target.files && ev.target.files[0];
+        if (!f) return;
+
+        const ok = await loadPdfJsIfNeeded();
+        if (!ok) {
+            alert("PDF.js could not be loaded. Vendor pdf.js locally or allow CDN access.");
+            filePdf.value = "";
+            return;
+        }
+
+        // Load PDF into memory; store file in STATE.source, but we'll render page to image.
+        const bytes = await f.arrayBuffer();
+
+        STATE.source.type = "pdf";
+        STATE.source.filename = f.name;
+        srcType.textContent = "pdf";
+        pdfControls.style.display = "flex";
+
+        // Keep pdf bytes for render calls
+        window.__pdfBytes = bytes;
+
+        // Attempt a quick doc load to get num pages
+        try {
+            const doc = await window.pdfjsLib.getDocument({ data: bytes }).promise;
+            window.__pdfDoc = doc;
+            pdfPage.max = String(doc.numPages);
+            pdfPage.value = "1";
+        } catch (e) {
+            alert("Failed to open PDF: " + (e?.message || e));
+        }
+
+        filePdf.value = "";
+        updateUI();
+    });
+
+    btnRenderPdf.addEventListener('click', async () => {
+        if (!window.__pdfDoc) {
+            alert("PDF not loaded.");
+            return;
+        }
+        const pageNum = clamp(parseInt(pdfPage.value || "1", 10) || 1, 1, window.__pdfDoc.numPages);
+        const scale = clamp(parseFloat(pdfScale.value || "2.0") || 2.0, 0.25, 6.0);
+
+        const page = await window.__pdfDoc.getPage(pageNum);
+        const viewport = page.getViewport({ scale });
+
+        const renderCanvas = document.createElement('canvas');
+        renderCanvas.width = Math.floor(viewport.width);
+        renderCanvas.height = Math.floor(viewport.height);
+        const rctx = renderCanvas.getContext('2d', { willReadFrequently: true });
+
+        const renderTask = page.render({ canvasContext: rctx, viewport });
+        await renderTask.promise;
+
+        await loadCanvasAsSource(renderCanvas, `${STATE.source.filename || "pdf"}_p${pageNum}.png`, "pdf");
+    });
+
+    // Screen capture
+    let captureStream = null;
+    let captureVideo = null;
+
+    btnStartCapture.addEventListener('click', async () => {
+        try {
+            captureStream = await navigator.mediaDevices.getDisplayMedia({ video: { cursor: "always" }, audio: false });
+            captureVideo = document.createElement('video');
+            captureVideo.srcObject = captureStream;
+            captureVideo.play();
+
+            captureControls.style.display = "flex";
+        } catch (e) {
+            alert("Screen capture failed: " + (e?.message || e));
+        }
+    });
+
+    btnCaptureFrame.addEventListener('click', async () => {
+        if (!captureVideo) return;
+        const w = captureVideo.videoWidth;
+        const h = captureVideo.videoHeight;
+        if (!w || !h) {
+            alert("Capture video not ready yet. Try again in a moment.");
+            return;
+        }
+        const c = document.createElement('canvas');
+        c.width = w;
+        c.height = h;
+        const cctx = c.getContext('2d');
+        cctx.drawImage(captureVideo, 0, 0);
+
+        await loadCanvasAsSource(c, "screen_capture.png", "screen_capture");
+    });
+
+    btnStopCapture.addEventListener('click', () => {
+        if (captureStream) {
+            captureStream.getTracks().forEach(t => t.stop());
+        }
+        captureStream = null;
+        captureVideo = null;
+        captureControls.style.display = "none";
+    });
+
+    // Mode buttons
+    modeCrop.addEventListener('click', () => setMode("crop"));
+    modeWarp.addEventListener('click', () => setMode("warp"));
+    modeCal.addEventListener('click', () => setMode("calibrate"));
+
+    // View
+    btnFit.addEventListener('click', () => fitViewToStageImage());
+    btnResetView.addEventListener('click', () => resetView());
+
+    btnResetAll.addEventListener('click', () => {
+        if (!confirm("Reset everything? This clears the current image and all transforms.")) return;
+        // Release bitmap
+        try { STATE.source.bitmap && STATE.source.bitmap.close && STATE.source.bitmap.close(); } catch(e) {}
+        resetStateInPlace(STATE);
+
+        rotDeg.value = "0";
+        dstW.value = "0";
+        dstH.value = "0";
+        clearCalibration(true);
+        pdfControls.style.display = "none";
+        captureControls.style.display = "none";
+        setExportEnabled(false);
+
+        updateUI();
+        requestRender();
+    });
+
+    // Crop buttons
+    btnApplyCrop.addEventListener('click', applyCrop);
+    btnResetCrop.addEventListener('click', resetCropToFull);
+
+    // Rotate
+    btnApplyRot.addEventListener('click', applyRotation);
+    btnResetRot.addEventListener('click', resetRotation);
+
+    // Warp
+    btnInitWarp.addEventListener('click', initWarpFromCurrent);
+    btnApplyWarp.addEventListener('click', applyWarp);
+    btnResetWarp.addEventListener('click', resetWarp);
+    btnAutoDst.addEventListener('click', () => { autoComputeDstFromQuad(); requestRender(); });
+
+    // PiP toggle
+    showPip.addEventListener('change', () => { updateUI(); requestRender(); });
+
+    // Calibration toggles
+    enableCal.addEventListener('change', () => { STATE.calibration.enabled = enableCal.checked; requestRender(); });
+    xScale.addEventListener('change', () => { STATE.calibration.xScale = xScale.value; requestRender(); });
+    yScale.addEventListener('change', () => { STATE.calibration.yScale = yScale.value; requestRender(); });
+    invertY.addEventListener('change', () => { STATE.calibration.invertY = invertY.checked; requestRender(); });
+
+    btnSetX1.addEventListener('click', () => setCalPickMode("x1"));
+    btnSetX2.addEventListener('click', () => setCalPickMode("x2"));
+    btnSetY1.addEventListener('click', () => setCalPickMode("y1"));
+    btnSetY2.addEventListener('click', () => setCalPickMode("y2"));
+    btnClearCal.addEventListener('click', () => { clearCalibration(); clearCalPickMode(); });
+
+    // Export
+    btnExportPng.addEventListener('click', async () => {
+        await exportPngAndJson({ bundle: false });
+    });
+    btnExportJson.addEventListener('click', async () => {
+        // JSON-only export
+        const doFull = fullResExport.checked;
+        const jsonObj = buildExportJson(!!doFull);
+        if (!jsonObj) return;
+        const jsonBlob = new Blob([JSON.stringify(jsonObj, null, 2)], { type: "application/json" });
+        downloadBlob("figure_rectified_transform.json", jsonBlob);
+    });
+    btnExportBundle.addEventListener('click', async () => {
+        await exportPngAndJson({ bundle: true });
+    });
+
+    // Canvas mouse interactions
+    mainCanvas.addEventListener('pointermove', (ev) => {
+        updatePointer(ev);
+
+        const sp = canvasEventToScreenPt(ev);
+
+        // Update active handle hover indication (if not dragging)
+        if (!STATE.drag.active) {
+            if (STATE.ui.mode === "warp") {
+                const hit = hitTestWarpPoints(sp);
+                STATE.ui.activeHandle = hit ? { type: "warp", index: hit.index } : null;
+            } else if (STATE.ui.mode === "crop") {
+                const hit = hitTestRectHandles(sp, STATE.cropBoxStage);
+                if (hit && (hit.type === "corner" || hit.type === "inside")) {
+                    STATE.ui.activeHandle = { type: "crop", which: hit.which };
+                } else {
+                    STATE.ui.activeHandle = null;
+                }
+            }
+        }
+
+        // Drag update
+        if (STATE.drag.active) {
+            if (STATE.drag.kind === "pan") {
+                const dx = sp.x - STATE.drag.last.sx;
+                const dy = sp.y - STATE.drag.last.sy;
+                STATE.view.tx += dx;
+                STATE.view.ty += dy;
+                STATE.drag.last = { sx: sp.x, sy: sp.y };
+                requestRender();
+                return;
+            }
+
+            if (STATE.ui.mode === "crop" && (STATE.drag.kind.startsWith("crop"))) {
+                updateCropDrag({ sx: sp.x, sy: sp.y });
+                return;
+            }
+
+            if (STATE.ui.mode === "warp" && STATE.drag.kind === "warp-point") {
+                updateWarpDrag({ sx: sp.x, sy: sp.y });
+                return;
+            }
+        }
+    });
+
+    mainCanvas.addEventListener('pointerdown', (ev) => {
+        mainCanvas.setPointerCapture(ev.pointerId);
+        const sp = canvasEventToScreenPt(ev);
+
+        // In calibrate mode, clicking assigns calibration if pick mode is active
+        if (STATE.ui.mode === "calibrate") {
+            if (calPickMode && STATE.rectified.canvas) {
+                const stagePt = screenToStage(sp);
+                applyCalibrationClick(stagePt.x, stagePt.y);
+                return;
+            }
+            // Otherwise pan
+        }
+
+        // Handle selection based on mode
+        if (STATE.ui.mode === "warp") {
+            const hit = hitTestWarpPoints(sp);
+            if (hit) {
+                startWarpDrag(hit.index, { sx: sp.x, sy: sp.y });
+                return;
+            }
+        }
+
+        if (STATE.ui.mode === "crop") {
+            const hit = hitTestRectHandles(sp, STATE.cropBoxStage);
+            if (hit) {
+                if (hit.type === "inside") {
+                    STATE.ui.activeHandle = { type: "crop", which: "move" };
+                    startCropDrag("crop-move", "move", { sx: sp.x, sy: sp.y });
+                    return;
+                }
+                if (hit.type === "corner") {
+                    STATE.ui.activeHandle = { type: "crop", which: hit.which };
+                    startCropDrag("crop-handle", hit.which, { sx: sp.x, sy: sp.y });
+                    return;
+                }
+            }
+            // Start new crop
+            STATE.ui.activeHandle = { type: "crop", which: "new" };
+            startCropDrag("crop-new", "new", { sx: sp.x, sy: sp.y });
+            return;
+        }
+
+        // Default: pan
+        STATE.drag.active = true;
+        STATE.drag.kind = "pan";
+        STATE.drag.start = { sx: sp.x, sy: sp.y };
+        STATE.drag.last = { sx: sp.x, sy: sp.y };
+    });
+
+    mainCanvas.addEventListener('pointerup', (ev) => {
+        try { mainCanvas.releasePointerCapture(ev.pointerId); } catch(e) {}
+        endDrag();
+    });
+
+    mainCanvas.addEventListener('pointerleave', () => {
+        clearPointer();
+    });
+
+    // Zoom
+    mainCanvas.addEventListener('wheel', (ev) => {
+        ev.preventDefault();
+
+        const sp = canvasEventToScreenPt(ev);
+        const before = screenToStage(sp);
+
+        const zoomFactor = (ev.deltaY < 0) ? 1.10 : 0.90;
+        const newScale = clamp(STATE.view.scale * zoomFactor, 0.05, 50);
+
+        // Zoom around cursor: keep before mapped under cursor
+        STATE.view.scale = newScale;
+        const after = stageToScreen(before);
+        STATE.view.tx += (sp.x - after.x);
+        STATE.view.ty += (sp.y - after.y);
+
+        requestRender();
+    }, { passive: false });
+
+    // Keyboard shortcuts
+    window.__shiftHeld = false;
+
+    window.addEventListener('keydown', (ev) => {
+        const activeEl = document.activeElement;
+        const isTypingTarget = activeEl && (
+            activeEl.tagName === "INPUT" ||
+            activeEl.tagName === "TEXTAREA" ||
+            activeEl.tagName === "SELECT" ||
+            activeEl.isContentEditable
+        );
+
+        if (ev.key === "Shift") window.__shiftHeld = true;
+
+        // Nudge active warp handle
+        if (!isTypingTarget && ev.key === "ArrowLeft") { nudgeActiveHandle(-1, 0); ev.preventDefault(); }
+        if (!isTypingTarget && ev.key === "ArrowRight") { nudgeActiveHandle(1, 0); ev.preventDefault(); }
+        if (!isTypingTarget && ev.key === "ArrowUp") { nudgeActiveHandle(0, -1); ev.preventDefault(); }
+        if (!isTypingTarget && ev.key === "ArrowDown") { nudgeActiveHandle(0, 1); ev.preventDefault(); }
+
+        // Escape cancels calibration pick mode
+        if (ev.key === "Escape") {
+            clearCalPickMode();
+            requestRender();
+        }
+    });
+
+    window.addEventListener('keyup', (ev) => {
+        if (ev.key === "Shift") window.__shiftHeld = false;
+    });
+
+    // Resize
+    window.addEventListener('resize', () => requestRender());
+
+    // ---------------------------
+    // Init
+    // ---------------------------
+    function boot() {
+        setMode("crop");
+        updateUI();
+        requestRender();
+    }
+
+    boot();
+</script>
+</body>
+</html>

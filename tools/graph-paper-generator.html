@@ -1,0 +1,396 @@
+<!--
+============================================
+GRAPH PAPER GENERATOR v1.0.0
+============================================
+Description: Browser-based graph paper generator
+with vector PDF export and printable engineering
+paper templates.
+
+Dependencies: None (Vanilla JavaScript)
+
+Project: Tools Hub by Jesse Anderson
+Repository: https://github.com/jesse-anderson/Tools
+License: GPL-3.0
+
+Features:
+- Six template families (cartesian, XY-axis, dot, isometric)
+- Custom vector PDF export (no external libraries)
+- Configurable palettes with custom RGB override
+- Save/load/import/export settings
+============================================
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Graph Paper Generator | Tools Hub</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/shared.css">
+    <link rel="stylesheet" href="../css/graph_paper_generator/graph-paper-generator.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <div class="header-left">
+                    <a href="../tools.html" class="back-link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <line x1="19" y1="12" x2="5" y2="12"></line>
+                            <polyline points="12 19 5 12 12 5"></polyline>
+                        </svg>
+                        Back to Tools
+                    </a>
+                </div>
+                <div class="header-right">
+                    <div class="theme-toggle">
+                        <button data-theme-toggle="light" aria-pressed="false" title="Light mode">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                <circle cx="12" cy="12" r="5"></circle>
+                                <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path>
+                            </svg>
+                        </button>
+                        <button data-theme-toggle="dark" aria-pressed="false" title="Dark mode">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tool-header">
+                <div class="tool-icon-header engineering">
+                    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <path d="M4 4h16v16H4z"></path>
+                        <path d="M4 9h16M4 14h16M9 4v16M14 4v16"></path>
+                    </svg>
+                </div>
+                <div>
+                    <h1>Graph Paper Generator</h1>
+                    <p class="tagline">// PRINTABLE GRID SHEETS | VECTOR PDF | ENGINEERING</p>
+                </div>
+            </div>
+        </header>
+
+        <main class="tool-layout">
+            <section class="panel control-panel">
+                <div class="panel-header">
+                    <div>
+                        <h2>Sheet Setup</h2>
+                        <p>Build printable graph paper with fixed template families, then export a vector PDF for clean printing.</p>
+                    </div>
+                    <div class="button-row">
+                        <button class="tool-btn" id="saveTemplateBtn" type="button">Save Template</button>
+                        <button class="tool-btn" id="loadTemplateBtn" type="button">Load Saved</button>
+                        <button class="tool-btn" id="exportSettingsBtn" type="button">Export Settings</button>
+                        <label class="tool-btn" for="importSettingsInput">Import Settings</label>
+                        <button class="tool-btn" id="downloadPdfBtn" type="button">Download PDF</button>
+                        <button class="tool-btn danger" id="resetBtn" type="button">Reset</button>
+                    </div>
+                </div>
+                <input id="importSettingsInput" type="file" accept="application/json,.json" hidden>
+
+                <div class="status-line" id="statusLine" aria-live="polite">Ready. Print at 100% scale for the intended spacing.</div>
+
+                <div class="section-block">
+                    <h3>Template</h3>
+                    <div class="control-grid">
+                        <label class="input-line">
+                            <span>Paper type</span>
+                            <select id="templateSelect">
+                                <option value="cartesian">Cartesian grid</option>
+                                <option value="cornerAxes">First-quadrant XY grid</option>
+                                <option value="centerAxes">Centered XY grid</option>
+                                <option value="dotGrid">Dot grid</option>
+                                <option value="boxedDots">Boxed dot grid</option>
+                                <option value="isometricDots">Isometric dot grid</option>
+                            </select>
+                        </label>
+                        <label class="input-line">
+                            <span>Paper size</span>
+                            <select id="paperSizeSelect">
+                                <option value="letter">Letter (8.5 x 11 in)</option>
+                                <option value="a4">A4 (210 x 297 mm)</option>
+                                <option value="legal">Legal (8.5 x 14 in)</option>
+                            </select>
+                        </label>
+                        <label class="input-line">
+                            <span>Orientation</span>
+                            <select id="orientationSelect">
+                                <option value="portrait">Portrait</option>
+                                <option value="landscape">Landscape</option>
+                            </select>
+                        </label>
+                        <label class="input-line">
+                            <span>Palette</span>
+                            <select id="paletteSelect">
+                                <option value="graphite">Graphite</option>
+                                <option value="engineerBlue">Engineer blue</option>
+                                <option value="forest">Forest green</option>
+                                <option value="amber">Amber</option>
+                            </select>
+                        </label>
+                    </div>
+                    <p class="helper-text" id="templateSummary">Full-page cartesian grid with heavier major guides every fifth interval.</p>
+                </div>
+
+                <div class="section-block">
+                    <h3>Spacing And Margins</h3>
+                    <div class="control-grid">
+                        <label class="input-line">
+                            <span>Minor spacing (in)</span>
+                            <input id="minorSpacingInput" type="number" min="0.1" max="1" step="0.05" value="0.2">
+                        </label>
+                        <label class="input-line grid-only">
+                            <span>Major every</span>
+                            <input id="majorEveryInput" type="number" min="2" max="10" step="1" value="5">
+                        </label>
+                        <label class="input-line">
+                            <span>Margin (in)</span>
+                            <input id="marginInput" type="number" min="0.2" max="1.5" step="0.05" value="0.4">
+                        </label>
+                        <label class="input-line dot-only">
+                            <span>Dot radius (pt)</span>
+                            <input id="dotRadiusInput" type="number" min="0.5" max="4" step="0.1" value="1.2">
+                        </label>
+                    </div>
+                </div>
+
+                <details class="section-block advanced-panel">
+                    <summary>Advanced</summary>
+
+                    <div class="advanced-content">
+                        <label class="check-line">
+                            <input id="useCustomColorsCheck" type="checkbox">
+                            <span>Use custom RGB colors instead of the preset palette</span>
+                        </label>
+
+                        <fieldset class="advanced-fieldset" id="customColorFieldset">
+                            <div class="advanced-subgrid">
+                                <div class="slider-group">
+                                    <h4>Minor Grid RGB</h4>
+                                    <label class="slider-row">
+                                        <span>R</span>
+                                        <input id="minorRedInput" type="range" min="0" max="255" step="1" value="189">
+                                        <output id="minorRedValue" for="minorRedInput">189</output>
+                                        <span class="color-hex-display" id="minorRedHex">#BDD6F7</span>
+                                    </label>
+                                    <label class="slider-row">
+                                        <span>G</span>
+                                        <input id="minorGreenInput" type="range" min="0" max="255" step="1" value="214">
+                                        <output id="minorGreenValue" for="minorGreenInput">214</output>
+                                        <span class="color-hex-display" id="minorGreenHex">#D6D6F7</span>
+                                    </label>
+                                    <label class="slider-row">
+                                        <span>B</span>
+                                        <input id="minorBlueInput" type="range" min="0" max="255" step="1" value="247">
+                                        <output id="minorBlueValue" for="minorBlueInput">247</output>
+                                        <span class="color-hex-display" id="minorBlueHex">#BDD6F7</span>
+                                    </label>
+                                </div>
+
+                                <div class="slider-group">
+                                    <h4>Major Grid / Dots RGB</h4>
+                                    <label class="slider-row">
+                                        <span>R</span>
+                                        <input id="majorRedInput" type="range" min="0" max="255" step="1" value="105">
+                                        <output id="majorRedValue" for="majorRedInput">105</output>
+                                        <span class="color-hex-display" id="majorRedHex">#699EDD</span>
+                                    </label>
+                                    <label class="slider-row">
+                                        <span>G</span>
+                                        <input id="majorGreenInput" type="range" min="0" max="255" step="1" value="158">
+                                        <output id="majorGreenValue" for="majorGreenInput">158</output>
+                                        <span class="color-hex-display" id="majorGreenHex">#9EDD93</span>
+                                    </label>
+                                    <label class="slider-row">
+                                        <span>B</span>
+                                        <input id="majorBlueInput" type="range" min="0" max="255" step="1" value="237">
+                                        <output id="majorBlueValue" for="majorBlueInput">237</output>
+                                        <span class="color-hex-display" id="majorBlueHex">#699EDD</span>
+                                    </label>
+                                </div>
+
+                                <div class="slider-group">
+                                    <h4>Axes / Labels RGB</h4>
+                                    <label class="slider-row">
+                                        <span>R</span>
+                                        <input id="accentRedInput" type="range" min="0" max="255" step="1" value="36">
+                                        <output id="accentRedValue" for="accentRedInput">36</output>
+                                        <span class="color-hex-display" id="accentRedHex">#2484A6</span>
+                                    </label>
+                                    <label class="slider-row">
+                                        <span>G</span>
+                                        <input id="accentGreenInput" type="range" min="0" max="255" step="1" value="84">
+                                        <output id="accentGreenValue" for="accentGreenInput">84</output>
+                                        <span class="color-hex-display" id="accentGreenHex">#2484A6</span>
+                                    </label>
+                                    <label class="slider-row">
+                                        <span>B</span>
+                                        <input id="accentBlueInput" type="range" min="0" max="255" step="1" value="166">
+                                        <output id="accentBlueValue" for="accentBlueInput">166</output>
+                                        <span class="color-hex-display" id="accentBlueHex">#2484A6</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </fieldset>
+
+                        <div class="advanced-subgrid advanced-opacity-grid">
+                            <div class="slider-group">
+                                <h4>Minor Opacity</h4>
+                                <label class="slider-row">
+                                    <span>A</span>
+                                    <input id="minorOpacityInput" type="range" min="0.05" max="1" step="0.05" value="0.6">
+                                    <output id="minorOpacityValue" for="minorOpacityInput">0.60</output>
+                                </label>
+                            </div>
+
+                            <div class="slider-group">
+                                <h4>Major Opacity</h4>
+                                <label class="slider-row">
+                                    <span>A</span>
+                                    <input id="majorOpacityInput" type="range" min="0.05" max="1" step="0.05" value="0.85">
+                                    <output id="majorOpacityValue" for="majorOpacityInput">0.85</output>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="advanced-subgrid text-block-grid">
+                            <div class="text-block-card">
+                                <label class="input-line textarea-line">
+                                    <span>Header text (max 2 lines)</span>
+                                    <textarea id="headerTextInput" rows="2" maxlength="180" placeholder="Project name&#10;Company or class"></textarea>
+                                </label>
+                                <label class="input-line">
+                                    <span>Header align</span>
+                                    <select id="headerAlignSelect">
+                                        <option value="center">Center</option>
+                                        <option value="left">Left</option>
+                                        <option value="right">Right</option>
+                                    </select>
+                                </label>
+                            </div>
+                            <div class="text-block-card">
+                                <label class="input-line textarea-line">
+                                    <span>Footer text (max 2 lines)</span>
+                                    <textarea id="footerTextInput" rows="2" maxlength="180" placeholder="Revision or owner&#10;Date or notes"></textarea>
+                                </label>
+                                <label class="input-line">
+                                    <span>Footer align</span>
+                                    <select id="footerAlignSelect">
+                                        <option value="center">Center</option>
+                                        <option value="left">Left</option>
+                                        <option value="right">Right</option>
+                                    </select>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="advanced-subgrid axis-only" id="axisRangeBlock">
+                            <label class="input-line">
+                                <span>X min</span>
+                                <input id="xMinInput" type="text" inputmode="decimal" value="0">
+                            </label>
+                            <label class="input-line">
+                                <span>X max</span>
+                                <input id="xMaxInput" type="text" inputmode="decimal" value="10">
+                            </label>
+                            <label class="input-line">
+                                <span>Y min</span>
+                                <input id="yMinInput" type="text" inputmode="decimal" value="0">
+                            </label>
+                            <label class="input-line">
+                                <span>Y max</span>
+                                <input id="yMaxInput" type="text" inputmode="decimal" value="10">
+                            </label>
+                        </div>
+
+                        <p class="helper-text axis-only" id="axisRangeHelp">First-quadrant XY uses the entered min and max values directly. Centered XY is normalized to symmetric extents about zero so the centered axes remain true X/Y axes.</p>
+
+                        <div class="advanced-subgrid scale-block">
+                            <label class="check-line scale-toggle">
+                                <input id="includeScaleNoteCheck" type="checkbox">
+                                <span>Include a scale note on the exported sheet</span>
+                            </label>
+                            <div class="advanced-subgrid scale-subgrid">
+                                <label class="input-line">
+                                    <span>Per interval</span>
+                                    <input id="scaleValueInput" type="number" min="0.001" step="0.1" value="1">
+                                </label>
+                                <label class="input-line">
+                                    <span>Unit</span>
+                                    <select id="scaleUnitSelect">
+                                        <option value="in">in</option>
+                                        <option value="ft">ft</option>
+                                        <option value="yd">yd</option>
+                                        <option value="mm">mm</option>
+                                        <option value="cm">cm</option>
+                                        <option value="m">m</option>
+                                    </select>
+                                </label>
+                            </div>
+                        </div>
+                        <p class="helper-text" id="scaleHelp">Scale is interpreted against one minor interval. Orthogonal templates also report the implied square-box area.</p>
+                    </div>
+                </details>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <span class="stat-label">Printable area</span>
+                        <strong class="stat-value" id="printableAreaStat">--</strong>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-label">Pitch</span>
+                        <strong class="stat-value" id="pitchStat">--</strong>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-label">Count</span>
+                        <strong class="stat-value" id="countStat">--</strong>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-label">Scale</span>
+                        <strong class="stat-value" id="scaleStat">--</strong>
+                    </div>
+                </div>
+
+                <div class="section-block compact">
+                    <h3>Export Notes</h3>
+                    <ul class="notes-list">
+                        <li>PDF export is vector-based, so lines and dots stay crisp when printed.</li>
+                        <li>Printer dialogs should use actual size or 100% scaling if physical spacing matters.</li>
+                        <li>Margins define the printable graph area, not a forced printer-safe hardware margin.</li>
+                    </ul>
+                </div>
+            </section>
+
+            <section class="panel workspace-panel">
+                <div class="workspace-header">
+                    <div>
+                        <h2>Live Preview</h2>
+                        <p>Preview uses the same geometry as the exported PDF, with a dashed printable-area guide.</p>
+                    </div>
+                    <div class="badge-row">
+                        <div class="badge" id="templateBadge">Cartesian grid</div>
+                        <div class="badge" id="paperBadge">Letter portrait</div>
+                    </div>
+                </div>
+
+                <div class="preview-shell">
+                    <div class="preview-stage">
+                        <svg id="paperPreview" class="paper-preview" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Graph paper preview"></svg>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer data-footer></footer>
+    </div>
+
+    <script type="module" src="../js/shared.js"></script>
+    <script type="module" src="../js/footer.js"></script>
+    <script type="module" src="../js/graph_paper_generator/graph-paper-generator.js"></script>
+</body>
+</html>

@@ -1,0 +1,203 @@
+<!--
+============================================
+STOICHIOMETRY & CHEMICAL CALCULATOR v1.3.0
+============================================
+Description: Professional-grade tool for balancing chemical equations, 
+performing laboratory limiting reactant analysis, and formula breakdown.
+
+Dependencies: None (Vanilla JavaScript)
+
+Project: Tools Hub by Jesse Anderson
+Repository: https://github.com/jesse-anderson/Tools
+License: GPL-3.0
+
+Features:
+- Matrix-based equation balancing (Null Space method)
+- Laboratory Mix Mode (Limiting Reactant analysis)
+- Target Yield Mode (Reverse stoichiometry)
+- Elemental composition visualization
+============================================
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stoichiometry & Chemical Calculator | Tools Hub</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/shared.css">
+    <link rel="stylesheet" href="../css/stoichiometry/styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <div class="header-left">
+                    <a href="../tools.html" class="back-link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="19" y1="12" x2="5" y2="12"/>
+                            <polyline points="12 19 5 12 12 5"/>
+                        </svg>
+                        Back to Tools
+                    </a>
+                </div>
+                <div class="header-right">
+                    <div class="theme-toggle">
+                        <button data-theme-toggle="light" aria-pressed="false" title="Light mode">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="5"/>
+                                <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+                            </svg>
+                        </button>
+                        <button data-theme-toggle="dark" aria-pressed="false" title="Dark mode">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="tool-header">
+                <div class="tool-icon-header biochemical">
+                    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2"></polygon>
+                        <circle cx="12" cy="12" r="3"></circle>
+                    </svg>
+                </div>
+                <div class="tool-header-copy">
+                    <h1>Stoichiometry Calculator</h1>
+                    <p class="tagline">Balance reactions and inspect mass-mole relationships from a single equation.</p>
+                </div>
+            </div>
+        </header>
+
+        <main class="main-layout">
+            <div class="calculator-panel">
+                <div class="panel">
+                    <div class="panel-header">
+                        <div>
+                            <h2>Reaction Input</h2>
+                            <p id="equationDesc">Enter an unbalanced chemical equation using standard notation (e.g., H2 + O2 -> H2O).</p>
+                        </div>
+                        <div class="status-badges" id="equationStatus" aria-live="polite">
+                            <!-- Badges injected here -->
+                        </div>
+                    </div>
+
+                    <div class="equation-input-group">
+                        <input type="text" id="equationInput" class="main-input" 
+                               placeholder="e.g. C3H8 + O2 -> CO2 + H2O" 
+                               autocomplete="off" spellcheck="false"
+                               aria-describedby="equationDesc"
+                               maxlength="500">
+                        <button id="balanceBtn" class="btn btn-primary" aria-label="Balance chemical equation">Balance & Analyze</button>
+                    </div>
+
+                    <!-- Live Token Preview -->
+                    <div id="liveTokenPreview" class="token-preview"></div>
+                    
+                    <div class="example-row">
+                        <span class="metric-label">Examples</span>
+                        <button class="status-badge example-btn" data-example="C3H8 + O2 -> CO2 + H2O">Propane Combustion</button>
+                        <button class="status-badge example-btn" data-example="K4[Fe(CN)6]*3H2O">Complex Hydrate</button>
+                    </div>
+
+                    <div id="underDeterminedWarning" class="under-determined-warning hidden" role="status">
+                        <strong>Under-determined stoichiometry.</strong> This reaction has multiple valid balanced forms. The result shown is one valid balance; the chemically expected solution may use different coefficients. This typically occurs with redox reactions that have several product pathways.
+                    </div>
+
+                    <div id="equationError" class="error-message hidden" role="alert"></div>
+                </div>
+
+                <div class="results-area hidden" id="resultsPanel">
+                    <div class="equation-readout animate-in" role="region" aria-label="Balanced Equation Result">
+                        <button id="copyBtn" class="status-badge copy-pill" title="Copy equation to clipboard">
+                            <svg class="copy-icon" viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="3"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                            COPY
+                        </button>
+                        <div class="equation-display" id="balancedEquationDisplay">
+                            <!-- Rendered via JS -->
+                        </div>
+                    </div>
+
+                    <div class="panel animate-in">
+                        <div class="panel-header">
+                            <div>
+                                <h2>Species Analysis</h2>
+                                <p>Proportional mass and mole relationships across the reaction.</p>
+                            </div>
+                            <div id="activeModeBadge" class="status-pill">Laboratory Mix Mode</div>
+                        </div>
+
+                        <div class="table-container">
+                            <table class="stoich-table" id="stoichTable">
+                                <thead>
+                                    <tr>
+                                        <th scope="col">Species</th>
+                                        <th scope="col">Coef <span class="help-chip" data-tooltip="Relative molar amount from balanced equation." role="tooltip">?</span></th>
+                                        <th scope="col">Molar Mass <span class="help-chip" data-tooltip="Molecular weight in g/mol." role="tooltip">?</span></th>
+                                        <th scope="col">Moles (n)</th>
+                                        <th scope="col">Mass (g)</th>
+                                        <th scope="col">Excess <span class="help-chip" data-tooltip="Unreacted material remaining in Laboratory Mix mode." role="tooltip">?</span></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="stoichTableBody">
+                                    <!-- Rows generated dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <aside class="sidebar hidden" id="sidebarPanel">
+                <div class="panel animate-in">
+                    <div class="panel-header">
+                        <h2>Quick Summary</h2>
+                    </div>
+                    <div class="metric-card">
+                        <span class="metric-label">Limiting Reactant</span>
+                        <div class="metric-value" id="limitingReactantDisplay">--</div>
+                    </div>
+                    <div class="metric-card">
+                        <span class="metric-label">Theoretical Mass Yield</span>
+                        <div class="metric-value" id="totalMassDisplay">--</div>
+                    </div>
+                    <div class="metric-card">
+                        <span class="metric-label">Mass Conservation</span>
+                        <div id="conservationStatus" class="status-badge metric-status">--</div>
+                    </div>
+                    <div class="metric-card">
+                        <span class="metric-label">Total Atom Count</span>
+                        <div class="metric-value" id="totalAtomCount">--</div>
+                    </div>
+                </div>
+
+                <div class="panel animate-in stacked-panel">
+                    <div class="panel-header">
+                        <h2>Composition Legend</h2>
+                    </div>
+                    <div id="compositionLegend" class="legend-list">
+                        <!-- Legend items injected here -->
+                    </div>
+                </div>
+
+                <div class="liability-disclaimer" role="note" aria-label="Scope, accuracy, and liability disclaimer">
+                    <strong>Reference calculation only - verify before use</strong>
+                    <p>This calculator produces stoichiometric estimates from the formulas and masses you enter. It does <strong>not</strong> account for reagent purity, hydration state, solvent effects, incomplete reactions, side reactions, catalyst requirements, thermodynamic feasibility, kinetics, safety hazards, waste disposal, or analytical measurement uncertainty.</p>
+                    <p>Balanced equations are computed by null-space linear algebra and may not reflect the chemically preferred pathway for redox or multi-step reactions. Under-determined systems yield one valid balance out of infinitely many.</p>
+                    <p><strong>No warranty or liability.</strong> The tool is provided as-is. The author and maintainers accept no responsibility or liability for any error, miscalculation, unsafe preparation, wasted reagents, failed experiment, regulatory exposure, injury, or other consequence arising from use of this tool or its output. Verify all calculations against peer-reviewed references, analytical data, and Safety Data Sheets before use in any laboratory, production, or compliance context.</p>
+                </div>
+            </aside>
+        </main>
+
+        <footer data-footer></footer>
+    </div>
+
+    <script type="module" src="../js/shared.js"></script>
+    <script type="module" src="../js/footer.js"></script>
+    <script type="module" src="../js/stoichiometry/main.js"></script>
+</body>
+</html>
