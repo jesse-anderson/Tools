@@ -157,6 +157,7 @@ test('tools.html loads without breaking errors', async ({ page, baseURL }) => {
 });
 
 test('all linked tool pages load without breaking errors', async ({ browser, baseURL }, testInfo) => {
+  test.setTimeout(Math.max(120_000, toolPaths.length * 4_000));
   const failures = [];
 
   for (const toolPath of toolPaths) {
@@ -199,12 +200,6 @@ test('all linked tool pages load without breaking errors', async ({ browser, bas
           diagnostics.failedRequests.length;
 
         if (issueCount > 0) {
-          const screenshot = await page.screenshot({ fullPage: true });
-          await testInfo.attach(`screenshot-${path.basename(toolPath)}`, {
-            body: screenshot,
-            contentType: 'image/png'
-          });
-
           failures.push({
             urlPath: toolPath,
             diagnostics: {
@@ -216,8 +211,25 @@ test('all linked tool pages load without breaking errors', async ({ browser, bas
         }
       });
     } finally {
-      await page.close();
+      if (!page.isClosed()) {
+        try {
+          await page.close();
+        } catch (error) {
+          // Ignore teardown races when Playwright already disposed the context.
+        }
+      }
     }
+  }
+
+  if (failures.length) {
+    const failureReport = failures
+      .map(({ urlPath, diagnostics }) => formatDiagnostics(urlPath, diagnostics))
+      .join('\n\n---\n\n');
+
+    await testInfo.attach('smoke-failures.txt', {
+      body: Buffer.from(failureReport, 'utf8'),
+      contentType: 'text/plain'
+    });
   }
 
   expect(
