@@ -143,8 +143,6 @@ async function expectPageToLoadCleanly(page, baseURL, urlPath) {
   ).toBe(0);
 }
 
-test.describe.configure({ mode: 'serial' });
-
 test('tools.html contains linked tool pages', () => {
   expect(toolPaths.length).toBeGreaterThan(0);
 });
@@ -158,8 +156,74 @@ test('tools.html loads without breaking errors', async ({ page, baseURL }) => {
   await expectPageToLoadCleanly(page, baseURL, '/tools.html');
 });
 
-for (const toolPath of toolPaths) {
-  test(`${path.basename(toolPath)} loads without breaking errors`, async ({ page, baseURL }) => {
-    await expectPageToLoadCleanly(page, baseURL, toolPath);
-  });
-}
+test('all linked tool pages load without breaking errors', async ({ browser, baseURL }, testInfo) => {
+  const failures = [];
+
+  for (const toolPath of toolPaths) {
+    const page = await browser.newPage();
+    const diagnostics = attachDiagnostics(page, baseURL);
+
+    try {
+      await test.step(`${path.basename(toolPath)} loads without breaking errors`, async () => {
+        const response = await page.goto(toolPath, { waitUntil: 'load' });
+
+        if (!response) {
+          failures.push({
+            urlPath: toolPath,
+            diagnostics: {
+              pageErrors: ['No response received'],
+              consoleErrors: diagnostics.consoleErrors.slice(),
+              failedRequests: diagnostics.failedRequests.slice()
+            }
+          });
+          return;
+        }
+
+        if (!response.ok()) {
+          failures.push({
+            urlPath: toolPath,
+            diagnostics: {
+              pageErrors: [`Returned HTTP ${response.status()}`],
+              consoleErrors: diagnostics.consoleErrors.slice(),
+              failedRequests: diagnostics.failedRequests.slice()
+            }
+          });
+          return;
+        }
+
+        await page.waitForTimeout(1200);
+
+        const issueCount =
+          diagnostics.pageErrors.length +
+          diagnostics.consoleErrors.length +
+          diagnostics.failedRequests.length;
+
+        if (issueCount > 0) {
+          const screenshot = await page.screenshot({ fullPage: true });
+          await testInfo.attach(`screenshot-${path.basename(toolPath)}`, {
+            body: screenshot,
+            contentType: 'image/png'
+          });
+
+          failures.push({
+            urlPath: toolPath,
+            diagnostics: {
+              pageErrors: diagnostics.pageErrors.slice(),
+              consoleErrors: diagnostics.consoleErrors.slice(),
+              failedRequests: diagnostics.failedRequests.slice()
+            }
+          });
+        }
+      });
+    } finally {
+      await page.close();
+    }
+  }
+
+  expect(
+    failures,
+    failures.length
+      ? failures.map(({ urlPath, diagnostics }) => formatDiagnostics(urlPath, diagnostics)).join('\n\n---\n\n')
+      : 'All linked tool pages loaded cleanly.'
+  ).toEqual([]);
+});
