@@ -695,29 +695,29 @@ function generatePythonSnippet(pattern, flags) {
     if (flags.includes(constants.FLAGS.ASCII)) pyFlags.push('re.ASCII');
     if (flags.includes(constants.FLAGS.VERBOSE)) pyFlags.push('re.VERBOSE');
 
-    const flagsParam = pyFlags.length > 0 ? ` | `.join(pyFlags) : '0';
+    const flagsParam = pyFlags.length > 0 ? pyFlags.join(' | ') : '0';
     const hasGlobal = flags.includes(constants.FLAGS.GLOBAL);
+    const matchBlock = hasGlobal
+        ? `# Find all matches
+for match in regex.finditer(text):
+    print(match.group(0))  # Full match
+    if match.groups():
+        print(match.groups())  # Capture groups`
+        : `# Find first match
+match = regex.search(text)
+if match:
+    print(match.group(0))  # Full match
+    if match.groups():
+        print(match.groups())  # Capture groups`;
 
     return `import re
 
 pattern = r"${pattern.replace(/"/g, '\\"')}"
 regex = re.compile(pattern, ${flagsParam})
 
-text = "your text here"${hasGlobal ? '
+text = "your text here"
 
-# Find all matches
-for match in regex.finditer(text):
-    print(match.group(0))  # Full match
-    if match.groups():
-        print(match.groups())  # Capture groups' else : '
-
-# Find first match
-match = regex.search(text)
-if match:
-    print(match.group(0))  # Full match
-    if match.groups():
-        print(match.groups())  # Capture groups
-'}
+${matchBlock}
 `;
 }
 
