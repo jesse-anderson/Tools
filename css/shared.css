@@ -18,6 +18,8 @@
     --accent-engineering-dim: rgba(245, 158, 11, 0.15);
     --accent-it: #06b6d4;
     --accent-it-dim: rgba(6, 182, 212, 0.15);
+    --accent-ai: #f43f5e;
+    --accent-ai-dim: rgba(244, 63, 94, 0.15);
     --accent-general: #8b5cf6;
     --accent-general-dim: rgba(139, 92, 246, 0.15);
     --accent-success: #22c55e;
@@ -56,6 +58,8 @@
     --accent-engineering-dim: rgba(217, 119, 6, 0.12);
     --accent-it: #0891b2;
     --accent-it-dim: rgba(8, 145, 178, 0.12);
+    --accent-ai: #e11d48;
+    --accent-ai-dim: rgba(225, 29, 72, 0.12);
     --accent-general: #7c3aed;
     --accent-general-dim: rgba(124, 58, 237, 0.12);
     --accent-success: #16a34a;
@@ -422,6 +426,10 @@ header {
     background: var(--accent-it);
 }
 
+.tool-card.ai::before {
+    background: var(--accent-ai);
+}
+
 .tool-card.general::before {
     background: var(--accent-general);
 }
@@ -471,6 +479,11 @@ header {
 .tool-icon.it {
     background: var(--accent-it-dim);
     color: var(--accent-it);
+}
+
+.tool-icon.ai {
+    background: var(--accent-ai-dim);
+    color: var(--accent-ai);
 }
 
 .tool-icon.general {
@@ -560,6 +573,10 @@ header {
 
 .category-indicator.it {
     background: var(--accent-it);
+}
+
+.category-indicator.ai {
+    background: var(--accent-ai);
 }
 
 .category-indicator.general {
@@ -832,6 +849,11 @@ footer {
 .tool-icon-header.it {
     background: var(--accent-it-dim);
     color: var(--accent-it);
+}
+
+.tool-icon-header.ai {
+    background: var(--accent-ai-dim);
+    color: var(--accent-ai);
 }
 
 .tool-icon-header.general {

@@ -1,0 +1,431 @@
+<!--
+============================================
+LAMPORT TIMESTAMP VISUALIZER v1.0.0
+============================================
+Description: Interactive visualization of Lamport timestamps and
+distributed systems synchronization algorithms. Supports simple
+Lamport clocks and vector clocks with visual process,
+event, and message tracing.
+
+Dependencies: None (Vanilla JavaScript + Canvas)
+
+Project: Tools Hub by Jesse Anderson
+Repository: https://github.com/jesse-anderson/Tools
+License: GPL-3.0
+
+Features:
+- Process management (add/remove processes)
+- Event creation with timestamps (E markers)
+- Message sending/receiving (M# with S/R markers)
+- Simple Lamport clock mode
+- Vector clock mode
+- Animated timeline with causal dependency graph
+- Export sequence logs to JSON/CSV
+- Step-by-step and continuous animation
+- Process diagram with connection visualization
+
+Last Updated: April 2026
+============================================
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lamport Timestamps | Tools Hub</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Shared CSS -->
+    <link rel="stylesheet" href="../css/shared.css">
+
+    <!-- Tool-Specific CSS -->
+    <link rel="stylesheet" href="../css/distributed_systems/lamport-timestamps.css">
+
+    <!-- External Libraries (if needed) -->
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <div class="header-left">
+                    <a href="../tools.html" class="back-link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M19 12H5M12 19l-7-7 7-7"/>
+                        </svg>
+                        Back to Tools
+                    </a>
+                </div>
+                <div class="header-right">
+                    <div class="theme-toggle">
+                        <button data-theme-toggle="light" aria-pressed="false" title="Light mode">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="5"/>
+                                <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+                            </svg>
+                        </button>
+                        <button data-theme-toggle="dark" aria-pressed="true" title="Dark mode">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="tool-hero">
+                <div class="tool-icon-header educational">
+                    <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="5" r="3"/>
+                        <path d="M5 10v4a2 2 0 0 0 2 2h2"/>
+                        <path d="M17 10v4a2 2 0 0 1-2 2h-2"/>
+                        <path d="M9 14h6"/>
+                        <path d="M7 18h10a2 2 0 0 1 2 2v2H5v-2a2 2 0 0 1 2-2z"/>
+                    </svg>
+                </div>
+                <div>
+                    <h1>Lamport Timestamps</h1>
+                    <p class="tagline">// INTERACTIVE DISTRIBUTED SYSTEMS LEARNING LAB</p>
+                </div>
+            </div>
+        </header>
+
+        <main class="main-layout">
+            <!-- Left Sidebar - Controls -->
+            <aside class="sidebar">
+                <!-- Mode Selection -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <h2>Mode Selection</h2>
+                    </div>
+                    <div class="mode-selector">
+                        <button class="mode-btn active" data-mode="simple">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"/>
+                                <path d="M12 6v6l4 2"/>
+                            </svg>
+                            Simple Clock
+                        </button>
+                        <button class="mode-btn" data-mode="vector">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="3" width="7" height="7" rx="1"/>
+                                <rect x="14" y="3" width="7" height="7" rx="1"/>
+                                <rect x="3" y="14" width="7" height="7" rx="1"/>
+                                <rect x="14" y="14" width="7" height="7" rx="1"/>
+                            </svg>
+                            Vector Clock
+                        </button>
+                    </div>
+                    <p id="modeDescription" class="mode-desc">
+                        Simple Lamport timestamps: each process has a single counter that increments on events and messages.
+                    </p>
+                </div>
+
+                <!-- Process Management -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <h2>Processes</h2>
+                        <button class="tool-btn small" id="addProcessBtn" title="Add Process">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="12" y1="5" x2="12" y2="19"/>
+                                <line x1="5" y1="12" x2="19" y2="12"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <button class="tool-btn load-example-btn" id="loadExampleBtn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <polyline points="14 2 14 8 20 8"/>
+                            <line x1="12" y1="18" x2="12" y2="12"/>
+                            <line x1="9" y1="15" x2="15" y2="15"/>
+                        </svg>
+                        Load Example
+                    </button>
+                    <div class="process-list" id="processList">
+                        <!-- Processes populated dynamically -->
+                    </div>
+                    <p class="hint" id="processHint">Add processes to start creating events</p>
+                </div>
+
+                <!-- Event Creation -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <h2>Create Event</h2>
+                    </div>
+                    <div class="input-group">
+                        <label>Select Process</label>
+                        <select id="eventProcessSelect" disabled>
+                            <option value="">Add process first</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>Event Type</label>
+                        <div class="event-type-selector">
+                            <button class="event-type-btn active" data-type="local" title="Local event (increment clock)">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"/>
+                                    <path d="M12 6v6l4 2"/>
+                                </svg>
+                                <span>E (Local)</span>
+                            </button>
+                            <button class="event-type-btn" data-type="send" title="Send message to another process">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="22" y1="2" x2="11" y2="13"/>
+                                    <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                                </svg>
+                                <span>S (Send)</span>
+                            </button>
+                            <button class="event-type-btn" data-type="receive" title="Receive message">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                    <polyline points="7 10 12 15 17 10"/>
+                                    <line x1="12" y1="15" x2="12" y2="3"/>
+                                </svg>
+                                <span>R (Receive)</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div id="counterpartyGroup" class="input-group" hidden>
+                        <label id="counterpartyLabel">Send To</label>
+                        <select id="counterpartySelect">
+                            <option value="">Select process</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>Message ID (for Send/Receive)</label>
+                        <input type="text" id="messageIdInput" class="main-input" placeholder="e.g., M1">
+                    </div>
+                    <button class="tool-btn" id="addEventBtn" disabled>Create Event</button>
+                </div>
+
+                <!-- Animation Controls -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <h2>Animation</h2>
+                    </div>
+                    <div class="animation-controls">
+                        <button class="tool-btn" id="stepBtn" disabled>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M5 12h14M12 5l7 7-7 7"/>
+                            </svg>
+                            Step
+                        </button>
+                        <button class="tool-btn" id="playBtn" disabled>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polygon points="5 3 19 12 5 21 5 3"/>
+                            </svg>
+                            Play
+                        </button>
+                        <button class="tool-btn" id="pauseBtn" disabled>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="6" y="4" width="4" height="16"/>
+                                <rect x="14" y="4" width="4" height="16"/>
+                            </svg>
+                            Pause
+                        </button>
+                        <button class="tool-btn" id="resetBtn">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 12"/>
+                                <path d="M3 3v9h9"/>
+                            </svg>
+                            Reset
+                        </button>
+                    </div>
+                    <div class="speed-control">
+                        <label>Speed</label>
+                        <input type="range" id="speedSlider" min="200" max="2000" step="100" value="1000">
+                        <span id="speedValue">1.0x</span>
+                    </div>
+                    <div class="progress-container">
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="animationProgress"></div>
+                        </div>
+                        <span id="eventCounter" class="event-count">Events: 0</span>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Main Content - Visualization -->
+            <div class="visualization-panel">
+                <!-- Process Diagram -->
+                <div class="panel diagram-panel">
+                    <div class="panel-header">
+                        <h2>Visualization</h2>
+                        <div class="view-actions">
+                            <div class="view-toggles">
+                                <button class="view-toggle active" data-view="timeline">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <line x1="8" y1="6" x2="21" y2="6"/>
+                                        <line x1="8" y1="12" x2="21" y2="12"/>
+                                        <line x1="8" y1="18" x2="21" y2="18"/>
+                                        <line x1="3" y1="6" x2="3.01" y2="6"/>
+                                        <line x1="3" y1="12" x2="3.01" y2="12"/>
+                                        <line x1="3" y1="18" x2="3.01" y2="18"/>
+                                    </svg>
+                                    Timeline
+                                </button>
+                                <button class="view-toggle" data-view="diagram">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <circle cx="12" cy="12" r="3"/>
+                                        <path d="M12 1v6M12 17v6M1 12h6M17 12h6"/>
+                                    </svg>
+                                    Overview
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="diagramContainer" class="diagram-container">
+                        <canvas id="diagramCanvas"></canvas>
+                        <div id="diagramView" class="diagram-view hidden">
+                            <div class="empty-state">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"/>
+                                    <path d="M12 6v6l4 2"/>
+                                </svg>
+                                <p>Add processes and events to get started</p>
+                            </div>
+                        </div>
+                        <div id="timelineView" class="timeline-view">
+                            <div class="timeline-header">
+                                <h3>Textbook Lamport Timeline</h3>
+                                <span class="timeline-hint">
+                                    Left-to-right lanes with event dots and message arrows
+                                </span>
+                            </div>
+                            <div class="timeline-toolbar">
+                                <p class="timeline-caption">
+                                    Processes advance left to right. Each dot is a local, send, or receive event; message arrows show the happens-before links.
+                                </p>
+                                <div class="timeline-toolbar-actions">
+                                    <button class="tool-btn small" id="exportTimelineBtn" disabled>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                            <polyline points="7 10 12 15 17 10"/>
+                                            <line x1="12" y1="15" x2="12" y2="3"/>
+                                        </svg>
+                                        Export Timeline
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="timeline-content">
+                                <div class="timeline-container" id="timelineContainer"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sequence Log -->
+                <div class="panel log-panel">
+                    <div class="panel-header">
+                        <h2>Sequence Log</h2>
+                        <div class="action-buttons">
+                            <button class="tool-btn small" id="clearLogBtn">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="3 6 5 6 21 6"/>
+                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                                </svg>
+                                Clear
+                            </button>
+                            <button class="tool-btn small" id="exportLogBtn">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                    <polyline points="7 10 12 15 17 10"/>
+                                    <line x1="12" y1="15" x2="12" y2="3"/>
+                                </svg>
+                                Export
+                            </button>
+                        </div>
+                    </div>
+                    <div class="log-container" id="logContainer">
+                        <div class="log-empty">No events yet</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Sidebar - Stats -->
+            <aside class="sidebar">
+                <!-- Current State -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <h2>Current State</h2>
+                    </div>
+                    <div id="currentState" class="state-display">
+                        <div class="empty-state">
+                            <p>Add events to see state</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stats -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <h2>Statistics</h2>
+                    </div>
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <span class="stat-label">Total Events</span>
+                            <span class="stat-value" id="statTotalEvents">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Messages Sent</span>
+                            <span class="stat-value" id="statMessagesSent">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Messages Received</span>
+                            <span class="stat-value" id="statMessagesReceived">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Max Timestamp</span>
+                            <span class="stat-value" id="statMaxTimestamp">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Vector Size</span>
+                            <span class="stat-value" id="statVectorSize">-</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Causality Info -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <h2>Causality Information</h2>
+                    </div>
+                    <div id="causalityInfo" class="causality-info">
+                        <div class="empty-state">
+                            <p>Add events to analyze causality</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Help -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <h2>Help</h2>
+                    </div>
+                    <div class="help-content">
+                        <h3>Lamport Timestamps</h3>
+                        <p>A distributed clock algorithm for ordering events across multiple processes. Each process maintains a local counter that increments on:</p>
+                        <ul>
+                            <li><strong>Local events:</strong> Increment clock by 1</li>
+                            <li><strong>Send messages:</strong> Increment clock, include timestamp in message</li>
+                            <li><strong>Receive messages:</strong> Update clock to max(local, received), increment</li>
+                        </ul>
+                        <h3>Vector Clocks</h3>
+                        <p>Extend Lamport timestamps with process IDs. Each process has a vector of counters - useful for distinguishing concurrent events.</p>
+                    </div>
+                </div>
+            </aside>
+        </main>
+
+        <!-- Footer -->
+        <div id="footer-container"></div>
+    </div>
+
+    <!-- Shared JS -->
+    <script src="../js/shared.js"></script>
+
+    <!-- Tool-Specific JS Module -->
+    <script type="module" src="../js/distributed_systems/lamport-timestamps.js"></script>
+</body>
+</html>
