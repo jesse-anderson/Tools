@@ -176,6 +176,15 @@
         elements.accentRedValue = document.getElementById('accentRedValue');
         elements.accentGreenValue = document.getElementById('accentGreenValue');
         elements.accentBlueValue = document.getElementById('accentBlueValue');
+        elements.minorRedHex = document.getElementById('minorRedHex');
+        elements.minorGreenHex = document.getElementById('minorGreenHex');
+        elements.minorBlueHex = document.getElementById('minorBlueHex');
+        elements.majorRedHex = document.getElementById('majorRedHex');
+        elements.majorGreenHex = document.getElementById('majorGreenHex');
+        elements.majorBlueHex = document.getElementById('majorBlueHex');
+        elements.accentRedHex = document.getElementById('accentRedHex');
+        elements.accentGreenHex = document.getElementById('accentGreenHex');
+        elements.accentBlueHex = document.getElementById('accentBlueHex');
         elements.minorOpacityInput = document.getElementById('minorOpacityInput');
         elements.majorOpacityInput = document.getElementById('majorOpacityInput');
         elements.minorOpacityValue = document.getElementById('minorOpacityValue');
@@ -896,13 +905,13 @@
     }
 
     function loadTemplate() {
-        const raw = localStorage.getItem(SAVED_TEMPLATE_KEY);
-        if (!raw) {
-            setStatus('No saved local template was found.');
-            return;
-        }
-
         try {
+            const raw = localStorage.getItem(SAVED_TEMPLATE_KEY);
+            if (!raw) {
+                setStatus('No saved local template was found.');
+                return;
+            }
+
             applyState(normalizeImportedState(JSON.parse(raw)));
             setStatus('Loaded the saved local template.');
         } catch (error) {
@@ -1392,13 +1401,33 @@
 
         return normalizeStateForTemplate({
             ...merged,
-            useCustomColors: Boolean(merged.useCustomColors),
-            includeScaleNote: Boolean(merged.includeScaleNote),
+            minorSpacingIn: clamp(parseNumber(merged.minorSpacingIn, DEFAULT_STATE.minorSpacingIn), 0.1, 1),
+            majorEvery: clampInt(parseNumber(merged.majorEvery, DEFAULT_STATE.majorEvery), 2, 10),
+            marginIn: clamp(parseNumber(merged.marginIn, DEFAULT_STATE.marginIn), 0.2, 1.5),
+            dotRadiusPt: clamp(parseNumber(merged.dotRadiusPt, DEFAULT_STATE.dotRadiusPt), 0.5, 4),
+            useCustomColors: parseBoolean(merged.useCustomColors, DEFAULT_STATE.useCustomColors),
+            minorRed: clampInt(parseNumber(merged.minorRed, DEFAULT_STATE.minorRed), 0, 255),
+            minorGreen: clampInt(parseNumber(merged.minorGreen, DEFAULT_STATE.minorGreen), 0, 255),
+            minorBlue: clampInt(parseNumber(merged.minorBlue, DEFAULT_STATE.minorBlue), 0, 255),
+            majorRed: clampInt(parseNumber(merged.majorRed, DEFAULT_STATE.majorRed), 0, 255),
+            majorGreen: clampInt(parseNumber(merged.majorGreen, DEFAULT_STATE.majorGreen), 0, 255),
+            majorBlue: clampInt(parseNumber(merged.majorBlue, DEFAULT_STATE.majorBlue), 0, 255),
+            accentRed: clampInt(parseNumber(merged.accentRed, DEFAULT_STATE.accentRed), 0, 255),
+            accentGreen: clampInt(parseNumber(merged.accentGreen, DEFAULT_STATE.accentGreen), 0, 255),
+            accentBlue: clampInt(parseNumber(merged.accentBlue, DEFAULT_STATE.accentBlue), 0, 255),
+            minorOpacity: clamp(parseNumber(merged.minorOpacity, DEFAULT_STATE.minorOpacity), 0.05, 1),
+            majorOpacity: clamp(parseNumber(merged.majorOpacity, DEFAULT_STATE.majorOpacity), 0.05, 1),
+            includeScaleNote: parseBoolean(merged.includeScaleNote, DEFAULT_STATE.includeScaleNote),
             headerText: normalizeMultilineText(String(merged.headerText || ''), 2),
             headerAlign: normalizeTextAlign(merged.headerAlign),
             footerText: normalizeMultilineText(String(merged.footerText || ''), 2),
             footerAlign: normalizeTextAlign(merged.footerAlign),
+            scaleValue: clamp(parseNumber(merged.scaleValue, DEFAULT_STATE.scaleValue), 0.001, 1e9),
             scaleUnit: normalizeScaleUnit(merged.scaleUnit),
+            xMin: parseNumber(merged.xMin, DEFAULT_STATE.xMin),
+            xMax: parseNumber(merged.xMax, DEFAULT_STATE.xMax),
+            yMin: parseNumber(merged.yMin, DEFAULT_STATE.yMin),
+            yMax: parseNumber(merged.yMax, DEFAULT_STATE.yMax),
             template: TEMPLATE_META[merged.template] ? merged.template : DEFAULT_STATE.template,
             paperSize: PAPER_SIZES[merged.paperSize] ? merged.paperSize : DEFAULT_STATE.paperSize,
             orientation: merged.orientation === 'landscape' ? 'landscape' : 'portrait',
@@ -1412,13 +1441,53 @@
         if (normalized.template === 'centerAxes') {
             const xExtent = Math.max(Math.abs(normalized.xMin), Math.abs(normalized.xMax));
             const yExtent = Math.max(Math.abs(normalized.yMin), Math.abs(normalized.yMax));
-            normalized.xMin = -xExtent;
-            normalized.xMax = xExtent;
-            normalized.yMin = -yExtent;
-            normalized.yMax = yExtent;
+            const fallbackXExtent = Math.max(Math.abs(DEFAULT_STATE.xMin), Math.abs(DEFAULT_STATE.xMax), 1);
+            const fallbackYExtent = Math.max(Math.abs(DEFAULT_STATE.yMin), Math.abs(DEFAULT_STATE.yMax), 1);
+            const safeXExtent = xExtent > 0 ? xExtent : fallbackXExtent;
+            const safeYExtent = yExtent > 0 ? yExtent : fallbackYExtent;
+            normalized.xMin = -safeXExtent;
+            normalized.xMax = safeXExtent;
+            normalized.yMin = -safeYExtent;
+            normalized.yMax = safeYExtent;
+        } else {
+            const xRange = normalizeAxisRange(normalized.xMin, normalized.xMax, DEFAULT_STATE.xMin, DEFAULT_STATE.xMax);
+            const yRange = normalizeAxisRange(normalized.yMin, normalized.yMax, DEFAULT_STATE.yMin, DEFAULT_STATE.yMax);
+            normalized.xMin = xRange.min;
+            normalized.xMax = xRange.max;
+            normalized.yMin = yRange.min;
+            normalized.yMax = yRange.max;
         }
 
         return normalized;
+    }
+
+    function normalizeAxisRange(minValue, maxValue, fallbackMin, fallbackMax) {
+        let min = Number.isFinite(minValue) ? minValue : fallbackMin;
+        let max = Number.isFinite(maxValue) ? maxValue : fallbackMax;
+
+        if (min === max) {
+            max = min + 1;
+        }
+
+        if (min > max) {
+            [min, max] = [max, min];
+        }
+
+        return { min, max };
+    }
+
+    function parseBoolean(value, fallback) {
+        if (typeof value === 'boolean') {
+            return value;
+        }
+
+        if (typeof value === 'string') {
+            const normalized = value.trim().toLowerCase();
+            if (normalized === 'true') return true;
+            if (normalized === 'false') return false;
+        }
+
+        return fallback;
     }
 
     function clamp(value, min, max) {
@@ -1537,10 +1606,10 @@
 
     function sanitizePdfCompatibleText(value) {
         return value
-            .replace(/[“”]/g, '"')
-            .replace(/[‘’]/g, '\'')
-            .replace(/[–—]/g, '-')
-            .replace(/…/g, '...')
+            .replace(/[\u201C\u201D]/g, '"')
+            .replace(/[\u2018\u2019]/g, '\'')
+            .replace(/[\u2013\u2014]/g, '-')
+            .replace(/\u2026/g, '...')
             .replace(/\u00A0/g, ' ')
             .normalize('NFKD')
             .replace(/[\u0300-\u036f]/g, '')

@@ -23,23 +23,24 @@ function assertFileSize(file, maxBytes, label) {
 }
 
 function assertPixelCount(width, height, maxPixels, label) {
+    if (!Number.isFinite(width) || !Number.isFinite(height) || width < 1 || height < 1) {
+        throw new Error(`${label} dimensions could not be read.`);
+    }
+
     const pixels = width * height;
     if (pixels > maxPixels) {
         throw new Error(`${label} is too large to render safely. Limit: ${maxPixels.toLocaleString()} pixels.`);
     }
 }
 
-function readImageDimensions(file) {
+function loadImageElement(file) {
     return new Promise((resolve, reject) => {
         const image = new Image();
         const url = URL.createObjectURL(file);
 
         image.onload = () => {
             URL.revokeObjectURL(url);
-            resolve({
-                width: image.naturalWidth,
-                height: image.naturalHeight
-            });
+            resolve(image);
         };
 
         image.onerror = () => {
@@ -51,24 +52,44 @@ function readImageDimensions(file) {
     });
 }
 
+function imageToCanvas(image) {
+    const canvas = document.createElement('canvas');
+    canvas.width = image.naturalWidth || image.width;
+    canvas.height = image.naturalHeight || image.height;
+    canvas.getContext('2d').drawImage(image, 0, 0);
+    return canvas;
+}
+
+function bitmapToCanvas(bitmap) {
+    const canvas = document.createElement('canvas');
+    canvas.width = bitmap.width;
+    canvas.height = bitmap.height;
+    canvas.getContext('2d').drawImage(bitmap, 0, 0);
+    return canvas;
+}
+
 export const io = {
     async loadImageFile(file) {
         assertFileSize(file, IO_LIMITS.maxImageBytes, 'Image file');
-        const dimensions = await readImageDimensions(file);
-        assertPixelCount(dimensions.width, dimensions.height, IO_LIMITS.maxImagePixels, 'Image');
+        const image = await loadImageElement(file);
+        assertPixelCount(image.naturalWidth, image.naturalHeight, IO_LIMITS.maxImagePixels, 'Image');
 
-        const bitmap = await createImageBitmap(file);
-        try {
-            const canvas = document.createElement('canvas');
-            canvas.width = bitmap.width;
-            canvas.height = bitmap.height;
-            canvas.getContext('2d').drawImage(bitmap, 0, 0);
-            return canvas;
-        } finally {
-            if (bitmap.close) {
-                try { bitmap.close(); } catch (error) {}
+        if (typeof createImageBitmap === 'function') {
+            let bitmap = null;
+            try {
+                bitmap = await createImageBitmap(file);
+                assertPixelCount(bitmap.width, bitmap.height, IO_LIMITS.maxImagePixels, 'Image');
+                return bitmapToCanvas(bitmap);
+            } catch (error) {
+                // Some browsers do not support every image type through createImageBitmap.
+            } finally {
+                if (bitmap?.close) {
+                    try { bitmap.close(); } catch (error) {}
+                }
             }
         }
+
+        return imageToCanvas(image);
     },
 
     async loadPdfJsIfNeeded() {
@@ -93,11 +114,13 @@ export const io = {
             document.head.appendChild(script);
         });
 
-        let ok = await tryLoadClassic('../vendor/pdfjs/pdf.min.js');
-        if (!ok) ok = await tryLoadModule('../vendor/pdfjs/pdf.min.mjs');
-        if (!ok) ok = await tryLoadModule('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs');
+        const hasPdfJs = () => Boolean(window.pdfjsLib && window.pdfjsLib.getDocument);
 
-        if (ok && window.pdfjsLib && window.pdfjsLib.getDocument) {
+        await tryLoadClassic('../vendor/pdfjs/pdf.min.js');
+        if (!hasPdfJs()) await tryLoadModule('../vendor/pdfjs/pdf.min.mjs');
+        if (!hasPdfJs()) await tryLoadModule('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs');
+
+        if (hasPdfJs()) {
             try {
                 window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.mjs';
             } catch (error) {}

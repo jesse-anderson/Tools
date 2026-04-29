@@ -6,6 +6,16 @@ import { dataToScreen, getCalibrationStatus, getRenderablePoints, normToScreen, 
 
 let canvas, ctx;
 let dpr = 1;
+let drawScheduled = false;
+
+export function scheduleDraw() {
+    if (drawScheduled) return;
+    drawScheduled = true;
+    requestAnimationFrame(() => {
+        drawScheduled = false;
+        draw();
+    });
+}
 
 export function initCanvas(canvasElement) {
     canvas = canvasElement;
@@ -156,20 +166,37 @@ function drawGrid(gridColor, axisColor, textColor) {
     ctx.textAlign = 'right';
     ctx.textBaseline = 'middle';
     const ySteps = 10;
+
+    const yLabels = [];
+    let maxLabelWidth = 0;
+    for (let i = 1; i < ySteps; i++) {
+        const label = formatAxisNumber(cal.yMinVal + (cal.yMaxVal - cal.yMinVal) * (i / ySteps));
+        const width = ctx.measureText(label).width;
+        if (width > maxLabelWidth) maxLabelWidth = width;
+        yLabels.push({ i, label });
+    }
+    const labelPad = 6;
+    const yLabelX = Math.min(
+        state.viewport.offsetX + labelPad + maxLabelWidth,
+        state.viewport.offsetX + Math.max(labelPad, state.viewport.drawWidth - labelPad)
+    );
+
     for (let i = 0; i <= ySteps; i++) {
         const dataY = cal.yMinVal + (cal.yMaxVal - cal.yMinVal) * (i / ySteps);
         const p = dataToScreen(0, dataY);
-        
+
         ctx.beginPath();
         ctx.strokeStyle = gridColor;
         ctx.lineWidth = 1;
         ctx.moveTo(state.viewport.offsetX, p.y);
         ctx.lineTo(state.viewport.offsetX + state.viewport.drawWidth, p.y);
         ctx.stroke();
+    }
 
-        if (i > 0 && i < ySteps) {
-            ctx.fillText(formatAxisNumber(dataY), state.viewport.offsetX + 35, p.y);
-        }
+    for (const { i, label } of yLabels) {
+        const dataY = cal.yMinVal + (cal.yMaxVal - cal.yMinVal) * (i / ySteps);
+        const p = dataToScreen(0, dataY);
+        ctx.fillText(label, yLabelX, p.y);
     }
 }
 

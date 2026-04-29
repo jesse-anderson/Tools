@@ -18,11 +18,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Listen for theme changes from shared.js to re-render canvas
     const observer = new MutationObserver((mutations) => {
-        mutations.forEach((mutation) => {
-            if (mutation.attributeName === 'data-theme') {
-                import('./canvas.js').then(module => module.draw());
-            }
-        });
+        if (mutations.some((mutation) => mutation.attributeName === 'data-theme')) {
+            import('./canvas.js').then(module => module.scheduleDraw());
+        }
     });
     observer.observe(document.documentElement, { attributes: true });
 });

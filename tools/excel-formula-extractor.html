@@ -1,0 +1,354 @@
+<!--
+============================================
+EXCEL FORMULA EXTRACTOR v1.0.0
+============================================
+Description: Browser-based Excel formula and defined-name extraction
+for workbook auditing and downstream dependency tooling.
+
+Dependencies:
+- SheetJS (xlsx) 0.20.1
+- JetBrains Mono (font)
+- Space Grotesk (font)
+
+Last Updated: April 2026
+============================================
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Excel Formula Extractor | Tools Hub</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/shared.css">
+    <link rel="stylesheet" href="../css/excel_formula_extractor/excel-formula-extractor.css">
+    <script defer src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <div class="header-left">
+                    <a href="../tools.html" class="back-link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="19" y1="12" x2="5" y2="12"></line>
+                            <polyline points="12 19 5 12 12 5"></polyline>
+                        </svg>
+                        Back to Tools
+                    </a>
+                </div>
+                <div class="header-right">
+                    <div class="theme-toggle">
+                        <button data-theme-toggle="light" aria-pressed="false" title="Light mode">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="5"></circle>
+                                <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path>
+                            </svg>
+                        </button>
+                        <button data-theme-toggle="dark" aria-pressed="false" title="Dark mode">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="tool-hero">
+                <div class="tool-icon-header it" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                        <path d="M8 13h8"></path>
+                        <path d="M8 17h5"></path>
+                        <path d="M8 9h3"></path>
+                        <path d="M16 9h.01"></path>
+                    </svg>
+                </div>
+                <div>
+                    <h1>Excel Formula Extractor</h1>
+                    <p class="tagline">Local extraction of workbook formulas, defined names, hidden sheets, and external workbook references.</p>
+                </div>
+            </div>
+            <div class="hero-badge-row">
+                <span class="privacy-badge" title="All parsing happens locally in your browser.">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                    </svg>
+                    100% Local | No Uploads
+                </span>
+                <span class="privacy-badge subtle">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7 10 12 15 17 10"></polyline>
+                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                    </svg>
+                    Supports XLSX, XLSM, XLSB, XLS
+                </span>
+            </div>
+        </header>
+
+        <main>
+            <div class="extractor-layout">
+                <aside class="sidebar">
+                    <section class="panel">
+                        <div class="panel-header-block">
+                            <h2>Workbook Input</h2>
+                            <p>Upload a workbook to extract cell formulas, defined names, sheet visibility, and external workbook references for later lineage work.</p>
+                        </div>
+
+                        <div class="status-banner info" id="statusBanner" role="status" aria-live="polite">
+                            Waiting for a workbook or demo load.
+                        </div>
+
+                        <div class="upload-area" id="uploadArea" tabindex="0" role="button" aria-label="Drop an Excel workbook here or press Enter to browse">
+                            <input id="fileInput" type="file" accept=".xlsx,.xlsm,.xlsb,.xls" hidden>
+                            <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="17 8 12 3 7 8"></polyline>
+                                <line x1="12" y1="3" x2="12" y2="15"></line>
+                            </svg>
+                            <p class="upload-title">Drop an Excel workbook here</p>
+                            <p class="upload-subtitle">or use the actions below</p>
+                        </div>
+
+                        <div class="upload-actions">
+                            <button type="button" class="tool-btn primary" id="browseWorkbookBtn">Choose Workbook</button>
+                            <button type="button" class="tool-btn" id="loadDemoWorkbookBtn">Load Demo Workbook</button>
+                            <button type="button" class="tool-btn" id="clearWorkbookBtn">Clear</button>
+                        </div>
+
+                        <div class="kv-grid">
+                            <div>Workbook</div><div class="kv-value" id="fileNameValue">--</div>
+                            <div>Source</div><div class="kv-value" id="sourceValue">--</div>
+                            <div>File Size</div><div class="kv-value" id="fileSizeValue">--</div>
+                            <div>Generated</div><div class="kv-value" id="generatedValue">--</div>
+                        </div>
+                    </section>
+
+                    <section class="panel">
+                        <div class="panel-header-block compact">
+                            <h3>Exports</h3>
+                            <p>Use the raw exports as inputs to later dependency tooling.</p>
+                        </div>
+                        <div class="stack-actions">
+                            <button type="button" class="tool-btn" id="downloadJsonBtn" disabled>Export JSON</button>
+                            <button type="button" class="tool-btn" id="downloadFormulasCsvBtn" disabled>Export Formula CSV</button>
+                            <button type="button" class="tool-btn" id="downloadNamesCsvBtn" disabled>Export Names CSV</button>
+                            <button type="button" class="tool-btn" id="downloadDumpBtn" disabled>Export Dump TXT</button>
+                        </div>
+                    </section>
+
+                    <section class="panel">
+                        <div class="panel-header-block compact">
+                            <h3>External Workbook Refs</h3>
+                            <p>These are detected and preserved, but not automatically resolved.</p>
+                        </div>
+                        <div class="section-controls section-controls-inline">
+                            <p class="section-meta" id="externalRefsMeta">0 shown of 0</p>
+                            <div class="section-action-buttons">
+                                <button type="button" class="tool-btn compact" id="showMoreExternalRefsBtn" hidden>Show 10 More</button>
+                                <button type="button" class="tool-btn compact" id="showAllExternalRefsBtn" hidden>Show All</button>
+                            </div>
+                        </div>
+                        <div class="link-list empty" id="externalRefsList">No external workbook references detected yet.</div>
+                    </section>
+
+                    <section class="panel note-panel">
+                        <div class="panel-header-block compact">
+                            <h3>V1 Boundaries</h3>
+                        </div>
+                        <ul class="note-list">
+                            <li>Extracts cell formulas and defined names as raw workbook surfaces.</li>
+                            <li>Hidden and very hidden sheets are parsed directly without mutating the workbook.</li>
+                            <li>Cached values may be stale if the workbook was not recalculated before save.</li>
+                            <li>Does not evaluate formulas or fully resolve chart, validation, or pivot-specific logic surfaces.</li>
+                        </ul>
+                    </section>
+                </aside>
+
+                <section class="workspace panel">
+                    <div class="workspace-header">
+                        <div>
+                            <h2>Extraction Output</h2>
+                            <p>Filter formula cells and defined names by sheet, text, or external-link presence.</p>
+                        </div>
+                        <div class="filter-bar">
+                            <label class="field">
+                                <span>Sheet</span>
+                                <select id="sheetFilter">
+                                    <option value="__all__">All Sheets</option>
+                                </select>
+                            </label>
+                            <label class="field search-field">
+                                <span>Search</span>
+                                <input id="searchInput" type="search" placeholder="Formula, address, workbook, name">
+                            </label>
+                            <label class="checkbox-field">
+                                <input id="externalOnlyToggle" type="checkbox">
+                                <span>External refs only</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="summary-grid">
+                        <div class="stat-card">
+                            <span class="stat-label">Sheets</span>
+                            <span class="stat-value" id="sheetCountValue">0</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-label">Formula Cells</span>
+                            <span class="stat-value" id="formulaCellsValue">0</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-label">Defined Names</span>
+                            <span class="stat-value" id="definedNamesValue">0</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-label">Hidden Sheets</span>
+                            <span class="stat-value" id="hiddenSheetsValue">0</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-label">Linked Workbooks</span>
+                            <span class="stat-value" id="externalLinksValue">0</span>
+                        </div>
+                    </div>
+
+                    <div class="empty-state" id="emptyState">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                            <path d="M8 13h8"></path>
+                            <path d="M8 17h5"></path>
+                            <path d="M8 9h3"></path>
+                        </svg>
+                        <h3>No workbook loaded</h3>
+                        <p>Upload an Excel file or load the demo workbook to inspect formulas, defined names, hidden sheets, and external workbook links.</p>
+                    </div>
+
+                    <div class="results-content" id="resultsContent" hidden>
+                        <section class="section-block">
+                            <div class="section-heading">
+                                <div>
+                                    <h3>Sheets</h3>
+                                    <p>Visibility and per-sheet formula counts.</p>
+                                </div>
+                                <div class="section-controls">
+                                    <p class="section-meta" id="sheetsMeta">0 shown of 0</p>
+                                    <div class="section-action-buttons">
+                                        <button type="button" class="tool-btn compact" id="showMoreSheetsBtn" hidden>Show 10 More</button>
+                                        <button type="button" class="tool-btn compact" id="showAllSheetsBtn" hidden>Show All</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="table-shell">
+                                <table id="sheetsTable">
+                                    <thead>
+                                        <tr>
+                                            <th>Sheet</th>
+                                            <th>Visibility</th>
+                                            <th>Range</th>
+                                            <th>Formula Cells</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody></tbody>
+                                </table>
+                            </div>
+                        </section>
+
+                        <section class="section-block">
+                            <div class="section-heading">
+                                <div>
+                                    <h3>Formula Cells</h3>
+                                    <p>Filtered formula-bearing cells.</p>
+                                </div>
+                                <div class="section-controls">
+                                    <p class="section-meta" id="formulaRowsMeta">0 shown of 0</p>
+                                    <div class="section-action-buttons">
+                                        <button type="button" class="tool-btn compact" id="showMoreFormulasBtn" hidden>Show 10 More</button>
+                                        <button type="button" class="tool-btn compact" id="showAllFormulasBtn" hidden>Show All</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="table-shell">
+                                <table id="formulasTable">
+                                    <thead>
+                                        <tr>
+                                            <th>Sheet</th>
+                                            <th>Cell</th>
+                                            <th>Visibility</th>
+                                            <th>Formula</th>
+                                            <th>Cached Value</th>
+                                            <th>Formatted Value</th>
+                                            <th>Cell Type</th>
+                                            <th>Array Range</th>
+                                            <th>External</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody></tbody>
+                                </table>
+                            </div>
+                        </section>
+
+                        <section class="section-block">
+                            <div class="section-heading">
+                                <div>
+                                    <h3>Defined Names</h3>
+                                    <p>Workbook-scoped and sheet-scoped names.</p>
+                                </div>
+                                <div class="section-controls">
+                                    <p class="section-meta" id="definedNamesMeta">0 shown of 0</p>
+                                    <div class="section-action-buttons">
+                                        <button type="button" class="tool-btn compact" id="showMoreDefinedNamesBtn" hidden>Show 10 More</button>
+                                        <button type="button" class="tool-btn compact" id="showAllDefinedNamesBtn" hidden>Show All</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="table-shell">
+                                <table id="definedNamesTable">
+                                    <thead>
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>Scope</th>
+                                            <th>Scope Visibility</th>
+                                            <th>Ref</th>
+                                            <th>Comment</th>
+                                            <th>External</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody></tbody>
+                                </table>
+                            </div>
+                        </section>
+
+                        <section class="section-block">
+                            <div class="section-heading">
+                                <div>
+                                    <h3>Formula Dump</h3>
+                                    <p>Plain-text output for quick auditing and downstream ingestion.</p>
+                                </div>
+                                <div class="section-controls">
+                                    <p class="section-meta" id="formulaDumpMeta">0 shown of 0 lines</p>
+                                    <div class="section-action-buttons">
+                                        <button type="button" class="tool-btn compact" id="showMoreDumpBtn" hidden>Show 10 More</button>
+                                        <button type="button" class="tool-btn compact" id="showAllDumpBtn" hidden>Show All</button>
+                                        <button type="button" class="tool-btn compact" id="copyDumpBtn" disabled>Copy Dump</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <textarea id="formulaDump" class="formula-dump" readonly spellcheck="false" aria-label="Formula dump"></textarea>
+                        </section>
+                    </div>
+                </section>
+            </div>
+        </main>
+
+        <footer data-footer></footer>
+    </div>
+
+    <script src="../js/shared.js"></script>
+    <script type="module" src="../js/footer.js" defer></script>
+    <script type="module" src="../js/excel_formula_extractor/excel-formula-extractor.js"></script>
+</body>
+</html>

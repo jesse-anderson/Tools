@@ -430,6 +430,32 @@
     box-shadow: 0 0 0 3px var(--accent-engineering-dim);
 }
 
+.status-banner {
+    margin: 12px 20px 0;
+    padding: 10px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-secondary);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+    color: var(--text-primary);
+}
+
+.status-banner[hidden] {
+    display: none;
+}
+
+.status-banner.error {
+    border-color: var(--accent-error);
+    color: var(--accent-error);
+    background: var(--accent-error-dim, rgba(239, 68, 68, 0.08));
+}
+
+.status-banner.success {
+    border-color: var(--accent-success);
+    color: var(--accent-success);
+}
+
 .canvas-container {
     position: relative;
     width: 100%;

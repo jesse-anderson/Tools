@@ -16,7 +16,7 @@ import {
     clearImageDependentMeasurements,
     loadExampleData
 } from './state.js';
-import { canvasToPngBlob, draw } from './canvas.js';
+import { canvasToPngBlob, draw, scheduleDraw } from './canvas.js';
 import {
     calculateAUC,
     getCalibrationStatus,
@@ -33,6 +33,37 @@ import {
 import { io, IO_LIMITS } from './io.js';
 
 const DEFAULT_OVERLAY_TEXT = 'Click inside the canvas to add points to the active series.';
+const NO_SERIES_OVERLAY_TEXT = 'Add a series to start placing points.';
+const STATUS_AUTO_HIDE_MS = 4000;
+let statusTimeoutId = null;
+
+function showStatus(message, level = 'info', { autoHide = true } = {}) {
+    const banner = document.getElementById('statusBanner');
+    if (!banner) return;
+    banner.textContent = message;
+    banner.className = `status-banner ${level}`.trim();
+    banner.hidden = false;
+    if (statusTimeoutId !== null) {
+        clearTimeout(statusTimeoutId);
+        statusTimeoutId = null;
+    }
+    if (autoHide) {
+        statusTimeoutId = setTimeout(() => {
+            banner.hidden = true;
+            statusTimeoutId = null;
+        }, STATUS_AUTO_HIDE_MS);
+    }
+}
+
+function hideStatus() {
+    const banner = document.getElementById('statusBanner');
+    if (!banner) return;
+    if (statusTimeoutId !== null) {
+        clearTimeout(statusTimeoutId);
+        statusTimeoutId = null;
+    }
+    banner.hidden = true;
+}
 
 export function setupUI() {
     setupCalibrationInputs();
@@ -58,9 +89,12 @@ function setOverlayText(text) {
     document.getElementById('canvasOverlayText').textContent = text;
 }
 
-function resetActiveToolUI(message = DEFAULT_OVERLAY_TEXT) {
+function resetActiveToolUI(message) {
     state.activeTool = 'add-point';
-    setOverlayText(message);
+    const text = message !== undefined
+        ? message
+        : (state.activeSeriesId ? DEFAULT_OVERLAY_TEXT : NO_SERIES_OVERLAY_TEXT);
+    setOverlayText(text);
     document.getElementById('integrationCanvas').style.cursor = 'crosshair';
     setRoiButtonActive(false);
 }
@@ -103,7 +137,7 @@ function setupBackgroundAndExamples() {
             if (isPdf) {
                 const ok = await io.loadPdfJsIfNeeded();
                 if (!ok) {
-                    alert('PDF.js could not be loaded.');
+                    showStatus('PDF.js could not be loaded.', 'error');
                     return;
                 }
 
@@ -122,7 +156,7 @@ function setupBackgroundAndExamples() {
             resetActiveToolUI('Image loaded. Calibrate axes before tracing visual points.');
         } catch (error) {
             console.error(error);
-            alert(error.message || 'Failed to load file. Use a valid image or PDF within the size limits.');
+            showStatus(error.message || 'Failed to load file. Use a valid image or PDF within the size limits.', 'error');
         } finally {
             event.target.value = '';
         }
@@ -205,19 +239,19 @@ function setupPdfControls() {
 
     btnPrev.addEventListener('click', async () => {
         if (!state.pdfDoc) return;
-        pdfPage.value = Math.max(1, Number.parseInt(pdfPage.value, 10) - 1);
+        pdfPage.value = getClampedPdfPageNumber(Number.parseInt(pdfPage.value, 10) - 1);
         await renderSelectedPdfPage({ clearMeasurements: true });
     });
 
     btnNext.addEventListener('click', async () => {
         if (!state.pdfDoc) return;
-        pdfPage.value = Math.min(state.pdfDoc.numPages, Number.parseInt(pdfPage.value, 10) + 1);
+        pdfPage.value = getClampedPdfPageNumber(Number.parseInt(pdfPage.value, 10) + 1);
         await renderSelectedPdfPage({ clearMeasurements: true });
     });
 
     pdfPage.addEventListener('change', async () => {
         if (!state.pdfDoc) return;
-        pdfPage.value = Math.max(1, Math.min(state.pdfDoc.numPages, Number.parseInt(pdfPage.value, 10) || 1));
+        pdfPage.value = getClampedPdfPageNumber(pdfPage.value);
         await renderSelectedPdfPage({ clearMeasurements: true });
     });
 
@@ -228,12 +262,19 @@ function setupPdfControls() {
     });
 }
 
+function getClampedPdfPageNumber(value) {
+    const maxPage = Math.max(1, state.pdfDoc?.numPages || 1);
+    const parsed = Number.parseInt(value, 10);
+    return Math.max(1, Math.min(maxPage, Number.isFinite(parsed) ? parsed : 1));
+}
+
 async function renderSelectedPdfPage(options = {}) {
     if (!state.pdfDoc) return false;
 
-    const pageNum = Number.parseInt(document.getElementById('pdfPage').value, 10);
+    const pageNum = getClampedPdfPageNumber(document.getElementById('pdfPage').value);
     const scale = Math.max(1, Math.min(IO_LIMITS.maxPdfScale, Number(document.getElementById('pdfScale').value) || 4));
 
+    document.getElementById('pdfPage').value = String(pageNum);
     document.getElementById('pdfPageMeta').textContent = `${pageNum} / ${state.pdfDoc.numPages}`;
     document.getElementById('pdfScale').value = String(scale);
     document.getElementById('btnPdfPrev').disabled = pageNum <= 1;
@@ -245,7 +286,7 @@ async function renderSelectedPdfPage(options = {}) {
         return true;
     } catch (error) {
         console.error(error);
-        alert(error.message || 'Error rendering PDF page.');
+        showStatus(error.message || 'Error rendering PDF page.', 'error');
         return false;
     }
 }
@@ -258,7 +299,7 @@ function setupCalibrationInputs() {
             const ok = updateCalibration(id, event.target.value);
             input.classList.toggle('invalid-input', !ok);
             if (!ok) return;
-            draw();
+            scheduleDraw();
             updateResultsUI();
         });
 
@@ -281,17 +322,17 @@ function setupCalibrationInputs() {
 
     document.getElementById('showGrid').addEventListener('change', (event) => {
         updateSetting('showGrid', event.target.checked);
-        draw();
+        scheduleDraw();
     });
 
     document.getElementById('showAuc').addEventListener('change', (event) => {
         updateSetting('showAuc', event.target.checked);
-        draw();
+        scheduleDraw();
     });
 
     document.getElementById('clearPointsBtn').addEventListener('click', () => {
         clearActiveSeriesPoints();
-        draw();
+        scheduleDraw();
         updateResultsUI();
     });
 }
@@ -301,7 +342,7 @@ function setupSeriesControls() {
         addSeries();
         updateSeriesListUI();
         updateResultsUI();
-        draw();
+        scheduleDraw();
     });
 }
 
@@ -311,7 +352,17 @@ export function updateSeriesListUI() {
 
     if (state.seriesList.length === 0) {
         container.appendChild(createHelpMessage('No series added.'));
+        if (state.activeTool === 'add-point') {
+            setOverlayText(NO_SERIES_OVERLAY_TEXT);
+        }
         return;
+    }
+
+    if (state.activeTool === 'add-point') {
+        const overlay = document.getElementById('canvasOverlayText');
+        if (overlay && overlay.textContent === NO_SERIES_OVERLAY_TEXT) {
+            setOverlayText(DEFAULT_OVERLAY_TEXT);
+        }
     }
 
     state.seriesList.forEach(series => {
@@ -344,12 +395,12 @@ export function updateSeriesListUI() {
             if (event.target.closest('input, button')) return;
             state.activeSeriesId = series.id;
             updateSeriesListUI();
-            draw();
+            scheduleDraw();
         });
 
         colorInput.addEventListener('input', (event) => {
             series.color = event.target.value;
-            draw();
+            scheduleDraw();
             updateResultsUI();
         });
 
@@ -363,7 +414,7 @@ export function updateSeriesListUI() {
             deleteSeries(series.id);
             updateSeriesListUI();
             updateResultsUI();
-            draw();
+            scheduleDraw();
         });
 
         container.appendChild(div);
@@ -453,7 +504,7 @@ function setupCanvasInteractions() {
 
             state.calibration[anchor] = { x: norm.x, y: norm.y };
             resetActiveToolUI();
-            draw();
+            scheduleDraw();
             updateResultsUI();
             return;
         }
@@ -464,12 +515,15 @@ function setupCanvasInteractions() {
             return;
         }
 
-        if (!state.activeSeriesId) return;
+        if (!state.activeSeriesId) {
+            showStatus('Add or select a series before placing points.', 'error');
+            return;
+        }
         const norm = screenToNormIfInside(pxX, pxY);
         if (!norm) return;
 
         addVisualPointToActive(norm.x, norm.y);
-        draw();
+        scheduleDraw();
         updateResultsUI();
     });
 
@@ -480,7 +534,7 @@ function setupCanvasInteractions() {
             const imgPoint = screenToImageClamped(pxX, pxY);
             if (!imgPoint) return;
             state.roiDraft.end = imgPoint;
-            draw();
+            scheduleDraw();
             return;
         }
 
@@ -492,7 +546,7 @@ function setupCanvasInteractions() {
         if (!point) return;
 
         updatePointFromNorm(point, norm);
-        draw();
+        scheduleDraw();
         updateResultsUI();
     });
 
@@ -520,10 +574,16 @@ function setupCanvasInteractions() {
             }
 
             state.roiDraft = null;
-            draw();
+            scheduleDraw();
         }
 
         state.draggedPoint = null;
+    });
+
+    canvas.addEventListener('pointercancel', () => {
+        state.draggedPoint = null;
+        state.roiDraft = null;
+        scheduleDraw();
     });
 }
 
@@ -557,13 +617,13 @@ function setupDataImport() {
         const text = textArea.value.trim();
         if (!text) return;
         if (!state.activeSeriesId) {
-            alert('Please add or select a series first.');
+            showStatus('Add or select a series before importing data.', 'error');
             return;
         }
 
         const lines = text.split(/\r?\n/);
         if (lines.length > POINT_LIMITS.maxImportLines) {
-            alert(`Import is limited to ${POINT_LIMITS.maxImportLines.toLocaleString()} pasted lines.`);
+            showStatus(`Import is limited to ${POINT_LIMITS.maxImportLines.toLocaleString()} pasted lines.`, 'error');
             return;
         }
 
@@ -571,7 +631,7 @@ function setupDataImport() {
         const remainingSeriesCapacity = POINT_LIMITS.maxPointsPerSeries - (series?.points.length || 0);
         const maxBatchPoints = Math.min(POINT_LIMITS.maxImportPointsPerBatch, remainingSeriesCapacity);
         if (maxBatchPoints <= 0) {
-            alert(`The active series already has the maximum of ${POINT_LIMITS.maxPointsPerSeries.toLocaleString()} points.`);
+            showStatus(`The active series already has the maximum of ${POINT_LIMITS.maxPointsPerSeries.toLocaleString()} points.`, 'error');
             return;
         }
 
@@ -594,14 +654,16 @@ function setupDataImport() {
         }
 
         if (importedCount > 0) {
-            draw();
+            scheduleDraw();
             updateResultsUI();
             textArea.value = '';
             if (stoppedAtCap) {
-                alert(`Imported ${importedCount.toLocaleString()} points. Import stopped at the configured point limit.`);
+                showStatus(`Imported ${importedCount.toLocaleString()} points. Import stopped at the configured point limit.`, 'info');
+            } else {
+                showStatus(`Imported ${importedCount.toLocaleString()} points.`, 'success');
             }
         } else {
-            alert('Could not parse valid x,y pairs from the input.');
+            showStatus('Could not parse valid x,y pairs from the input.', 'error');
         }
     });
 }
@@ -628,15 +690,16 @@ function setupExportUtilities() {
     document.getElementById('copyResultsBtn').addEventListener('click', async () => {
         const text = buildResultsText();
         if (!text) {
-            alert('No results to copy.');
+            showStatus('No results to copy.', 'error');
             return;
         }
 
         try {
             await navigator.clipboard.writeText(text);
-            alert('Results copied.');
+            showStatus('Results copied.', 'success');
         } catch (error) {
             downloadTextFile(`${exportStem()}_results.txt`, text, 'text/plain;charset=utf-8');
+            showStatus('Clipboard unavailable. Saved results to a text file instead.', 'info');
         }
     });
 
@@ -647,7 +710,7 @@ function setupExportUtilities() {
     document.getElementById('downloadAnnotatedBtn').addEventListener('click', async () => {
         const blob = await canvasToPngBlob();
         if (!blob) {
-            alert('Annotated image could not be created.');
+            showStatus('Annotated image could not be created.', 'error');
             return;
         }
         downloadBlob(`${exportStem()}_annotated.png`, blob);

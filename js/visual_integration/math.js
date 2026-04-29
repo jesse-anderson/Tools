@@ -53,9 +53,13 @@ export function getCalibrationStatus() {
     }
     if (Math.abs(metrics.xValRange) <= EPSILON) {
         issues.push('X Min and X Max must be different.');
+    } else if (metrics.xValRange < 0) {
+        issues.push('X Max must be greater than X Min.');
     }
     if (Math.abs(metrics.yValRange) <= EPSILON) {
         issues.push('Y Min and Y Max must be different.');
+    } else if (metrics.yValRange < 0) {
+        issues.push('Y Max must be greater than Y Min.');
     }
     if (Math.abs(metrics.xPxRange) <= EPSILON) {
         issues.push('X calibration anchors must not overlap horizontally.');
