@@ -74,7 +74,8 @@ export function validateInputs(inputs) {
     const packModel = resolvePackModel(inputs);
     const loadVoltage = inputs.loadVoltage ?? packModel.batteryVoltage;
 
-    if (inputs.regulatorType === 'direct' && inputs.loadVoltage !== null && Math.abs(loadVoltage - packModel.batteryVoltage) > Math.max(0.05, packModel.batteryVoltage * 0.02)) {
+    const directVoltageTolerance = Math.max(1e-9, packModel.batteryVoltage * 1e-9);
+    if (inputs.regulatorType === 'direct' && inputs.loadVoltage !== null && Math.abs(loadVoltage - packModel.batteryVoltage) > directVoltageTolerance) {
         return { field: 'loadVoltage', message: 'Direct battery feed assumes the load voltage matches pack voltage. Leave it blank or match the pack voltage.' };
     }
 
@@ -153,7 +154,7 @@ export function computeEstimate(inputs) {
         batteryVoltage: packModel.batteryVoltage
     });
 
-    const runtimeHours = regulatorModel.avgBatteryPowerW > 0 ? usableEnergyWh / regulatorModel.avgBatteryPowerW : Infinity;
+    const runtimeHours = regulatorModel.avgBatteryPowerW > 0 ? usableEnergyWh / regulatorModel.avgBatteryPowerW : Number.NaN;
     const feasibility = evaluateFeasibility({
         regulatorCurrentLimitA: convertOptionalCurrentToAmps(inputs.regulatorCurrentLimit, inputs.regulatorCurrentLimitUnit),
         batteryCurrentLimitA: convertOptionalCurrentToAmps(inputs.batteryCurrentLimit, inputs.batteryCurrentLimitUnit),
@@ -169,6 +170,7 @@ export function computeEstimate(inputs) {
         batteryVoltage: packModel.batteryVoltage,
         regulatorEfficiency: regulatorEfficiencyRatio,
         quiescentA,
+        avgLoadCurrentA: loadModel.avgLoadCurrentA,
         avgBatteryPowerW: regulatorModel.avgBatteryPowerW
     });
 
@@ -272,13 +274,23 @@ export function resolveLoadModel(inputs, loadVoltage) {
     });
 
     const avgLoadCurrentA = weightedCurrentSeconds / cycleSeconds;
-    const resolvedPeakA = explicitPeakLoadCurrentA ?? peakCurrentA;
+    const resolvedPeakA = explicitPeakLoadCurrentA === null
+        ? peakCurrentA
+        : Math.max(explicitPeakLoadCurrentA, peakCurrentA);
     const stateNames = inputs.profileRows.map((row) => row.name).join(', ');
+    let peakMeta;
+    if (explicitPeakLoadCurrentA === null) {
+        peakMeta = `Peak load current derived from the highest entered state (${formatCurrent(peakCurrentA)}).`;
+    } else if (explicitPeakLoadCurrentA < peakCurrentA) {
+        peakMeta = `Entered peak load current ${formatCurrent(explicitPeakLoadCurrentA)} is below the highest state (${formatCurrent(peakCurrentA)}); using the higher state value for feasibility checks.`;
+    } else {
+        peakMeta = `Peak load current entered as ${formatCurrent(explicitPeakLoadCurrentA)}.`;
+    }
     return {
         avgLoadCurrentA,
         avgLoadPowerW: avgLoadCurrentA * loadVoltage,
         peakLoadCurrentA: resolvedPeakA,
-        peakMeta: explicitPeakLoadCurrentA === null ? `Peak load current derived from the highest entered state (${formatCurrent(peakCurrentA)}).` : `Peak load current entered as ${formatCurrent(explicitPeakLoadCurrentA)}.`,
+        peakMeta,
         modeMeta: `${inputs.profileRows.length} states over a ${formatDurationFromSeconds(cycleSeconds)} cycle: ${stateNames}.`,
         assumptionText: 'Load behavior is averaged from the entered repeating state profile.',
         contributions: stateContributions.map((item) => ({
@@ -364,11 +376,15 @@ export function evaluateFeasibility(params) {
         notes.push('Peak current was approximated from the average load because no explicit peak current was entered.');
     }
 
+    const peakUnknownInPowerMode = !params.explicitPeakProvided && params.mode === 'power';
+
     let status;
     if (checks.length === 0) {
-        status = 'Not evaluated';
+        status = peakUnknownInPowerMode ? 'Peak unknown' : 'Not evaluated';
     } else if (checks.some((c) => c.exceeded)) {
         status = 'Limit exceeded';
+    } else if (peakUnknownInPowerMode) {
+        status = 'Peak unknown';
     } else {
         status = 'Within limits';
     }
@@ -381,13 +397,11 @@ export function evaluateFeasibility(params) {
 
 export function buildContributionItems(params) {
     const items = [];
-    let totalLoadBatteryPowerW = 0;
+    let totalLoadPowerW = 0;
 
     params.loadContributions.forEach((item) => {
-        const batteryPowerW = params.regulatorType === 'fixed'
-            ? item.avgLoadPowerW / params.regulatorEfficiency
-            : item.avgLoadCurrentA * params.batteryVoltage;
-        totalLoadBatteryPowerW += batteryPowerW;
+        const batteryPowerW = item.avgLoadPowerW;
+        totalLoadPowerW += batteryPowerW;
         items.push({
             label: item.label,
             avgLoadCurrentA: item.avgLoadCurrentA,
@@ -397,13 +411,24 @@ export function buildContributionItems(params) {
     });
 
     if (params.regulatorType === 'fixed') {
-        const totalDevicePowerW = params.loadContributions.reduce((sum, item) => sum + item.avgLoadPowerW, 0);
-        const converterLossW = Math.max(0, totalLoadBatteryPowerW - totalDevicePowerW);
+        const converterLossW = Math.max(0, (totalLoadPowerW / params.regulatorEfficiency) - totalLoadPowerW);
         if (converterLossW > 0) {
             items.push({
                 label: 'Converter loss',
                 avgLoadCurrentA: 0,
                 batteryPowerW: converterLossW,
+                kind: 'loss'
+            });
+        }
+    } else if (params.regulatorType === 'ldo') {
+        const voltageDrop = params.batteryVoltage - params.loadVoltage;
+        const totalLoadCurrentA = params.loadContributions.reduce((sum, item) => sum + item.avgLoadCurrentA, 0);
+        const ldoDropW = Math.max(0, totalLoadCurrentA * voltageDrop);
+        if (ldoDropW > 0) {
+            items.push({
+                label: 'LDO drop',
+                avgLoadCurrentA: 0,
+                batteryPowerW: ldoDropW,
                 kind: 'loss'
             });
         }

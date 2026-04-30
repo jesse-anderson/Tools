@@ -231,6 +231,176 @@
             flex-shrink: 0;
         }
 
+        .hub-stats-panel {
+            margin: 32px 0 24px;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            background: var(--bg-secondary);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .hub-stats-panel summary {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 14px 16px;
+            cursor: pointer;
+            list-style: none;
+            user-select: none;
+        }
+
+        .hub-stats-panel summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .hub-stats-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--text-primary);
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 700;
+        }
+
+        .hub-stats-title::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent-it);
+            box-shadow: 0 0 0 4px var(--accent-it-dim);
+        }
+
+        .hub-stats-summary {
+            color: var(--text-secondary);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.78rem;
+            text-align: right;
+        }
+
+        .hub-stats-body {
+            display: grid;
+            gap: 16px;
+            padding: 0 16px 16px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .hub-stats-overview {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 10px;
+            padding-top: 16px;
+        }
+
+        .hub-stat-metric {
+            min-width: 0;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background: var(--bg-card);
+        }
+
+        .hub-stat-label {
+            color: var(--text-muted);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.68rem;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        .hub-stat-value {
+            margin-top: 6px;
+            color: var(--text-primary);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.15rem;
+            font-weight: 700;
+        }
+
+        .hub-stats-section {
+            display: grid;
+            gap: 8px;
+        }
+
+        .hub-stats-section h3 {
+            margin: 0;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+        }
+
+        .hub-stats-table {
+            width: 100%;
+            border-collapse: collapse;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background: var(--bg-card);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.76rem;
+        }
+
+        .hub-stats-table th,
+        .hub-stats-table td {
+            padding: 9px 10px;
+            border-bottom: 1px solid var(--border-color);
+            text-align: left;
+            vertical-align: top;
+        }
+
+        .hub-stats-table th {
+            color: var(--text-muted);
+            background: var(--bg-primary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-size: 0.68rem;
+        }
+
+        .hub-stats-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .hub-stats-columns {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 16px;
+        }
+
+        .hub-stat-list,
+        .hub-tag-cloud {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background: var(--bg-card);
+        }
+
+        .hub-stat-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 8px;
+            border: 1px solid var(--border-color);
+            border-radius: 999px;
+            background: var(--bg-primary);
+            color: var(--text-secondary);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.72rem;
+        }
+
+        .hub-stat-pill strong {
+            color: var(--text-primary);
+        }
+
+        .hub-audit-notes {
+            margin: 0;
+            padding-left: 18px;
+            color: var(--text-secondary);
+            font-size: 0.84rem;
+            line-height: 1.5;
+        }
+
         /* Condensed responsive */
         @media (max-width: 768px) {
             .controls-bar {
@@ -248,6 +418,20 @@
 
             body.condensed .tool-name {
                 font-size: 0.875rem;
+            }
+
+            .hub-stats-overview,
+            .hub-stats-columns {
+                grid-template-columns: 1fr;
+            }
+
+            .hub-stats-panel summary {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+
+            .hub-stats-summary {
+                text-align: left;
             }
         }
     </style>
@@ -463,7 +647,7 @@
                                     <rect x="6" y="6" width="12" height="12" rx="2"/>
                                 </svg>
                             </div>
-                            <span class="tool-status coming">Under Review...</span>
+                            <span class="tool-status active">Active</span>
                         </div>
                         <h3 class="tool-name">Battery Capacity Calculator</h3>
                         <p class="tool-description">Calculate how long a battery will last based on its capacity and device power consumption.</p>
@@ -1252,6 +1436,42 @@
             </section>
         </main>
 
+        <details class="hub-stats-panel" id="toolsStatsPanel">
+            <summary>
+                <span class="hub-stats-title">Page Statistics</span>
+                <span class="hub-stats-summary" id="toolsStatsSummary">Stats build from the current tool cards.</span>
+            </summary>
+            <div class="hub-stats-body">
+                <div class="hub-stats-overview" id="toolsStatsOverview"></div>
+
+                <div class="hub-stats-section">
+                    <h3>Tool Count Per Category</h3>
+                    <div id="toolsStatsCategories"></div>
+                </div>
+
+                <div class="hub-stats-columns">
+                    <div class="hub-stats-section">
+                        <h3>Status Breakdown</h3>
+                        <div class="hub-stat-list" id="toolsStatsStatuses"></div>
+                    </div>
+                    <div class="hub-stats-section">
+                        <h3>Tooling Types</h3>
+                        <div class="hub-stat-list" id="toolsStatsTypes"></div>
+                    </div>
+                </div>
+
+                <div class="hub-stats-section">
+                    <h3>Unique Tags</h3>
+                    <div class="hub-tag-cloud" id="toolsStatsTags"></div>
+                </div>
+
+                <div class="hub-stats-section">
+                    <h3>Audit Signals</h3>
+                    <ul class="hub-audit-notes" id="toolsStatsAuditNotes"></ul>
+                </div>
+            </div>
+        </details>
+
         <footer data-footer-variant="hub" data-footer-tagline="Built for engineers and developers"></footer>
 
         <!-- About Modal -->
@@ -1386,6 +1606,278 @@
 
         // Load saved collapsed state on page load
         loadCollapsedState();
+
+        // ============================================
+        // Page Statistics
+        // ============================================
+        const toolTypeLabels = {
+            engineering: 'Engineering',
+            it: 'IT',
+            general: 'General',
+            biochemical: 'Biochemical',
+            datascience: 'Data Science',
+            ai: 'AI',
+            database: 'Database',
+            educational: 'Educational'
+        };
+
+        const statusOrder = [
+            'Active',
+            'Under Review',
+            'Experimental',
+            'Needs Comprehensive Review',
+            'Other',
+            'Unlabeled'
+        ];
+
+        function incrementCount(map, key, amount = 1) {
+            map.set(key, (map.get(key) || 0) + amount);
+        }
+
+        function statusBucket(card) {
+            const status = card.querySelector('.tool-status');
+            if (!status) return 'Unlabeled';
+
+            const text = status.textContent.trim().toLowerCase();
+            const classes = status.classList;
+
+            if (classes.contains('critical') || text.includes('needs comprehensive')) {
+                return 'Needs Comprehensive Review';
+            }
+
+            if (classes.contains('experimental') || text.includes('experimental') || text.includes('prototype') || text.includes('prototypical')) {
+                return 'Experimental';
+            }
+
+            if (classes.contains('active') || text === 'active') {
+                return 'Active';
+            }
+
+            if (classes.contains('coming') || text.includes('review')) {
+                return 'Under Review';
+            }
+
+            return 'Other';
+        }
+
+        function toolTypesForCard(card) {
+            const ignored = new Set(['tool-card', 'search-hidden']);
+            const types = Array.from(card.classList)
+                .filter((className) => !ignored.has(className))
+                .map((className) => toolTypeLabels[className] || className);
+
+            return types.length ? types : ['Unclassified'];
+        }
+
+        function renderMetric(container, label, value) {
+            const metric = document.createElement('div');
+            metric.className = 'hub-stat-metric';
+
+            const labelEl = document.createElement('div');
+            labelEl.className = 'hub-stat-label';
+            labelEl.textContent = label;
+
+            const valueEl = document.createElement('div');
+            valueEl.className = 'hub-stat-value';
+            valueEl.textContent = value;
+
+            metric.append(labelEl, valueEl);
+            container.appendChild(metric);
+        }
+
+        function renderPills(container, entries) {
+            container.replaceChildren();
+            entries.forEach(([label, count]) => {
+                const pill = document.createElement('span');
+                pill.className = 'hub-stat-pill';
+
+                const labelEl = document.createElement('span');
+                labelEl.textContent = label;
+
+                const countEl = document.createElement('strong');
+                countEl.textContent = String(count);
+
+                pill.append(labelEl, countEl);
+                container.appendChild(pill);
+            });
+        }
+
+        function renderStatusPills(container, entries, totalTools) {
+            container.replaceChildren();
+            entries.forEach(([label, count]) => {
+                const percent = totalTools > 0 ? ((count / totalTools) * 100).toFixed(1) : '0.0';
+                const pill = document.createElement('span');
+                pill.className = 'hub-stat-pill';
+
+                const labelEl = document.createElement('span');
+                labelEl.textContent = label;
+
+                const countEl = document.createElement('strong');
+                countEl.textContent = String(count);
+
+                const percentEl = document.createElement('span');
+                percentEl.textContent = `${percent}%`;
+
+                pill.append(labelEl, countEl, percentEl);
+                container.appendChild(pill);
+            });
+        }
+
+        function renderCategoryStats(container, categories) {
+            const table = document.createElement('table');
+            table.className = 'hub-stats-table';
+
+            const thead = document.createElement('thead');
+            const headerRow = document.createElement('tr');
+            ['Category', 'Tools', 'Active %', 'Non-active', 'Status mix'].forEach((header) => {
+                const th = document.createElement('th');
+                th.textContent = header;
+                headerRow.appendChild(th);
+            });
+            thead.appendChild(headerRow);
+
+            const tbody = document.createElement('tbody');
+            categories.forEach((category) => {
+                const row = document.createElement('tr');
+                const statusText = statusOrder
+                    .filter((status) => category.statuses.get(status))
+                    .map((status) => `${status}: ${category.statuses.get(status)}`)
+                    .join(', ') || 'None';
+                const activeCount = category.statuses.get('Active') || 0;
+                const nonActiveCount = Math.max(0, category.count - activeCount);
+                const activePercent = category.count > 0 ? ((activeCount / category.count) * 100).toFixed(1) : '0.0';
+
+                [category.name, String(category.count), `${activePercent}%`, String(nonActiveCount), statusText].forEach((value) => {
+                    const td = document.createElement('td');
+                    td.textContent = value;
+                    row.appendChild(td);
+                });
+                tbody.appendChild(row);
+            });
+
+            table.append(thead, tbody);
+            container.replaceChildren(table);
+        }
+
+        function buildToolsPageStats() {
+            const sections = Array.from(document.querySelectorAll('.category-section'));
+            const cards = Array.from(document.querySelectorAll('.category-section .tool-card'));
+            const statusCounts = new Map(statusOrder.map((status) => [status, 0]));
+            const typeCounts = new Map();
+            const tagCounts = new Map();
+            const hrefCounts = new Map();
+            const categoryStats = [];
+            const missingStatuses = [];
+            const missingTags = [];
+
+            sections.forEach((section) => {
+                const title = section.querySelector('.category-title')?.textContent.trim() || 'Unknown';
+                const sectionCards = Array.from(section.querySelectorAll('.tools-grid .tool-card'));
+                const categoryStatuses = new Map();
+
+                sectionCards.forEach((card) => {
+                    const bucket = statusBucket(card);
+                    const name = card.querySelector('.tool-name')?.textContent.trim() || card.getAttribute('href') || 'Unnamed tool';
+                    incrementCount(statusCounts, bucket);
+                    incrementCount(categoryStatuses, bucket);
+
+                    toolTypesForCard(card).forEach((type) => incrementCount(typeCounts, type));
+
+                    const tags = Array.from(card.querySelectorAll('.tool-tag'))
+                        .map((tag) => tag.textContent.trim())
+                        .filter(Boolean);
+                    if (!tags.length) missingTags.push(name);
+                    tags.forEach((tag) => incrementCount(tagCounts, tag.toLowerCase()));
+
+                    const href = card.getAttribute('href');
+                    if (href) incrementCount(hrefCounts, href);
+                    if (!card.querySelector('.tool-status')) missingStatuses.push(name);
+                });
+
+                categoryStats.push({
+                    name: title,
+                    count: sectionCards.length,
+                    statuses: categoryStatuses,
+                    activeCount: categoryStatuses.get('Active') || 0,
+                    nonActiveCount: sectionCards.length - (categoryStatuses.get('Active') || 0),
+                    criticalCount: categoryStatuses.get('Needs Comprehensive Review') || 0
+                });
+            });
+
+            const duplicateHrefs = Array.from(hrefCounts.entries())
+                .filter(([, count]) => count > 1)
+                .map(([href, count]) => `${href} (${count})`);
+
+            const totalTools = cards.length;
+            const underReview = statusCounts.get('Under Review') || 0;
+            const experimental = statusCounts.get('Experimental') || 0;
+            const critical = statusCounts.get('Needs Comprehensive Review') || 0;
+            const uniqueTags = tagCounts.size;
+            const uniqueTypes = typeCounts.size;
+            const worstCategory = categoryStats
+                .filter((category) => category.count > 0)
+                .map((category) => ({
+                    ...category,
+                    nonActivePercent: (category.nonActiveCount / category.count) * 100
+                }))
+                .sort((left, right) => {
+                    if (right.nonActivePercent !== left.nonActivePercent) {
+                        return right.nonActivePercent - left.nonActivePercent;
+                    }
+                    if (right.criticalCount !== left.criticalCount) {
+                        return right.criticalCount - left.criticalCount;
+                    }
+                    return right.nonActiveCount - left.nonActiveCount;
+                })[0];
+            const worstCategoryLabel = worstCategory
+                ? `${worstCategory.name}: ${worstCategory.nonActiveCount}/${worstCategory.count} non-active (${worstCategory.nonActivePercent.toFixed(1)}%)`
+                : 'None';
+
+            const overview = document.getElementById('toolsStatsOverview');
+            overview.replaceChildren();
+            renderMetric(overview, 'Total Tools', totalTools);
+            renderMetric(overview, 'Categories', sections.length);
+            renderMetric(overview, 'Under Review', underReview);
+            renderMetric(overview, 'Experimental', experimental);
+            renderMetric(overview, 'Unique Tags', uniqueTags);
+            renderMetric(overview, 'Tooling Types', uniqueTypes);
+            renderMetric(overview, 'Next Audit Target', worstCategoryLabel);
+
+            document.getElementById('toolsStatsSummary').textContent =
+                `${totalTools} tools | ${underReview} under review | ${experimental} experimental | ${critical} needs comprehensive review`;
+
+            renderCategoryStats(document.getElementById('toolsStatsCategories'), categoryStats);
+            renderStatusPills(
+                document.getElementById('toolsStatsStatuses'),
+                statusOrder.map((status) => [status, statusCounts.get(status) || 0]).filter(([, count]) => count > 0),
+                totalTools
+            );
+            renderPills(
+                document.getElementById('toolsStatsTypes'),
+                Array.from(typeCounts.entries()).sort((left, right) => left[0].localeCompare(right[0]))
+            );
+            renderPills(
+                document.getElementById('toolsStatsTags'),
+                Array.from(tagCounts.entries()).sort((left, right) => left[0].localeCompare(right[0]))
+            );
+
+            const notes = [];
+            const nonActive = totalTools - (statusCounts.get('Active') || 0);
+            notes.push(`${nonActive} tools are not marked Active.`);
+            notes.push(duplicateHrefs.length ? `Duplicate tool links: ${duplicateHrefs.join(', ')}.` : 'No duplicate tool hrefs found.');
+            notes.push(missingStatuses.length ? `Missing status badges: ${missingStatuses.join(', ')}.` : 'Every tool card has a status badge.');
+            notes.push(missingTags.length ? `Missing tag sets: ${missingTags.join(', ')}.` : 'Every tool card has at least one tag.');
+
+            const auditNotes = document.getElementById('toolsStatsAuditNotes');
+            auditNotes.replaceChildren();
+            notes.forEach((note) => {
+                const li = document.createElement('li');
+                li.textContent = note;
+                auditNotes.appendChild(li);
+            });
+        }
+
+        buildToolsPageStats();
 
         // ============================================
         // About Modal

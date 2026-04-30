@@ -37,7 +37,7 @@ export function convertDurationToSeconds(value, unit) {
 
 export function formatRuntime(hours) {
     if (!Number.isFinite(hours)) {
-        return 'Infinite';
+        return '--';
     }
 
     const totalSeconds = Math.max(0, Math.round(hours * 3600));
@@ -68,13 +68,21 @@ export function formatDurationFromSeconds(seconds) {
 }
 
 export function formatCurrent(amps) {
-    if (amps < 0.001) return `${trimNumber(amps * 1_000_000, 1)} uA`;
+    if (amps < 0.001) {
+        const microamps = amps * 1_000_000;
+        if (microamps > 0 && microamps < 0.1) return '<0.1 uA';
+        return `${trimNumber(microamps, 1)} uA`;
+    }
     if (amps < 1) return `${trimNumber(amps * 1000, 2)} mA`;
     return `${trimNumber(amps, 3)} A`;
 }
 
 export function formatPower(watts) {
-    if (watts < 0.001) return `${trimNumber(watts * 1_000_000, 1)} uW`;
+    if (watts < 0.001) {
+        const microwatts = watts * 1_000_000;
+        if (microwatts > 0 && microwatts < 0.1) return '<0.1 uW';
+        return `${trimNumber(microwatts, 1)} uW`;
+    }
     if (watts < 1) return `${trimNumber(watts * 1000, 2)} mW`;
     return `${trimNumber(watts, 3)} W`;
 }
@@ -112,14 +120,28 @@ export function formatSavedAtShort(savedAt) {
 }
 
 export function generateScenarioId() {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+        return `scenario-${crypto.randomUUID()}`;
+    }
     return `scenario-${Date.now()}-${Math.floor(Math.random() * 1_000_000)}`;
 }
 
 export function computePercentDelta(current, baseline) {
-    if (!Number.isFinite(current) || !Number.isFinite(baseline) || baseline === 0) {
-        return 0;
+    if (!Number.isFinite(current) || !Number.isFinite(baseline)) {
+        return Number.NaN;
+    }
+    if (baseline === 0) {
+        return current === 0 ? 0 : Number.POSITIVE_INFINITY;
     }
     return ((current - baseline) / baseline) * 100;
+}
+
+export function formatPercentDelta(percent, decimals = 1) {
+    if (!Number.isFinite(percent)) {
+        return 'n/a';
+    }
+    const sign = percent >= 0 ? '+' : '';
+    return `${sign}${trimNumber(percent, decimals)}%`;
 }
 
 export function escapeHtml(value) {

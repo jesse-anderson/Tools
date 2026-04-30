@@ -95,6 +95,77 @@ header {
   flex-wrap: wrap;
 }
 
+.tool-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 0.65rem 0.95rem;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.82rem;
+  font-weight: 600;
+  line-height: 1.2;
+  text-align: center;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
+}
+
+.tool-btn:hover:not(:disabled) {
+  background: var(--bg-card-hover);
+  border-color: var(--accent-engineering);
+  color: var(--text-primary);
+  transform: translateY(-1px);
+}
+
+.tool-btn:focus-visible {
+  outline: none;
+  border-color: var(--accent-engineering);
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.18);
+}
+
+.tool-btn:disabled {
+  opacity: 0.48;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.tool-btn.primary {
+  background: var(--accent-engineering);
+  border-color: var(--accent-engineering);
+  color: #111113;
+}
+
+.tool-btn.primary:hover:not(:disabled),
+.tool-btn.primary:focus-visible {
+  background: var(--accent-engineering);
+  border-color: var(--accent-engineering);
+  color: #111113;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.24);
+}
+
+.tool-btn.danger {
+  color: var(--accent-error);
+  border-color: rgba(239, 68, 68, 0.42);
+  background: var(--accent-error-dim);
+}
+
+.tool-btn.danger:hover:not(:disabled),
+.tool-btn.danger:focus-visible {
+  border-color: var(--accent-error);
+  color: var(--accent-error);
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.16);
+}
+
 .scenario-actions {
   margin-top: 1rem;
 }
@@ -190,7 +261,8 @@ header {
 }
 
 .help-chip:hover .help-pop,
-.help-chip:focus-visible .help-pop {
+.help-chip:focus-visible .help-pop,
+.help-chip.is-open .help-pop {
   opacity: 1;
   visibility: visible;
 }
@@ -304,9 +376,19 @@ header {
 
 .profile-row-grid {
   display: grid;
-  grid-template-columns: 1.2fr 1fr 1fr 120px;
+  grid-template-columns: minmax(170px, 1.1fr) minmax(230px, 1fr) minmax(230px, 1fr) minmax(100px, 120px);
   gap: 0.9rem;
   align-items: end;
+}
+
+.profile-row-grid .field-row {
+  grid-template-columns: minmax(7rem, 1fr) minmax(76px, 88px);
+  gap: 0.55rem;
+}
+
+.profile-row-grid .unit-select {
+  padding-left: 0.65rem;
+  padding-right: 1.8rem;
 }
 
 .profile-action {
@@ -541,9 +623,20 @@ header {
   .results-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+}
 
+@media (max-width: 1320px) {
   .profile-row-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .profile-action {
+    justify-content: flex-end;
+  }
+
+  .profile-action .tool-btn {
+    width: auto;
+    min-width: 100px;
   }
 }
 
@@ -576,6 +669,14 @@ header {
 
   .field-row {
     grid-template-columns: 1fr;
+  }
+
+  .profile-row-grid .field-row {
+    grid-template-columns: minmax(0, 1fr) minmax(76px, 88px);
+  }
+
+  .profile-action .tool-btn {
+    width: 100%;
   }
 
   .calculator-panel,

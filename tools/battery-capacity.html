@@ -421,7 +421,7 @@ Features:
 
                     <div class="results-section">
                         <h3>Estimate Results</h3>
-                        <div id="resultContainer" class="result-container">
+                        <div id="resultContainer" class="result-container" aria-live="polite" aria-atomic="false">
                             <div class="results-grid">
                                 <div class="metric-card">
                                     <div class="metric-label">Estimated Runtime</div>
@@ -524,7 +524,7 @@ Features:
                     <p>This tool is intended for runtime estimation and first-pass power budgeting. It is not a replacement for discharge testing, regulator thermal review, or oscilloscope/current-probe validation of transient behavior.</p>
 
                     <div class="liability-disclaimer" role="note" aria-label="Scope, accuracy, and liability disclaimer">
-                        <strong>Estimates only — use at your own risk</strong>
+                        <strong>Estimates only - use at your own risk</strong>
                         <p>This calculator produces first-pass runtime and power-budget estimates from the values you enter and a small set of simplifying assumptions. It does <strong>not</strong> model detailed discharge curves, voltage sag under load, cell aging or cycle life, temperature derating, self-discharge, regulator transient response, inrush behavior, parasitic load, charger losses, BMS overhead, or the safety, fire, or thermal-runaway behavior of any chemistry.</p>
                         <p>Battery and regulator data sheets, cell-to-cell variation, manufacturing tolerance, real-world load profiles, and ambient conditions can shift actual runtime substantially in either direction. Validate every design with measured discharge data, calibrated current probes, thermal testing, and the chemistry-specific safety guidance from the cell vendor before committing to a build, a flight envelope, a deployment, or a production run.</p>
                         <p><strong>No warranty or liability.</strong> The tool is provided as-is, with no warranty of accuracy, fitness, or merchantability. The author and maintainers accept no responsibility or liability for any loss, damage, injury, fire, equipment failure, mission failure, downtime, regulatory exposure, certification outcome, business decision, or other consequence arising from use of this tool or its output. Independently verify all figures against vendor data sheets, measured behavior, and qualified engineering judgment before acting on them.</p>

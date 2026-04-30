@@ -13,13 +13,13 @@ import {
     convertCurrentToAmps,
     convertDurationToSeconds,
     debounce,
-    escapeHtml,
     computePercentDelta,
     formatCapacity,
     formatCurrent,
     formatDurationFromSeconds,
     formatEnergy,
     formatPercent,
+    formatPercentDelta,
     formatPower,
     formatRuntime,
     formatSavedAtShort,
@@ -37,6 +37,23 @@ import {
 let baselineSnapshot = null;
 let lastComputedScenario = null;
 let savedScenarios = [];
+let previousChemistryPreset = DEFAULT_STATE.chemistryPreset;
+
+const INPUT_FIELD_KEYS = Object.keys(DEFAULT_STATE);
+
+const FORMULA_DEFAULT = 'Usable battery energy = pack capacity x nominal voltage x usable fraction. Runtime = usable battery energy / battery-side average power.';
+const ASSUMPTION_DEFAULT = 'This estimate assumes nominal voltage and average load behavior. It does not model detailed discharge curves, transient voltage sag, temperature effects, or aging.';
+
+const RESULT_FIELD_DEFAULTS = [
+    { value: 'runtimeResult', meta: 'runtimeMeta', defaultMeta: 'Runtime appears here after calculation.' },
+    { value: 'usableEnergyResult', meta: 'usableEnergyMeta', defaultMeta: 'Derived from pack voltage, capacity, and usable fraction.' },
+    { value: 'avgLoadCurrentResult', meta: 'avgLoadCurrentMeta', defaultMeta: 'Device-side average current at the load voltage.' },
+    { value: 'avgLoadPowerResult', meta: 'avgLoadPowerMeta', defaultMeta: 'Average device-side power used for runtime conversion.' },
+    { value: 'batteryCurrentResult', meta: 'batteryCurrentMeta', defaultMeta: 'Equivalent battery current after conversion losses and quiescent draw.' },
+    { value: 'peakBatteryCurrentResult', meta: 'peakBatteryCurrentMeta', defaultMeta: 'Peak battery-side current used for feasibility checks.' },
+    { value: 'feasibilityResult', meta: 'feasibilityMeta', defaultMeta: 'Burst-current warnings and entered limits appear here.' },
+    { value: 'batteryModelResult', meta: 'batteryModelMeta', defaultMeta: 'Pack model and regulator assumptions appear here.' }
+];
 
 document.addEventListener('DOMContentLoaded', () => {
     initBatteryCalculator();
@@ -45,9 +62,38 @@ document.addEventListener('DOMContentLoaded', () => {
 function initBatteryCalculator() {
     const refs = getRefs();
     bindEvents(refs);
+    bindHelpChips();
     applyDefaults(refs);
     refreshUi(refs);
     calculateBatteryLife(refs);
+}
+
+function bindHelpChips() {
+    document.querySelectorAll('.help-chip').forEach((chip) => {
+        chip.setAttribute('aria-expanded', 'false');
+        const toggle = () => {
+            const isOpen = chip.classList.toggle('is-open');
+            chip.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+        };
+        const close = () => {
+            chip.classList.remove('is-open');
+            chip.setAttribute('aria-expanded', 'false');
+        };
+        chip.addEventListener('click', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            toggle();
+        });
+        chip.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                toggle();
+            } else if (event.key === 'Escape') {
+                close();
+            }
+        });
+        chip.addEventListener('blur', close);
+    });
 }
 
 function getRefs() {
@@ -135,18 +181,9 @@ function bindEvents(refs) {
         calculateBatteryLife(refs);
     }, 75);
 
-    const inputs = [
-        refs.batteryModelMode, refs.chemistryPreset, refs.capacity, refs.capacityUnit, refs.batteryVoltage,
-        refs.cellCapacity, refs.cellCapacityUnit, refs.cellNominalVoltage, refs.seriesCells, refs.parallelCells,
-        refs.usableFraction, refs.loadVoltage, refs.regulatorType, refs.regulatorEfficiency,
-        refs.regulatorPeakEfficiency, refs.regulatorQuiescent, refs.regulatorQuiescentUnit,
-        refs.peakLoadCurrent, refs.peakLoadCurrentUnit, refs.regulatorCurrentLimit,
-        refs.regulatorCurrentLimitUnit, refs.batteryCurrentLimit, refs.batteryCurrentLimitUnit,
-        refs.modeSelect, refs.constantCurrent, refs.constantCurrentUnit,
-        refs.averagePower, refs.averagePowerUnit, refs.embeddedPreset
-    ];
-
-    inputs.forEach((input) => {
+    INPUT_FIELD_KEYS.forEach((key) => {
+        const input = refs[key];
+        if (!input) return;
         input.addEventListener('input', debouncedRefresh);
         input.addEventListener('change', debouncedRefresh);
     });
@@ -192,19 +229,24 @@ function bindEvents(refs) {
     refs.setBaselineBtn.addEventListener('click', () => setBaseline(refs));
     refs.clearBaselineBtn.addEventListener('click', () => clearBaseline(refs));
     refs.resetBtn.addEventListener('click', () => {
-        applyDefaults(refs);
+        baselineSnapshot = null;
+        lastComputedScenario = null;
+        applyDefaults(refs, { reloadSavedScenarios: false });
         refreshUi(refs);
         calculateBatteryLife(refs);
     });
 }
 
-function applyDefaults(refs) {
+function applyDefaults(refs, { reloadSavedScenarios = true } = {}) {
     Object.entries(DEFAULT_STATE).forEach(([key, value]) => {
         if (refs[key]) refs[key].value = value;
     });
+    previousChemistryPreset = DEFAULT_STATE.chemistryPreset;
 
     renderProfileRows(refs, DEFAULT_PROFILE_ROWS);
-    loadSavedScenarios();
+    if (reloadSavedScenarios) {
+        loadSavedScenarios();
+    }
     refreshSavedScenarioList(refs);
     updateChemistryNote(refs);
     updateRegulatorNote(refs);
@@ -216,17 +258,41 @@ function applyDefaults(refs) {
     setScenarioStatus(refs, 'Saved scenarios stay in local storage on this browser. Use a saved scenario as the baseline to compare a current design against a past case.');
 }
 
-function applyChemistryPreset(refs) {
-    const preset = CHEMISTRY_PRESETS[refs.chemistryPreset.value];
-    if (!preset || refs.chemistryPreset.value === 'custom') {
+function applyChemistryPreset(refs, { force = false } = {}) {
+    const newKey = refs.chemistryPreset.value;
+    const preset = CHEMISTRY_PRESETS[newKey];
+
+    if (!preset || newKey === 'custom') {
+        previousChemistryPreset = newKey;
         updateChemistryNote(refs);
         return;
     }
 
-    refs.usableFraction.value = preset.usableFraction;
-    if (refs.batteryModelMode.value === 'cellPack') {
+    const prevPreset = CHEMISTRY_PRESETS[previousChemistryPreset];
+    const prevUsable = prevPreset && Number.isFinite(prevPreset.usableFraction)
+        ? prevPreset.usableFraction
+        : null;
+    const currentUsable = parseFloat(refs.usableFraction.value);
+    const usableUntouched = prevUsable === null
+        || !Number.isFinite(currentUsable)
+        || Math.abs(currentUsable - prevUsable) < 0.01;
+
+    if (force || usableUntouched) {
+        refs.usableFraction.value = preset.usableFraction;
+    }
+
+    const prevCell = prevPreset && Number.isFinite(prevPreset.cellVoltage)
+        ? prevPreset.cellVoltage
+        : null;
+    const currentCell = parseFloat(refs.cellNominalVoltage.value);
+    const cellUntouched = prevCell === null
+        || !Number.isFinite(currentCell)
+        || Math.abs(currentCell - prevCell) < 0.001;
+    if (force || cellUntouched) {
         refs.cellNominalVoltage.value = preset.cellVoltage;
     }
+
+    previousChemistryPreset = newKey;
     updateChemistryNote(refs);
     updateDerivedPackSummary(refs);
 }
@@ -262,13 +328,23 @@ function updateChemistryNote(refs) {
         return;
     }
 
+    let baseText;
     if (refs.chemistryPreset.value === 'custom') {
-        refs.chemistryNote.textContent = preset.note;
+        baseText = preset.note;
     } else if (refs.batteryModelMode.value === 'cellPack') {
-        refs.chemistryNote.textContent = `${preset.label}: nominal cell voltage ${formatVoltage(preset.cellVoltage)} and default usable fraction ${formatPercent(preset.usableFraction)}. ${preset.note}`;
+        baseText = `${preset.label}: nominal cell voltage ${formatVoltage(preset.cellVoltage)} and default usable fraction ${formatPercent(preset.usableFraction)}. ${preset.note}`;
     } else {
-        refs.chemistryNote.textContent = `${preset.label}: default usable fraction ${formatPercent(preset.usableFraction)}. In direct-pack mode, pack voltage remains manual. ${preset.note}`;
+        baseText = `${preset.label}: default usable fraction ${formatPercent(preset.usableFraction)}. In direct-pack mode, pack voltage remains manual. ${preset.note}`;
     }
+
+    if (refs.chemistryPreset.value !== 'custom' && Number.isFinite(preset.usableFraction)) {
+        const currentUsable = parseFloat(refs.usableFraction.value);
+        if (Number.isFinite(currentUsable) && Math.abs(currentUsable - preset.usableFraction) >= 0.01) {
+            baseText += ` Kept your custom usable fraction of ${formatPercent(currentUsable)} instead of the preset default.`;
+        }
+    }
+
+    refs.chemistryNote.textContent = baseText;
 }
 
 function updateRegulatorNote(refs) {
@@ -293,10 +369,10 @@ function updateRegulatorControls(refs) {
 function updateDerivedPackSummary(refs) {
     const cellCapacityValue = parseFloat(refs.cellCapacity.value);
     const cellVoltage = parseFloat(refs.cellNominalVoltage.value);
-    const series = parseInt(refs.seriesCells.value, 10);
-    const parallel = parseInt(refs.parallelCells.value, 10);
+    const series = Number(refs.seriesCells.value);
+    const parallel = Number(refs.parallelCells.value);
 
-    if (!Number.isFinite(cellCapacityValue) || !Number.isFinite(cellVoltage) || !Number.isFinite(series) || !Number.isFinite(parallel) || cellCapacityValue <= 0 || cellVoltage <= 0 || series <= 0 || parallel <= 0) {
+    if (!Number.isFinite(cellCapacityValue) || !Number.isFinite(cellVoltage) || !Number.isInteger(series) || !Number.isInteger(parallel) || cellCapacityValue <= 0 || cellVoltage <= 0 || series <= 0 || parallel <= 0) {
         refs.derivedPackSummary.textContent = 'Enter valid cell capacity, nominal voltage, and series/parallel counts to derive the pack model.';
         return;
     }
@@ -344,6 +420,7 @@ function persistSavedScenarios() {
         const isQuota = error && (error.name === 'QuotaExceededError' || error.code === 22);
         return {
             ok: false,
+            keepInMemory: !isQuota,
             message: isQuota
                 ? 'Could not save: browser storage is full. Delete older scenarios and try again.'
                 : 'Could not save to local storage. The scenario is kept only in memory for this session.'
@@ -362,18 +439,19 @@ function refreshSavedScenarioList(refs, preferredId = null) {
         return;
     }
 
-    savedScenarios
+    const sortedScenarios = savedScenarios
         .slice()
-        .sort((a, b) => (b.savedAt || '').localeCompare(a.savedAt || ''))
-        .forEach((scenario) => {
-            const option = document.createElement('option');
-            option.value = scenario.id;
-            option.textContent = `${scenario.name} (${formatSavedAtShort(scenario.savedAt)})`;
-            refs.savedScenarioSelect.appendChild(option);
-        });
+        .sort((a, b) => (b.savedAt || '').localeCompare(a.savedAt || ''));
+
+    sortedScenarios.forEach((scenario) => {
+        const option = document.createElement('option');
+        option.value = scenario.id;
+        option.textContent = `${scenario.name} (${formatSavedAtShort(scenario.savedAt)})`;
+        refs.savedScenarioSelect.appendChild(option);
+    });
 
     const match = savedScenarios.some((scenario) => scenario.id === selectedId);
-    refs.savedScenarioSelect.value = match ? selectedId : savedScenarios[0].id;
+    refs.savedScenarioSelect.value = match ? selectedId : sortedScenarios[0].id;
     updateScenarioControls(refs);
 }
 
@@ -389,44 +467,20 @@ function setScenarioStatus(refs, message) {
 }
 
 function captureFormState(refs) {
-    return {
-        batteryModelMode: refs.batteryModelMode.value,
-        chemistryPreset: refs.chemistryPreset.value,
-        capacity: refs.capacity.value,
-        capacityUnit: refs.capacityUnit.value,
-        batteryVoltage: refs.batteryVoltage.value,
-        cellCapacity: refs.cellCapacity.value,
-        cellCapacityUnit: refs.cellCapacityUnit.value,
-        cellNominalVoltage: refs.cellNominalVoltage.value,
-        seriesCells: refs.seriesCells.value,
-        parallelCells: refs.parallelCells.value,
-        usableFraction: refs.usableFraction.value,
-        loadVoltage: refs.loadVoltage.value,
-        regulatorType: refs.regulatorType.value,
-        regulatorEfficiency: refs.regulatorEfficiency.value,
-        regulatorPeakEfficiency: refs.regulatorPeakEfficiency.value,
-        regulatorQuiescent: refs.regulatorQuiescent.value,
-        regulatorQuiescentUnit: refs.regulatorQuiescentUnit.value,
-        peakLoadCurrent: refs.peakLoadCurrent.value,
-        peakLoadCurrentUnit: refs.peakLoadCurrentUnit.value,
-        regulatorCurrentLimit: refs.regulatorCurrentLimit.value,
-        regulatorCurrentLimitUnit: refs.regulatorCurrentLimitUnit.value,
-        batteryCurrentLimit: refs.batteryCurrentLimit.value,
-        batteryCurrentLimitUnit: refs.batteryCurrentLimitUnit.value,
-        embeddedPreset: refs.embeddedPreset.value,
-        modeSelect: refs.modeSelect.value,
-        constantCurrent: refs.constantCurrent.value,
-        constantCurrentUnit: refs.constantCurrentUnit.value,
-        averagePower: refs.averagePower.value,
-        averagePowerUnit: refs.averagePowerUnit.value,
-        profileRows: Array.from(refs.profileRowsContainer.querySelectorAll('.profile-row')).map((row) => ({
-            name: row.querySelector('.profile-name-input').value,
-            current: row.querySelector('.profile-current-input').value,
-            currentUnit: row.querySelector('.profile-current-unit').value,
-            duration: row.querySelector('.profile-duration-input').value,
-            durationUnit: row.querySelector('.profile-duration-unit').value
-        }))
-    };
+    const state = {};
+    INPUT_FIELD_KEYS.forEach((key) => {
+        if (refs[key]) {
+            state[key] = refs[key].value;
+        }
+    });
+    state.profileRows = Array.from(refs.profileRowsContainer.querySelectorAll('.profile-row')).map((row) => ({
+        name: row.querySelector('.profile-name-input').value,
+        current: row.querySelector('.profile-current-input').value,
+        currentUnit: row.querySelector('.profile-current-unit').value,
+        duration: row.querySelector('.profile-duration-input').value,
+        durationUnit: row.querySelector('.profile-duration-unit').value
+    }));
+    return state;
 }
 
 function applyFormState(refs, formState) {
@@ -450,6 +504,7 @@ function applyFormState(refs, formState) {
             refs[key].value = value;
         }
     });
+    previousChemistryPreset = merged.chemistryPreset || DEFAULT_STATE.chemistryPreset;
 }
 
 function getSelectedScenario(refs) {
@@ -478,12 +533,21 @@ function applyEmbeddedPreset(refs) {
             refs[key].value = value;
         }
     });
+
+    if (preset.config.modeSelect && preset.config.modeSelect !== 'stateProfile' && !preset.config.profileRows) {
+        renderProfileRows(refs, DEFAULT_PROFILE_ROWS);
+    }
+
+    if (preset.config.chemistryPreset && CHEMISTRY_PRESETS[preset.config.chemistryPreset]) {
+        applyChemistryPreset(refs, { force: true });
+    }
 }
 
 function saveCurrentScenario(refs) {
     const inputs = readInputs(refs);
     const validation = validateInputs(inputs);
     if (validation) {
+        lastComputedScenario = null;
         showError(refs, validation, validation.message);
         return;
     }
@@ -505,6 +569,12 @@ function saveCurrentScenario(refs) {
     savedScenarios.push(scenario);
     const persistResult = persistSavedScenarios();
     if (!persistResult.ok) {
+        if (persistResult.keepInMemory) {
+            refreshSavedScenarioList(refs, scenario.id);
+            refs.scenarioName.value = scenario.name;
+            setScenarioStatus(refs, persistResult.message);
+            return;
+        }
         savedScenarios = savedScenarios.filter((item) => item.id !== scenario.id);
         refreshSavedScenarioList(refs);
         setScenarioStatus(refs, persistResult.message);
@@ -556,8 +626,14 @@ function deleteSelectedScenario(refs) {
     savedScenarios = savedScenarios.filter((item) => item.id !== scenario.id);
     const persistResult = persistSavedScenarios();
     if (!persistResult.ok) {
+        if (persistResult.keepInMemory) {
+            refreshSavedScenarioList(refs);
+            setScenarioStatus(refs, `Deleted "${scenario.name}" from this session. Local storage could not be updated.`);
+            return;
+        }
         savedScenarios = previous;
-        setScenarioStatus(refs, persistResult.message);
+        refreshSavedScenarioList(refs, scenario.id);
+        setScenarioStatus(refs, 'Could not update local storage. The scenario was not deleted.');
         return;
     }
     refreshSavedScenarioList(refs);
@@ -568,6 +644,7 @@ function setBaseline(refs) {
     const inputs = readInputs(refs);
     const validation = validateInputs(inputs);
     if (validation) {
+        lastComputedScenario = null;
         showError(refs, validation, validation.message);
         return;
     }
@@ -617,8 +694,8 @@ function readInputs(refs) {
         cellCapacityValue: parseFloat(refs.cellCapacity.value),
         cellCapacityUnit: refs.cellCapacityUnit.value,
         cellNominalVoltage: parseFloat(refs.cellNominalVoltage.value),
-        seriesCells: parseInt(refs.seriesCells.value, 10),
-        parallelCells: parseInt(refs.parallelCells.value, 10),
+        seriesCells: Number(refs.seriesCells.value),
+        parallelCells: Number(refs.parallelCells.value),
         usableFraction: parseFloat(refs.usableFraction.value),
         loadVoltageRaw: refs.loadVoltage.value.trim(),
         loadVoltage: parseOptionalFloat(refs.loadVoltage.value),
@@ -654,7 +731,9 @@ function readInputs(refs) {
 
 function updateResultsDisplay(refs, results) {
     refs.runtimeResult.textContent = formatRuntime(results.runtimeHours);
-    refs.runtimeMeta.textContent = `${trimNumber(results.runtimeHours, 2)} hr estimated runtime.`;
+    refs.runtimeMeta.textContent = Number.isFinite(results.runtimeHours)
+        ? `${trimNumber(results.runtimeHours, 2)} hr estimated runtime.`
+        : 'No active battery-side load detected - runtime cannot be estimated.';
 
     refs.usableEnergyResult.textContent = formatEnergy(results.usableEnergyWh);
     refs.usableEnergyMeta.textContent = `${formatCapacity(results.usableCapacityAh)} usable equivalent capacity after reserve.`;
@@ -702,33 +781,22 @@ function showError(refs, target, message) {
     const errorDiv = document.createElement('div');
     errorDiv.id = 'calculation-error';
     errorDiv.className = 'error-message';
+    errorDiv.setAttribute('role', 'alert');
     errorDiv.textContent = message;
     refs.resultContainer.insertBefore(errorDiv, refs.resultContainer.firstChild);
 }
 
 function clearResultsDisplay(refs) {
-    refs.runtimeResult.textContent = '--';
-    refs.runtimeMeta.textContent = 'Runtime appears here after calculation.';
-    refs.usableEnergyResult.textContent = '--';
-    refs.usableEnergyMeta.textContent = 'Derived from pack voltage, capacity, and usable fraction.';
-    refs.avgLoadCurrentResult.textContent = '--';
-    refs.avgLoadCurrentMeta.textContent = 'Device-side average current at the load voltage.';
-    refs.avgLoadPowerResult.textContent = '--';
-    refs.avgLoadPowerMeta.textContent = 'Average device-side power used for runtime conversion.';
-    refs.batteryCurrentResult.textContent = '--';
-    refs.batteryCurrentMeta.textContent = 'Equivalent battery current after conversion losses and quiescent draw.';
-    refs.peakBatteryCurrentResult.textContent = '--';
-    refs.peakBatteryCurrentMeta.textContent = 'Peak battery-side current used for feasibility checks.';
-    refs.feasibilityResult.textContent = '--';
-    refs.feasibilityMeta.textContent = 'Burst-current warnings and entered limits appear here.';
-    refs.batteryModelResult.textContent = '--';
-    refs.batteryModelMeta.textContent = 'Pack model and regulator assumptions appear here.';
+    RESULT_FIELD_DEFAULTS.forEach(({ value, meta, defaultMeta }) => {
+        if (refs[value]) refs[value].textContent = '--';
+        if (refs[meta]) refs[meta].textContent = defaultMeta;
+    });
     refs.compareResult.textContent = baselineSnapshot ? 'Baseline saved' : 'No baseline';
     refs.compareMeta.textContent = baselineSnapshot
         ? 'Current estimate is invalid, so comparison is temporarily unavailable.'
         : 'Capture a baseline, then change the design to compare runtime and peak-current impact.';
-    refs.formulaSummary.textContent = 'Usable battery energy = pack capacity x nominal voltage x usable fraction. Runtime = usable battery energy / battery-side average power.';
-    refs.assumptionSummary.textContent = 'This estimate assumes nominal voltage and average load behavior. It does not model detailed discharge curves, transient voltage sag, temperature effects, or aging.';
+    refs.formulaSummary.textContent = FORMULA_DEFAULT;
+    refs.assumptionSummary.textContent = ASSUMPTION_DEFAULT;
     clearContributionDisplay(refs);
 }
 
@@ -786,11 +854,9 @@ function updateCompareDisplay(refs) {
 
     const runtimeDeltaPct = computePercentDelta(lastComputedScenario.runtimeHours, baselineSnapshot.runtimeHours);
     const peakDeltaPct = computePercentDelta(lastComputedScenario.peakBatteryCurrentA, baselineSnapshot.peakBatteryCurrentA);
-    const direction = runtimeDeltaPct >= 0 ? '+' : '';
-    const peakDirection = peakDeltaPct >= 0 ? '+' : '';
 
     refs.compareResult.textContent = `${formatRuntime(baselineSnapshot.runtimeHours)} -> ${formatRuntime(lastComputedScenario.runtimeHours)}`;
-    refs.compareMeta.textContent = `Runtime ${direction}${trimNumber(runtimeDeltaPct, 1)}% vs baseline. Peak battery current ${peakDirection}${trimNumber(peakDeltaPct, 1)}%. Baseline: ${baselineSnapshot.label}.`;
+    refs.compareMeta.textContent = `Runtime ${formatPercentDelta(runtimeDeltaPct)} vs baseline. Peak battery current ${formatPercentDelta(peakDeltaPct)}. Baseline: ${baselineSnapshot.label}.`;
 }
 
 function updateContributionDisplay(refs, contributions) {
@@ -801,23 +867,42 @@ function updateContributionDisplay(refs, contributions) {
 
     const largest = contributions[0];
     refs.contributionSummary.textContent = `Largest battery-side runtime driver: ${largest.label} at ${trimNumber(largest.sharePercent, 1)}% of average battery power.`;
-    refs.contributionList.innerHTML = contributions.map((item) => {
+
+    while (refs.contributionList.firstChild) {
+        refs.contributionList.removeChild(refs.contributionList.firstChild);
+    }
+    contributions.forEach((item) => {
         const detail = item.kind === 'load' && item.avgLoadCurrentA > 0
             ? formatCurrent(item.avgLoadCurrentA)
             : formatPower(item.batteryPowerW);
-        return `
-        <div class="contribution-row">
-            <span class="contribution-name">${escapeHtml(item.label)}</span>
-            <span class="contribution-share">${trimNumber(item.sharePercent, 1)}%</span>
-            <span class="contribution-value">${detail}</span>
-        </div>
-    `;
-    }).join('');
+
+        const row = document.createElement('div');
+        row.className = 'contribution-row';
+
+        const name = document.createElement('span');
+        name.className = 'contribution-name';
+        name.textContent = item.label;
+
+        const share = document.createElement('span');
+        share.className = 'contribution-share';
+        share.textContent = `${trimNumber(item.sharePercent, 1)}%`;
+
+        const value = document.createElement('span');
+        value.className = 'contribution-value';
+        value.textContent = detail;
+
+        row.appendChild(name);
+        row.appendChild(share);
+        row.appendChild(value);
+        refs.contributionList.appendChild(row);
+    });
 }
 
 function clearContributionDisplay(refs) {
     refs.contributionSummary.textContent = 'Contribution breakdown appears here after calculation.';
-    refs.contributionList.innerHTML = '';
+    while (refs.contributionList.firstChild) {
+        refs.contributionList.removeChild(refs.contributionList.firstChild);
+    }
 }
 
 function generateScenarioName(inputs) {
