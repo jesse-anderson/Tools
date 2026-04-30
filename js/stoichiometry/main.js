@@ -1,5 +1,5 @@
 import { balanceEquation } from './equation-balancer.js';
-import { calculateMass, parseFormula } from './formula-parser.js';
+import { calculateMass, parseFormula, splitFormulaCharge } from './formula-parser.js';
 import { ReactionState } from './stoichiometry-core.js';
 import { PERIODIC_TABLE } from './periodic-table.js';
 
@@ -40,6 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     let currentState = null;
+    let activeMode = CONFIG.MODES.LAB;
 
     function getNonNegativeInputValue(input) {
         const parsed = parseFloat(input.value);
@@ -83,7 +84,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     UI.liveTokenPreview.appendChild(chip);
                 }
             });
-        } catch (e) {}
+        } catch (error) {
+            console.debug('[Stoichiometry] live token preview skipped', error);
+        }
     });
 
     UI.exampleBtns.forEach(btn => {
@@ -96,20 +99,56 @@ document.addEventListener('DOMContentLoaded', () => {
 
     UI.copyBtn.addEventListener('click', () => {
         const text = UI.balancedEquationDisplay.innerText;
-        navigator.clipboard.writeText(text).then(() => {
-            const originalContent = UI.copyBtn.innerHTML;
-            UI.copyBtn.textContent = 'COPIED';
-            setTimeout(() => UI.copyBtn.innerHTML = originalContent, 2000);
-        });
+        const originalContent = UI.copyBtn.innerHTML;
+
+        Promise.resolve()
+            .then(() => navigator.clipboard.writeText(text))
+            .then(() => {
+                UI.copyBtn.textContent = 'COPIED';
+                setTimeout(() => UI.copyBtn.innerHTML = originalContent, 2000);
+            })
+            .catch((error) => {
+                console.debug('[Stoichiometry] clipboard copy failed', error);
+                UI.copyBtn.textContent = 'COPY FAILED';
+                setTimeout(() => UI.copyBtn.innerHTML = originalContent, 2000);
+            });
     });
 
-    function formatSubscripts(formula) {
-        return formula.replace(/(?<=[A-Za-z)\]])\d+/g, match => {
-            return match.split('').map(digit => {
-                const code = digit.charCodeAt(0);
-                return (code >= 48 && code <= 57) ? String.fromCharCode(code + 8272) : digit;
-            }).join('');
+    function setActiveModeForIndex(index) {
+        const species = currentState?.species?.[index];
+        activeMode = species && !species.isReactant ? CONFIG.MODES.TARGET : CONFIG.MODES.LAB;
+        UI.activeModeBadge.textContent = activeMode;
+    }
+
+    function toSubscriptDigits(value) {
+        return value.replace(/\d/g, digit => {
+            const code = digit.charCodeAt(0);
+            return (code >= 48 && code <= 57) ? String.fromCharCode(code + 8272) : digit;
         });
+    }
+
+    function toSuperscriptCharge(value) {
+        const superscripts = {
+            '0': '\u2070',
+            '1': '\u00B9',
+            '2': '\u00B2',
+            '3': '\u00B3',
+            '4': '\u2074',
+            '5': '\u2075',
+            '6': '\u2076',
+            '7': '\u2077',
+            '8': '\u2078',
+            '9': '\u2079',
+            '+': '\u207A',
+            '-': '\u207B'
+        };
+        return String(value || '').replace(/[0-9+-]/g, char => superscripts[char] || char);
+    }
+
+    function formatSubscripts(formula) {
+        const split = splitFormulaCharge(formula);
+        const body = split.formula.replace(/(?<=[A-Za-z)\]])\d+/g, toSubscriptDigits);
+        return `${body}${toSuperscriptCharge(split.charge)}`;
     }
 
     function createCompositionBar(formula) {
@@ -133,6 +172,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             return container;
         } catch (e) {
+            console.debug('[Stoichiometry] composition bar skipped', e);
             return document.createElement('div');
         }
     }
@@ -143,7 +183,9 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 const counts = parseFormula(s.formula);
                 Object.keys(counts).forEach(el => elementsInReaction.add(el));
-            } catch(e) {}
+            } catch(e) {
+                console.debug('[Stoichiometry] legend skipped unparsable formula', s.formula, e);
+            }
         });
 
         UI.compositionLegend.innerHTML = '';
@@ -230,6 +272,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (e.isTrusted && currentState) {
                         const idx = parseInt(e.target.dataset.index, 10);
                         const val = getNonNegativeInputValue(e.target);
+                        setActiveModeForIndex(idx);
                         currentState.updateMoles(idx, val);
                     }
                 });
@@ -240,6 +283,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (e.isTrusted && currentState) {
                         const idx = parseInt(e.target.dataset.index, 10);
                         const val = getNonNegativeInputValue(e.target);
+                        setActiveModeForIndex(idx);
                         currentState.updateMass(idx, val);
                     }
                 });
@@ -261,6 +305,10 @@ document.addEventListener('DOMContentLoaded', () => {
             
             if (!moleInputs.length || !massInputs.length || moleInputs.length !== species.length) return;
 
+            const reactants = species.filter(s => s && s.isReactant);
+            const hasReactantInput = reactants.some(s => s.inputMoles > 0);
+            const allReactantsAvailable = reactants.length > 0 && reactants.every(s => s.inputMoles > 0);
+            const isTargetMode = activeMode === CONFIG.MODES.TARGET;
             let limitingIdx = -1;
             let totalMassReactants = 0;
             let totalMassProducts = 0;
@@ -269,7 +317,8 @@ document.addEventListener('DOMContentLoaded', () => {
             species.forEach((s, index) => {
                 if (!s || !moleInputs[index] || !massInputs[index]) return;
 
-                if (s.isLimiting) limitingIdx = index;
+                const isDisplayedLimiting = !isTargetMode && s.isLimiting;
+                if (isDisplayedLimiting) limitingIdx = index;
 
                 const displayMoles = s.isReactant ? s.inputMoles : s.resultMoles;
                 const displayMass = s.isReactant ? s.inputMass : s.resultMass;
@@ -289,43 +338,68 @@ document.addEventListener('DOMContentLoaded', () => {
                         const counts = parseFormula(s.formula);
                         const sumAtoms = Object.values(counts).reduce((a,b)=>a+b, 0);
                         currentTotalAtoms += sumAtoms * s.inputMoles * CONFIG.AVOGADRO;
-                    } catch(e) {}
+                    } catch(e) {
+                        console.debug('[Stoichiometry] atom count skipped unparsable formula', s.formula, e);
+                    }
                 }
 
                 if (s.isReactant && s.inputMoles > 0) {
-                    if (s.isLimiting) {
+                    if (isTargetMode) {
+                        excessCells[index].textContent = "DERIVED";
+                        excessCells[index].className = 'excess-cell excess-cell--derived';
+                        excessCells[index].title = 'Derived from target product input.';
+                    } else if (s.isLimiting) {
                         excessCells[index].textContent = "LIMITING";
                         excessCells[index].className = 'excess-cell excess-cell--limiting';
+                        excessCells[index].title = 'This reactant limits the theoretical yield.';
                     } else if (s.excessMoles > 0.00001) {
                         excessCells[index].textContent = `+${safeFixed(s.excessMoles * s.molarMass, 2)} g`;
                         excessCells[index].className = 'excess-cell excess-cell--excess';
+                        excessCells[index].title = 'Estimated unreacted excess mass.';
                     } else {
                         excessCells[index].textContent = "CONSUMED";
                         excessCells[index].className = 'excess-cell excess-cell--consumed';
+                        excessCells[index].title = 'No meaningful excess remains.';
                     }
                 } else {
                     excessCells[index].textContent = "--";
                     excessCells[index].className = 'excess-cell excess-cell--idle';
+                    excessCells[index].title = '';
                 }
 
                 if (rows[index]) {
-                    rows[index].style.borderLeft = s.isLimiting ? '4px solid var(--accent-warning)' : 'none';
-                    rows[index].classList.toggle('limiting-row', s.isLimiting);
+                    rows[index].style.borderLeft = isDisplayedLimiting ? '4px solid var(--accent-warning)' : 'none';
+                    rows[index].classList.toggle('limiting-row', isDisplayedLimiting);
                 }
             });
 
-            if (limitingIdx !== -1 && species[limitingIdx]) {
+            if (isTargetMode && hasReactantInput) {
+                UI.limitingReactantDisplay.textContent = 'Not applicable';
+                UI.limitingReactantDisplay.style.color = 'var(--text-muted)';
+                UI.limitingReactantDisplay.style.cursor = 'default';
+                UI.limitingReactantDisplay.title = 'Reactant quantities are derived from the target product input.';
+                UI.limitingReactantDisplay.onclick = null;
+            } else if (limitingIdx !== -1 && species[limitingIdx]) {
                 UI.limitingReactantDisplay.textContent = formatSubscripts(species[limitingIdx].formula || '');
                 UI.limitingReactantDisplay.style.color = 'var(--accent-warning)';
                 UI.limitingReactantDisplay.style.cursor = 'pointer';
+                UI.limitingReactantDisplay.title = 'Click to jump to the limiting reactant row.';
                 UI.limitingReactantDisplay.onclick = () => {
                     rows[limitingIdx]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
                     rows[limitingIdx]?.classList.add('animate-pulse');
                     setTimeout(() => rows[limitingIdx]?.classList.remove('animate-pulse'), 2000);
                 };
+            } else if (hasReactantInput && !allReactantsAvailable) {
+                UI.limitingReactantDisplay.textContent = 'Awaiting all reactants';
+                UI.limitingReactantDisplay.style.color = 'var(--accent-warning)';
+                UI.limitingReactantDisplay.style.cursor = 'default';
+                UI.limitingReactantDisplay.title = 'Enter each reactant to calculate limiting reagent and yield.';
+                UI.limitingReactantDisplay.onclick = null;
             } else {
                 UI.limitingReactantDisplay.textContent = '--';
                 UI.limitingReactantDisplay.style.color = 'var(--text-muted)';
+                UI.limitingReactantDisplay.style.cursor = 'default';
+                UI.limitingReactantDisplay.title = '';
                 UI.limitingReactantDisplay.onclick = null;
             }
 
@@ -356,10 +430,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 UI.conservationStatus.title = '';
             }
 
-            const isTargetMode = Array.from(moleInputs).some((input, i) => document.activeElement === input && !species[i].isReactant) ||
-                                 Array.from(massInputs).some((input, i) => document.activeElement === input && !species[i].isReactant);
-            
-            UI.activeModeBadge.textContent = isTargetMode ? CONFIG.MODES.TARGET : CONFIG.MODES.LAB;
+            UI.activeModeBadge.textContent = activeMode;
 
         } catch (err) {
             console.error('[Stoichiometry] updateTable Error:', err);
@@ -395,7 +466,7 @@ document.addEventListener('DOMContentLoaded', () => {
             let headerReactants = '';
             let headerProducts = '';
 
-            const isEquation = /->|=>|={1,2}|➔|→/.test(input);
+            const isEquation = /->|=>|={1,2}|\u2794|\u2192/.test(input);
 
             if (isEquation) {
                 const result = balanceEquation(input);
@@ -465,6 +536,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (warningEl) warningEl.classList.add('hidden');
             }
             
+            activeMode = CONFIG.MODES.LAB;
             currentState = new ReactionState(speciesArray);
             updateLegend(speciesArray);
             buildTable(speciesArray);
@@ -483,12 +555,18 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.addEventListener('click', (e) => {
-        if (e.target.classList.contains('help-chip')) {
-            const isVisible = e.target.getAttribute('aria-expanded') === 'true';
-            // Close all others
+        const chip = e.target instanceof Element ? e.target.closest('.help-chip') : null;
+        if (chip) {
+            const isVisible = chip.getAttribute('aria-expanded') === 'true';
             document.querySelectorAll('.help-chip').forEach(c => c.setAttribute('aria-expanded', 'false'));
-            e.target.setAttribute('aria-expanded', !isVisible);
+            chip.setAttribute('aria-expanded', String(!isVisible));
         } else {
+            document.querySelectorAll('.help-chip').forEach(c => c.setAttribute('aria-expanded', 'false'));
+        }
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
             document.querySelectorAll('.help-chip').forEach(c => c.setAttribute('aria-expanded', 'false'));
         }
     });

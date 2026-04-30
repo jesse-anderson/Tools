@@ -7,12 +7,20 @@ const tests = {
         { input: "  H2O ", expected: { H: 2, O: 1 }, mass: 18.015 }, // Whitespace
         { input: "H2O1", expected: { H: 2, O: 1 }, mass: 18.015 }, // Explicit 1
         { input: "Ca(OH)2", expected: { Ca: 1, O: 2, H: 2 }, mass: 74.093 },
-        { input: "K4[Fe(CN)6]·3H2O", expected: { K: 4, Fe: 1, C: 6, N: 6, H: 6, O: 3 }, mass: 422.388 }
+        { input: "K4[Fe(CN)6]·3H2O", expected: { K: 4, Fe: 1, C: 6, N: 6, H: 6, O: 3 }, mass: 422.388 },
+        { input: "NH4+", expected: { N: 1, H: 4 }, mass: 18.039 },
+        { input: "SO42-", expected: { S: 1, O: 4 }, mass: 96.06 },
+        { input: "Fe2+", expected: { Fe: 1 }, mass: 55.845 },
+        { input: "H2+", expected: { H: 2 }, mass: 2.016 }
     ],
     errors: [
         { input: "h2o", error: "Unknown element: h" }, // Case sensitivity
         { input: "H2O!", error: "Invalid character in formula: !" }, // Special chars
         { input: "(H2O", error: "Formula nesting too deep" }, // This might throw differently but it's an error
+        { input: "H0", error: "positive integer" },
+        { input: "(OH)0", error: "positive integer" },
+        { input: "H()", error: "empty parenthesis" },
+        { input: "H.", error: "hydrate dot" },
         { input: "A".repeat(600), error: "Formula too long" }
     ],
     balancer: [

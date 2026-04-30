@@ -61,16 +61,18 @@ export class ReactionState {
         let minRatio = Infinity;
         let limitingIdx = -1;
         
-        // Only consider reactants with positive input
-        const activeReactants = this.species.filter(s => s.isReactant && s.inputMoles > 0);
-        
-        activeReactants.forEach(s => {
-            const ratio = s.inputMoles / s.coef;
-            if (ratio < minRatio) {
-                minRatio = ratio;
-                limitingIdx = this.species.indexOf(s);
-            }
-        });
+        const reactants = this.species.filter(s => s.isReactant);
+        const allReactantsAvailable = reactants.length > 0 && reactants.every(s => s.inputMoles > 0);
+
+        if (allReactantsAvailable) {
+            reactants.forEach(s => {
+                const ratio = s.inputMoles / s.coef;
+                if (ratio < minRatio) {
+                    minRatio = ratio;
+                    limitingIdx = this.species.indexOf(s);
+                }
+            });
+        }
 
         const baseRatio = limitingIdx === -1 ? 0 : minRatio;
 

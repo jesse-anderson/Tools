@@ -1,4 +1,4 @@
-import { parseFormula } from './formula-parser.js';
+import { parseFormulaDetails } from './formula-parser.js';
 
 function gcd(a, b) {
     a = Math.abs(a);
@@ -28,16 +28,50 @@ function fDiv(a, b) { return frac(a.n * b.d, a.d * b.n); }
 const MAX_SPECIES = 20;
 const MAX_ELEMENTS = 20;
 const MAX_COEFFICIENT = 10000;
+const ARROW_PATTERN = /\s*(?:->|=>|={1,2}|\u2794|\u2192)\s*/;
+
+function splitSpeciesSide(sideStr) {
+    const trimmed = sideStr.trim();
+    if (!trimmed) return [];
+
+    const spacedSpecies = trimmed.split(/\s+\+\s+/).map(s => s.trim()).filter(Boolean);
+    if (spacedSpecies.length > 1) {
+        return spacedSpecies;
+    }
+
+    return trimmed.split(/\+(?=[A-Z({\[]|\d)/).map(s => s.trim()).filter(Boolean);
+}
+
+function normalizeSpeciesToken(speciesText) {
+    const trimmed = speciesText.trim();
+    const coefficientMatch = /^([+-]?(?:\d+(?:\.\d*)?|\.\d+))\s*/.exec(trimmed);
+
+    if (!coefficientMatch) {
+        return { formula: trimmed, hadInputCoefficient: false };
+    }
+
+    const coefficient = Number(coefficientMatch[1]);
+    if (!Number.isFinite(coefficient) || coefficient <= 0) {
+        throw new Error("Leading coefficients must be positive numbers. This tool ignores input coefficients and computes the balanced coefficients.");
+    }
+
+    const formula = trimmed.slice(coefficientMatch[0].length).trim();
+    if (!formula) {
+        throw new Error("Missing formula after leading coefficient.");
+    }
+
+    return { formula, hadInputCoefficient: true };
+}
 
 export function balanceEquation(equationStr) {
     // 1. Parse equation string
-    const sides = equationStr.split(/\s*(?:->|=>|={1,2}|➔|→)\s*/);
+    const sides = equationStr.split(ARROW_PATTERN);
     if (sides.length !== 2) throw new Error("Invalid equation format. Use 'Reactants -> Products' (e.g., H2 + O2 -> H2O).");
-    
-    const parseSide = (sideStr) => sideStr.split('+').map(s => s.trim()).filter(s => s.length > 0);
-    
-    const reactantStrs = parseSide(sides[0]).map(s => s.replace(/^[0-9\s]+/, ''));
-    const productStrs = parseSide(sides[1]).map(s => s.replace(/^[0-9\s]+/, ''));
+
+    const reactantItems = splitSpeciesSide(sides[0]).map(normalizeSpeciesToken);
+    const productItems = splitSpeciesSide(sides[1]).map(normalizeSpeciesToken);
+    const reactantStrs = reactantItems.map(item => item.formula);
+    const productStrs = productItems.map(item => item.formula);
     
     if (reactantStrs.length === 0 || productStrs.length === 0) {
         throw new Error("Missing reactants or products. Ensure both sides of the arrow contain species.");
@@ -53,21 +87,23 @@ export function balanceEquation(equationStr) {
     const speciesStrs = [...reactantStrs, ...productStrs];
     if (speciesStrs.length > MAX_SPECIES) throw new Error(`Reaction is too complex (max ${MAX_SPECIES} species allowed).`);
 
-    const speciesParsed = speciesStrs.map(parseFormula);
+    const speciesParsed = speciesStrs.map(parseFormulaDetails);
+    const reactantParsed = speciesParsed.slice(0, reactantStrs.length);
+    const productParsed = speciesParsed.slice(reactantStrs.length);
     
     // 2. Build unique elements set
     const elements = new Set();
     speciesParsed.forEach(sp => {
-        Object.keys(sp).forEach(el => elements.add(el));
+        Object.keys(sp.atoms).forEach(el => elements.add(el));
     });
     const elementList = Array.from(elements);
     if (elementList.length > MAX_ELEMENTS) throw new Error(`Reaction contains too many unique elements (max ${MAX_ELEMENTS} allowed).`);
     
     // Check if an element is missing on one side
     const rElements = new Set();
-    reactantStrs.map(parseFormula).forEach(sp => Object.keys(sp).forEach(el => rElements.add(el)));
+    reactantParsed.forEach(sp => Object.keys(sp.atoms).forEach(el => rElements.add(el)));
     const pElements = new Set();
-    productStrs.map(parseFormula).forEach(sp => Object.keys(sp).forEach(el => pElements.add(el)));
+    productParsed.forEach(sp => Object.keys(sp.atoms).forEach(el => pElements.add(el)));
     
     for (let el of elementList) {
         if (!rElements.has(el) || !pElements.has(el)) {
@@ -75,18 +111,26 @@ export function balanceEquation(equationStr) {
         }
     }
     
-    // 3. Build Matrix (Rows = elements, Columns = species)
+    // 3. Build Matrix (Rows = elements plus optional charge, Columns = species)
     let matrix = [];
     for (let i = 0; i < elementList.length; i++) {
         let row = [];
         let el = elementList[i];
         for (let j = 0; j < speciesParsed.length; j++) {
-            let count = speciesParsed[j][el] || 0;
+            let count = speciesParsed[j].atoms[el] || 0;
             // Products have negative coefficients in the conservation matrix
             if (j >= reactantStrs.length) count = -count;
             row.push(frac(count));
         }
         matrix.push(row);
+    }
+
+    if (speciesParsed.some(sp => sp.charge !== 0)) {
+        const chargeRow = speciesParsed.map((sp, index) => {
+            const charge = index >= reactantStrs.length ? -sp.charge : sp.charge;
+            return frac(charge);
+        });
+        matrix.push(chargeRow);
     }
     
     // 4. Gaussian Elimination to Reduced Row Echelon Form (RREF)
@@ -217,6 +261,7 @@ export function balanceEquation(equationStr) {
         reactants: reactantStrs,
         products: productStrs,
         coefficients: intCoefs,
-        freeDimensions: freeCols.length
+        freeDimensions: freeCols.length,
+        ignoredInputCoefficients: [...reactantItems, ...productItems].some(item => item.hadInputCoefficient)
     };
 }
