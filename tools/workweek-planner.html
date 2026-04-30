@@ -199,21 +199,15 @@
 
                 <div class="panel-section">
                     <h3>Print Layout</h3>
-                    <div class="field-grid three">
-                        <div class="field">
-                            <label class="field-label" for="groupingSelect">Grouping</label>
-                            <select class="main-select" id="groupingSelect">
-                                <option value="individual" selected>Individual sheets</option>
-                                <option value="combined">Combined view</option>
-                            </select>
-                        </div>
+                    <div class="field-grid">
                         <div class="field">
                             <label class="field-label" for="daysPerSheetSelect">Days per sheet</label>
-                            <select class="main-select" id="daysPerSheetSelect" disabled>
+                            <select class="main-select" id="daysPerSheetSelect">
+                                <option value="1">1</option>
                                 <option value="2">2</option>
                                 <option value="3">3</option>
-                                <option value="4" selected>4</option>
-                                <option value="5">5</option>
+                                <option value="4">4</option>
+                                <option value="5" selected>5</option>
                                 <option value="6">6</option>
                                 <option value="7">7</option>
                             </select>
@@ -282,7 +276,7 @@
                             </select>
                         </div>
                         <div class="field">
-                            <label class="field-label" for="showGridLinesCheckbox">Grid lines (combined view)</label>
+                            <label class="field-label" for="showGridLinesCheckbox">Grid lines</label>
                             <label class="toggle-row" for="showGridLinesCheckbox">
                                 <input type="checkbox" id="showGridLinesCheckbox">
                                 <span>Show grid lines for alignment.</span>
@@ -315,7 +309,7 @@
                 <div class="panel-heading preview-heading">
                     <div>
                         <h2 id="previewTitle">Preview</h2>
-                        <p>Live print layout with sheet grouping and paper-aware page sizing.</p>
+                        <p>Live print layout with days-per-sheet and paper-aware page sizing.</p>
                     </div>
                     <div class="action-row preview-actions">
                         <button class="tool-btn" type="button" id="fitZoomBtn">Fit View</button>

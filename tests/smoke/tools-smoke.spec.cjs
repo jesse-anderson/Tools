@@ -941,7 +941,6 @@ test('workweek planner counts long date ranges without truncation', async ({ pag
 
   await page.selectOption('#selectionPreset', 'single');
   await page.selectOption('#dateMode', 'range');
-  await page.selectOption('#groupingSelect', 'combined');
   await page.selectOption('#daysPerSheetSelect', '7');
   await page.fill('#rangeStartInput', '2026-01-01');
   await page.locator('#rangeStartInput').blur();
@@ -956,23 +955,28 @@ test('workweek planner counts long date ranges without truncation', async ({ pag
   ).toBe(String(expectedMondays));
 });
 
-test('workweek planner wraps combined sheets by orientation instead of forcing one row', async ({ page, baseURL }) => {
+test('workweek planner uses days per sheet and keeps sheet days in one row', async ({ page, baseURL }) => {
   await expectPageToLoadCleanly(page, baseURL, '/tools/workweek-planner.html');
 
+  await expect(page.locator('#groupingSelect')).toHaveCount(0);
   await page.selectOption('#selectionPreset', 'fullweek');
-  await page.selectOption('#groupingSelect', 'combined');
   await page.selectOption('#daysPerSheetSelect', '7');
   await page.selectOption('#orientationSelect', 'landscape');
 
   await expect.poll(
-    () => page.locator('.planner-day-grid').first().getAttribute('style'),
-    { message: 'Expected combined preview sheets to wrap into multiple rows in landscape mode.' }
-  ).toContain('grid-template-columns: repeat(4');
+    () => getPlannerStatValue(page, 'Printable pages'),
+    { message: 'Expected seven selected days with seven days per sheet to produce one page.' }
+  ).toBe('1');
 
   await expect.poll(
     () => page.locator('.planner-day-grid').first().getAttribute('style'),
-    { message: 'Expected combined preview sheets to use more than one row when seven days share a sheet.' }
-  ).toContain('grid-template-rows: repeat(2');
+    { message: 'Expected all seven days to be laid out left to right on the same sheet.' }
+  ).toContain('grid-template-columns: repeat(7');
+
+  await expect.poll(
+    () => page.locator('.planner-day-grid').first().getAttribute('style'),
+    { message: 'Expected days to stay in one row rather than stacking.' }
+  ).toContain('grid-template-rows: repeat(1');
 });
 
 test('lamport vector mode keeps the local vector component distinct from the Lamport scalar clock', async ({ page, baseURL }) => {
@@ -1090,6 +1094,124 @@ test('workweek planner does not show a false success message when saved-plan sto
   ).toContain('Saving failed. localStorage may be unavailable or full.');
 
   await expect(page.locator('#savedPlansList .saved-plan-item')).toHaveCount(0);
+});
+
+test('workweek planner restores empty selected days as an invalid configuration', async ({ page, baseURL }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem('workweekPlannerCurrent', JSON.stringify({
+      selectionPreset: 'custom',
+      selectedDays: [],
+      dateMode: 'generic',
+      startTime: '08:00',
+      endTime: '17:00',
+      interval: 15
+    }));
+  });
+
+  await expectPageToLoadCleanly(page, baseURL, '/tools/workweek-planner.html');
+
+  await expect(page.locator('#dayGrid input:checked')).toHaveCount(0);
+  await expect.poll(
+    () => getStatusBannerText(page),
+    { message: 'Expected an exported empty day selection to remain invalid instead of restoring the default workweek.' }
+  ).toContain('Select at least one day to generate planner sheets.');
+});
+
+test('workweek planner sanitizes impossible restored times before generating rows', async ({ page, baseURL }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem('workweekPlannerCurrent', JSON.stringify({
+      selectionPreset: 'single',
+      selectedDays: ['mon'],
+      dateMode: 'generic',
+      durationPreset: 'custom',
+      startTime: '08:00',
+      endTime: '99:00',
+      interval: 15
+    }));
+  });
+
+  await expectPageToLoadCleanly(page, baseURL, '/tools/workweek-planner.html');
+
+  await expect(page.locator('#endTimeInput')).toHaveValue('17:00');
+  await expect.poll(
+    () => getPlannerStatValue(page, 'Hours per day'),
+    { message: 'Expected the invalid restored end time to fall back before schedule generation.' }
+  ).toBe('9h');
+});
+
+test('workweek planner rejects impossible restored range dates instead of rolling them forward', async ({ page, baseURL }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem('workweekPlannerCurrent', JSON.stringify({
+      selectionPreset: 'custom',
+      selectedDays: ['tue'],
+      dateMode: 'range',
+      rangeStart: '2026-02-31',
+      rangeEnd: '2026-02-31',
+      startTime: '08:00',
+      endTime: '17:00',
+      interval: 15
+    }));
+  });
+
+  await expectPageToLoadCleanly(page, baseURL, '/tools/workweek-planner.html');
+
+  await expect(page.locator('#rangeStartInput')).toHaveValue('');
+  await expect(page.locator('#rangeEndInput')).toHaveValue('');
+  await expect.poll(
+    () => getStatusBannerText(page),
+    { message: 'Expected an impossible stored date to stay invalid rather than becoming March 3.' }
+  ).toContain('Set both start and end dates for range mode.');
+  await expect.poll(() => getPlannerStatValue(page, 'Planner days')).toBe('0');
+});
+
+test('workweek planner rejects impossible restored months instead of rolling into another year', async ({ page, baseURL }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem('workweekPlannerCurrent', JSON.stringify({
+      selectionPreset: 'custom',
+      selectedDays: ['fri'],
+      dateMode: 'month',
+      month: '2026-13',
+      startTime: '08:00',
+      endTime: '17:00',
+      interval: 15
+    }));
+  });
+
+  await expectPageToLoadCleanly(page, baseURL, '/tools/workweek-planner.html');
+
+  await expect(page.locator('#monthInput')).toHaveValue('');
+  await expect.poll(
+    () => getStatusBannerText(page),
+    { message: 'Expected an impossible stored month to remain invalid instead of becoming January 2027.' }
+  ).toContain('Choose a month to generate all selected weekdays in that month.');
+  await expect.poll(() => getPlannerStatValue(page, 'Planner days')).toBe('0');
+
+  await page.fill('#titleInput', 'Still needs a month');
+  await expect(page.locator('#monthInput')).toHaveValue('');
+  await expect.poll(
+    () => getStatusBannerText(page),
+    { message: 'Expected unrelated edits to preserve the missing-month error.' }
+  ).toContain('Choose a month to generate all selected weekdays in that month.');
+});
+
+test('workweek planner tolerates malformed saved plan configs', async ({ page, baseURL }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem('workweekPlannerSaved', JSON.stringify([
+      {
+        id: 'broken-plan',
+        name: 'Broken config',
+        savedAt: 'not-a-date',
+        config: {}
+      }
+    ]));
+  });
+
+  await expectPageToLoadCleanly(page, baseURL, '/tools/workweek-planner.html');
+
+  const savedPlan = page.locator('#savedPlansList .saved-plan-item');
+  await expect(savedPlan).toHaveCount(1);
+  await expect(savedPlan).toContainText('Broken config');
+  await expect(savedPlan).toContainText('generic | 08:00-17:00 | MON, TUE, WED, THU, FRI');
 });
 
 test('excel formula extractor demo surfaces hidden sheets, defined names, and external refs', async ({ page, baseURL }) => {

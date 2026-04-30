@@ -48,8 +48,7 @@ const DEFAULT_STATE = {
     endTime: '17:00',
     interval: 15,
     zoom: 0.75,
-    grouping: 'individual',
-    daysPerSheet: 4,
+    daysPerSheet: 5,
     copies: 1,
     orientation: 'portrait',
     paperSize: 'letter',
@@ -80,7 +79,6 @@ const dom = {
     advancedDetails: document.getElementById('advancedDetails'),
     startTimeInput: document.getElementById('startTimeInput'),
     endTimeInput: document.getElementById('endTimeInput'),
-    groupingSelect: document.getElementById('groupingSelect'),
     daysPerSheetSelect: document.getElementById('daysPerSheetSelect'),
     copiesInput: document.getElementById('copiesInput'),
     orientationSelect: document.getElementById('orientationSelect'),
@@ -131,7 +129,6 @@ function bindEvents() {
     dom.zoomSelect.addEventListener('change', handleFormChange);
     dom.startTimeInput.addEventListener('change', handleExactTimeChange);
     dom.endTimeInput.addEventListener('change', handleExactTimeChange);
-    dom.groupingSelect.addEventListener('change', handleFormChange);
     dom.daysPerSheetSelect.addEventListener('change', handleFormChange);
     dom.copiesInput.addEventListener('input', handleFormChange);
     dom.orientationSelect.addEventListener('change', handleFormChange);
@@ -236,7 +233,6 @@ function applyStateToControls() {
     dom.zoomSelect.value = String(state.zoom);
     dom.startTimeInput.value = state.startTime;
     dom.endTimeInput.value = state.endTime;
-    dom.groupingSelect.value = state.grouping;
     dom.daysPerSheetSelect.value = String(state.daysPerSheet);
     dom.copiesInput.value = String(state.copies);
     dom.orientationSelect.value = state.orientation;
@@ -256,16 +252,15 @@ function applyFormState() {
     state.selectionPreset = dom.selectionPreset.value;
     state.selectedDays = getSelectedDays();
     state.dateMode = dom.dateMode.value;
-    state.rangeStart = dom.rangeStartInput.value;
-    state.rangeEnd = dom.rangeEndInput.value;
-    state.month = dom.monthInput.value || getCurrentMonthValue();
+    state.rangeStart = normalizeDateInput(dom.rangeStartInput.value);
+    state.rangeEnd = normalizeDateInput(dom.rangeEndInput.value);
+    state.month = normalizeMonthInput(dom.monthInput.value);
     state.durationPreset = dom.durationPreset.value;
     state.startTime = dom.startTimeInput.value || '08:00';
     state.endTime = dom.endTimeInput.value || '17:00';
     state.interval = clampNumber(parseInt(dom.intervalSelect.value, 10), 15, 60, 15);
     state.zoom = clampFloat(parseFloat(dom.zoomSelect.value), 0.5, 1, 0.75);
-    state.grouping = dom.groupingSelect.value;
-    state.daysPerSheet = clampNumber(parseInt(dom.daysPerSheetSelect.value, 10), 2, 7, 4);
+    state.daysPerSheet = clampNumber(parseInt(dom.daysPerSheetSelect.value, 10), 1, 7, DEFAULT_STATE.daysPerSheet);
     state.copies = clampNumber(parseInt(dom.copiesInput.value, 10), 1, 10, 1);
     state.orientation = dom.orientationSelect.value;
     state.paperSize = dom.paperSizeSelect.value;
@@ -277,6 +272,7 @@ function applyFormState() {
     state.linesPerBlock = clampNumber(parseInt(dom.linesPerBlockSelect.value, 10), 2, 8, 4);
 
     dom.copiesInput.value = String(state.copies);
+    dom.daysPerSheetSelect.value = String(state.daysPerSheet);
     dom.intervalSelect.value = String(state.interval);
     dom.zoomSelect.value = String(state.zoom);
     dom.linesPerBlockSelect.value = String(state.linesPerBlock);
@@ -291,7 +287,6 @@ function syncConditionalControls() {
     dom.genericDateHelp.classList.toggle('is-active', state.dateMode === 'generic');
     dom.rangeFields.classList.toggle('is-active', state.dateMode === 'range');
     dom.monthFields.classList.toggle('is-active', state.dateMode === 'month');
-    dom.daysPerSheetSelect.disabled = state.grouping !== 'combined';
 }
 
 function render() {
@@ -506,7 +501,7 @@ function buildDayInstances(selectedDayDefs) {
 
 function buildSheets(uniqueDays) {
     const sheets = [];
-    const chunkSize = state.grouping === 'combined' ? state.daysPerSheet : 1;
+    const chunkSize = state.daysPerSheet;
     const chunks = chunkDays(uniqueDays, chunkSize);
 
     for (let copyIndex = 0; copyIndex < state.copies; copyIndex += 1) {
@@ -542,11 +537,7 @@ function renderStatus(model) {
     } else {
         messages.push(`${model.uniqueDays.length} planner day${model.uniqueDays.length === 1 ? '' : 's'} generated across ${model.totalPages} printable page${model.totalPages === 1 ? '' : 's'}.`);
         messages.push(`Date summary: ${model.dateSummary}.`);
-        if (state.grouping === 'combined') {
-            messages.push(`Combined view places up to ${state.daysPerSheet} day${state.daysPerSheet === 1 ? '' : 's'} on each sheet with orientation-aware wrapping.`);
-        } else {
-            messages.push('Individual mode prints one day per sheet.');
-        }
+        messages.push(`Each sheet places up to ${state.daysPerSheet} day${state.daysPerSheet === 1 ? '' : 's'} in one left-to-right row.`);
     }
 
     if (model.warnings.length) {
@@ -599,7 +590,7 @@ function renderPreview(model) {
         return;
     }
 
-    const compact = state.grouping === 'combined' || model.blocks.length > 24;
+    const compact = model.sheets.some((sheet) => sheet.days.length > 1) || model.blocks.length > 24;
     const html = model.sheets.map((sheet) => renderSheet(sheet, model, compact)).join('');
     dom.previewStage.innerHTML = `<div class="preview-pages">${html}</div>`;
 }
@@ -696,19 +687,26 @@ function renderSavedPlans() {
         return;
     }
 
-    dom.savedPlansList.innerHTML = savedPlans.map((plan) => `
-        <div class="saved-plan-item">
-            <h3>${escapeHtml(plan.name)}</h3>
-            <p class="saved-plan-meta">
-                Saved ${escapeHtml(formatSavedAt(plan.savedAt))}<br>
-                ${escapeHtml(plan.config.dateMode)} | ${escapeHtml(plan.config.startTime)}-${escapeHtml(plan.config.endTime)} | ${escapeHtml(plan.config.selectedDays.join(', ').toUpperCase())}
-            </p>
-            <div class="saved-plan-actions">
-                <button class="tool-btn" type="button" data-action="load" data-plan-id="${escapeHtml(plan.id)}">Load</button>
-                <button class="tool-btn danger" type="button" data-action="delete" data-plan-id="${escapeHtml(plan.id)}">Delete</button>
+    dom.savedPlansList.innerHTML = savedPlans.map((plan) => {
+        const config = sanitizeState(plan.config);
+        const daySummary = config.selectedDays.length
+            ? config.selectedDays.join(', ').toUpperCase()
+            : 'NONE';
+
+        return `
+            <div class="saved-plan-item">
+                <h3>${escapeHtml(plan.name)}</h3>
+                <p class="saved-plan-meta">
+                    Saved ${escapeHtml(formatSavedAt(plan.savedAt))}<br>
+                    ${escapeHtml(config.dateMode)} | ${escapeHtml(config.startTime)}-${escapeHtml(config.endTime)} | ${escapeHtml(daySummary)}
+                </p>
+                <div class="saved-plan-actions">
+                    <button class="tool-btn" type="button" data-action="load" data-plan-id="${escapeHtml(plan.id)}">Load</button>
+                    <button class="tool-btn danger" type="button" data-action="delete" data-plan-id="${escapeHtml(plan.id)}">Delete</button>
+                </div>
             </div>
-        </div>
-    `).join('');
+        `;
+    }).join('');
 }
 
 function savePlan() {
@@ -855,7 +853,19 @@ function loadSavedPlans() {
         const raw = localStorage.getItem(STORAGE_KEYS.saved);
         if (!raw) return [];
         const parsed = JSON.parse(raw);
-        return Array.isArray(parsed) ? parsed.filter((entry) => entry && entry.id && entry.config) : [];
+        if (!Array.isArray(parsed)) return [];
+
+        return parsed
+            .filter((entry) => entry && entry.id && entry.config)
+            .map((entry) => ({
+                id: String(entry.id),
+                name: typeof entry.name === 'string' && entry.name.trim()
+                    ? entry.name.trim().slice(0, 60)
+                    : 'Workweek Planner',
+                savedAt: typeof entry.savedAt === 'string' ? entry.savedAt : '',
+                config: sanitizeState(entry.config)
+            }))
+            .slice(0, MAX_SAVED_PLANS);
     } catch (error) {
         console.debug('Failed to load saved planner configurations', error);
         return [];
@@ -887,7 +897,6 @@ function serializeState() {
         endTime: state.endTime,
         interval: state.interval,
         zoom: state.zoom,
-        grouping: state.grouping,
         daysPerSheet: state.daysPerSheet,
         copies: state.copies,
         orientation: state.orientation,
@@ -921,27 +930,25 @@ function sanitizeState(raw) {
         ? next.selectionPreset
         : DEFAULT_STATE.selectionPreset;
     next.selectedDays = Array.isArray(next.selectedDays)
-        ? next.selectedDays.filter((dayId) => DAY_DEFS.some((day) => day.id === dayId))
+        ? Array.from(new Set(next.selectedDays.filter((dayId) => DAY_DEFS.some((day) => day.id === dayId))))
         : DEFAULT_STATE.selectedDays.slice();
-    if (!next.selectedDays.length) {
-        next.selectedDays = DEFAULT_STATE.selectedDays.slice();
-    }
     next.dateMode = ['generic', 'range', 'month'].includes(next.dateMode) ? next.dateMode : 'generic';
-    next.rangeStart = typeof next.rangeStart === 'string' ? next.rangeStart : '';
-    next.rangeEnd = typeof next.rangeEnd === 'string' ? next.rangeEnd : '';
-    next.month = typeof next.month === 'string' && next.month ? next.month : getCurrentMonthValue();
-    next.durationPreset = typeof next.durationPreset === 'string' ? next.durationPreset : 'custom';
+    next.rangeStart = normalizeDateInput(next.rangeStart);
+    next.rangeEnd = normalizeDateInput(next.rangeEnd);
+    next.month = normalizeMonthInput(next.month) || (Object.prototype.hasOwnProperty.call(source, 'month') ? '' : getCurrentMonthValue());
     next.startTime = isValidTimeLabel(next.startTime) ? next.startTime : DEFAULT_STATE.startTime;
     next.endTime = isValidTimeLabel(next.endTime) ? next.endTime : DEFAULT_STATE.endTime;
+    next.durationPreset = ['4h', '6h', '8h', '9h', '10h', '12h', 'custom'].includes(next.durationPreset)
+        ? next.durationPreset
+        : inferDurationPreset(next.startTime, next.endTime);
     next.interval = clampNumber(parseInt(next.interval, 10), 15, 60, 15);
     next.zoom = clampFloat(parseFloat(next.zoom), 0.5, 1, 0.75);
-    next.grouping = next.grouping === 'combined' ? 'combined' : 'individual';
-    next.daysPerSheet = clampNumber(parseInt(next.daysPerSheet, 10), 2, 7, 4);
+    next.daysPerSheet = clampNumber(parseInt(next.daysPerSheet, 10), 1, 7, DEFAULT_STATE.daysPerSheet);
     next.copies = clampNumber(parseInt(next.copies, 10), 1, 10, 1);
     next.orientation = next.orientation === 'landscape' ? 'landscape' : 'portrait';
     next.paperSize = next.paperSize === 'a4' ? 'a4' : 'letter';
-    next.saveName = typeof next.saveName === 'string' ? next.saveName : '';
-    next.footerText = typeof next.footerText === 'string' ? next.footerText : '';
+    next.saveName = typeof next.saveName === 'string' ? next.saveName.trim().slice(0, 60) : '';
+    next.footerText = typeof next.footerText === 'string' ? next.footerText.trim().slice(0, 60) : '';
     next.signatureLines = clampNumber(parseInt(next.signatureLines, 10), 0, 5, 0);
     if (isLegacySheetConfig && next.signatureLines === 2) {
         next.signatureLines = 0;
@@ -963,18 +970,11 @@ function updateDynamicPrintStyle() {
 }
 
 function getColumnCount(dayCount) {
-    if (dayCount <= 1 || state.grouping === 'individual') return 1;
-    if (state.orientation === 'portrait') {
-        if (dayCount >= 5) return 3;
-        return Math.min(2, dayCount);
-    }
-    if (dayCount >= 6) return 4;
-    if (dayCount >= 4) return 3;
-    return Math.min(3, dayCount);
+    return Math.max(1, dayCount);
 }
 
 function getGridRowCount(dayCount, columns) {
-    return Math.max(1, Math.ceil(dayCount / Math.max(1, columns)));
+    return 1;
 }
 
 function getPaperMetrics(paperSize, orientation) {
@@ -1004,8 +1004,9 @@ function computeRowHeight({ blockCount, dayCount, columns, showSheetHeader, show
     const rowBorderAllowance = Math.max(0, blockCount * 0.01);
     const usableHeight = Math.max(2.4, pageHeight - sheetPadding - sheetHeaderHeight - sheetFooterHeight - dayRowOverhead - rowBorderAllowance);
     const baseHeight = usableHeight / Math.max(1, dayRows * Math.max(1, blockCount));
-    const minimum = state.grouping === 'combined' ? 0.075 : 0.12;
-    const maximum = state.grouping === 'combined' ? 0.28 : 0.22;
+    const isMultiDaySheet = dayCount > 1;
+    const minimum = isMultiDaySheet ? 0.075 : 0.12;
+    const maximum = isMultiDaySheet ? 0.28 : 0.22;
     return Math.min(maximum, Math.max(minimum, baseHeight));
 }
 
@@ -1059,6 +1060,7 @@ function formatHours(totalMinutes) {
 }
 
 function timeToMinutes(value) {
+    if (!isValidTimeLabel(value)) return 0;
     const [hours, minutes] = String(value || '00:00').split(':').map((part) => parseInt(part, 10));
     return (hours * 60) + minutes;
 }
@@ -1095,10 +1097,24 @@ function inferDurationPreset(startTime, endTime) {
 }
 
 function parseDateInput(value) {
-    if (!value) return null;
-    const [year, month, day] = value.split('-').map((part) => parseInt(part, 10));
-    if (!year || !month || !day) return null;
-    return new Date(year, month - 1, day);
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value || '').trim());
+    if (!match) return null;
+
+    const year = parseInt(match[1], 10);
+    const month = parseInt(match[2], 10);
+    const day = parseInt(match[3], 10);
+    if (month < 1 || month > 12 || day < 1 || day > 31) return null;
+
+    const parsed = new Date(year, month - 1, day);
+    if (
+        parsed.getFullYear() !== year ||
+        parsed.getMonth() !== month - 1 ||
+        parsed.getDate() !== day
+    ) {
+        return null;
+    }
+
+    return parsed;
 }
 
 function getInclusiveDateSpan(start, end) {
@@ -1109,6 +1125,22 @@ function getInclusiveDateSpan(start, end) {
 
 function buildDateKey(date) {
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+function normalizeDateInput(value) {
+    const text = typeof value === 'string' ? value.trim() : '';
+    return parseDateInput(text) ? text : '';
+}
+
+function normalizeMonthInput(value) {
+    const match = /^(\d{4})-(\d{2})$/.exec(String(value || '').trim());
+    if (!match) return '';
+
+    const year = parseInt(match[1], 10);
+    const month = parseInt(match[2], 10);
+    if (!Number.isInteger(year) || month < 1 || month > 12) return '';
+
+    return `${match[1]}-${match[2]}`;
 }
 
 function formatSavedAt(value) {
@@ -1156,7 +1188,12 @@ function escapeHtml(value) {
 }
 
 function isValidTimeLabel(value) {
-    return /^\d{2}:\d{2}$/.test(String(value || ''));
+    const match = /^(\d{2}):(\d{2})$/.exec(String(value || ''));
+    if (!match) return false;
+
+    const hours = parseInt(match[1], 10);
+    const minutes = parseInt(match[2], 10);
+    return hours >= 0 && hours <= 23 && minutes >= 0 && minutes <= 59;
 }
 
 function getCurrentMonthValue() {
