@@ -1,0 +1,269 @@
+<!--
+============================================
+STEAM TABLES LOOKUP v1.0.0
+============================================
+Description: Browser-based steam table lookup using vendored LearnChemE CSV data.
+
+Dependencies: None (Vanilla JavaScript)
+
+Project: Tools Hub by Jesse Anderson
+Repository: https://github.com/jesse-anderson/Tools
+License: GPL-3.0
+
+Data Attribution:
+- Steam table CSV data by Neil Hendren, University of Colorado Boulder
+- Source: https://learncheme.com/student-resources/steam-tables/
+- CSV metadata carries an MIT-style permissive notice; broader LearnChemE pages identify LearnChemE work as CC BY-SA 4.0.
+
+Features:
+- Saturation, mixture, single-phase, and reverse property lookups
+- Phase-aware interpolation against vendored CSV rows
+- In-browser internal consistency tests
+- SI and US customary display/input units
+============================================
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'">
+    <title>Steam Tables Lookup | Tools Hub</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/shared.css">
+    <link rel="stylesheet" href="../css/steam_tables/steam-tables.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content steam-header-content">
+                <div class="header-left">
+                    <a href="../tools.html" class="back-link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="19" y1="12" x2="5" y2="12"/>
+                            <polyline points="12 19 5 12 12 5"/>
+                        </svg>
+                        Back to Tools
+                    </a>
+                </div>
+                <div class="header-right">
+                    <div class="theme-toggle">
+                        <button data-theme-toggle="light" aria-pressed="false" title="Light mode">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="5"/>
+                                <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+                            </svg>
+                        </button>
+                        <button data-theme-toggle="dark" aria-pressed="false" title="Dark mode">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tool-title-row">
+                <div class="tool-icon-header engineering">
+                    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <path d="M5 19h14"/>
+                        <path d="M7 19c2-3 2-5 0-8s-1-5 1-7"/>
+                        <path d="M12 19c2-3 2-5 0-8s-1-5 1-7"/>
+                        <path d="M17 19c2-3 2-5 0-8s-1-5 1-7"/>
+                    </svg>
+                </div>
+                <div>
+                    <h1>Steam Tables Lookup</h1>
+                    <p class="tagline">// SATURATION | SUPERHEATED | REVERSE STATE LOOKUPS</p>
+                </div>
+            </div>
+        </header>
+
+        <main class="calculator-layout steam-layout">
+            <section class="calculator-panel steam-panel">
+                <div class="panel-header">
+                    <div>
+                        <h2>State Lookup</h2>
+                        <p>Interpolates against vendored LearnChemE steam table CSVs. All math runs in SI units; display units are converted at the boundary.</p>
+                    </div>
+                    <div class="panel-actions">
+                        <button id="computeBtn" class="tool-btn primary" type="button">Compute</button>
+                        <details class="action-menu">
+                            <summary class="tool-btn action-summary" role="button" aria-haspopup="menu" aria-expanded="false">Compare</summary>
+                            <div class="action-menu-panel" role="menu">
+                                <button id="pinStateABtn" class="tool-btn" type="button" role="menuitem">Pin A</button>
+                                <button id="pinStateBBtn" class="tool-btn" type="button" role="menuitem">Pin B</button>
+                                <button id="swapStatesBtn" class="tool-btn" type="button" role="menuitem">Swap A/B</button>
+                                <button id="clearStatesBtn" class="tool-btn" type="button" role="menuitem">Clear Pins</button>
+                            </div>
+                        </details>
+                        <details class="action-menu">
+                            <summary class="tool-btn action-summary" role="button" aria-haspopup="menu" aria-expanded="false">Export / Share</summary>
+                            <div class="action-menu-panel" role="menu">
+                                <button id="copyStateBtn" class="tool-btn" type="button" role="menuitem">Copy State</button>
+                                <button id="copyLinkBtn" class="tool-btn" type="button" role="menuitem">Copy Link</button>
+                                <button id="exportCsvBtn" class="tool-btn" type="button" role="menuitem">Export CSV</button>
+                                <button id="exportJsonBtn" class="tool-btn" type="button" role="menuitem">Export JSON</button>
+                            </div>
+                        </details>
+                        <details class="action-menu">
+                            <summary class="tool-btn action-summary" role="button" aria-haspopup="menu" aria-expanded="false">Checks</summary>
+                            <div class="action-menu-panel" role="menu">
+                                <button id="runTestsBtn" class="tool-btn" type="button" role="menuitem">Run Tests</button>
+                                <button id="licenseBtn" class="tool-btn" type="button" role="menuitem">View Licenses</button>
+                            </div>
+                        </details>
+                    </div>
+                </div>
+
+                <div id="statusBanner" class="status-banner" role="status">Loading steam tables...</div>
+
+                <div class="input-section">
+                    <div class="section-card">
+                        <div class="control-grid">
+                            <label class="input-line">
+                                <span>Lookup mode</span>
+                                <select id="lookupMode" class="main-select"></select>
+                            </label>
+                            <label class="input-line">
+                                <span>Units</span>
+                                <select id="unitSystem" class="main-select">
+                                    <option value="si">SI</option>
+                                    <option value="us">US customary</option>
+                                </select>
+                            </label>
+                            <label class="input-line">
+                                <span>Pressure units</span>
+                                <select id="pressureUnit" class="main-select">
+                                    <option value="kPa">kPa</option>
+                                    <option value="MPa">MPa</option>
+                                    <option value="bar">bar</option>
+                                    <option value="atm">atm</option>
+                                </select>
+                            </label>
+                            <label class="input-line">
+                                <span>Example</span>
+                                <select id="examplePreset" class="main-select">
+                                    <option value="">Custom</option>
+                                </select>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="section-card">
+                        <h3>Inputs</h3>
+                        <div id="inputFields" class="control-grid"></div>
+                    </div>
+                </div>
+
+                <div class="output-section">
+                    <div class="section-card">
+                        <div id="resultPanel" aria-live="polite" aria-busy="false">
+                            <div class="empty-state">Load tables and enter a state to compute properties.</div>
+                        </div>
+                    </div>
+
+                    <div class="section-card">
+                        <div id="tracePanel" aria-live="polite" aria-busy="false">
+                            <div class="empty-state">Interpolation details will appear after a lookup.</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <aside class="sidebar">
+                <div class="section-card">
+                    <h3>Phase Context</h3>
+                    <div id="phaseContextPanel" aria-live="polite">
+                        <div class="empty-state">Compute a state to see its phase region and saturation distance.</div>
+                    </div>
+                </div>
+
+                <details class="section-card foldable-card" open>
+                    <summary class="foldable-summary">
+                        <h3>Charts</h3>
+                    </summary>
+                    <div class="foldable-content">
+                        <p class="trace-note">Charts use the saturated CSV rows as context and overlay the current state plus pinned comparison states when they have plottable coordinates.</p>
+                        <div id="chartPanel" aria-live="polite">
+                            <div class="empty-state">Compute a state to draw saturation context charts.</div>
+                        </div>
+                    </div>
+                </details>
+
+                <div class="section-card">
+                    <h3>State Comparison</h3>
+                    <div id="comparisonPanel" aria-live="polite">
+                        <div class="empty-state">Pin State A and State B to compare property deltas.</div>
+                    </div>
+                </div>
+
+                <details class="section-card foldable-card" open>
+                    <summary class="foldable-summary">
+                        <h3>Internal Consistency Tests</h3>
+                    </summary>
+                    <div class="foldable-content">
+                        <p class="trace-note">The test runner checks parser counts, exact CSV grid points, midpoint interpolation, reverse round trips, table-gap handling, and unit round trips.</p>
+                        <div id="testPanel" aria-live="polite" aria-busy="false">
+                            <div class="empty-state">Run tests to compare interpolation paths against the vendored CSV rows.</div>
+                        </div>
+                    </div>
+                </details>
+
+                <div class="section-card">
+                    <h3>Data Source</h3>
+                    <p class="trace-note">CSV data is vendored from <a href="https://learncheme.com/student-resources/steam-tables/" target="_blank" rel="noopener">LearnChemE Steam Tables</a>, authored by Neil Hendren at CU Boulder. The CSV metadata carries an MIT-style permissive notice retained in each source data file; broader LearnChemE pages identify LearnChemE work as <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA 4.0</a>.</p>
+                </div>
+
+                <details class="section-card foldable-card">
+                    <summary class="foldable-summary">
+                        <h3>Engineering Disclaimer</h3>
+                    </summary>
+                    <div class="foldable-content">
+                        <p class="trace-note"><strong>Educational and informational use only.</strong> This tool interpolates vendored steam-table CSV data and is not a substitute for certified engineering software, licensed professional judgment, ASME/IAPWS references, or project-specific design review.</p>
+                        <p class="trace-note"><strong>Verify critical calculations.</strong> Independently check safety-critical, regulatory, equipment-selection, pressure-vessel, boiler, turbine, plant-design, academic-submission, or production decisions against authoritative references and qualified review.</p>
+                        <p class="trace-note"><strong>No warranty or liability.</strong> The software and data are provided as-is. The author and maintainers assume no responsibility for errors, omissions, damages, failed designs, or decisions made from this tool or its output.</p>
+                    </div>
+                </details>
+            </aside>
+        </main>
+
+        <footer data-footer></footer>
+    </div>
+
+    <dialog id="licenseModal" class="license-modal">
+        <h2>Steam Table Data Licenses</h2>
+        <p class="trace-note">This tool vendors and interpolates LearnChemE steam table CSV data for browser-based lookup.</p>
+
+        <h3>Attribution</h3>
+        <ul class="license-list">
+            <li>Source: <a href="https://learncheme.com/student-resources/steam-tables/" target="_blank" rel="noopener">LearnChemE Steam Tables</a>.</li>
+            <li>CSV author metadata: Neil Hendren, University of Colorado Boulder.</li>
+            <li>LearnChemE is produced by the Department of Chemical and Biological Engineering at the University of Colorado Boulder.</li>
+            <li>The LearnChemE Steam Tables page states that the steam table data is provided by NIST and based on IAPWS formulations.</li>
+        </ul>
+
+        <h3>License</h3>
+        <p class="trace-note">The vendored CSV files carry an MIT-style permissive notice in their metadata headers. That embedded source-file notice is retained verbatim in each CSV file and summarized below.</p>
+        <p class="trace-note">Separately, broader LearnChemE pages identify LearnChemE work as licensed under the <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">Creative Commons Attribution-ShareAlike 4.0 International License</a>. Local changes: the CSV files are vendored, parsed, interpolated, unit-converted, and presented through this browser tool.</p>
+
+        <h3>Funding And Disclaimer Notices</h3>
+        <p class="trace-note">LearnChemE identifies support from NSF Award Nos. DUE 0920640, DUE 1322300, DUE 1244183, DUE 2020415, and DUE 2336987, plus additional support from CU, CACHE, Chevron, Shell, and other listed funders. LearnChemE states that opinions, findings, conclusions, or recommendations are those of the authors and do not necessarily reflect NSF views.</p>
+
+        <details class="license-notice">
+            <summary>Embedded CSV Notice</summary>
+            <p class="trace-note">The vendored CSV files contain this MIT-style permission notice in their metadata headers. Those source-file notices are retained verbatim in the CSV files and summarized in <code>data/steam_tables/README.md</code>.</p>
+        </details>
+        <div class="button-row">
+            <button id="closeLicenseBtn" class="tool-btn primary" type="button">Close</button>
+        </div>
+    </dialog>
+
+    <script src="../js/shared.js"></script>
+    <script type="module" src="../js/footer.js"></script>
+    <script type="module" src="../js/steam_tables/steam-tables.js"></script>
+</body>
+</html>

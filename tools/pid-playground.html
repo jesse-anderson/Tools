@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PID Playground | Tools Hub</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/shared.css">
+    <link rel="stylesheet" href="../css/pid_playground/pid-playground.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <div class="header-left">
+                    <a href="../tools.html" class="back-link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="19" y1="12" x2="5" y2="12"></line>
+                            <polyline points="12 19 5 12 12 5"></polyline>
+                        </svg>
+                        Back to Tools
+                    </a>
+                </div>
+                <div class="header-right">
+                    <div class="theme-toggle">
+                        <button data-theme-toggle="light" aria-pressed="false" title="Light mode">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="5"></circle>
+                                <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path>
+                            </svg>
+                        </button>
+                        <button data-theme-toggle="dark" aria-pressed="false" title="Dark mode">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="tool-title-row pid-title-row">
+                <div class="tool-icon-header engineering">PID</div>
+                <div>
+                    <h1>PID Playground</h1>
+                    <p class="tagline">A FOPDT process and parallel-form PID controller, integrated with exact zero-order-hold, fractional dead time, ISA-style derivative filtering, and three selectable anti-windup strategies. Apply Ziegler-Nichols, Cohen-Coon, AMIGO, or lambda tuning rules to the configured plant. Reference simulation only - not for production tuning or process-safety decisions.</p>
+                </div>
+            </div>
+        </header>
+
+        <main class="pid-workbench">
+            <div class="workbench-toolbar" role="toolbar" aria-label="Panel layout">
+                <button type="button" class="action-btn" id="expandAllBtn" title="Expand every collapsible panel">Expand all</button>
+                <button type="button" class="action-btn" id="collapseAllBtn" title="Collapse every panel except the active step">Collapse all</button>
+                <button type="button" class="action-btn" id="resetLayoutBtn" title="Restore the default layout (most panels collapsed, charts and controller open)">Reset layout</button>
+                <span class="workbench-toolbar-hint">Every section below folds. Click a heading to collapse / expand.</span>
+            </div>
+            <aside class="pid-controls" aria-label="PID simulator controls">
+                <section class="pid-panel clean-slate-panel" data-panel-static>
+                    <div class="panel-header">
+                        <h2>Start Here <span class="panel-tag">clean slate</span></h2>
+                    </div>
+                    <p class="panel-note">
+                        The two foldable panels below this banner replace your <strong>controller, model, and scenario settings</strong>. Everything else layers on top.
+                    </p>
+                </section>
+
+                <details class="pid-panel exercise-panel foldable" id="exercisePanel" data-panel-default="open" open>
+                    <summary class="panel-header"><h2><span class="entry-chip">A</span>Guided Exercises</h2><span class="fold-indicator" aria-hidden="true"></span></summary>
+                    <p class="panel-note" id="exerciseSummary">Step through a focused, ~5-minute demonstration. Each step loads a configuration and tells you what to look for. Starting an exercise replaces your current settings.</p>
+                    <div class="preset-grid" id="exerciseGrid"></div>
+                    <div class="exercise-active" id="exerciseActive" hidden>
+                        <div class="exercise-step-header">
+                            <span class="exercise-step-index" id="exerciseStepIndex">Step 1</span>
+                            <span class="exercise-step-title" id="exerciseStepHeading">--</span>
+                        </div>
+                        <p class="exercise-step-detail" id="exerciseStepDetail">--</p>
+                        <div class="exercise-step-controls">
+                            <button type="button" class="action-btn" id="exercisePrevBtn" disabled>Previous</button>
+                            <button type="button" class="action-btn" id="exerciseNextBtn">Next</button>
+                            <button type="button" class="action-btn exercise-apply-btn" id="exerciseApplyBtn" title="Apply the canonical changes described in this step (use it as a hint after trying the controls yourself).">Apply step values</button>
+                            <button type="button" class="action-btn" id="exerciseCancelBtn">Exit</button>
+                        </div>
+                        <p class="exercise-apply-hint" id="exerciseApplyHint">Try the change with the controls yourself first. Click <em>Apply step values</em> if you want to fast-forward to the canonical answer for this step.</p>
+                        <p class="exercise-conclusion" id="exerciseConclusion" hidden>--</p>
+                    </div>
+                </details>
+
+                <details class="pid-panel foldable" data-panel-default="open" open>
+                    <summary class="panel-header"><h2><span class="entry-chip">B</span>Process Narrative</h2><span class="fold-indicator" aria-hidden="true"></span></summary>
+                    <p class="panel-note">Load a realistic plant. The preset changes the model and scenario timescale, but it <strong>does not retune</strong> Kp / Ki / Kd; do that yourself. Use <em>Reset tuning</em> below if you want the recommended rule applied for the current plant.</p>
+                    <div class="preset-grid">
+                        <button type="button" class="preset-btn" data-process-preset="educational-fopdt" title="Normalized FOPDT with bipolar actuator, the default reference plant.">Normalized FOPDT</button>
+                        <button type="button" class="preset-btn" data-process-preset="fast-flow" title="Valve-on-flow loop: tau ~ 4 s, dead time ~ 0.5 s, 0-100% actuator.">Fast Flow</button>
+                        <button type="button" class="preset-btn" data-process-preset="tank-temperature" title="Jacketed mixing tank: tau ~ 3 min, dead time ~ 25 s, 0-100% heater.">Jacketed Tank</button>
+                        <button type="button" class="preset-btn" data-process-preset="heat-exchanger" title="Reverse-acting heat exchanger: negative process gain demonstrates controller-direction handling.">Heat Exchanger</button>
+                        <button type="button" class="preset-btn" data-process-preset="composition-loop" title="Composition loop: tau ~ 2 min, dead time ~ 60 s, dominated by analyzer lag.">Composition</button>
+                    </div>
+                    <div class="reset-row">
+                        <button type="button" class="action-btn reset-tuning-btn" data-reset-tuning data-active-preset="educational-fopdt" id="resetTuningBtn" title="Apply the recommended tuning rule for the currently loaded plant.">Reset tuning to recommended</button>
+                        <span class="reset-row-hint" id="resetTuningHint">Auto-tune with the rule the narrative recommends for the current plant.</span>
+                    </div>
+                </details>
+
+                <section class="pid-panel layer-panel-marker" data-panel-static>
+                    <div class="panel-header">
+                        <h2>Modify the loop <span class="panel-tag">layers on</span></h2>
+                    </div>
+                    <p class="panel-note">
+                        Tuning Rules, Scenario demos, and the sliders below all layer on top of the currently loaded preset. They do <strong>not</strong> reset everything.
+                    </p>
+                </section>
+
+                <details class="pid-panel foldable" data-panel-default="open" open>
+                    <summary class="panel-header"><h2>Tuning Rules</h2><span class="fold-indicator" aria-hidden="true"></span></summary>
+                    <p class="panel-note">Computes parallel-form gains from the configured process gain, tau, and dead time. Replaces only Kp, Ki, Kd.</p>
+                    <div class="preset-grid">
+                        <button type="button" class="preset-btn" data-tuning-rule="zn-pi" title="Ziegler-Nichols open-loop reaction-curve PI tuning.">Z-N PI</button>
+                        <button type="button" class="preset-btn" data-tuning-rule="zn-pid" title="Ziegler-Nichols open-loop reaction-curve PID tuning.">Z-N PID</button>
+                        <button type="button" class="preset-btn" data-tuning-rule="cc-pi" title="Cohen-Coon PI tuning (less detuning than Z-N for dead-time-dominated loops).">Cohen-Coon PI</button>
+                        <button type="button" class="preset-btn" data-tuning-rule="cc-pid" title="Cohen-Coon PID tuning.">Cohen-Coon PID</button>
+                        <button type="button" class="preset-btn" data-tuning-rule="amigo-pi" title="AMIGO PI tuning (Astrom-Hagglund robustness-focused rule).">AMIGO PI</button>
+                        <button type="button" class="preset-btn" data-tuning-rule="amigo-pid" title="AMIGO PID tuning.">AMIGO PID</button>
+                        <button type="button" class="preset-btn" data-tuning-rule="lambda-pi" title="Lambda / IMC PI tuning with closed-loop tau = open-loop tau.">Lambda PI</button>
+                    </div>
+                </details>
+
+                <details class="pid-panel foldable" data-panel-default="closed">
+                    <summary class="panel-header"><h2>Scenario</h2><span class="fold-indicator" aria-hidden="true"></span></summary>
+                    <div class="preset-grid">
+                        <button type="button" class="preset-btn" data-scenario-preset="clean-step" title="Setpoint step with no disturbance and no measurement noise.">Clean Step</button>
+                        <button type="button" class="preset-btn" data-scenario-preset="load-disturbance" title="Persistent additive load disturbance after the setpoint response settles.">Load Disturbance</button>
+                        <button type="button" class="preset-btn" data-scenario-preset="saturation-windup" title="Large step with narrow output limits and anti-windup disabled.">Saturation / Windup</button>
+                        <button type="button" class="preset-btn" data-scenario-preset="noisy-derivative" title="Gaussian measurement noise with non-zero Kd to demonstrate derivative chatter.">Noisy Derivative</button>
+                        <button type="button" class="preset-btn" data-scenario-preset="negative-step" title="Negative setpoint step to exercise direction-aware metrics.">Negative Step</button>
+                    </div>
+                </details>
+
+                <details class="pid-panel foldable" data-panel-default="open" open>
+                    <summary class="panel-header"><h2>Controller</h2><span class="fold-indicator" aria-hidden="true"></span></summary>
+                    <div class="control-grid">
+                        <label class="control-field">
+                            <span class="term" tabindex="0" data-help="Proportional gain in parallel form. Increasing Kp speeds the loop and reduces steady-state offset, at the cost of overshoot and oscillation.">Kp</span>
+                            <input type="range" min="0" max="6" step="0.05" data-bind="controller.kp">
+                            <input id="kpInput" type="number" step="0.05" data-bind="controller.kp">
+                            <span class="gain-readout" id="kpReadout"></span>
+                        </label>
+                        <label class="control-field">
+                            <span class="term" tabindex="0" data-help="Integral gain in parallel form. Equivalent ideal-form Ti = Kp / Ki.">Ki</span>
+                            <input type="range" min="0" max="1.2" step="0.01" data-bind="controller.ki">
+                            <input id="kiInput" type="number" step="0.01" data-bind="controller.ki">
+                            <span class="gain-readout" id="kiReadout"></span>
+                        </label>
+                        <label class="control-field">
+                            <span class="term" tabindex="0" data-help="Derivative gain in parallel form. Equivalent ideal-form Td = Kd / Kp.">Kd</span>
+                            <input type="range" min="0" max="8" step="0.05" data-bind="controller.kd">
+                            <input id="kdInput" type="number" step="0.05" data-bind="controller.kd">
+                            <span class="gain-readout" id="kdReadout"></span>
+                        </label>
+                        <label class="control-field">
+                            <span class="term" tabindex="0" data-help="Derivative filter time constant Tf (seconds). The continuous-time pole is 1/Tf; the discrete pole alpha = exp(-Ts/Tf). Setting Tf = 0 disables filtering.">Tf, s</span>
+                            <input type="range" min="0" max="20" step="0.05" data-bind="controller.derivative_filter_time">
+                            <input id="derivativeFilterInput" type="number" min="0" step="0.05" data-bind="controller.derivative_filter_time">
+                        </label>
+                        <label class="control-field compact">
+                            <span class="term" tabindex="0" data-help="Source for the derivative term. 'Measurement' uses dPV/dt and avoids derivative kick on setpoint changes. 'Error' uses d(error)/dt and reacts immediately to setpoint moves.">Derivative on</span>
+                            <select id="derivativeOnInput" data-bind="controller.derivative_on">
+                                <option value="measurement">Measurement</option>
+                                <option value="error">Error</option>
+                            </select>
+                        </label>
+                        <label class="control-field compact">
+                            <span class="term" tabindex="0" data-help="Anti-windup strategy. 'Off' lets the integrator wind up freely while saturated. 'Conditional' freezes the integrator when the proposed update would push the output further into saturation. 'Back-calculation' adds a tracking term (u_clamped - u_raw) / Tt.">Anti-windup</span>
+                            <select id="antiWindupInput" data-bind="controller.anti_windup">
+                                <option value="off">Off</option>
+                                <option value="conditional">Conditional (clamp)</option>
+                                <option value="back_calculation">Back-calculation</option>
+                            </select>
+                        </label>
+                        <label class="control-field compact" id="trackingTimeField">
+                            <span class="term" tabindex="0" data-help="Tracking time Tt for back-calculation anti-windup. Smaller Tt drags the integrator back faster but can interact with derivative action; a common rule of thumb is Tt = sqrt(Ti * Td) for PID or Tt = Ti for PI.">Tracking time Tt, s</span>
+                            <input id="trackingTimeInput" type="number" min="0.01" step="0.05" data-bind="controller.tracking_time">
+                        </label>
+                        <label class="control-field compact">
+                            <span class="term" tabindex="0" data-help="Lowest actuator command allowed.">Output min</span>
+                            <input id="outputMinInput" type="number" step="0.5" data-bind="controller.output_min">
+                        </label>
+                        <label class="control-field compact">
+                            <span class="term" tabindex="0" data-help="Highest actuator command allowed.">Output max</span>
+                            <input id="outputMaxInput" type="number" step="0.5" data-bind="controller.output_max">
+                        </label>
+                        <label class="control-field compact">
+                            <span class="term" tabindex="0" data-help="Steady-state actuator command when error is zero.">Bias</span>
+                            <input id="biasInput" type="number" step="0.1" data-bind="controller.bias">
+                        </label>
+                    </div>
+                </details>
+
+                <details class="pid-panel foldable" data-panel-default="closed">
+                    <summary class="panel-header"><h2>Process Model (FOPDT)</h2><span class="fold-indicator" aria-hidden="true"></span></summary>
+                    <div class="control-grid">
+                        <label class="control-field">
+                            <span class="term" tabindex="0" data-help="Steady-state process gain K. Negative K is a reverse-acting plant; the controller direction must match.">Process gain, K</span>
+                            <input type="range" min="-3" max="3" step="0.05" data-bind="model.process_gain">
+                            <input id="processGainInput" type="number" step="0.05" data-bind="model.process_gain">
+                        </label>
+                        <label class="control-field">
+                            <span class="term" tabindex="0" data-help="First-order time constant tau in seconds. After one tau the open-loop response covers ~63% of its eventual move.">Time constant tau, s</span>
+                            <input type="range" min="0.5" max="300" step="0.5" data-bind="model.tau">
+                            <input id="tauInput" type="number" min="0.05" step="0.1" data-bind="model.tau">
+                        </label>
+                        <label class="control-field">
+                            <span class="term" tabindex="0" data-help="Pure transport / measurement delay theta in seconds. Dead time is implemented as a delay buffer with linear interpolation for fractional samples.">Dead time theta, s</span>
+                            <input type="range" min="0" max="120" step="0.05" data-bind="model.dead_time">
+                            <input id="deadTimeInput" type="number" min="0" step="0.05" data-bind="model.dead_time">
+                        </label>
+                        <label class="control-field compact">
+                            <span class="term" tabindex="0" data-help="Initial process variable at t = 0.">Initial PV</span>
+                            <input id="pv0Input" type="number" step="0.1" data-bind="model.pv0">
+                        </label>
+                        <label class="control-field compact">
+                            <span class="term" tabindex="0" data-help="Steady-state PV when controller output equals zero and there is no disturbance.">PV baseline</span>
+                            <input id="pvBaselineInput" type="number" step="0.1" data-bind="model.pv_baseline">
+                        </label>
+                    </div>
+                </details>
+
+                <details class="pid-panel foldable" data-panel-default="closed">
+                    <summary class="panel-header"><h2>Scenario Parameters</h2><span class="fold-indicator" aria-hidden="true"></span></summary>
+                    <div class="control-grid">
+                        <label class="control-field compact">
+                            <span class="term" tabindex="0" data-help="Setpoint before the step.">Initial SP</span>
+                            <input id="initialSetpointInput" type="number" step="0.1" data-bind="scenario.initial_setpoint">
+                        </label>
+                        <label class="control-field compact">
+                            <span class="term" tabindex="0" data-help="Setpoint after the step.">Final SP</span>
+                            <input id="finalSetpointInput" type="number" step="0.1" data-bind="scenario.final_setpoint">
+                        </label>
+                        <label class="control-field compact">
+                            <span class="term" tabindex="0" data-help="Time of the setpoint step.">Step time, s</span>
+                            <input id="stepTimeInput" type="number" min="0" step="0.1" data-bind="scenario.step_time">
+                        </label>
+                        <label class="control-field compact">
+                            <span class="term" tabindex="0" data-help="Simulation horizon in seconds.">Horizon, s</span>
+                            <input id="horizonInput" type="number" min="1" max="3000" step="1" data-bind="scenario.horizon">
+                        </label>
+                        <label class="control-field compact">
+                            <span class="term" tabindex="0" data-help="Integration step dt. With exact ZOH discretization, dt only affects how finely the plot and metrics are sampled; it does not constrain stability.">Integration step dt, s</span>
+                            <input id="dtInput" type="number" min="0.001" step="0.001" data-bind="scenario.dt">
+                        </label>
+                        <label class="control-field compact">
+                            <span class="term" tabindex="0" data-help="Controller sample time Ts. Must be greater than or equal to dt.">Controller Ts, s</span>
+                            <input id="controllerSampleInput" type="number" min="0.001" step="0.001" data-bind="scenario.controller_sample_time">
+                        </label>
+                        <label class="control-field compact">
+                            <span class="term" tabindex="0" data-help="Time when an additive load disturbance begins acting on the process target.">Disturbance start, s</span>
+                            <input id="disturbanceStartInput" type="number" min="0" step="0.1" data-bind="scenario.disturbance_start">
+                        </label>
+                        <label class="control-field compact">
+                            <span class="term" tabindex="0" data-help="Signed magnitude of the load disturbance, in PV units.">Disturbance magnitude</span>
+                            <input id="disturbanceMagnitudeInput" type="number" step="0.1" data-bind="scenario.disturbance_magnitude">
+                        </label>
+                        <label class="control-field">
+                            <span class="term" tabindex="0" data-help="Standard deviation of Gaussian measurement noise added to PV before the controller sees it.">Noise sigma</span>
+                            <input type="range" min="0" max="2" step="0.01" data-bind="scenario.noise_amplitude">
+                            <input id="noiseInput" type="number" min="0" step="0.01" data-bind="scenario.noise_amplitude">
+                        </label>
+                        <label class="control-field compact">
+                            <span class="term" tabindex="0" data-help="Settling-time tolerance band as a percent of the setpoint step magnitude. Common choices are 1, 2, or 5%.">Settling band, %</span>
+                            <input id="settlingBandInput" type="number" min="0.1" step="0.1" data-bind="scenario.settling_tolerance_percent">
+                        </label>
+                    </div>
+                </details>
+            </aside>
+
+            <section class="pid-results" aria-label="PID simulation results">
+                <div id="statusBanner" class="status-banner" role="status" aria-live="polite">Loading WASM simulation engine...</div>
+                <div id="actionWarning" class="status-banner warning" role="status" aria-live="polite" hidden>
+                    Controller direction warning: sign(Kp) and sign(process gain) disagree. Loop will run with positive feedback.
+                </div>
+                <div id="tuningReadout" class="tuning-readout" role="status" aria-live="polite" hidden></div>
+
+                <section id="regimeBanner" class="regime-banner" role="status" aria-live="polite" hidden>
+                    <div class="regime-cell">
+                        <span class="regime-label">Plant regime</span>
+                        <strong id="regimeDynamics">--</strong>
+                    </div>
+                    <div class="regime-cell">
+                        <span class="regime-label">Robustness</span>
+                        <strong id="regimeRobustness">--</strong>
+                    </div>
+                    <div class="regime-cell">
+                        <span class="regime-label">Tuning recommendation</span>
+                        <strong id="regimeRecommendation">--</strong>
+                    </div>
+                </section>
+
+                <details class="context-panel reading-order-1 foldable" data-panel-default="closed" aria-label="Simulation context">
+                    <summary class="context-summary"><h2><span class="reading-chip">1</span>Process Loop</h2><span class="fold-indicator" aria-hidden="true"></span></summary>
+                    <div class="context-body">
+                        <p>
+                            A self-regulating first-order-plus-dead-time process under parallel-form PID control.
+                            Use the Process Narrative buttons to load realistic numbers for fast flow, jacketed temperature, heat exchanger, or composition loops, or stay on the normalized educational case.
+                            The dead time can be a non-integer multiple of the integration step; the delay buffer interpolates linearly between samples.
+                        </p>
+                        <div class="loop-map" aria-label="Signals shown in the plots">
+                            <div>
+                                <span class="term" tabindex="0" data-help="Setpoint: target value the controller is trying to drive PV toward.">SP</span>
+                                <strong>target</strong>
+                            </div>
+                            <div>
+                                <span class="term" tabindex="0" data-help="Process variable: the true simulated plant state.">PV</span>
+                                <strong>plant state</strong>
+                            </div>
+                            <div>
+                                <span class="term" tabindex="0" data-help="Controller output: actuator command after applying output limits.">u</span>
+                                <strong>actuator command</strong>
+                            </div>
+                            <div>
+                                <span class="term" tabindex="0" data-help="Disturbance: additive load on the process target.">d</span>
+                                <strong>load disturbance</strong>
+                            </div>
+                        </div>
+                    </div>
+                </details>
+
+                <details class="narrative-panel foldable" data-panel-default="open" open aria-label="Physical setup narrative">
+                    <summary class="narrative-header"><h2>Physical Setup</h2><span class="narrative-subtitle" id="narrativeHeading">Educational FOPDT</span><span class="fold-indicator" aria-hidden="true"></span></summary>
+                    <dl class="narrative-grid">
+                        <div>
+                            <dt>What it is</dt>
+                            <dd id="narrativeInterpretation">--</dd>
+                        </div>
+                        <div>
+                            <dt>What dominates</dt>
+                            <dd id="narrativeDynamics">--</dd>
+                        </div>
+                        <div>
+                            <dt>What to look for</dt>
+                            <dd id="narrativeLookFor">--</dd>
+                        </div>
+                        <div>
+                            <dt>Tuning recommendation</dt>
+                            <dd id="narrativeRecommendation">--</dd>
+                        </div>
+                        <div>
+                            <dt>Cautions</dt>
+                            <dd id="narrativeCautions">--</dd>
+                        </div>
+                    </dl>
+                </details>
+
+                <details class="metrics-fold foldable" data-panel-default="open" open aria-label="Simulation metrics">
+                    <summary class="panel-header"><h2><span class="reading-chip">2</span>Metrics<span class="section-hint">; shift-click any underlined term for a glossary entry</span></h2><span class="fold-indicator" aria-hidden="true"></span></summary>
+                    <section class="metrics-panel" aria-label="Metric tiles">
+                    <div class="metric-tile">
+                        <span class="term" tabindex="0" data-help="Maximum excursion past the final setpoint, normalized by the step magnitude. Direction-aware." data-glossary="overshoot">Overshoot</span>
+                        <strong id="overshootMetric">--</strong>
+                    </div>
+                    <div class="metric-tile">
+                        <span class="term" tabindex="0" data-help="Time from 10% to 90% of the requested step, measured on the PV trajectory." data-glossary="rise time">Rise time (10-90)</span>
+                        <strong id="riseTimeMetric">--</strong>
+                    </div>
+                    <div class="metric-tile">
+                        <span class="term" tabindex="0" data-help="Time after the step at which PV remains inside the configured tolerance band for the rest of the horizon." data-glossary="settling time">Settling time</span>
+                        <strong id="settlingTimeMetric">--</strong>
+                    </div>
+                    <div class="metric-tile">
+                        <span class="term" tabindex="0" data-help="Final setpoint minus final PV.">Final error</span>
+                        <strong id="steadyStateErrorMetric">--</strong>
+                    </div>
+                    <div class="metric-tile metric-tile-frequency">
+                        <span class="term" tabindex="0" data-help="Phase margin (PM): how many degrees of additional phase lag the loop can tolerate before instability. Computed at the gain crossover from the continuous-time loop L(s) = C(s) G(s). Robust > 60 deg; typical industrial 30-60 deg; fragile < 30 deg." data-glossary="pm">PM (phase margin)</span>
+                        <strong id="phaseMarginMetric">--</strong>
+                    </div>
+                    <div class="metric-tile metric-tile-frequency">
+                        <span class="term" tabindex="0" data-help="Gain margin (GM): how many dB the loop gain can rise before instability. Measured at the first phase crossover of -180 deg. Robust > 12 dB; typical 6-12 dB." data-glossary="gm">GM (gain margin)</span>
+                        <strong id="gainMarginMetric">--</strong>
+                    </div>
+                    <div class="metric-tile metric-tile-frequency">
+                        <span class="term" tabindex="0" data-help="Sensitivity peak Ms = max |S(jw)| where S = 1 / (1 + L). Robustness shorthand: Ms below 1.4 is conservative, 1.4 to 2 is typical industrial tuning, above 2 is fragile." data-glossary="ms">Ms (sensitivity peak)</span>
+                        <strong id="sensitivityPeakMetric">--</strong>
+                    </div>
+                    <div class="metric-tile metric-tile-frequency">
+                        <span class="term" tabindex="0" data-help="Gain crossover frequency wgc, where |L(jw)| = 1. Closed-loop bandwidth roughly tracks this value." data-glossary="wgc">wgc (crossover)</span>
+                        <strong id="gainCrossoverMetric">--</strong>
+                    </div>
+                    <div class="metric-tile">
+                        <span class="term" tabindex="0" data-help="Integral of absolute error over the simulation horizon. Lower is better." data-glossary="iae">IAE</span>
+                        <strong id="iaeMetric">--</strong>
+                    </div>
+                    <div class="metric-tile">
+                        <span class="term" tabindex="0" data-help="Integral of squared error over the simulation horizon. Penalizes large excursions more than IAE." data-glossary="ise">ISE</span>
+                        <strong id="iseMetric">--</strong>
+                    </div>
+                    <div class="metric-tile">
+                        <span class="term" tabindex="0" data-help="Integral of time-weighted absolute error after the setpoint step. Penalizes late error more than early error." data-glossary="itae">ITAE</span>
+                        <strong id="itaeMetric">--</strong>
+                    </div>
+                    <div class="metric-tile">
+                        <span class="term" tabindex="0" data-help="Percent of simulation samples for which the controller output was at an actuator limit." data-glossary="saturation">Saturation</span>
+                        <strong id="saturationMetric">--</strong>
+                    </div>
+                    <div class="metric-tile">
+                        <span class="term" tabindex="0" data-help="Peak PV reached during the simulation.">Max PV</span>
+                        <strong id="maxPvMetric">--</strong>
+                    </div>
+                    <div class="metric-tile">
+                        <span class="term" tabindex="0" data-help="Minimum PV reached during the simulation.">Min PV</span>
+                        <strong id="minPvMetric">--</strong>
+                    </div>
+                    <div class="metric-tile">
+                        <span class="term" tabindex="0" data-help="Peak controller output reached during the simulation.">Max output</span>
+                        <strong id="maxOutputMetric">--</strong>
+                    </div>
+                    <div class="metric-tile">
+                        <span class="term" tabindex="0" data-help="Minimum controller output reached during the simulation.">Min output</span>
+                        <strong id="minOutputMetric">--</strong>
+                    </div>
+                    <div class="metric-tile">
+                        <span class="term" tabindex="0" data-help="True if the loop reached the settling band before the horizon ended.">Settled</span>
+                        <strong id="settledMetric">--</strong>
+                    </div>
+                    <div class="metric-tile">
+                        <span class="term" tabindex="0" data-help="Final value of PV at the end of the simulation horizon.">Final PV</span>
+                        <strong id="finalPvMetric">--</strong>
+                    </div>
+                    <div class="metric-tile">
+                        <span class="term" tabindex="0" data-help="Final controller output at the end of the simulation horizon.">Final output</span>
+                        <strong id="finalOutputMetric">--</strong>
+                    </div>
+                    </section>
+                </details>
+
+                <details class="plot-panel foldable" data-panel-default="open" open>
+                    <summary class="plot-header" id="pvChartHeader"><h2><span class="reading-chip">3</span>Process Variable</h2><span class="fold-indicator" aria-hidden="true"></span></summary>
+                    <div class="legend-row">
+                        <span class="legend-item setpoint term" tabindex="0" data-help="Target the controller is trying to track.">Setpoint</span>
+                        <span class="legend-item pv term" tabindex="0" data-help="True simulated PV before noise is added."><span id="pvLegendItem">PV</span></span>
+                        <span class="legend-item measurement term" tabindex="0" data-help="PV + measurement noise. This is what the controller sees.">Measurement</span>
+                    </div>
+                    <canvas id="pvChart" width="900" height="360" aria-label="Process variable and setpoint plot"></canvas>
+                </details>
+
+                <details class="plot-panel foldable" data-panel-default="open" open>
+                    <summary class="plot-header" id="outputChartHeader"><h2><span class="reading-chip">4</span>Controller Output</h2><span class="fold-indicator" aria-hidden="true"></span></summary>
+                    <div class="legend-row">
+                        <span class="legend-item output term" tabindex="0" data-help="Actuator command after the output limit clamp."><span id="outputLegendItem">Output</span></span>
+                        <span class="legend-item raw term" tabindex="0" data-help="Controller request before the limit clamp.">Raw</span>
+                        <span class="legend-item disturbance term" tabindex="0" data-help="Additive load disturbance acting on the process target.">Disturbance</span>
+                    </div>
+                    <canvas id="outputChart" width="900" height="300" aria-label="Controller output plot"></canvas>
+                </details>
+
+                <details class="plot-panel foldable" data-panel-default="closed">
+                    <summary class="plot-header"><h2><span class="reading-chip">5</span>Open-Loop Frequency Response</h2><span class="fold-indicator" aria-hidden="true"></span></summary>
+                    <div class="legend-row">
+                        <span class="legend-item pv term" tabindex="0" data-help="Magnitude of the open-loop transfer function L(jw) = C(jw) G(jw).">|L|</span>
+                        <span class="legend-item sensitivity term" tabindex="0" data-help="Magnitude of the sensitivity transfer function S(jw) = 1 / (1 + L(jw)). The peak value Ms is a classical robustness measure.">|S|</span>
+                        <span class="legend-item crossover term" tabindex="0" data-help="Gain crossover frequency wgc, marked on both Bode subplots.">wgc marker</span>
+                        <span class="legend-item annotation term" tabindex="0" data-help="Annotated breakpoints: 1/tau corner and the dead-time phase line at omega = pi/(2 theta).">annotations</span>
+                    </div>
+                    <p class="panel-note">Continuous-time loop L(s) = C(s) G(s) computed from the configured FOPDT plant and parallel-form PID gains. The sample-and-hold approximation is omitted; this is the textbook loop the discrete simulator is approximating.</p>
+                    <canvas id="bodeMagnitudeChart" width="900" height="240" aria-label="Bode magnitude plot"></canvas>
+                    <canvas id="bodePhaseChart" width="900" height="240" aria-label="Bode phase plot"></canvas>
+                </details>
+
+                <details class="export-panel foldable" data-panel-default="closed">
+                    <summary class="panel-header"><h2>Exports</h2><span class="fold-indicator" aria-hidden="true"></span></summary>
+                    <div class="export-body">
+                        <p id="buildMetadata">Build metadata pending.</p>
+                        <div class="export-actions">
+                            <button id="exportJsonBtn" type="button" class="action-btn">Export JSON</button>
+                            <button id="exportCsvBtn" type="button" class="action-btn">Export CSV</button>
+                        </div>
+                    </div>
+                </details>
+
+                <details class="method-panel foldable" data-panel-default="closed">
+                    <summary>Method and Scope</summary>
+                    <div class="method-content">
+                        <section>
+                            <h3>Process model</h3>
+                            <p>The plant is a first-order-plus-dead-time (FOPDT) self-regulating process driven by a delayed manipulated variable plus an additive load disturbance:</p>
+                            <pre><code>tau * dPV/dt = -(PV - pv_baseline) + K * u(t - theta) + d(t)</code></pre>
+                            <p>The continuous solution under a piecewise-constant input is integrated <strong>exactly</strong> by zero-order hold each step:</p>
+                            <pre><code>PV[k+1] = PV[k] * exp(-dt/tau)
+        + target * (1 - exp(-dt/tau))
+target = pv_baseline + K * u_delayed + d</code></pre>
+                            <p>This is exact within floating-point precision and removes any Euler stability constraint on dt. Dead time is implemented as a delay buffer with linear interpolation between adjacent samples when theta is not an integer multiple of dt.</p>
+                        </section>
+
+                        <section>
+                            <h3>PID controller</h3>
+                            <p>Parallel form, evaluated at the controller sample time Ts and held with a zero-order hold between samples:</p>
+                            <pre><code>error = SP - measurement
+P = Kp * error
+I = I + Ki * error * Ts                  (with anti-windup, see below)
+D = -Kd * filtered_derivative_of_measurement   (derivative-on-measurement)
+    or
+D = +Kd * filtered_derivative_of_error         (derivative-on-error)
+u_raw = bias + P + I + D
+u     = clamp(u_raw, u_min, u_max)</code></pre>
+                            <p>The derivative branch is the discrete equivalent of a first-order ISA-style filter <code>D(s) = Kd s / (1 + Tf s)</code>. The discrete pole is <code>alpha = exp(-Ts / Tf)</code>; Tf = 0 disables filtering. The equivalent ideal-form parameters are <code>Ti = Kp / Ki</code> and <code>Td = Kd / Kp</code>; both are shown live next to the gain inputs.</p>
+                        </section>
+
+                        <section>
+                            <h3>Anti-windup strategies</h3>
+                            <ul class="method-list">
+                                <li><strong>Off.</strong> Integrator updates every sample regardless of saturation. Useful only to demonstrate windup behavior.</li>
+                                <li><strong>Conditional (clamp).</strong> The integrator is frozen whenever the pre-integration command is already saturated and the proposed integral update would push it further into the limit. The other direction is allowed so the integrator can pull the actuator back into range.</li>
+                                <li><strong>Back-calculation.</strong> Each tick adds <code>(u_clamped - u_raw) * Ts / Tt</code> to the integral. When the controller is unsaturated this term is zero; when saturated, it drives the integrator back at a rate set by the tracking time Tt. This is the strategy used in most modern industrial PID blocks (Siemens, ABB, AB, Honeywell).</li>
+                            </ul>
+                        </section>
+
+                        <section>
+                            <h3>Tuning rules</h3>
+                            <p>The Tuning Rules panel applies open-loop FOPDT correlations to the configured K, tau, and theta. Each rule rewrites only the controller gains so you can compare them on the same plant:</p>
+                            <ul class="method-list">
+                                <li><strong>Ziegler-Nichols PI:</strong> Kc = 0.9 * tau / (K * theta), Ti = theta / 0.3.</li>
+                                <li><strong>Ziegler-Nichols PID:</strong> Kc = 1.2 * tau / (K * theta), Ti = 2 * theta, Td = 0.5 * theta.</li>
+                                <li><strong>Cohen-Coon PI/PID:</strong> classic 1953 correlations; less detuning needed for dead-time-dominated loops than Z-N.</li>
+                                <li><strong>AMIGO PI/PID:</strong> Astrom-Hagglund robustness-focused rule derived from constrained optimization.</li>
+                                <li><strong>Lambda PI:</strong> IMC tuning with closed-loop time constant lambda = tau. Decreasing lambda makes the loop faster but less robust.</li>
+                            </ul>
+                            <p>The displayed Kp / Ki / Kd, plus the matching Ti and Td readouts, are exactly what the tuning rule produced; nothing is silently re-shaped.</p>
+                        </section>
+
+                        <section>
+                            <h3>Measurement noise</h3>
+                            <p>Noise is zero-mean Gaussian with standard deviation equal to the configured amplitude. The generator is Box-Muller built on a deterministic 32-bit LCG so that Rust and Python produce identical sequences from the same seed. Fixtures are reproducible bit-for-bit.</p>
+                        </section>
+
+                        <section>
+                            <h3>Frequency-domain analysis</h3>
+                            <p>The Bode plots evaluate the continuous-time open-loop transfer function on a fixed log frequency grid (1e-3 to 1e3 rad/s, 256 points):</p>
+                            <pre><code>C(s) = Kp + Ki/s + Kd * s / (1 + Tf * s)
+G(s) = K * exp(-theta * s) / (1 + tau * s)
+L(s) = C(s) * G(s)
+S(s) = 1 / (1 + L(s))</code></pre>
+                            <ul class="method-list">
+                                <li><strong>Phase margin (PM)</strong> is 180 deg + angle of L at the first omega where |L(jw)| = 1.</li>
+                                <li><strong>Gain margin (GM)</strong> is -20 log10 |L(jwpc)| at the first omega where the unwrapped phase crosses -180 deg.</li>
+                                <li><strong>Sensitivity peak Ms</strong> = max |S(jw)| over the grid. Industrial loops aim for Ms in 1.4-2.0; below 1.4 is conservative and slow, above 2.0 is fragile.</li>
+                                <li><strong>Gain crossover wgc</strong> marks the closed-loop bandwidth and is annotated on both subplots.</li>
+                            </ul>
+                            <p>The Bode plot is computed from the configured K, tau, theta, Kp, Ki, Kd, and Tf in closed form -- it updates instantly when any tuning rule or slider is moved, with no second simulation pass needed.</p>
+                        </section>
+
+                        <section>
+                            <h3>Metrics</h3>
+                            <ul class="method-list">
+                                <li><strong>Overshoot</strong> is direction-aware (positive and negative steps both produce non-negative overshoot).</li>
+                                <li><strong>Rise time</strong> is the 10% to 90% rise time of the PV trajectory after the setpoint step.</li>
+                                <li><strong>Settling time</strong> is measured against a configurable tolerance band (default 2% of the step magnitude) and is the first time after which PV stays inside the band for the rest of the horizon.</li>
+                                <li><strong>IAE / ISE / ITAE</strong> integrate absolute, squared, and time-weighted absolute error over the horizon. ITAE is weighted from the step time forward.</li>
+                                <li><strong>Saturation percent</strong> is the fraction of samples where the actuator command was clamped.</li>
+                                <li><strong>Max / Min PV / output</strong> are the extrema of the recorded trajectories.</li>
+                                <li><strong>Settled</strong> is true when the loop reached the tolerance band before the horizon ended.</li>
+                            </ul>
+                        </section>
+
+                        <section>
+                            <h3>Verification boundary</h3>
+                            <p>The Python reference in <code>verification/pid_reference.py</code> is the numerical ground truth. It generates deterministic fixtures consumed by the Rust crate's regression test, and is also a readable side-by-side derivation of the controller and the integrator. The browser runtime uses the Rust/WASM port; passing tests mean Rust/Python agree to within 1e-8 absolute tolerance on every recorded series and metric.</p>
+                        </section>
+
+                        <section>
+                            <h3>Scope and limitations</h3>
+                            <p><strong>Reference simulation only.</strong> FOPDT is a deliberate idealization; real plants have constraints, nonlinearity, valve hysteresis, and stochastic disturbances that this tool does not represent. Do not use these results for process-safety decisions or plant tuning without independent validation. The author makes no warranty as to fitness for any particular use.</p>
+                        </section>
+                    </div>
+                </details>
+
+                <details class="learning-panel foldable" data-panel-default="closed">
+                    <summary>Learning References</summary>
+                    <div class="reference-grid">
+                        <article>
+                            <h3>FOPDT model</h3>
+                            <p><a href="https://apmonitor.com/pdc/index.php/Main/FirstOrderSystems" target="_blank" rel="noopener">APMonitor: First Order Plus Dead Time</a></p>
+                        </article>
+                        <article>
+                            <h3>PID terms and response metrics</h3>
+                            <p><a href="https://ctms.engin.umich.edu/CTMS/index.php?example=Introduction&section=ControlPID" target="_blank" rel="noopener">University of Michigan CTMS: PID Controller Design</a></p>
+                        </article>
+                        <article>
+                            <h3>Anti-windup strategies</h3>
+                            <p><a href="https://www.mathworks.com/help/simulink/slref/pidcontroller.html" target="_blank" rel="noopener">MathWorks: PID Controller block (clamping &amp; back-calculation)</a></p>
+                        </article>
+                        <article>
+                            <h3>Tuning rules</h3>
+                            <p><a href="https://blog.opticontrols.com/archives/477" target="_blank" rel="noopener">OptiControls: Ziegler-Nichols and Cohen-Coon open-loop tuning</a></p>
+                        </article>
+                        <article>
+                            <h3>AMIGO and lambda tuning</h3>
+                            <p><a href="https://folk.ntnu.no/skoge/publications/2003/tuningPID/" target="_blank" rel="noopener">Skogestad: Simple analytic rules for model reduction and PID controller tuning</a></p>
+                        </article>
+                        <article>
+                            <h3>Derivative filtering</h3>
+                            <p><a href="https://www.apmonitor.com/pdc/index.php/Main/ProportionalIntegralDerivative" target="_blank" rel="noopener">APMonitor: Proportional Integral Derivative</a></p>
+                        </article>
+                    </div>
+                </details>
+            </section>
+        </main>
+
+        <footer data-footer></footer>
+    </div>
+
+    <aside id="glossaryPanel" class="glossary-panel" aria-label="Glossary" aria-hidden="true" hidden>
+        <header class="glossary-header">
+            <h2 id="glossaryTitle">Glossary</h2>
+            <button type="button" id="glossaryCloseBtn" class="glossary-close" aria-label="Close glossary">x</button>
+        </header>
+        <p class="glossary-body" id="glossaryBody">Click a highlighted term to read its physical interpretation.</p>
+        <p class="glossary-hint">Click any underlined term in the page to populate this panel.</p>
+    </aside>
+
+    <script type="module" src="../js/shared.js"></script>
+    <script type="module" src="../js/footer.js"></script>
+    <script type="module" src="../js/pid_playground/pid-playground.js"></script>
+</body>
+</html>

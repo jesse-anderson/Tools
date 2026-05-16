@@ -1,0 +1,1422 @@
+.steam-layout {
+    display: grid;
+    grid-template-columns: minmax(320px, 0.85fr) minmax(0, 1.15fr);
+    gap: 24px;
+    align-items: start;
+}
+
+.steam-header-content {
+    align-items: center;
+}
+
+.steam-header-content .header-right {
+    margin-left: auto;
+}
+
+.steam-panel {
+    display: grid;
+    gap: 20px;
+}
+
+.steam-layout,
+.steam-panel,
+.input-section,
+.output-section,
+.section-card,
+.trace-block,
+.sidebar {
+    min-width: 0;
+}
+
+.sidebar {
+    display: grid;
+    gap: 16px;
+    align-content: start;
+}
+
+.panel-actions,
+.button-row,
+.unit-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+}
+
+.action-menu {
+    position: relative;
+}
+
+.action-summary {
+    list-style: none;
+    gap: 8px;
+}
+
+.action-summary::-webkit-details-marker {
+    display: none;
+}
+
+.action-summary::after {
+    content: '+';
+    color: var(--accent-engineering);
+    font: 800 0.85rem 'JetBrains Mono', monospace;
+}
+
+.action-menu[open] > .action-summary::after {
+    content: '-';
+}
+
+.action-menu-panel {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    z-index: 20;
+    display: grid;
+    gap: 8px;
+    min-width: 180px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--bg-card);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18);
+    padding: 10px;
+}
+
+.action-menu-panel .tool-btn {
+    width: 100%;
+    justify-content: flex-start;
+}
+
+.status-banner {
+    border: 1px solid var(--border-color);
+    background: var(--bg-card);
+    color: var(--text-secondary);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 0.875rem;
+}
+
+.status-banner.error {
+    border-color: rgba(239, 68, 68, 0.45);
+    background: var(--accent-error-dim);
+    color: var(--text-primary);
+}
+
+.input-section,
+.output-section {
+    display: grid;
+    gap: 16px;
+}
+
+.section-card {
+    border: 1px solid var(--border-color);
+    background: var(--bg-card);
+    border-radius: 8px;
+    padding: 18px;
+}
+
+.section-card h3 {
+    margin-bottom: 12px;
+}
+
+.foldable-card {
+    display: block;
+}
+
+.foldable-summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    cursor: pointer;
+    list-style: none;
+}
+
+.foldable-summary::-webkit-details-marker {
+    display: none;
+}
+
+.foldable-summary::after {
+    content: '+';
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 24px;
+    min-height: 24px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    color: var(--accent-engineering);
+    font: 800 0.9rem 'JetBrains Mono', monospace;
+}
+
+.foldable-card[open] > .foldable-summary::after {
+    content: '-';
+}
+
+.foldable-summary h3 {
+    margin-bottom: 0;
+}
+
+.foldable-content {
+    display: grid;
+    gap: 10px;
+    margin-top: 12px;
+}
+
+.input-line {
+    display: grid;
+    gap: 6px;
+}
+
+.input-line span {
+    color: var(--text-secondary);
+    font-size: 0.84rem;
+}
+
+.input-line em {
+    color: var(--text-muted);
+    font-style: normal;
+}
+
+.main-select,
+.main-input {
+    width: 100%;
+    min-height: 44px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background: var(--bg-input);
+    color: var(--text-primary);
+    padding: 9px 10px;
+    font: 500 0.9rem 'JetBrains Mono', monospace;
+}
+
+.main-select:focus,
+.main-input:focus {
+    outline: none;
+    border-color: var(--accent-engineering);
+    box-shadow: 0 0 0 3px var(--accent-engineering-dim);
+}
+
+.control-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.field-stack {
+    display: grid;
+    gap: 12px;
+}
+
+.tool-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    padding: 8px 12px;
+    font: 600 0.84rem 'Space Grotesk', sans-serif;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.tool-btn:hover:not(:disabled) {
+    border-color: var(--accent-engineering);
+    background: var(--bg-card-hover);
+}
+
+.tool-btn.primary {
+    border-color: rgba(245, 158, 11, 0.55);
+    background: var(--accent-engineering-dim);
+}
+
+.tool-btn:disabled {
+    opacity: 0.55;
+    cursor: wait;
+}
+
+.result-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.result-kicker,
+.property-unit,
+.trace-note,
+.empty-state,
+.test-description,
+.test-detail {
+    color: var(--text-muted);
+    font-size: 0.78rem;
+}
+
+.phase-chip {
+    border: 1px solid var(--border-color);
+    border-radius: 999px;
+    padding: 5px 9px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.phase-chip.compressed-liquid,
+.phase-chip.saturated-liquid {
+    border-color: rgba(6, 182, 212, 0.45);
+    background: rgba(6, 182, 212, 0.12);
+}
+
+.phase-chip.superheated-vapor,
+.phase-chip.saturated-vapor {
+    border-color: rgba(139, 92, 246, 0.4);
+    background: rgba(139, 92, 246, 0.12);
+}
+
+.phase-chip.supercritical-fluid {
+    border-color: rgba(244, 63, 94, 0.4);
+    background: rgba(244, 63, 94, 0.12);
+}
+
+.phase-chip.two-phase {
+    border-color: rgba(34, 197, 94, 0.45);
+    background: rgba(34, 197, 94, 0.12);
+}
+
+.property-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.property-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: center;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 10px 12px;
+    background: var(--bg-secondary);
+}
+
+.property-label {
+    font-weight: 700;
+    font-size: 0.86rem;
+}
+
+.property-value {
+    min-height: 44px;
+    min-width: 44px;
+    border: 0;
+    background: transparent;
+    color: var(--text-primary);
+    font: 700 0.88rem 'JetBrains Mono', monospace;
+    text-align: right;
+    cursor: pointer;
+}
+
+.property-value.copy-success {
+    color: var(--accent-success);
+}
+
+.warning-list {
+    display: grid;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.warning-item {
+    border: 1px solid rgba(234, 179, 8, 0.45);
+    background: var(--accent-warning-dim);
+    border-radius: 8px;
+    padding: 9px 10px;
+    color: var(--text-primary);
+    font-size: 0.84rem;
+}
+
+.trace-table-wrap {
+    overflow-x: auto;
+    max-width: 100%;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+}
+
+.trace-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 620px;
+    font: 500 0.78rem 'JetBrains Mono', monospace;
+}
+
+.trace-table th,
+.trace-table td {
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border-color);
+    text-align: right;
+    white-space: nowrap;
+}
+
+.trace-table th {
+    color: var(--text-secondary);
+    background: var(--bg-secondary);
+}
+
+.trace-table th:first-child,
+.trace-table td:first-child {
+    text-align: left;
+}
+
+.trace-block-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.trace-block {
+    display: grid;
+    gap: 8px;
+}
+
+.candidate-list {
+    display: grid;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.candidate-row {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 10px;
+    align-items: center;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 9px 10px;
+    background: var(--bg-secondary);
+}
+
+.candidate-index {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--accent-engineering-dim);
+    color: var(--accent-engineering);
+    font-weight: 800;
+}
+
+.phase-context {
+    display: grid;
+    gap: 12px;
+}
+
+.phase-context-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.phase-context-header > span:last-child,
+.context-row span,
+.context-meter span {
+    color: var(--text-secondary);
+    font-size: 0.78rem;
+}
+
+.context-grid,
+.context-meters {
+    display: grid;
+    gap: 8px;
+}
+
+.context-row,
+.context-meter {
+    display: grid;
+    gap: 6px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--bg-secondary);
+    padding: 9px 10px;
+}
+
+.context-row {
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+    align-items: center;
+}
+
+.context-row strong,
+.context-meter strong {
+    color: var(--text-primary);
+    font: 700 0.84rem 'JetBrains Mono', monospace;
+    text-align: right;
+}
+
+.context-meter > div:first-child {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.context-meter-bar {
+    display: block;
+    width: 100%;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--bg-input);
+    overflow: hidden;
+}
+
+.context-meter-bar::-webkit-meter-bar {
+    border: 0;
+    border-radius: 999px;
+    background: var(--bg-input);
+}
+
+.context-meter-bar::-webkit-meter-optimum-value {
+    border-radius: 999px;
+    background: var(--accent-engineering);
+}
+
+.context-meter-bar::-moz-meter-bar {
+    border-radius: 999px;
+    background: var(--accent-engineering);
+}
+
+.comparison-pins {
+    display: grid;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.comparison-card {
+    display: grid;
+    gap: 8px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 10px 12px;
+    background: var(--bg-secondary);
+}
+
+.comparison-card.empty {
+    border-style: dashed;
+    color: var(--text-muted);
+}
+
+.comparison-card-header {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.comparison-card > span,
+.comparison-inputs,
+.comparison-mini {
+    color: var(--text-secondary);
+    font-size: 0.78rem;
+}
+
+.comparison-inputs,
+.comparison-mini {
+    display: grid;
+    gap: 4px;
+}
+
+.comparison-mini {
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.comparison-table-wrap {
+    margin-top: 10px;
+}
+
+.comparison-table {
+    min-width: 560px;
+}
+
+.chart-overlay-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    align-items: center;
+    padding: 10px 12px;
+    margin-bottom: 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--bg-secondary);
+    font-size: 0.78rem;
+}
+
+.chart-overlay-group {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+}
+
+.chart-overlay-label {
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-size: 0.68rem;
+    font-weight: 600;
+}
+
+.chart-overlay-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    user-select: none;
+}
+
+.chart-overlay-toggle input[type="checkbox"] {
+    accent-color: var(--accent-engineering);
+    cursor: pointer;
+    margin: 0;
+}
+
+.chart-overlay-toggle:hover {
+    color: var(--text-primary);
+}
+
+.chart-isobar-count {
+    border: 1px solid var(--border-color);
+    background: var(--bg-card);
+    color: var(--text-secondary);
+    font: 600 0.78rem 'JetBrains Mono', monospace;
+    padding: 3px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    min-width: 32px;
+}
+
+.chart-isobar-count:hover {
+    color: var(--text-primary);
+    border-color: var(--text-muted);
+}
+
+.chart-isobar-count.active {
+    background: var(--accent-engineering);
+    color: var(--bg-primary);
+    border-color: var(--accent-engineering);
+}
+
+.chart-stack {
+    display: grid;
+    gap: 12px;
+}
+
+.chart-block {
+    display: grid;
+    gap: 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--bg-secondary);
+    padding: 10px;
+}
+
+.chart-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    align-items: baseline;
+}
+
+.chart-header strong {
+    font-size: 0.9rem;
+}
+
+.chart-header span {
+    color: var(--text-muted);
+    font-size: 0.76rem;
+    text-align: right;
+}
+
+.steam-chart {
+    display: block;
+    width: 100%;
+    height: auto;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--bg-card);
+}
+
+.chart-grid line {
+    stroke: var(--border-color);
+    stroke-width: 1;
+    opacity: 0.28;
+}
+
+.chart-axis line {
+    stroke: var(--text-muted);
+    stroke-width: 1.2;
+}
+
+.chart-axis text,
+.chart-axis-labels text {
+    fill: var(--text-muted);
+    font: 600 0.62rem 'JetBrains Mono', monospace;
+}
+
+.chart-axis-labels text {
+    fill: var(--text-secondary);
+    font-size: 0.66rem;
+}
+
+.chart-dome-fill {
+    fill: rgba(34, 197, 94, 0.08);
+    stroke: none;
+}
+
+.chart-dome-line,
+.chart-saturation-line,
+.chart-isobar-line {
+    fill: none;
+    stroke: var(--accent-engineering);
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.chart-dome-line,
+.chart-saturation-line {
+    stroke-width: 2.6;
+}
+
+.chart-dome-line.liquid {
+    stroke: rgb(6, 182, 212);
+}
+
+.chart-dome-line.vapor {
+    stroke: rgb(139, 92, 246);
+}
+
+.chart-saturation-line {
+    stroke: rgb(14, 165, 233);
+}
+
+/* Isobars recede behind the dome: thinner, dashed (longer pattern than
+   quality curves to stay distinguishable), slightly muted. */
+.chart-isobar-line {
+    stroke-width: 1.3;
+    stroke-dasharray: 7 4;
+    opacity: 0.7;
+    cursor: pointer;
+}
+
+.chart-isobar-line:hover,
+.chart-isobar-line:focus,
+.chart-isobar-line.hovered,
+.chart-isobar-line.selected {
+    opacity: 1;
+    stroke-width: 2.4;
+    stroke-dasharray: 0;
+    outline: none;
+}
+
+.chart-isobar-line.isobar-0,
+.chart-isobar-swatch.isobar-0 {
+    stroke: rgb(14, 165, 233);
+    background: rgb(14, 165, 233);
+}
+
+.chart-isobar-line.isobar-1,
+.chart-isobar-swatch.isobar-1 {
+    stroke: rgb(245, 158, 11);
+    background: rgb(245, 158, 11);
+}
+
+.chart-isobar-line.isobar-2,
+.chart-isobar-swatch.isobar-2 {
+    stroke: rgb(34, 197, 94);
+    background: rgb(34, 197, 94);
+}
+
+.chart-isobar-line.isobar-3,
+.chart-isobar-swatch.isobar-3 {
+    stroke: rgb(244, 63, 94);
+    background: rgb(244, 63, 94);
+}
+
+/* Isotherms: solid strokes with warm-cool color ramp by temperature; the
+   critical isotherm is dashed to read as a boundary. */
+.chart-isotherm-line {
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 1.4;
+    opacity: 0.85;
+    cursor: pointer;
+}
+
+.chart-isotherm-line:hover,
+.chart-isotherm-line:focus,
+.chart-isotherm-line.hovered,
+.chart-isotherm-line.selected {
+    opacity: 1;
+    stroke-width: 2.4;
+    outline: none;
+}
+
+.chart-isotherm-line.isotherm-crit {
+    stroke-dasharray: 6 4;
+    stroke-width: 1.8;
+}
+
+.chart-isotherm-line.isotherm-0,
+.chart-isotherm-swatch.isotherm-0 {
+    stroke: rgb(56, 189, 248);
+    background: rgb(56, 189, 248);
+}
+
+.chart-isotherm-line.isotherm-1,
+.chart-isotherm-swatch.isotherm-1 {
+    stroke: rgb(45, 212, 191);
+    background: rgb(45, 212, 191);
+}
+
+.chart-isotherm-line.isotherm-2,
+.chart-isotherm-swatch.isotherm-2 {
+    stroke: rgb(250, 204, 21);
+    background: rgb(250, 204, 21);
+}
+
+.chart-isotherm-line.isotherm-3,
+.chart-isotherm-swatch.isotherm-3 {
+    stroke: rgb(249, 115, 22);
+    background: rgb(249, 115, 22);
+}
+
+.chart-isotherm-line.isotherm-4,
+.chart-isotherm-swatch.isotherm-4 {
+    stroke: rgb(220, 38, 38);
+    background: rgb(220, 38, 38);
+}
+
+.chart-isotherm-line.isotherm-5,
+.chart-isotherm-swatch.isotherm-5 {
+    stroke: rgb(217, 70, 239);
+    background: rgb(217, 70, 239);
+}
+
+.chart-quality-line {
+    stroke: rgba(34, 197, 94, 0.9);
+    stroke-width: 2;
+    stroke-dasharray: 5 4;
+}
+
+.chart-quality-curve path {
+    fill: none;
+    stroke: rgba(139, 92, 246, 0.55);
+    stroke-width: 1;
+    stroke-dasharray: 3 3;
+    pointer-events: none;
+}
+
+.chart-phase-regions path {
+    /* Region tints sit behind everything except grid. Make sure they don't
+       eat hover/click events meant for points, lines, or markers. */
+    pointer-events: none;
+}
+
+.chart-phase-key {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 14px;
+    margin-top: 4px;
+    color: var(--text-secondary);
+    font-size: 0.72rem;
+}
+
+.chart-phase-key-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+}
+
+.chart-phase-key-swatch {
+    display: inline-block;
+    width: 14px;
+    height: 10px;
+    border-radius: 3px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-card);
+}
+
+/* Keep these alphas in sync with PHASE_COLORS in charts.js. */
+.chart-phase-key-swatch.compressedLiquid,
+.chart-phase-key-swatch.liquid {
+    background: rgba(59, 130, 246, 0.5);
+    border-color: rgba(59, 130, 246, 0.75);
+}
+
+.chart-phase-key-swatch.saturated {
+    background: rgba(34, 197, 94, 0.35);
+    border-color: rgba(34, 197, 94, 0.6);
+}
+
+.chart-phase-key-swatch.superheatedVapor,
+.chart-phase-key-swatch.vapor {
+    background: rgba(245, 158, 11, 0.35);
+    border-color: rgba(245, 158, 11, 0.6);
+}
+
+.chart-phase-key-swatch.supercritical {
+    background: rgba(244, 63, 94, 0.35);
+    border-color: rgba(244, 63, 94, 0.6);
+}
+
+.chart-phase-key-swatch.solidNoData {
+    background: rgba(148, 163, 184, 0.3);
+    border-color: rgba(148, 163, 184, 0.55);
+    /* Striped pattern hints that this region is conceptual, not actual data. */
+    background-image: repeating-linear-gradient(45deg, rgba(0, 0, 0, 0.18) 0 2px, transparent 2px 4px);
+}
+
+.chart-stack-footnote {
+    margin-top: 14px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: var(--bg-secondary);
+    border: 1px dashed var(--border-color);
+    color: var(--text-secondary);
+    font-size: 0.74rem;
+    line-height: 1.45;
+}
+
+.chart-quality-curve .chart-quality-label {
+    fill: rgba(139, 92, 246, 0.95);
+    font: 600 0.56rem 'JetBrains Mono', monospace;
+    pointer-events: none;
+    paint-order: stroke;
+    stroke: var(--bg-card);
+    stroke-width: 3px;
+    stroke-linejoin: round;
+}
+
+.chart-hover-point {
+    fill: transparent;
+    stroke: transparent;
+    stroke-width: 1.5;
+    cursor: crosshair;
+    pointer-events: all;
+}
+
+/* Subtle ring on hover/select — no bright fill, so a moving cursor doesn't
+   light up the chart with blobs. */
+.chart-hover-point:hover,
+.chart-hover-point.hovered,
+.chart-hover-point.selected {
+    fill: var(--bg-card);
+    stroke: var(--accent-engineering);
+}
+
+.chart-hover-point.isobar-0:hover,
+.chart-hover-point.isobar-0.hovered,
+.chart-hover-point.isobar-0.selected {
+    stroke: rgb(14, 165, 233);
+}
+
+.chart-hover-point.isobar-1:hover,
+.chart-hover-point.isobar-1.hovered,
+.chart-hover-point.isobar-1.selected {
+    stroke: rgb(245, 158, 11);
+}
+
+.chart-hover-point.isobar-2:hover,
+.chart-hover-point.isobar-2.hovered,
+.chart-hover-point.isobar-2.selected {
+    stroke: rgb(34, 197, 94);
+}
+
+.chart-hover-point.isobar-3:hover,
+.chart-hover-point.isobar-3.hovered,
+.chart-hover-point.isobar-3.selected {
+    stroke: rgb(244, 63, 94);
+}
+
+.chart-cp-glyph {
+    cursor: pointer;
+}
+
+.chart-cp-glyph .chart-cp-diamond {
+    fill: var(--accent-warning, #f59e0b);
+    stroke: var(--bg-card);
+    stroke-width: 1.5;
+}
+
+.chart-cp-glyph:hover .chart-cp-diamond,
+.chart-cp-glyph:focus .chart-cp-diamond,
+.chart-cp-glyph.hovered .chart-cp-diamond,
+.chart-cp-glyph.selected .chart-cp-diamond {
+    stroke-width: 3;
+}
+
+.chart-cp-glyph .chart-cp-label,
+.chart-tp-glyph .chart-tp-label {
+    fill: var(--text-secondary);
+    font: 700 0.62rem 'JetBrains Mono', monospace;
+    pointer-events: none;
+    /* Halo so the label reads against the dome, isobars, or quality curves
+       it may sit on top of. */
+    paint-order: stroke;
+    stroke: var(--bg-card);
+    stroke-width: 3px;
+    stroke-linejoin: round;
+}
+
+.chart-cp-glyph:hover .chart-cp-label,
+.chart-cp-glyph:focus .chart-cp-label,
+.chart-cp-glyph.hovered .chart-cp-label,
+.chart-cp-glyph.selected .chart-cp-label,
+.chart-tp-glyph:hover .chart-tp-label,
+.chart-tp-glyph:focus .chart-tp-label,
+.chart-tp-glyph.hovered .chart-tp-label,
+.chart-tp-glyph.selected .chart-tp-label {
+    fill: var(--text-primary);
+}
+
+.chart-tp-glyph {
+    cursor: pointer;
+}
+
+.chart-tp-glyph circle {
+    fill: rgb(34, 197, 94);
+    stroke: var(--bg-card);
+    stroke-width: 1.5;
+}
+
+.chart-tp-glyph:hover circle,
+.chart-tp-glyph:focus circle,
+.chart-tp-glyph.hovered circle,
+.chart-tp-glyph.selected circle {
+    stroke-width: 3;
+}
+
+.chart-marker {
+    stroke: var(--bg-card);
+    stroke-width: 1.8;
+    cursor: pointer;
+}
+
+.chart-marker:hover,
+.chart-marker:focus,
+.chart-marker.hovered,
+.chart-marker.selected {
+    stroke-width: 4;
+    outline: none;
+}
+
+.chart-marker.liquid,
+.chart-marker.compressed-liquid,
+.chart-marker.saturated-liquid {
+    stroke: rgb(6, 182, 212);
+}
+
+.chart-marker.vapor,
+.chart-marker.superheated-vapor,
+.chart-marker.saturated-vapor {
+    stroke: rgb(139, 92, 246);
+}
+
+.chart-marker.two-phase,
+.chart-marker.on-dome,
+.chart-marker.saturation {
+    stroke: rgb(34, 197, 94);
+}
+
+.chart-marker.supercritical-fluid {
+    stroke: rgb(244, 63, 94);
+}
+
+.chart-marker.current,
+.chart-legend-swatch.current {
+    fill: var(--accent-engineering);
+    background: var(--accent-engineering);
+}
+
+.chart-marker.state-a,
+.chart-legend-swatch.state-a {
+    fill: rgb(6, 182, 212);
+    background: rgb(6, 182, 212);
+}
+
+.chart-marker.state-b,
+.chart-legend-swatch.state-b {
+    fill: rgb(139, 92, 246);
+    background: rgb(139, 92, 246);
+}
+
+.chart-legend {
+    display: grid;
+    gap: 6px;
+    color: var(--text-secondary);
+    font-size: 0.76rem;
+}
+
+.chart-legend.muted {
+    color: var(--text-muted);
+}
+
+.chart-isobar-legend,
+.chart-isotherm-legend {
+    display: grid;
+    gap: 6px;
+    color: var(--text-muted);
+    font-size: 0.74rem;
+}
+
+.chart-isobar-legend > div,
+.chart-isotherm-legend > div {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.chart-legend-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+}
+
+.chart-legend-row > :last-child {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.chart-legend-button,
+.chart-isobar-button,
+.chart-isotherm-button {
+    width: 100%;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background: var(--bg-card);
+    color: var(--text-secondary);
+    cursor: pointer;
+    font: inherit;
+    text-align: left;
+    padding: 7px 8px;
+}
+
+.chart-isobar-button,
+.chart-isotherm-button {
+    display: inline-flex;
+    width: auto;
+    align-items: center;
+    gap: 6px;
+    min-height: 32px;
+}
+
+.chart-legend-button:hover,
+.chart-legend-button:focus,
+.chart-legend-button.hovered,
+.chart-legend-button.selected,
+.chart-isobar-button:hover,
+.chart-isobar-button:focus,
+.chart-isobar-button.hovered,
+.chart-isobar-button.selected,
+.chart-isotherm-button:hover,
+.chart-isotherm-button:focus,
+.chart-isotherm-button.hovered,
+.chart-isotherm-button.selected {
+    border-color: var(--accent-engineering);
+    background: var(--bg-card-hover);
+    color: var(--text-primary);
+    outline: none;
+}
+
+.chart-legend-swatch {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-top: 0.28em;
+    box-sizing: border-box;
+}
+
+.chart-legend-swatch.saturated-liquid {
+    border: 2px solid rgb(6, 182, 212);
+}
+
+.chart-legend-swatch.saturated-vapor {
+    border: 2px solid rgb(139, 92, 246);
+}
+
+.chart-legend-phase-tag {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    margin: 0 4px;
+    border-radius: 4px;
+    font: 700 0.7rem 'JetBrains Mono', monospace;
+    background: var(--bg-card-hover);
+    color: var(--text-primary);
+    flex-shrink: 0;
+}
+
+.chart-legend-phase-tag.saturated-liquid {
+    background: rgba(6, 182, 212, 0.18);
+    color: rgb(6, 182, 212);
+    border: 1px solid rgba(6, 182, 212, 0.55);
+}
+
+.chart-legend-phase-tag.saturated-vapor {
+    background: rgba(139, 92, 246, 0.18);
+    color: rgb(139, 92, 246);
+    border: 1px solid rgba(139, 92, 246, 0.55);
+}
+
+.chart-isobar-swatch,
+.chart-isotherm-swatch {
+    width: 18px;
+    height: 3px;
+    border-radius: 999px;
+}
+
+.chart-isotherm-swatch.isotherm-crit {
+    background-image: repeating-linear-gradient(90deg, currentColor 0 4px, transparent 4px 7px);
+    background-color: transparent;
+}
+
+.chart-detail {
+    /* Collapsed by default — kill the grid row entirely so chart-block's
+       gap doesn't reserve space for an empty strip. */
+    display: none;
+}
+
+.chart-detail.active {
+    display: block;
+    border: 1px solid rgba(245, 158, 11, 0.45);
+    border-radius: 8px;
+    background: var(--bg-card);
+    color: var(--text-primary);
+    padding: 8px 10px;
+    font-size: 0.76rem;
+}
+
+.test-summary {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-bottom: 10px;
+}
+
+.test-summary.pass {
+    border: 1px solid rgba(34, 197, 94, 0.4);
+    background: var(--accent-success-dim);
+}
+
+.test-summary.fail {
+    border: 1px solid rgba(239, 68, 68, 0.45);
+    background: var(--accent-error-dim);
+}
+
+.test-list {
+    display: grid;
+    gap: 8px;
+    max-height: 430px;
+    overflow: auto;
+}
+
+.test-row {
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--bg-secondary);
+}
+
+.test-row summary {
+    display: grid;
+    grid-template-columns: 56px 1fr auto;
+    gap: 10px;
+    align-items: center;
+    min-height: 44px;
+    padding: 9px 10px;
+    cursor: pointer;
+    list-style: none;
+}
+
+.test-row summary::-webkit-details-marker {
+    display: none;
+}
+
+.test-row summary::after {
+    content: '+';
+    color: var(--text-muted);
+    font: 800 0.85rem 'JetBrains Mono', monospace;
+}
+
+.test-row[open] summary::after {
+    content: '-';
+}
+
+.test-row.pass summary > span {
+    color: var(--accent-success);
+    font-weight: 800;
+}
+
+.test-row.fail summary > span {
+    color: var(--accent-error);
+    font-weight: 800;
+}
+
+.test-row strong {
+    font-size: 0.86rem;
+}
+
+.test-description,
+.test-detail {
+    margin: 0;
+    padding: 0 10px 10px 76px;
+}
+
+.test-description {
+    color: var(--text-secondary);
+}
+
+.empty-state,
+.error-state {
+    border: 1px dashed var(--border-color);
+    border-radius: 8px;
+    padding: 14px;
+}
+
+.empty-state.compact {
+    padding: 8px;
+}
+
+.error-state {
+    border-color: rgba(239, 68, 68, 0.45);
+    background: var(--accent-error-dim);
+    color: var(--text-primary);
+}
+
+.license-modal {
+    max-width: 760px;
+    width: calc(100% - 32px);
+    max-height: calc(100vh - 48px);
+    overflow: auto;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--bg-card);
+    color: var(--text-primary);
+    padding: 20px;
+}
+
+.license-modal::backdrop {
+    background: rgba(0, 0, 0, 0.62);
+}
+
+.license-modal h3 {
+    margin-top: 18px;
+    margin-bottom: 8px;
+    font-size: 0.95rem;
+}
+
+.license-list {
+    margin: 0 0 8px 18px;
+    padding: 0;
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    line-height: 1.55;
+}
+
+.license-notice {
+    margin-top: 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 10px 12px;
+}
+
+.license-notice summary {
+    cursor: pointer;
+    color: var(--text-primary);
+    font-size: 0.875rem;
+    font-weight: 700;
+}
+
+.license-modal pre {
+    max-height: 360px;
+    overflow: auto;
+    white-space: pre-wrap;
+    color: var(--text-secondary);
+    font: 500 0.78rem 'JetBrains Mono', monospace;
+}
+
+@media (max-width: 768px) {
+    .steam-layout,
+    .trace-block-grid,
+    .property-grid,
+    .control-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 480px) {
+    .steam-header-content {
+        flex-wrap: nowrap;
+        align-items: center;
+    }
+
+    .steam-header-content .back-link {
+        padding-left: 0;
+    }
+
+    .section-card {
+        padding: 14px;
+    }
+
+    .panel-actions,
+    .button-row {
+        width: 100%;
+    }
+
+    .tool-btn,
+    .action-menu,
+    .action-summary {
+        flex: 1 1 100%;
+        width: 100%;
+    }
+
+    .action-menu-panel {
+        position: static;
+        margin-top: 8px;
+    }
+
+    .property-row,
+    .candidate-row,
+    .comparison-card-header,
+    .context-row {
+        grid-template-columns: 1fr;
+    }
+
+    .comparison-card-header,
+    .phase-context-header {
+        display: grid;
+        align-items: start;
+    }
+
+    .context-row strong {
+        text-align: left;
+    }
+
+    .property-row {
+        align-items: flex-start;
+    }
+
+    .property-value {
+        width: 100%;
+        text-align: left;
+    }
+}

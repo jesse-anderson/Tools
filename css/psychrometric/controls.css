@@ -1,0 +1,668 @@
+/* ============================================
+    Controls Panel
+    ============================================ */
+.section {
+    margin-bottom: 20px;
+}
+
+.section:last-child {
+    margin-bottom: 0;
+}
+
+.section-header {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+/* Input Mode Toggle */
+.mode-toggle {
+    display: flex;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    overflow: hidden;
+    flex-wrap: wrap;
+}
+
+.mode-toggle button {
+    flex: 1;
+    min-width: 80px;
+    padding: 10px 8px;
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.mode-toggle button:hover {
+    color: var(--text-primary);
+    background: var(--bg-input);
+}
+
+.mode-toggle button.active {
+    background: var(--accent-primary);
+    color: #000;
+    font-weight: 600;
+}
+
+/* Input Grid */
+.input-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+}
+
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.field label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.6875rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.field input,
+.field select {
+    width: 100%;
+    background: var(--bg-input);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 10px 12px;
+    color: var(--text-primary);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.875rem;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.field input:focus,
+.field select:focus {
+    border-color: var(--accent-primary);
+}
+
+.field input::placeholder {
+    color: var(--text-muted);
+}
+
+.altitude-helper {
+    margin-top: 8px;
+    color: var(--text-muted);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+}
+
+.unit-toggle {
+    display: flex;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.unit-toggle button {
+    flex: 1;
+    padding: 8px;
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.unit-toggle button:hover {
+    color: var(--text-primary);
+}
+
+.unit-toggle button.active {
+    background: var(--accent-primary);
+    color: #000;
+    font-weight: 600;
+}
+
+.process-toolbar {
+    margin-top: 12px;
+}
+
+.process-state-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 12px;
+}
+
+.process-card,
+.process-delta-card,
+.process-output {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 10px;
+}
+
+.process-card-title {
+    color: var(--text-muted);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 6px;
+}
+
+.process-card-body,
+.process-delta-card,
+.process-output {
+    color: var(--text-secondary);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    line-height: 1.45;
+}
+
+.process-card-body strong,
+.process-delta-card strong,
+.process-output strong {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.process-delta-card,
+.process-output {
+    margin-top: 10px;
+}
+
+.process-output.warn {
+    border-color: var(--accent-warning);
+    color: var(--accent-warning);
+}
+
+.process-input-grid {
+    margin-top: 10px;
+}
+
+.field[hidden] {
+    display: none;
+}
+
+/* Values Card */
+.values-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.values-header {
+    padding: 12px 16px;
+    background: var(--bg-input);
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--accent-success);
+}
+
+.status-dot.warn {
+    background: var(--accent-warning);
+}
+
+.values-body {
+    padding: 12px 16px;
+}
+
+.value-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.value-row:last-child {
+    border-bottom: none;
+}
+
+.value-name {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.value-number {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--accent-primary);
+}
+
+.value-number.muted {
+    color: var(--text-muted);
+    font-weight: 400;
+    font-size: 0.75rem;
+}
+
+.value-sub {
+    font-size: 0.65rem;
+    color: var(--text-muted);
+}
+
+/* ============================================
+    Chart Overlays Toggle
+    ============================================ */
+.toggle-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+
+.toggle-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.toggle-item:hover {
+    border-color: var(--accent-primary);
+}
+
+.toggle-item input[type="checkbox"] {
+    display: none;
+}
+
+.toggle-box {
+    width: 16px;
+    height: 16px;
+    border: 2px solid var(--border-color);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    flex-shrink: 0;
+}
+
+.toggle-item input:checked + .toggle-box {
+    background: var(--accent-primary);
+    border-color: var(--accent-primary);
+}
+
+.toggle-box svg {
+    width: 10px;
+    height: 10px;
+    stroke: #000;
+    stroke-width: 3;
+    opacity: 0;
+}
+
+.toggle-item input:checked + .toggle-box svg {
+    opacity: 1;
+}
+
+.toggle-label {
+    font-size: 0.7rem;
+    color: var(--text-primary);
+    font-family: 'JetBrains Mono', monospace;
+}
+
+/* ============================================
+    Foldable Calculation Details
+    ============================================ */
+.foldable-header {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.foldable-header:hover {
+    border-color: var(--accent-primary);
+    background: var(--bg-input);
+}
+
+.foldable-header.active {
+    border-radius: 8px 8px 0 0;
+    border-bottom-color: transparent;
+}
+
+.foldable-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.foldable-title svg {
+    width: 16px;
+    height: 16px;
+    stroke: var(--accent-primary);
+}
+
+.foldable-chevron {
+    width: 16px;
+    height: 16px;
+    stroke: var(--text-muted);
+    transition: transform 0.2s;
+}
+
+.foldable-header.active .foldable-chevron {
+    transform: rotate(180deg);
+}
+
+.foldable-content {
+    display: none;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    padding: 16px;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.foldable-content.active {
+    display: block;
+}
+
+.calc-section {
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.calc-section:last-child {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: none;
+}
+
+.calc-header {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.625rem;
+    font-weight: 600;
+    color: var(--accent-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 8px;
+}
+
+.calc-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 0;
+    font-size: 0.75rem;
+}
+
+.calc-label {
+    color: var(--text-secondary);
+}
+
+.calc-value {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+.calc-value.calc-small {
+    font-size: 0.6875rem;
+    color: var(--text-muted);
+    font-weight: 400;
+}
+
+/* Calculation Error Message */
+.calculation-error {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    background: var(--accent-error-dim);
+    border: 1px solid var(--accent-error);
+    border-radius: 8px;
+    color: var(--accent-error);
+    font-size: 0.875rem;
+}
+
+.calculation-error svg {
+    flex-shrink: 0;
+}
+
+.calculation-error span {
+    flex: 1;
+}
+
+.calc-value.calc-result {
+    color: var(--accent-primary);
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.calc-value.calc-success {
+    color: var(--accent-success);
+}
+
+.calc-equation {
+    background: var(--bg-input);
+    border: 1px solid var(--border-color);
+    border-left: 3px solid var(--accent-primary);
+    border-radius: 6px;
+    padding: 12px 14px;
+}
+
+.eq-name {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.6875rem;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+}
+
+.eq-formula {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8125rem;
+    color: var(--text-primary);
+}
+
+.calc-iterations {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.6875rem;
+    background: var(--bg-input);
+    border-radius: 6px;
+    padding: 10px 12px;
+    max-height: 120px;
+    overflow-y: auto;
+}
+
+.calc-iter-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 2px 0;
+    color: var(--text-secondary);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.calc-iter-row:last-child {
+    border-bottom: none;
+    color: var(--accent-success);
+    font-weight: 500;
+}
+
+.calc-warning {
+    background: var(--accent-warning-dim);
+    border: 1px solid rgba(234, 179, 8, 0.3);
+    border-radius: 6px;
+    padding: 10px 12px;
+    font-size: 0.75rem;
+    color: var(--accent-warning);
+}
+
+/* Nested Foldable */
+.nested-foldable-header {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    margin-top: 10px;
+    background: var(--bg-input);
+    border: 1px dashed var(--border-color);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.6875rem;
+    color: var(--text-secondary);
+}
+
+.nested-foldable-header:hover {
+    border-color: var(--accent-info);
+    color: var(--accent-info);
+    background: var(--accent-info-dim);
+}
+
+.nested-foldable-header.active {
+    border-style: solid;
+    border-color: var(--accent-info);
+    border-radius: 6px 6px 0 0;
+    border-bottom: none;
+    color: var(--accent-info);
+}
+
+.nested-chevron {
+    width: 14px;
+    height: 14px;
+    transition: transform 0.2s;
+}
+
+.nested-foldable-header.active .nested-chevron {
+    transform: rotate(180deg);
+}
+
+.nested-foldable-content {
+    display: none;
+    background: var(--bg-input);
+    border: 1px solid var(--accent-info);
+    border-top: none;
+    border-radius: 0 0 6px 6px;
+    padding: 14px;
+}
+
+.nested-foldable-content.active {
+    display: block;
+}
+
+/* Steps Container */
+.steps-container {
+    font-size: 0.75rem;
+}
+
+.step-group {
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px dashed var(--border-color);
+}
+
+.step-group:last-child {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: none;
+}
+
+.step-group-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.625rem;
+    font-weight: 600;
+    color: var(--accent-info);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 8px;
+}
+
+.step-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 8px;
+    padding: 8px 10px;
+    background: var(--bg-secondary);
+    border-radius: 4px;
+    border-left: 2px solid var(--border-color);
+}
+
+.step-item.highlight {
+    border-left-color: var(--accent-primary);
+    background: var(--accent-primary-dim);
+}
+
+.step-item.result {
+    border-left-color: var(--accent-success);
+    background: var(--accent-success-dim);
+}
+
+.step-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.625rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    min-width: 20px;
+}
+
+.step-content {
+    flex: 1;
+}
+
+.step-desc {
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+    line-height: 1.4;
+}
+
+.step-math {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--text-primary);
+    background: var(--bg-primary);
+    padding: 6px 10px;
+    border-radius: 4px;
+    overflow-x: auto;
+    white-space: nowrap;
+}
+

@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'">
     <title>Token Throughput Visualizer | Tools Hub</title>
     <!--
     ============================================
@@ -55,7 +56,7 @@
                     </div>
                 </div>
             </div>
-            <div class="tool-hero">
+            <div class="tool-title-row">
                 <div class="tool-icon-header it">
                     <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M12 3a9 9 0 1 0 9 9"/>
@@ -266,9 +267,9 @@
                         <div class="stream-header">
                             <div class="stream-heading">
                                 <h3>Preview</h3>
-                                <p id="raceStatusText">Ready to compare the configured lanes.</p>
+                                <p id="raceStatusText" aria-live="polite" aria-atomic="true">Ready to compare the configured lanes.</p>
                             </div>
-                            <div class="status-pill" id="racePhasePill">Idle</div>
+                            <div class="status-pill" id="racePhasePill" aria-live="polite">Idle</div>
                         </div>
                         <p class="stream-note" id="previewCoverageNote">Preview animates the full configured output for both lanes.</p>
 
@@ -289,7 +290,7 @@
                                     <span><strong>Visible:</strong> <span class="mono" id="laneAVisibleTokensValue">0 / 300 tok</span></span>
                                     <span><strong>Approx chars:</strong> <span class="mono" id="laneAVisibleCharsValue">0 / 1140 chars</span></span>
                                 </div>
-                                <pre id="laneAStreamOutput" class="stream-output" data-empty="true">Press Start to simulate a 300 token response.</pre>
+                                <pre id="laneAStreamOutput" class="stream-output" data-empty="true" aria-hidden="true">Press Start to simulate a 300 token response.</pre>
                             </article>
 
                             <article class="race-lane lane-b">
@@ -308,7 +309,7 @@
                                     <span><strong>Visible:</strong> <span class="mono" id="laneBVisibleTokensValue">0 / 300 tok</span></span>
                                     <span><strong>Approx chars:</strong> <span class="mono" id="laneBVisibleCharsValue">0 / 1140 chars</span></span>
                                 </div>
-                                <pre id="laneBStreamOutput" class="stream-output" data-empty="true">Press Start to simulate a 300 token response.</pre>
+                                <pre id="laneBStreamOutput" class="stream-output" data-empty="true" aria-hidden="true">Press Start to simulate a 300 token response.</pre>
                             </article>
                         </div>
 

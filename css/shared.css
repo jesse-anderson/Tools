@@ -841,6 +841,13 @@ footer {
     font-size: 24px;
 }
 
+.tool-title-row {
+    margin-top: 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
 .tool-icon-header.engineering {
     background: var(--accent-engineering-dim);
     color: var(--accent-engineering);

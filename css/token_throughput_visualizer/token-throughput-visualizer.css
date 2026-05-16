@@ -16,13 +16,6 @@
     padding: 32px;
 }
 
-.tool-hero {
-    margin-top: 24px;
-    display: flex;
-    align-items: center;
-    gap: 16px;
-}
-
 .panel-header,
 .stream-header,
 .race-lane-header,
@@ -683,7 +676,7 @@
     }
 
     .panel-header,
-    .tool-hero,
+    .tool-title-row,
     .stream-header,
     .race-lane-header,
     .lane-config-header {

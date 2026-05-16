@@ -111,7 +111,7 @@ function cacheDom() {
 
 function bindEvents() {
     dom.outputTokensInput.addEventListener('input', handleFieldInput);
-    dom.sampleOutputInput.addEventListener('input', handleFieldInput);
+    dom.sampleOutputInput.addEventListener('input', debouncedHandleFieldInput);
 
     dom.resetSampleButton.addEventListener('click', () => {
         applySamplePreset(state.settings.samplePreset);
@@ -161,6 +161,12 @@ function bindEvents() {
 function handleFieldInput() {
     markScenarioCustom();
     recompute({ shouldResetRace: true });
+}
+
+let sampleInputTimerId = 0;
+function debouncedHandleFieldInput() {
+    window.clearTimeout(sampleInputTimerId);
+    sampleInputTimerId = window.setTimeout(handleFieldInput, STORAGE_DEBOUNCE_MS);
 }
 
 function restoreSettings() {

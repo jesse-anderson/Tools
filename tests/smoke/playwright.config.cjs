@@ -20,11 +20,5 @@ module.exports = defineConfig({
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
     video: 'off'
-  },
-  webServer: {
-    command: 'node server.cjs',
-    url: `http://127.0.0.1:${PORT}/tools.html`,
-    reuseExistingServer: !process.env.CI,
-    timeout: 15_000
   }
 });

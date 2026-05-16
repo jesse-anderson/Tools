@@ -1,0 +1,68 @@
+﻿{
+    "tool":  "pid-playground",
+    "build_id":  "local-cmd",
+    "published_at":  "2026-05-14T14:22:37.5096362-05:00",
+    "artifact_count":  15,
+    "artifacts":  [
+                      {
+                          "path":  "tools\\pid-playground.html",
+                          "sha256":  "BBA99B3708F2A115302FC4DDB35BDAEE9421912DD237413095339632D463EBAE"
+                      },
+                      {
+                          "path":  "css\\pid_playground\\pid-playground.css",
+                          "sha256":  "06B46E6806C72DC4D6392E2975A8076E7CB7AD8C78E4DDACF06745D9DBB4CBE4"
+                      },
+                      {
+                          "path":  "js\\pid_playground\\pid-build.json",
+                          "sha256":  "17A03157C21E527FE911F5FD00ADDC6980963D8D213F6B9AA672A32E207BB99E"
+                      },
+                      {
+                          "path":  "js\\pid_playground\\pid-charts.js",
+                          "sha256":  "5A8C1F57D8B392DF7D8BA3EBC51E072C80334BB20BCC501375F92CB46FBF6FC1"
+                      },
+                      {
+                          "path":  "js\\pid_playground\\pid-controls.js",
+                          "sha256":  "7DE72FB414D6A7D2DBBA6C9A10A8567D878BFB768C4F060CE498F8757E627FEA"
+                      },
+                      {
+                          "path":  "js\\pid_playground\\pid-exercises.js",
+                          "sha256":  "A9CED8A27762A471CBFE335D9D9C9B675AEBE91E3F23C001EDE4673CDB845E68"
+                      },
+                      {
+                          "path":  "js\\pid_playground\\pid-export.js",
+                          "sha256":  "44394CC00647D4D8A630AD005C1CA0EFD581EB32AD11566990E812FA1ABCB49E"
+                      },
+                      {
+                          "path":  "js\\pid_playground\\pid-glossary.js",
+                          "sha256":  "8E6D0A771E227041BDD9C71DBD935C93895C16E8F1B33313BFE90DC8863BEF4E"
+                      },
+                      {
+                          "path":  "js\\pid_playground\\pid-playground.js",
+                          "sha256":  "5DF19DD4CA52942CCF84F98966A3E60B0A55E9809B3D6E86677D72B95B7A785E"
+                      },
+                      {
+                          "path":  "js\\pid_playground\\pid-presets.js",
+                          "sha256":  "DB003B8793382AAE03CAD5E6266789D2B14A3F5256B92E3924AA247B265A0E66"
+                      },
+                      {
+                          "path":  "js\\pid_playground\\pid-state.js",
+                          "sha256":  "118007EF51000CC78D287F74435426063D465ECE863276937C7D8E186B9E3DE2"
+                      },
+                      {
+                          "path":  "js\\pid_playground\\pid-validation.js",
+                          "sha256":  "E9124D26316AE1A6B9741ACFC9F9D857F76C1836D5CB1ADEF2F1C1EF28A70BDC"
+                      },
+                      {
+                          "path":  "js\\pid_playground\\pid-wasm-loader.js",
+                          "sha256":  "93124C28FA5297C27A6B90166258EA4CA107700CCC035024047E6F37AC8FEFC5"
+                      },
+                      {
+                          "path":  "js\\pid_playground\\pkg\\pid_playground_wasm.js",
+                          "sha256":  "04E7942651ABD76F79B39AADB303F8A709F2C794DC8C05970B28444F43D8542E"
+                      },
+                      {
+                          "path":  "js\\pid_playground\\pkg\\pid_playground_wasm_bg.wasm",
+                          "sha256":  "81CE16400318170720CFADE35C91CBF5E037EC4FEB2C4858DE4E15073BB62D63"
+                      }
+                  ]
+}

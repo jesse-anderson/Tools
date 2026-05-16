@@ -9,6 +9,7 @@ const CONFIG = {
     MONTHS_IN_YEAR: 12,
     EXP_THRESHOLD_HIGH: 1e6,
     EXP_THRESHOLD_LOW: 0.01,
+    INPUT_DEBOUNCE_MS: 150,
     BOUNDS: {
         purchasePrice: { min: 0, max: 1000000 },
         lifespanYears: { min: 0.1, max: 20 },
@@ -83,7 +84,8 @@ const state = {
         'custom': null // Special case handled in getSelectedSubscriptionCost
     },
     chart: null,
-    monthlyChart: null
+    monthlyChart: null,
+    chartOptions: null
 };
 
 function getThemeColor(key) {
@@ -106,13 +108,21 @@ function formatNumber(num, decimals = 2) {
     let formatted;
     if (num >= CONFIG.EXP_THRESHOLD_HIGH) {
         formatted = num.toExponential(2);
+        return formatted;
     } else if (num < CONFIG.EXP_THRESHOLD_LOW && num > 0) {
         formatted = num.toFixed(6);
     } else {
         formatted = num.toFixed(decimals);
     }
 
-    return formatted.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    // Group only the integer portion so we don't insert commas into fractions
+    // (e.g. 0.001234 was previously rendered as 0.001,234).
+    const dot = formatted.indexOf('.');
+    if (dot === -1) {
+        return formatted.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    }
+    const intPart = formatted.slice(0, dot).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    return intPart + formatted.slice(dot);
 }
 
 /**
@@ -228,6 +238,9 @@ function updateUI() {
             if (!isFinite(fullyLoadedPerMillion)) {
                 savingsText.textContent = 'No tokens generated — raise duty cycle to compare';
                 savingsIndicator.className = 'savings-indicator';
+            } else if (fullyLoadedPerMillion === apiPriceOut) {
+                savingsText.textContent = 'Per-token costs are comparable';
+                savingsIndicator.className = 'savings-indicator';
             } else if (fullyLoadedPerMillion < apiPriceOut) {
                 const denominator = Math.max(apiPriceOut, 0.001);
                 const pct = ((apiPriceOut - fullyLoadedPerMillion) / denominator) * 100;
@@ -256,7 +269,10 @@ function updateUI() {
         if (localMonthlyValueDisplay) localMonthlyValueDisplay.textContent = formatNumber(monthlyTCO);
 
         if (subSavingsText) {
-            if (monthlyTCO < subCost) {
+            if (monthlyTCO === subCost) {
+                subSavingsText.textContent = 'Monthly costs are comparable';
+                subSavingsIndicator.className = 'savings-indicator';
+            } else if (monthlyTCO < subCost) {
                 const denominator = Math.max(subCost, 0.001);
                 const pct = ((subCost - monthlyTCO) / denominator) * 100;
                 if (monthlyTCO === 0) {
@@ -374,6 +390,8 @@ function buildChartOptions() {
 }
 
 function initCharts() {
+    state.chartOptions = buildChartOptions();
+
     state.chart = new Chart(document.getElementById('comparisonChart'), {
         type: 'bar',
         data: {
@@ -386,7 +404,7 @@ function initCharts() {
                 borderRadius: 6
             }]
         },
-        options: buildChartOptions()
+        options: state.chartOptions
     });
 
     state.monthlyChart = new Chart(document.getElementById('monthlyComparisonChart'), {
@@ -401,24 +419,33 @@ function initCharts() {
                 borderRadius: 6
             }]
         },
-        options: buildChartOptions()
+        options: state.chartOptions
     });
 }
 
 function updateCharts(localPerM, cloudApi, totalLocal, sub) {
-    const opts = buildChartOptions();
     if (state.chart) {
         state.chart.data.datasets[0].data = [isFinite(localPerM) ? localPerM : 0, cloudApi];
-        state.chart.data.datasets[0].backgroundColor = [getThemeColor('local'), getThemeColor('cloud')];
-        state.chart.data.datasets[0].borderColor = [getThemeColor('borderLocal'), getThemeColor('borderCloud')];
-        state.chart.options = opts;
         state.chart.update();
     }
     if (state.monthlyChart) {
         state.monthlyChart.data.datasets[0].data = [isFinite(totalLocal) ? totalLocal : 0, sub];
+        state.monthlyChart.update();
+    }
+}
+
+function applyChartTheme() {
+    state.chartOptions = buildChartOptions();
+    if (state.chart) {
+        state.chart.data.datasets[0].backgroundColor = [getThemeColor('local'), getThemeColor('cloud')];
+        state.chart.data.datasets[0].borderColor = [getThemeColor('borderLocal'), getThemeColor('borderCloud')];
+        state.chart.options = state.chartOptions;
+        state.chart.update();
+    }
+    if (state.monthlyChart) {
         state.monthlyChart.data.datasets[0].backgroundColor = [getThemeColor('local'), getThemeColor('sub')];
         state.monthlyChart.data.datasets[0].borderColor = [getThemeColor('borderLocal'), getThemeColor('borderSub')];
-        state.monthlyChart.options = opts;
+        state.monthlyChart.options = state.chartOptions;
         state.monthlyChart.update();
     }
 }
@@ -442,6 +469,12 @@ function resetToDefaults() {
     updateUI();
 }
 
+let updateTimerId = 0;
+function debouncedUpdateUI() {
+    window.clearTimeout(updateTimerId);
+    updateTimerId = window.setTimeout(updateUI, CONFIG.INPUT_DEBOUNCE_MS);
+}
+
 function setupEventListeners() {
     Object.keys(CONFIG.BOUNDS).forEach(key => {
         const el = document.getElementById(key);
@@ -450,20 +483,20 @@ function setupEventListeners() {
                 const originalVal = parseFloat(e.target.value);
                 let val = isNaN(originalVal) ? 0 : originalVal;
                 const bound = CONFIG.BOUNDS[key];
-                
+
                 // Clamping with visual feedback
                 let clamped = false;
                 if (val < bound.min) { val = bound.min; clamped = true; }
                 if (val > bound.max) { val = bound.max; clamped = true; }
-                
+
                 if (clamped) {
                     el.value = String(val);
                     el.classList.add('input-clamped');
                     setTimeout(() => el.classList.remove('input-clamped'), 400);
                 }
-                
+
                 state[key] = val;
-                updateUI();
+                debouncedUpdateUI();
             });
         }
     });
@@ -481,8 +514,9 @@ function setupEventListeners() {
 
     document.getElementById('resetBtn')?.addEventListener('click', resetToDefaults);
 
-    // Watch for theme changes — shared.js sets data-theme on documentElement
-    const observer = new MutationObserver(() => updateUI());
+    // Watch for theme changes — shared.js sets data-theme on documentElement.
+    // Only chart colors/grid/text are theme-dependent; numeric outputs are not.
+    const observer = new MutationObserver(applyChartTheme);
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 }
 
