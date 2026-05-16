@@ -1,0 +1,5 @@
+*
+!.gitignore
+!steam_tables/
+!steam_tables/README.md
+!steam_tables/*.csv
