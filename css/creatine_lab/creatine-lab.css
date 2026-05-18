@@ -166,6 +166,59 @@ header {
     margin-bottom: 0;
 }
 
+.how-to-block {
+    margin-top: 14px;
+    padding: 12px;
+    border: 1px solid var(--creatine-border);
+    border-radius: 8px;
+    background: var(--creatine-soft);
+}
+
+.how-to-block summary {
+    cursor: pointer;
+    color: var(--creatine-text);
+    font-weight: 800;
+}
+
+.how-to-block[open] summary {
+    margin-bottom: 10px;
+}
+
+.how-to-section + .how-to-section {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="light"] .how-to-section + .how-to-section {
+    border-top-color: rgba(31, 41, 55, 0.08);
+}
+
+.how-to-section h3 {
+    margin: 0 0 7px;
+    color: var(--creatine-orange);
+    font-size: 0.84rem;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.how-to-section ol,
+.how-to-section ul {
+    margin: 0;
+    padding-left: 19px;
+    color: var(--creatine-muted);
+    font-size: 0.88rem;
+    line-height: 1.45;
+}
+
+.how-to-section li + li {
+    margin-top: 5px;
+}
+
+.how-to-section strong {
+    color: var(--creatine-text);
+}
+
 .tab-row {
     display: grid;
     grid-template-columns: repeat(3, 1fr);

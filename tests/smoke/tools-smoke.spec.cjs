@@ -312,7 +312,7 @@ test('tools.html lists Creatine Lab as experimental under Biochemical Engineerin
   const creatineCard = (biochemicalSection.match(/<a href="tools\/creatine-lab\.html"[\s\S]*?<\/a>/) || [])[0] || '';
 
   expect(creatineCard).toContain('<h3 class="tool-name">Creatine Lab</h3>');
-  expect(creatineCard).toContain('<span class="tool-status active">Experimental</span>');
+  expect(creatineCard).toContain('<span class="tool-status coming">Experimental</span>');
   expect(creatineCard).toContain('<span class="tool-tag">creatine</span>');
 });
 
@@ -388,6 +388,11 @@ test('creatine lab default bottle and small-glass presets compute solubility', a
   await expect(page.locator('.scope-warning-block')).not.toHaveAttribute('open', '');
   await page.locator('.scope-warning-block summary').click();
   await expect(page.locator('.scope-warning-block')).toContainText('No warranty. No liability. No suitability claim. You assume all risk.');
+  await expect(page.locator('.how-to-block summary')).toContainText('How To Use This Tool');
+  await expect(page.locator('.how-to-block')).toHaveAttribute('open', '');
+  await expect(page.locator('.how-to-block')).toContainText('Fast Workflow');
+  await expect(page.locator('.how-to-block')).toContainText('Suspended powder is not automatically wasted');
+  await expect(page.locator('.how-to-block')).toContainText('not dosing instructions');
   const missingInputHelp = await page.locator('.control-panel :is(.input-line, .check-line)').evaluateAll((rows) => rows
     .filter((row) => row.querySelector('input, select') && !row.querySelector('.help-chip'))
     .map((row) => (row.querySelector('span')?.textContent || row.textContent || '').trim()));
