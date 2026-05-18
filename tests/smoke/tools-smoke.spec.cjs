@@ -307,6 +307,15 @@ test('tools.html ends Biochemical Engineering Utilities with yogurt, species, th
   ]);
 });
 
+test('tools.html lists Creatine Lab as experimental under Biochemical Engineering Utilities', () => {
+  const biochemicalSection = getSectionMarkup(toolsIndexMarkup, 'Biochemical Engineering Utilities');
+  const creatineCard = (biochemicalSection.match(/<a href="tools\/creatine-lab\.html"[\s\S]*?<\/a>/) || [])[0] || '';
+
+  expect(creatineCard).toContain('<h3 class="tool-name">Creatine Lab</h3>');
+  expect(creatineCard).toContain('<span class="tool-status active">Experimental</span>');
+  expect(creatineCard).toContain('<span class="tool-tag">creatine</span>');
+});
+
 test('tools.html places the AI section after Data Science with the expected tools', () => {
   const dataScienceSection = getSectionMarkup(toolsIndexMarkup, 'Data Science');
   const aiSection = getSectionMarkup(toolsIndexMarkup, 'AI');
@@ -368,6 +377,176 @@ test('tools.html renders expandable page statistics from current tool cards', as
   await expect(page.locator('#toolsStatsTypes')).toContainText('Engineering');
   await expect(page.locator('#toolsStatsTags')).toContainText('battery');
   await expect(page.locator('#toolsStatsAuditNotes')).toContainText('tools are not marked Active');
+});
+
+test('creatine lab default bottle and small-glass presets compute solubility', async ({ page, baseURL }) => {
+  await expectPageToLoadCleanly(page, baseURL, '/tools/creatine-lab.html');
+
+  await expect(page.locator('h1')).toContainText('Creatine Lab');
+  await expect(page.locator('#storageMode')).toHaveValue('premixed');
+  await expect(page.locator('.scope-warning-block summary')).toContainText('Model Scope / Use At Your Own Risk');
+  await expect(page.locator('.scope-warning-block')).not.toHaveAttribute('open', '');
+  await page.locator('.scope-warning-block summary').click();
+  await expect(page.locator('.scope-warning-block')).toContainText('No warranty. No liability. No suitability claim. You assume all risk.');
+  const missingInputHelp = await page.locator('.control-panel :is(.input-line, .check-line)').evaluateAll((rows) => rows
+    .filter((row) => row.querySelector('input, select') && !row.querySelector('.help-chip'))
+    .map((row) => (row.querySelector('span')?.textContent || row.textContent || '').trim()));
+  expect(missingInputHelp).toEqual([]);
+  const missingResultHelp = await page.locator('.result-grid .result-card').evaluateAll((cards) => cards
+    .filter((card) => !card.querySelector('.result-label .help-chip'))
+    .map((card) => (card.querySelector('.result-label')?.textContent || '').trim()));
+  expect(missingResultHelp).toEqual([]);
+  await expect(page.locator('.result-grid .help-chip')).toHaveCount(16);
+  await expect(page.locator('#doseG + .unit-suffix')).toHaveText('g');
+  await page.locator('[aria-describedby="help-doseG"]').hover();
+  await expect(page.locator('#help-doseG')).toBeVisible();
+  await expect(page.locator('#help-doseG')).toContainText('Grams of creatine monohydrate');
+  await page.locator('#doseG').hover();
+  await expect(page.locator('[aria-describedby="help-doseG"]')).toHaveAttribute('aria-expanded', 'false');
+  await expect(page.locator('#help-doseG')).toBeHidden();
+  await page.locator('[aria-describedby="help-storageLossPercentValue"]').click();
+  await expect(page.locator('[aria-describedby="help-storageLossPercentValue"]')).toHaveAttribute('aria-expanded', 'true');
+  await expect(page.locator('#help-storageLossPercentValue')).toContainText('dissolved fraction');
+  await page.locator('#doseG').fill('5');
+  await expect(page.locator('[aria-describedby="help-storageLossPercentValue"]')).toHaveAttribute('aria-expanded', 'false');
+  await expect(page.locator('#help-storageLossPercentValue')).toBeHidden();
+  await expect(page.locator('#help-doseG')).toBeHidden();
+  await page.locator('.advanced-panel summary').click();
+  await expect(page.locator('#muscleCreatineGPerKg + .unit-suffix')).toHaveText('g/kg');
+  await expect(page.locator('#endogenousGPerDay + .unit-suffix')).toHaveText('g/day');
+  await page.locator('[aria-describedby="help-endogenousGPerDay"]').hover();
+  await expect(page.locator('#help-endogenousGPerDay')).toBeVisible();
+  await page.locator('#endogenousGPerDay').hover();
+  await expect(page.locator('[aria-describedby="help-endogenousGPerDay"]')).toHaveAttribute('aria-expanded', 'false');
+  await expect(page.locator('#help-endogenousGPerDay')).toBeHidden();
+  await expect(page.locator('#mixDissolvedValue')).toContainText('5.00 g');
+  await expect(page.locator('#mixUndissolvedValue')).toContainText('0.00 g');
+
+  await page.locator('[data-preset="smallGlass"]').click();
+  await expect(page.locator('#storageMode')).toHaveValue('premixed');
+  await expect(page.locator('#mixDissolvedValue')).toContainText('3.50 g');
+  await expect(page.locator('#mixUndissolvedValue')).toContainText('1.50 g');
+});
+
+test('creatine lab reports acidic premixed storage loss anchor', async ({ page, baseURL }) => {
+  await expectPageToLoadCleanly(page, baseURL, '/tools/creatine-lab.html');
+
+  await page.locator('[data-tab-target="store"]').click();
+  await page.selectOption('#storageMode', 'premixed');
+  await page.fill('#storageTimeValue', '3');
+  await page.selectOption('#storageTimeUnit', 'days');
+  await page.fill('#storageTemperatureValue', '25');
+  await page.selectOption('#phPreset', 'acidic');
+
+  await expect(page.locator('#storageLossPercentValue')).toContainText('12.0%');
+  await expect(page.locator('#storageLossPercentMeta')).toContainText('anchored');
+});
+
+test('creatine lab renders loading accumulation and Monte Carlo envelope', async ({ page, baseURL }) => {
+  await expectPageToLoadCleanly(page, baseURL, '/tools/creatine-lab.html');
+
+  await page.locator('[data-tab-target="accumulate"]').click();
+  await page.selectOption('#protocolPreset', 'load20');
+  await page.fill('#simulationDays', '60');
+
+  await expect(page.locator('#bodySaturationValue')).not.toContainText('0.0%');
+  await expect(page.locator('#bodySaturationMeta')).toContainText('turnover 2.07 g/day baseline, 2.74 g/day current');
+  await expect(page.locator('#bodySaturationMeta')).toContainText('diet + endogenous context 2.00 g/day');
+  await expect(page.locator('#wastePressureValue')).toContainText('2.63 g/day');
+  await expect(page.locator('#wastePressureMeta')).toContainText('10-90% range');
+  await expect(page.locator('#monteCarloBandMeta')).toContainText('10-90%');
+  await expect(page.locator('#steadyDoseValue')).toContainText('0.70 to 1.12 g/day');
+  await expect(page.locator('#steadyDoseMeta')).toContainText('diet + endogenous context 2.00 g/day');
+  await expect(page.locator('#thresholdBody')).toContainText('90%');
+  await expect(page.locator('#storageLossChart .chart-loss-line')).toHaveCount(1);
+  await expect(page.locator('#accumulationChart .chart-line')).toHaveCount(1);
+  await expect(page.locator('#accumulationChart .chart-steady-line')).toHaveCount(1);
+  await expect(page.locator('#accumulationChart .chart-waste-line')).toHaveCount(1);
+  await expect(page.locator('#accumulationChart .chart-waste-zone')).toHaveCount(1);
+  await expect(page.locator('#chartSummary')).toContainText('Left axis shows saturation and dose pressure');
+  await expect(page.locator('#accumulationChart')).toContainText('Left axis: saturation / dose pressure (%)');
+  await expect(page.locator('#accumulationChart')).toContainText('Right axis: g/day');
+  await expect(page.locator('#accumulationChart')).toContainText('waste pressure');
+  await page.locator('#accumulationChart').hover({ position: { x: 360, y: 140 } });
+  await expect(page.locator('#accumulationChart .chart-hover')).toHaveCSS('display', 'block');
+
+  await page.locator('[data-theme-toggle="light"]').click();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+  const plotDownloadPromise = page.waitForEvent('download');
+  await page.click('#exportPlotBtn');
+  const plotDownload = await plotDownloadPromise;
+  const plotSvg = await readDownloadText(plotDownload);
+  expect(plotDownload.suggestedFilename()).toBe('creatine-lab-saturation-dose-pressure.svg');
+  expect(plotSvg).toContain('<svg');
+  expect(plotSvg).toContain('width="3200"');
+  expect(plotSvg).toContain('height="1244"');
+  expect(plotSvg).toContain('--creatine-soft: #eef5ef;');
+  expect(plotSvg).toContain('--creatine-text: #1f2937;');
+  expect(plotSvg).toContain('chart-waste-line');
+  expect(plotSvg).toContain('Left axis: saturation / dose pressure (%)');
+  expect(plotSvg).toContain('Right axis: g/day');
+});
+
+test('creatine lab no-supplement baseline does not self-load', async ({ page, baseURL }) => {
+  await expectPageToLoadCleanly(page, baseURL, '/tools/creatine-lab.html');
+
+  await page.locator('[data-tab-target="accumulate"]').click();
+  await page.selectOption('#bodyPoolBasis', 'manual');
+  await page.fill('#baselinePoolG', '100');
+  await page.selectOption('#protocolPreset', 'maintenance5');
+  await page.fill('#maintenanceDoseG', '0');
+  await page.fill('#simulationDays', '60');
+
+  await expect(page.locator('#bodyFinalPoolValue')).toContainText('100 g');
+  await expect(page.locator('#bodySaturationValue')).toContainText('75.0%');
+  await expect(page.locator('#bodySaturationMeta')).toContainText('supplement gap filled 0.0%');
+  await expect(page.locator('#bodySaturationMeta')).toContainText('turnover 1.70 g/day baseline, 1.70 g/day current');
+  await expect(page.locator('#wastePressureValue')).toContainText('0.00 g/day');
+  await expect(page.locator('#steadyDoseValue')).toContainText('0.00 to 0.00 g/day');
+  await expect(page.locator('#warningList')).toContainText('those inputs are not added again as extra loading');
+});
+
+test('creatine lab models body composition and brain compartment', async ({ page, baseURL }) => {
+  await expectPageToLoadCleanly(page, baseURL, '/tools/creatine-lab.html');
+
+  await page.locator('[data-tab-target="accumulate"]').click();
+  await expect(page.locator('#bodyCompositionValue')).toContainText('25.2 kg');
+  await expect(page.locator('#bodyPoolBasisValue')).toContainText('122 g');
+  await expect(page.locator('#brainPoolValue')).toContainText('1.27 g');
+  await expect(page.locator('#brainResponseMeta')).toContainText('20 g/day for 4 weeks reference: 3.0% to 14.6%');
+  await expect(page.locator('#brainResponseMeta')).toContainText('does not change when protocol changes');
+
+  await page.fill('#bodyMassKg', '100');
+  await page.fill('#bodyFatPercent', '10');
+  await expect(page.locator('#bodyCompositionValue')).toContainText('40.5 kg');
+
+  await page.selectOption('#bodyPoolBasis', 'manual');
+  await expect(page.locator('#manualBaselineLine')).toBeVisible();
+  await expect(page.locator('#bodyPoolBasisValue')).toContainText('120 g');
+});
+
+test('creatine lab exposes claim-to-source audit trail', async ({ page, baseURL }) => {
+  await expectPageToLoadCleanly(page, baseURL, '/tools/creatine-lab.html');
+
+  await expect(page.locator('#sourceAuditBody')).toContainText('5 g in 1 L at 20 deg C is fully dissolved at equilibrium');
+  await expect(page.locator('#sourceAuditBody')).toContainText('Jager et al. 2011');
+  await expect(page.locator('#sourceAuditBody')).toContainText('fitted browser model');
+  await expect(page.locator('#sourceAuditBody')).toContainText('Harris et al. 2002');
+  await expect(page.locator('#sourceAuditBody')).toContainText('Sagayama et al. 2023');
+  await expect(page.locator('#sourceAuditBody')).toContainText('Brain tCr output is separate');
+  await expect(page.locator('#sourceAuditBody')).toContainText('does not change when the selected protocol changes');
+  await expect(page.locator('#sourceAuditBody')).toContainText('turnover scales with the current modeled pool');
+  await expect(page.locator('#sourceAuditBody')).toContainText('steadyStateDoseCrMG estimates');
+  await expect(page.locator('#sourceAuditBody')).toContainText('Dechent et al. 1999');
+
+  const sanityPanel = page.locator('details.foldable-card').filter({ hasText: 'Model Sanity Checks' });
+  const auditPanel = page.locator('details.foldable-card').filter({ hasText: 'Claim Audit Trail' });
+  await expect(sanityPanel).not.toHaveAttribute('open', '');
+  await expect(auditPanel).not.toHaveAttribute('open', '');
+  await sanityPanel.locator('summary').click();
+  await auditPanel.locator('summary').click();
+  await expect(sanityPanel).toHaveAttribute('open', '');
+  await expect(auditPanel).toHaveAttribute('open', '');
 });
 
 test('stoichiometry calculator balances charged species without treating charge as atoms', async ({ page, baseURL }) => {

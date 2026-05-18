@@ -1,0 +1,535 @@
+<!--
+============================================
+CREATINE LAB v0.1.0
+============================================
+Description: Creatine monohydrate equilibrium dissolution,
+storage-loss, and body-pool saturation estimator.
+
+Dependencies:
+- No third-party runtime libraries beyond shared repo assets
+
+Project: Tools Hub by Jesse Anderson
+Repository: https://github.com/jesse-anderson/Tools
+License: GPL-3.0
+============================================
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Creatine Lab | Tools Hub</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/shared.css">
+    <link rel="stylesheet" href="../css/creatine_lab/creatine-lab.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <div class="header-left">
+                    <a href="../tools.html" class="back-link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <line x1="19" y1="12" x2="5" y2="12"></line>
+                            <polyline points="12 19 5 12 12 5"></polyline>
+                        </svg>
+                        Back to Tools
+                    </a>
+                </div>
+                <div class="header-right">
+                    <div class="theme-toggle">
+                        <button type="button" data-theme-toggle="light" aria-pressed="false" title="Light mode">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                <circle cx="12" cy="12" r="5"></circle>
+                                <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path>
+                            </svg>
+                        </button>
+                        <button type="button" data-theme-toggle="dark" aria-pressed="false" title="Dark mode">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tool-header">
+                <div class="tool-icon-header biochemical">
+                    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M9 2h6"></path>
+                        <path d="M10 2v6l-5.3 9.2A3.2 3.2 0 0 0 7.5 22h9A3.2 3.2 0 0 0 19.3 17.2L14 8V2"></path>
+                        <path d="M8 15h8"></path>
+                        <path d="M9 18h6"></path>
+                    </svg>
+                </div>
+                <div>
+                    <h1>Creatine Lab</h1>
+                    <p class="tagline">Creatine monohydrate equilibrium dissolution, storage loss, and body-pool saturation</p>
+                </div>
+            </div>
+        </header>
+
+        <main class="creatine-layout">
+            <section class="panel control-panel" aria-labelledby="input-title">
+                <div class="panel-header">
+                    <div>
+                        <h2 id="input-title">Inputs</h2>
+                        <p>Creatine monohydrate only. Dose inputs are grams of creatine monohydrate, not other forms.</p>
+                    </div>
+                    <button class="tool-btn secondary" id="resetBtn" type="button">Reset</button>
+                </div>
+
+                <div class="status-line" id="statusLine" aria-live="polite">Ready.</div>
+
+                <details class="scope-warning-block" role="note" aria-label="Model scope, safety limitation, and liability disclaimer">
+                    <summary>Model Scope / Use At Your Own Risk</summary>
+                    <p>This calculator uses published solubility, stability, and loading data with a simplified body-pool model. Do not use it to diagnose kidney function, interpret creatinine/eGFR labs, choose a dose, decide whether creatine is safe for you, or replace clinical care.</p>
+                    <p>Ask a clinician before using creatine if you have kidney disease, abnormal labs, are pregnant, take medicines that affect the kidneys or fluid balance, or have symptoms or medical conditions that could change supplement risk.</p>
+                    <p><strong>No warranty. No liability. No suitability claim. You assume all risk.</strong> The tool is provided as-is, without warranty of accuracy, completeness, merchantability, fitness for a particular purpose, medical suitability, regulatory acceptability, or lab-interpretation value. The creators and maintainers expressly disclaim responsibility and liability for dosing decisions, supplement decisions, lab-test interpretation, medical decisions, adverse events, commercial losses, downstream damages, or any other consequence arising from use or misuse of this page.</p>
+                    <p><strong>Verify independently.</strong> Check the cited sources and use qualified medical, nutrition, laboratory, or regulatory guidance before using any result for health, safety, clinical, commercial, or other consequence-bearing decisions.</p>
+                </details>
+
+                <div class="tab-row" role="tablist" aria-label="Creatine Lab sections">
+                    <button type="button" class="tab-btn active" data-tab-target="mix" aria-pressed="true">Mix</button>
+                    <button type="button" class="tab-btn" data-tab-target="store" aria-pressed="false">Store</button>
+                    <button type="button" class="tab-btn" data-tab-target="accumulate" aria-pressed="false">Accumulate</button>
+                </div>
+
+                <section class="tab-panel" data-tab-panel="mix">
+                    <div class="preset-grid" aria-label="Mix presets">
+                        <button type="button" class="preset-btn" data-preset="defaultBottle">Default bottle</button>
+                        <button type="button" class="preset-btn" data-preset="fridgeAddLater">Fridge bottle</button>
+                        <button type="button" class="preset-btn" data-preset="smallGlass">Small glass</button>
+                        <button type="button" class="preset-btn" data-preset="warmDissolve">Warm dissolve</button>
+                    </div>
+
+                    <div class="section-block">
+                        <h3>Mix</h3>
+                        <div class="input-grid">
+                            <label class="input-line">
+                                <span>Creatine monohydrate</span>
+                                <div class="unit-field">
+                                    <input id="doseG" type="number" min="0" step="0.1" value="5">
+                                    <span class="unit-suffix" aria-hidden="true">g</span>
+                                </div>
+                            </label>
+                            <div class="input-line split-line">
+                                <span>Water volume</span>
+                                <div class="inline-pair">
+                                    <input id="volumeValue" type="number" min="0" step="0.01" value="1">
+                                    <select id="volumeUnit">
+                                        <option value="L">L</option>
+                                        <option value="mL">mL</option>
+                                        <option value="fl_oz">fl oz</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="input-line split-line">
+                                <span>Water temperature</span>
+                                <div class="inline-pair">
+                                    <input id="temperatureValue" type="number" step="0.1" value="20">
+                                    <select id="temperatureUnit">
+                                        <option value="C">deg C</option>
+                                        <option value="F">deg F</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <label class="check-line">
+                                <input id="consumeFullSuspension" type="checkbox" checked>
+                                <span>Drink the full bottle or suspension</span>
+                            </label>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="tab-panel" data-tab-panel="store" hidden>
+                    <div class="section-block">
+                        <h3>Storage</h3>
+                        <div class="input-grid">
+                            <label class="input-line wide">
+                                <span>Storage mode</span>
+                                <select id="storageMode">
+                                    <option value="add_later">Store water, add creatine later</option>
+                                    <option value="premixed" selected>Store premixed solution/suspension</option>
+                                    <option value="dry_powder">Dry powder storage</option>
+                                </select>
+                            </label>
+                            <div class="input-line split-line">
+                                <span>Storage time</span>
+                                <div class="inline-pair">
+                                    <input id="storageTimeValue" type="number" min="0" step="0.1" value="8">
+                                    <select id="storageTimeUnit">
+                                        <option value="hours">hours</option>
+                                        <option value="days">days</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="input-line split-line">
+                                <span>Storage temperature</span>
+                                <div class="inline-pair">
+                                    <input id="storageTemperatureValue" type="number" step="0.1" value="4">
+                                    <select id="storageTemperatureUnit">
+                                        <option value="C">deg C</option>
+                                        <option value="F">deg F</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <label class="input-line">
+                                <span>pH preset</span>
+                                <select id="phPreset">
+                                    <option value="neutral">Neutral water</option>
+                                    <option value="mild">Mildly acidic</option>
+                                    <option value="acidic">Acidic</option>
+                                    <option value="very_acidic">Very acidic</option>
+                                    <option value="custom">Custom pH</option>
+                                </select>
+                            </label>
+                            <label class="input-line" id="customPhLine" hidden>
+                                <span>Custom pH</span>
+                                <input id="customPh" type="number" min="3.5" max="8" step="0.1" value="7">
+                            </label>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="tab-panel" data-tab-panel="accumulate" hidden>
+                    <div class="section-block">
+                        <h3>Accumulation</h3>
+                        <div class="input-grid">
+                            <label class="input-line wide">
+                                <span>Protocol</span>
+                                <select id="protocolPreset">
+                                    <option value="maintenance5">5 g/day daily, no loading phase</option>
+                                    <option value="load10">10 g/day load, then 5 g/day</option>
+                                    <option value="load20">20 g/day load, then 5 g/day</option>
+                                    <option value="stop_after_load">20 g/day load, then stop</option>
+                                    <option value="custom">Custom loading protocol</option>
+                                </select>
+                            </label>
+                            <label class="input-line">
+                                <span>Loading days</span>
+                                <input id="loadingDays" type="number" min="0" max="60" step="1" value="6">
+                            </label>
+                            <label class="input-line">
+                                <span>Maintenance dose</span>
+                                <div class="unit-field">
+                                    <input id="maintenanceDoseG" type="number" min="0" step="0.1" value="5">
+                                    <span class="unit-suffix" aria-hidden="true">g/day</span>
+                                </div>
+                            </label>
+                            <div class="input-grid nested" id="customProtocolLines" hidden>
+                                <label class="input-line">
+                                    <span>Loading dose</span>
+                                    <div class="unit-field">
+                                        <input id="customLoadingDoseG" type="number" min="0" step="0.1" value="10">
+                                        <span class="unit-suffix" aria-hidden="true">g/day</span>
+                                    </div>
+                                </label>
+                            </div>
+                            <label class="input-line">
+                                <span>Simulation days</span>
+                                <input id="simulationDays" type="number" min="1" max="365" step="1" value="60">
+                            </label>
+                            <label class="input-line wide">
+                                <span>Baseline pool basis</span>
+                                <select id="bodyPoolBasis">
+                                    <option value="body_comp">Estimate from body composition</option>
+                                    <option value="manual">Manual baseline pool</option>
+                                </select>
+                            </label>
+                            <label class="input-line" id="manualBaselineLine" hidden>
+                                <span>Baseline pool</span>
+                                <div class="unit-field">
+                                    <input id="baselinePoolG" type="number" min="50" max="250" step="1" value="120">
+                                    <span class="unit-suffix" aria-hidden="true">g</span>
+                                </div>
+                            </label>
+                            <label class="input-line">
+                                <span>Body mass (kg)</span>
+                                <input id="bodyMassKg" type="number" min="30" max="200" step="1" value="70">
+                            </label>
+                            <label class="input-line">
+                                <span>Body fat (%)</span>
+                                <input id="bodyFatPercent" type="number" min="3" max="60" step="0.5" value="20">
+                            </label>
+                            <label class="input-line">
+                                <span>Direct FFM kg</span>
+                                <input id="fatFreeMassKg" type="number" min="0" max="180" step="0.1" value="0">
+                            </label>
+                            <label class="input-line">
+                                <span>Direct SMM kg</span>
+                                <input id="skeletalMuscleMassKg" type="number" min="0" max="100" step="0.1" value="0">
+                            </label>
+                            <label class="input-line">
+                                <span>Diet pattern</span>
+                                <select id="dietaryPattern">
+                                    <option value="omnivore">Omnivore</option>
+                                    <option value="low_meat">Low meat</option>
+                                    <option value="vegetarian">Vegetarian</option>
+                                </select>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="section-block">
+                        <h3>Brain Compartment</h3>
+                        <div class="input-grid">
+                            <label class="input-line">
+                                <span>Brain mass (kg)</span>
+                                <input id="brainMassKg" type="number" min="0.8" max="2.2" step="0.05" value="1.4">
+                            </label>
+                            <label class="input-line">
+                                <span>Baseline tCr (mM)</span>
+                                <input id="brainCreatineMm" type="number" min="3" max="12" step="0.1" value="6.9">
+                            </label>
+                        </div>
+                    </div>
+                </section>
+
+                <details class="advanced-panel">
+                    <summary>Advanced model parameters</summary>
+                    <div class="input-grid">
+                        <label class="input-line">
+                            <span>FFM to SMM fraction</span>
+                            <input id="ffmToSmmFraction" type="number" min="0.25" max="0.65" step="0.01" value="0.45">
+                        </label>
+                        <label class="input-line">
+                            <span>Muscle creatine g/kg</span>
+                            <div class="unit-field">
+                                <input id="muscleCreatineGPerKg" type="number" min="3" max="7" step="0.1" value="4.6">
+                                <span class="unit-suffix" aria-hidden="true">g/kg</span>
+                            </div>
+                        </label>
+                        <label class="input-line">
+                            <span>Muscle share of pool</span>
+                            <input id="skeletalMuscleCreatineShare" type="number" min="0.75" max="0.99" step="0.01" value="0.95">
+                        </label>
+                        <label class="input-line">
+                            <span>Endogenous synthesis</span>
+                            <div class="unit-field">
+                                <input id="endogenousGPerDay" type="number" min="0" step="0.1" value="1">
+                                <span class="unit-suffix" aria-hidden="true">g/day</span>
+                            </div>
+                        </label>
+                        <label class="input-line">
+                            <span>Turnover per day (%)</span>
+                            <input id="turnoverPercentPerDay" type="number" min="0" step="0.01" value="1.70">
+                        </label>
+                        <label class="input-line">
+                            <span>Baseline saturation (%)</span>
+                            <input id="baselineSaturationPercent" type="number" min="50" max="95" step="1" value="75">
+                        </label>
+                        <label class="input-line">
+                            <span>Retention max</span>
+                            <input id="retentionMax" type="number" min="0" max="1" step="0.01" value="0.60">
+                        </label>
+                        <label class="input-line">
+                            <span>Temperature Q10</span>
+                            <input id="q10" type="number" min="1" max="5" step="0.1" value="2">
+                        </label>
+                        <label class="input-line">
+                            <span>Monte Carlo draws</span>
+                            <input id="monteCarloDraws" type="number" min="100" max="2000" step="100" value="500">
+                        </label>
+                        <label class="input-line">
+                            <span>Brain reference low (%)</span>
+                            <input id="brainResponseLowPercent" type="number" min="0" max="50" step="0.1" value="3">
+                        </label>
+                        <label class="input-line">
+                            <span>Brain reference typical (%)</span>
+                            <input id="brainResponseTypicalPercent" type="number" min="0" max="50" step="0.1" value="8.7">
+                        </label>
+                        <label class="input-line">
+                            <span>Brain reference high (%)</span>
+                            <input id="brainResponseHighPercent" type="number" min="0" max="50" step="0.1" value="14.6">
+                        </label>
+                    </div>
+                </details>
+            </section>
+
+            <section class="panel results-panel" aria-labelledby="results-title">
+                <div class="panel-header">
+                    <div>
+                        <h2 id="results-title">Results</h2>
+                        <p id="sourceModelNote">Solubility uses temperature-only water data. Body-pool results are rough estimates, not personal lab measurements.</p>
+                    </div>
+                </div>
+
+                <div class="result-grid">
+                    <article class="result-card">
+                        <span class="result-label">Dissolved at equilibrium</span>
+                        <strong id="mixDissolvedValue">0.00 g</strong>
+                        <span id="mixDissolvedMeta">Waiting for input.</span>
+                    </article>
+                    <article class="result-card">
+                        <span class="result-label">Suspended powder</span>
+                        <strong id="mixUndissolvedValue">0.00 g</strong>
+                        <span id="mixUndissolvedMeta">Waiting for input.</span>
+                    </article>
+                    <article class="result-card">
+                        <span class="result-label">Solubility limit</span>
+                        <strong id="mixSolubilityValue">0.00 g/L</strong>
+                        <span id="mixSolubilityMeta">Waiting for input.</span>
+                    </article>
+                    <article class="result-card">
+                        <span class="result-label">Water needed</span>
+                        <strong id="mixWaterNeededValue">0 mL</strong>
+                        <span id="mixWaterNeededMeta">Waiting for input.</span>
+                    </article>
+                    <article class="result-card">
+                        <span class="result-label">After storage</span>
+                        <strong id="storageRemainingValue">0.00 g</strong>
+                        <span id="storageRemainingMeta">Waiting for input.</span>
+                    </article>
+                    <article class="result-card">
+                        <span class="result-label">Dissolved loss</span>
+                        <strong id="storageLossPercentValue">0.0%</strong>
+                        <span id="storageLossPercentMeta">Waiting for input.</span>
+                    </article>
+                    <article class="result-card">
+                        <span class="result-label">Estimated creatinine formed</span>
+                        <strong id="storageCreatinineValue">0.00 g</strong>
+                        <span id="storageCreatinineMeta">Waiting for input.</span>
+                    </article>
+                    <article class="result-card">
+                        <span class="result-label">Final body pool</span>
+                        <strong id="bodyFinalPoolValue">0 g</strong>
+                        <span id="bodyFinalPoolMeta">Waiting for input.</span>
+                    </article>
+                    <article class="result-card">
+                        <span class="result-label">Pool basis</span>
+                        <strong id="bodyPoolBasisValue">0 g</strong>
+                        <span id="bodyPoolBasisMeta">Waiting for input.</span>
+                    </article>
+                    <article class="result-card">
+                        <span class="result-label">Modeled saturation</span>
+                        <strong id="bodySaturationValue">0.0%</strong>
+                        <span id="bodySaturationMeta">Waiting for input.</span>
+                    </article>
+                    <article class="result-card">
+                        <span class="result-label">Waste pressure</span>
+                        <strong id="wastePressureValue">0.00 g/day</strong>
+                        <span id="wastePressureMeta">Waiting for input.</span>
+                    </article>
+                    <article class="result-card">
+                        <span class="result-label">Estimated SMM</span>
+                        <strong id="bodyCompositionValue">0.0 kg</strong>
+                        <span id="bodyCompositionMeta">Waiting for input.</span>
+                    </article>
+                    <article class="result-card">
+                        <span class="result-label">Brain tCr estimate</span>
+                        <strong id="brainPoolValue">0.00 g</strong>
+                        <span id="brainPoolMeta">Waiting for input.</span>
+                    </article>
+                    <article class="result-card">
+                        <span class="result-label">Brain tCr ref gain</span>
+                        <strong id="brainResponseValue">0.00 g</strong>
+                        <span id="brainResponseMeta">Waiting for input.</span>
+                    </article>
+                    <article class="result-card result-card--wide">
+                        <span class="result-label">Monte Carlo band</span>
+                        <strong id="monteCarloBandValue">0.0% to 0.0%</strong>
+                        <span id="monteCarloBandMeta">Waiting for input.</span>
+                    </article>
+                    <article class="result-card result-card--wide">
+                        <span class="result-label">Steady-state dose</span>
+                        <strong id="steadyDoseValue">0.00 g/day</strong>
+                        <span id="steadyDoseMeta">Waiting for input.</span>
+                    </article>
+                </div>
+
+                <div class="chart-grid-panels">
+                    <section class="chart-panel" aria-labelledby="storage-chart-title">
+                        <div class="chart-header">
+                            <h3 id="storage-chart-title">Dissolved Loss Over Storage</h3>
+                            <p id="storageLossChartSummary">Waiting for input.</p>
+                        </div>
+                        <svg id="storageLossChart" class="metric-chart" viewBox="0 0 720 280" role="img" aria-label="Estimated dissolved creatine loss percentage chart"></svg>
+                    </section>
+
+                    <section class="chart-panel" aria-labelledby="chart-title">
+                        <div class="chart-header">
+                            <div>
+                                <h3 id="chart-title">Estimated Saturation And Dose Pressure</h3>
+                                <p id="chartSummary">Waiting for input.</p>
+                            </div>
+                            <button class="tool-btn secondary export-plot-btn" id="exportPlotBtn" type="button">Export plot SVG</button>
+                        </div>
+                        <svg id="accumulationChart" class="metric-chart accumulation-chart" viewBox="0 0 720 280" role="img" aria-label="Estimated creatine body-pool saturation, dose pressure, and steady-state dose chart"></svg>
+                    </section>
+                </div>
+
+                <section class="table-panel" aria-labelledby="threshold-title">
+                    <h3 id="threshold-title">Days To Estimated Saturation</h3>
+                    <div class="table-scroll">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Target</th>
+                                    <th>Centerline</th>
+                                    <th>10-90% band</th>
+                                    <th>Reached in draws</th>
+                                </tr>
+                            </thead>
+                            <tbody id="thresholdBody"></tbody>
+                        </table>
+                    </div>
+                </section>
+            </section>
+
+            <aside class="side-panel" aria-label="Model notes">
+                <details class="panel side-card foldable-card" open>
+                    <summary><span>Model Notes</span></summary>
+                    <div class="foldable-content">
+                        <ul class="note-list" id="warningList"></ul>
+                    </div>
+                </details>
+
+                <details class="panel side-card foldable-card">
+                    <summary><span>Model Sanity Checks</span></summary>
+                    <div class="foldable-content">
+                        <div class="table-scroll">
+                            <table class="validation-table">
+                                <thead>
+                                    <tr>
+                                        <th>Status</th>
+                                        <th>Check</th>
+                                        <th>Fixture / anchor / model check</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="validationBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </details>
+
+                <details class="panel side-card foldable-card">
+                    <summary><span>Claim Audit Trail</span></summary>
+                    <div class="foldable-content">
+                        <div class="table-scroll audit-table-wrap">
+                            <table class="audit-table">
+                                <thead>
+                                    <tr>
+                                        <th>Area</th>
+                                        <th>Claim / implementation</th>
+                                        <th>Support / source</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="sourceAuditBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </details>
+            </aside>
+        </main>
+
+        <footer data-footer></footer>
+    </div>
+
+    <script src="../js/shared.js"></script>
+    <script src="../js/footer.js"></script>
+    <script type="module" src="../js/creatine_lab/creatine-lab.js"></script>
+</body>
+</html>
