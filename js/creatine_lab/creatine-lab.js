@@ -7,6 +7,7 @@ const INPUT_DEBOUNCE_MS = 350;
 const EXPORT_SVG_WIDTH = 3200;
 const EXPORT_SVG_HEIGHT = 1244;
 let pendingRecomputeId = null;
+let chartOverlayReturnFocus = null;
 
 const INPUT_HELP_TEXT = Object.freeze({
     doseG: "Grams of creatine monohydrate powder added. Active creatine equivalent is calculated separately.",
@@ -98,7 +99,10 @@ function cacheDom() {
         "bodyCompositionValue", "bodyCompositionMeta", "bodyPoolBasisValue", "bodyPoolBasisMeta",
         "brainPoolValue", "brainPoolMeta", "brainResponseValue", "brainResponseMeta", "monteCarloBandValue",
         "monteCarloBandMeta", "steadyDoseValue", "steadyDoseMeta", "warningList", "thresholdBody", "validationBody", "storageLossChart",
-        "storageLossChartSummary", "accumulationChart", "chartSummary", "exportPlotBtn", "sourceModelNote", "sourceAuditBody"
+        "storageLossChartSummary", "accumulationChart", "chartSummary", "expandStorageChartBtn", "expandChartBtn",
+        "exportStoragePlotBtn", "exportPlotBtn",
+        "chartOverlay", "chartOverlayTitle", "chartOverlaySummary", "chartOverlayBody", "chartOverlayClose",
+        "sourceModelNote", "sourceAuditBody"
     ];
 
     ids.forEach((id) => {
@@ -135,7 +139,15 @@ function bindEvents() {
         setStatus("Reset to default bottle scenario.");
     });
 
+    dom.exportStoragePlotBtn?.addEventListener("click", exportStorageLossPlot);
     dom.exportPlotBtn?.addEventListener("click", exportAccumulationPlot);
+    dom.expandStorageChartBtn?.addEventListener("click", openStorageChartOverlay);
+    dom.expandChartBtn?.addEventListener("click", openAccumulationChartOverlay);
+    dom.chartOverlayClose?.addEventListener("click", closeChartOverlay);
+    dom.chartOverlay?.addEventListener("click", (event) => {
+        const target = event.target instanceof Element ? event.target : null;
+        if (target?.closest("[data-chart-overlay-close]")) closeChartOverlay();
+    });
 
     document.addEventListener("click", (event) => {
         const chip = event.target instanceof Element ? event.target.closest(".help-chip") : null;
@@ -154,7 +166,12 @@ function bindEvents() {
     });
 
     document.addEventListener("keydown", (event) => {
-        if (event.key === "Escape") closeHelpTooltips();
+        if (event.key !== "Escape") return;
+        if (dom.chartOverlay && !dom.chartOverlay.hidden) {
+            closeChartOverlay();
+            return;
+        }
+        closeHelpTooltips();
     });
 }
 
@@ -626,20 +643,94 @@ function attachChartHover(svg, points, { width, height, pad }) {
     svg.addEventListener("pointerleave", leaveHandler);
 }
 
-function exportAccumulationPlot() {
-    if (!dom.accumulationChart) return;
+function openAccumulationChartOverlay() {
+    if (pendingRecomputeId !== null) {
+        recomputeNow();
+    }
+    openChartOverlay({
+        chart: dom.accumulationChart,
+        title: document.getElementById("chart-title")?.textContent || "Estimated Saturation And Dose Pressure",
+        summary: dom.chartSummary?.textContent || "Expanded chart view.",
+        label: "Expanded Creatine Lab saturation and dose pressure chart"
+    });
+}
 
-    const clone = dom.accumulationChart.cloneNode(true);
+function openStorageChartOverlay() {
+    if (pendingRecomputeId !== null) {
+        recomputeNow();
+    }
+    openChartOverlay({
+        chart: dom.storageLossChart,
+        title: document.getElementById("storage-chart-title")?.textContent || "Dissolved Loss Over Storage",
+        summary: dom.storageLossChartSummary?.textContent || "Expanded chart view.",
+        label: "Expanded Creatine Lab dissolved storage-loss chart"
+    });
+}
+
+function openChartOverlay({ chart, title, summary, label }) {
+    if (!chart || !dom.chartOverlay || !dom.chartOverlayBody) return;
+    closeHelpTooltips();
+    chartOverlayReturnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    dom.chartOverlayTitle.textContent = title;
+    dom.chartOverlaySummary.textContent = summary;
+    dom.chartOverlayBody.replaceChildren(cloneChartForOverlay(chart, label));
+    dom.chartOverlay.hidden = false;
+    document.body.classList.add("chart-overlay-open");
+    dom.chartOverlayClose?.focus();
+}
+
+function closeChartOverlay() {
+    if (!dom.chartOverlay || dom.chartOverlay.hidden) return;
+    dom.chartOverlay.hidden = true;
+    dom.chartOverlayBody?.replaceChildren();
+    document.body.classList.remove("chart-overlay-open");
+    chartOverlayReturnFocus?.focus?.();
+    chartOverlayReturnFocus = null;
+}
+
+function cloneChartForOverlay(svg, label) {
+    const clone = svg.cloneNode(true);
+    clone.removeAttribute("id");
+    clone.classList.add("chart-overlay-chart");
+    clone.setAttribute("aria-label", label || "Expanded Creatine Lab chart");
+    clone.setAttribute("preserveAspectRatio", "xMidYMid meet");
+    clone.querySelectorAll(".chart-hover").forEach((hover) => hover.remove());
+    return clone;
+}
+
+function exportAccumulationPlot() {
+    exportChartSvg({
+        chart: dom.accumulationChart,
+        title: "Creatine Lab saturation and dose pressure plot",
+        ariaLabel: "Exported Creatine Lab saturation and dose pressure plot",
+        filename: "creatine-lab-saturation-dose-pressure.svg"
+    });
+}
+
+function exportStorageLossPlot() {
+    exportChartSvg({
+        chart: dom.storageLossChart,
+        title: "Creatine Lab dissolved loss over storage plot",
+        ariaLabel: "Exported Creatine Lab dissolved storage loss plot",
+        filename: "creatine-lab-dissolved-loss-over-storage.svg"
+    });
+}
+
+function exportChartSvg({ chart, title, ariaLabel, filename }) {
+    if (!chart) return;
+    if (pendingRecomputeId !== null) recomputeNow();
+
+    const clone = chart.cloneNode(true);
     clone.querySelectorAll(".chart-hover").forEach((hover) => hover.remove());
     clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
     clone.setAttribute("width", String(EXPORT_SVG_WIDTH));
     clone.setAttribute("height", String(EXPORT_SVG_HEIGHT));
     clone.setAttribute("role", "img");
-    clone.setAttribute("aria-label", "Exported Creatine Lab saturation and dose pressure plot");
+    clone.setAttribute("aria-label", ariaLabel);
 
-    const title = document.createElementNS("http://www.w3.org/2000/svg", "title");
-    title.textContent = "Creatine Lab saturation and dose pressure plot";
-    clone.insertBefore(title, clone.firstChild);
+    const titleElement = document.createElementNS("http://www.w3.org/2000/svg", "title");
+    titleElement.textContent = title;
+    clone.insertBefore(titleElement, clone.firstChild);
 
     const style = document.createElementNS("http://www.w3.org/2000/svg", "style");
     style.textContent = getExportChartCss();
@@ -650,7 +741,7 @@ function exportAccumulationPlot() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = "creatine-lab-saturation-dose-pressure.svg";
+    link.download = filename;
     document.body.appendChild(link);
     link.click();
     link.remove();
@@ -681,6 +772,7 @@ function getExportChartCss() {
         .chart-line { fill: none; stroke: var(--creatine-orange); stroke-width: 3; }
         .chart-steady-line { fill: none; stroke: var(--creatine-cyan); stroke-width: 2.4; stroke-dasharray: 7 5; }
         .chart-waste-line { fill: none; stroke: var(--creatine-red); stroke-width: 2.4; }
+        .chart-loss-line { fill: none; stroke: var(--creatine-red); stroke-width: 3; }
         .chart-label { fill: var(--creatine-muted); font: 700 12px "JetBrains Mono", monospace; }
         .chart-steady-label, .chart-legend.steady { fill: var(--creatine-cyan); }
         .chart-legend { fill: var(--creatine-muted); font: 800 11px "JetBrains Mono", monospace; }

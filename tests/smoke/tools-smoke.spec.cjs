@@ -388,13 +388,18 @@ test('creatine lab default bottle and small-glass presets compute solubility', a
   await expect(page.locator('.scope-warning-block')).not.toHaveAttribute('open', '');
   await page.locator('.scope-warning-block summary').click();
   await expect(page.locator('.scope-warning-block')).toContainText('No warranty. No liability. No suitability claim. You assume all risk.');
-  await expect(page.locator('.guide-card summary')).toContainText('How To Use This Tool');
-  await expect(page.locator('.guide-card')).not.toHaveAttribute('open', '');
-  await page.locator('.guide-card summary').click();
-  await expect(page.locator('.guide-card')).toHaveAttribute('open', '');
-  await expect(page.locator('.guide-card')).toContainText('Workflow');
-  await expect(page.locator('.guide-card')).toContainText('Suspended powder is not automatically wasted');
-  await expect(page.locator('.guide-card')).toContainText('recommend a dose');
+  await expect(page.locator('.tutorial-card summary')).toContainText('How To Use This Tool');
+  await expect(page.locator('.tutorial-card')).not.toHaveAttribute('open', '');
+  await page.locator('.tutorial-card summary').click();
+  await expect(page.locator('.tutorial-card')).toHaveAttribute('open', '');
+  await expect(page.locator('.tutorial-card')).toContainText('Start with the question');
+  await expect(page.locator('.tutorial-card')).toContainText('Use this tool for three separate questions');
+  await expect(page.locator('.tutorial-card')).toContainText('degradation rate affects dissolved creatine');
+  await expect(page.locator('.tutorial-card')).toContainText('Default bottle is useful');
+  await expect(page.locator('.tutorial-card')).toContainText('Suspended powder is not automatically wasted');
+  await expect(page.locator('.tutorial-card')).toContainText('Only the premixed solution/suspension mode runs the aqueous degradation-rate calculation');
+  await expect(page.locator('.tutorial-card')).toContainText('first estimates the dissolved amount at storage temperature');
+  await expect(page.locator('.tutorial-card')).toContainText('recommend a dose');
   const missingInputHelp = await page.locator('.control-panel :is(.input-line, .check-line)').evaluateAll((rows) => rows
     .filter((row) => row.querySelector('input, select') && !row.querySelector('.help-chip'))
     .map((row) => (row.querySelector('span')?.textContent || row.textContent || '').trim()));
@@ -447,6 +452,25 @@ test('creatine lab reports acidic premixed storage loss anchor', async ({ page, 
 
   await expect(page.locator('#storageLossPercentValue')).toContainText('12.0%');
   await expect(page.locator('#storageLossPercentMeta')).toContainText('anchored');
+  await page.click('#expandStorageChartBtn');
+  await expect(page.locator('#chartOverlay')).toBeVisible();
+  await expect(page.locator('#chartOverlayTitle')).toContainText('Dissolved Loss Over Storage');
+  await expect(page.locator('#chartOverlaySummary')).toContainText('Dissolved loss reaches 12.0%');
+  await expect(page.locator('#chartOverlayBody .chart-loss-line')).toHaveCount(1);
+  await expect(page.locator('#chartOverlayBody .chart-hover')).toHaveCount(0);
+  await page.click('#chartOverlayClose');
+  await expect(page.locator('#chartOverlay')).toBeHidden();
+
+  const storageDownloadPromise = page.waitForEvent('download');
+  await page.click('#exportStoragePlotBtn');
+  const storageDownload = await storageDownloadPromise;
+  const storageSvg = await readDownloadText(storageDownload);
+  expect(storageDownload.suggestedFilename()).toBe('creatine-lab-dissolved-loss-over-storage.svg');
+  expect(storageSvg).toContain('<svg');
+  expect(storageSvg).toContain('width="3200"');
+  expect(storageSvg).toContain('height="1244"');
+  expect(storageSvg).toContain('chart-loss-line');
+  expect(storageSvg).toContain('Creatine Lab dissolved loss over storage plot');
 });
 
 test('creatine lab renders loading accumulation and Monte Carlo envelope', async ({ page, baseURL }) => {
@@ -476,6 +500,18 @@ test('creatine lab renders loading accumulation and Monte Carlo envelope', async
   await expect(page.locator('#accumulationChart')).toContainText('waste pressure');
   await page.locator('#accumulationChart').hover({ position: { x: 360, y: 140 } });
   await expect(page.locator('#accumulationChart .chart-hover')).toHaveCSS('display', 'block');
+  await expect(page.locator('#chartOverlay')).toBeHidden();
+  await page.click('#expandChartBtn');
+  await expect(page.locator('#chartOverlay')).toBeVisible();
+  await expect(page.locator('body')).toHaveClass(/chart-overlay-open/);
+  await expect(page.locator('#chartOverlayTitle')).toContainText('Estimated Saturation And Dose Pressure');
+  await expect(page.locator('#chartOverlaySummary')).toContainText('Left axis shows saturation and dose pressure');
+  await expect(page.locator('#chartOverlayBody .chart-line')).toHaveCount(1);
+  await expect(page.locator('#chartOverlayBody .chart-steady-line')).toHaveCount(1);
+  await expect(page.locator('#chartOverlayBody .chart-waste-line')).toHaveCount(1);
+  await expect(page.locator('#chartOverlayBody .chart-hover')).toHaveCount(0);
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#chartOverlay')).toBeHidden();
 
   await page.locator('[data-theme-toggle="light"]').click();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');

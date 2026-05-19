@@ -72,47 +72,6 @@ License: GPL-3.0
         </header>
 
         <main class="creatine-layout">
-            <details class="panel side-card foldable-card guide-card">
-                <summary><span>How To Use This Tool</span></summary>
-                <div class="foldable-content guide-grid">
-                    <section class="guide-section">
-                        <h2>Workflow</h2>
-                        <ol>
-                            <li>Pick a preset, then change only the inputs that match your scenario.</li>
-                            <li>Use <strong>Mix</strong> for dissolved creatine, suspended powder, and water needed.</li>
-                            <li>Use <strong>Store</strong> only when creatine is premixed before use.</li>
-                            <li>Use <strong>Accumulate</strong> for rough body-pool curves.</li>
-                        </ol>
-                    </section>
-                    <section class="guide-section">
-                        <h2>Scenarios</h2>
-                        <ul>
-                            <li><strong>Default bottle:</strong> 5 g in 1 L at room temperature.</li>
-                            <li><strong>Small glass:</strong> 5 g in 250 mL with visible grit.</li>
-                            <li><strong>Fridge bottle:</strong> water stored first, creatine added later.</li>
-                            <li><strong>Loading comparison:</strong> 20 g/day loading versus 5 g/day daily.</li>
-                        </ul>
-                    </section>
-                    <section class="guide-section">
-                        <h2>Reading Results</h2>
-                        <ul>
-                            <li><strong>Dissolved</strong> and <strong>Suspended</strong> describe the mix, not guaranteed absorption.</li>
-                            <li><strong>Dissolved loss</strong> applies only to the dissolved fraction during premixed storage.</li>
-                            <li><strong>Monte Carlo band</strong> shows assumption uncertainty, not personal measurement.</li>
-                        </ul>
-                    </section>
-                    <section class="guide-section">
-                        <h2>Limits</h2>
-                        <ul>
-                            <li>This does not decide whether creatine is safe for you or recommend a dose.</li>
-                            <li>Suspended powder is not automatically wasted if the full suspension is consumed promptly.</li>
-                            <li>Brain tCr is a separate reference estimate and does not change with the selected protocol.</li>
-                            <li>Body-pool values are rough estimates driven by assumptions.</li>
-                        </ul>
-                    </section>
-                </div>
-            </details>
-
             <section class="panel control-panel" aria-labelledby="input-title">
                 <div class="panel-header">
                     <div>
@@ -484,8 +443,14 @@ License: GPL-3.0
                 <div class="chart-grid-panels">
                     <section class="chart-panel" aria-labelledby="storage-chart-title">
                         <div class="chart-header">
-                            <h3 id="storage-chart-title">Dissolved Loss Over Storage</h3>
-                            <p id="storageLossChartSummary">Waiting for input.</p>
+                            <div>
+                                <h3 id="storage-chart-title">Dissolved Loss Over Storage</h3>
+                                <p id="storageLossChartSummary">Waiting for input.</p>
+                            </div>
+                            <div class="chart-actions">
+                                <button class="tool-btn secondary expand-chart-btn" id="expandStorageChartBtn" type="button" aria-haspopup="dialog">Expand chart</button>
+                                <button class="tool-btn secondary export-plot-btn" id="exportStoragePlotBtn" type="button">Export plot SVG</button>
+                            </div>
                         </div>
                         <svg id="storageLossChart" class="metric-chart" viewBox="0 0 720 280" role="img" aria-label="Estimated dissolved creatine loss percentage chart"></svg>
                     </section>
@@ -496,7 +461,10 @@ License: GPL-3.0
                                 <h3 id="chart-title">Estimated Saturation And Dose Pressure</h3>
                                 <p id="chartSummary">Waiting for input.</p>
                             </div>
-                            <button class="tool-btn secondary export-plot-btn" id="exportPlotBtn" type="button">Export plot SVG</button>
+                            <div class="chart-actions">
+                                <button class="tool-btn secondary expand-chart-btn" id="expandChartBtn" type="button" aria-haspopup="dialog">Expand chart</button>
+                                <button class="tool-btn secondary export-plot-btn" id="exportPlotBtn" type="button">Export plot SVG</button>
+                            </div>
                         </div>
                         <svg id="accumulationChart" class="metric-chart accumulation-chart" viewBox="0 0 720 280" role="img" aria-label="Estimated creatine body-pool saturation, dose pressure, and steady-state dose chart"></svg>
                     </section>
@@ -521,6 +489,66 @@ License: GPL-3.0
             </section>
 
             <aside class="side-panel" aria-label="Model notes">
+                <details class="panel side-card foldable-card tutorial-card">
+                    <summary><span>How To Use This Tool</span></summary>
+                    <div class="foldable-content">
+                        <div class="table-scroll">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Step</th>
+                                        <th>What To Do</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>Start with the question</td>
+                                        <td>
+                                            Use this tool for three separate questions: whether a dose dissolves in a selected water volume and temperature, how the degradation rate affects dissolved creatine during premixed storage, and how a selected protocol changes a rough body-pool estimate.
+                                            <span class="table-note-line">The tool models creatine monohydrate only. Dose fields are grams of creatine monohydrate powder, not grams of active creatine and not other creatine forms.</span>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>Pick a preset</td>
+                                        <td>
+                                            Start with Default bottle, Fridge bottle, Small glass, or Warm dissolve. Then change only the inputs that actually differ from your scenario.
+                                            <span class="table-note-line">Default bottle is useful for 5 g in 1 L at room temperature. Small glass shows why grit can remain in a low-volume drink. Fridge bottle means water is stored first and creatine is added later.</span>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>Use Mix</td>
+                                        <td>
+                                            Set creatine monohydrate, water volume, and water temperature. Read Dissolved at equilibrium, Suspended powder, Solubility limit, and Water needed.
+                                            <span class="table-note-line">Dissolved and Suspended describe the bottle or glass. Suspended powder is not automatically wasted if the full suspension is consumed promptly.</span>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>Use Store</td>
+                                        <td>
+                                            Use Store to describe whether storage happens after mixing, before creatine is added, or as dry powder. Only the premixed solution/suspension mode runs the aqueous degradation-rate calculation.
+                                            <span class="table-note-line">The model first estimates the dissolved amount at storage temperature, then applies first-order loss to that dissolved amount. Water stored by itself and dry powder do not use the aqueous degradation model.</span>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>Use Accumulate</td>
+                                        <td>
+                                            Pick a protocol and simulation length. Use direct skeletal muscle mass if you know it; direct fat-free mass is next best; body mass plus body fat is only a proxy.
+                                            <span class="table-note-line">Modeled saturation, steady-state dose, waste pressure, and Monte Carlo band are model outputs. They are not dosing instructions or personal measurements.</span>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>Read the caveats</td>
+                                        <td>
+                                            The brain tCr estimate is a separate reference estimate and does not change with the selected protocol. Body-pool values are rough estimates driven by assumptions.
+                                            <span class="table-note-line">This tool does not decide whether creatine is safe for you, recommend a dose, diagnose kidney function, interpret creatinine/eGFR labs, or replace clinical care.</span>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </details>
+
                 <details class="panel side-card foldable-card" open>
                     <summary><span>Model Notes</span></summary>
                     <div class="foldable-content">
@@ -565,6 +593,20 @@ License: GPL-3.0
                 </details>
             </aside>
         </main>
+
+        <div class="chart-overlay" id="chartOverlay" role="dialog" aria-modal="true" aria-labelledby="chartOverlayTitle" hidden>
+            <div class="chart-overlay-backdrop" data-chart-overlay-close></div>
+            <section class="chart-overlay-panel">
+                <div class="chart-overlay-header">
+                    <div>
+                        <h2 id="chartOverlayTitle">Estimated Saturation And Dose Pressure</h2>
+                        <p id="chartOverlaySummary">Expanded chart view.</p>
+                    </div>
+                    <button class="tool-btn secondary" id="chartOverlayClose" type="button">Close</button>
+                </div>
+                <div class="chart-overlay-body" id="chartOverlayBody"></div>
+            </section>
+        </div>
 
         <footer data-footer></footer>
     </div>

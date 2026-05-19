@@ -442,7 +442,17 @@ header {
     margin-bottom: 10px;
 }
 
-.export-plot-btn {
+.chart-actions {
+    display: flex;
+    flex: 0 0 auto;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.export-plot-btn,
+.expand-chart-btn {
     flex: 0 0 auto;
     white-space: nowrap;
 }
@@ -454,6 +464,75 @@ header {
     border-radius: 8px;
     background: var(--creatine-soft);
     touch-action: none;
+}
+
+.chart-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+}
+
+.chart-overlay[hidden] {
+    display: none;
+}
+
+.chart-overlay-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(3, 7, 12, 0.82);
+    backdrop-filter: blur(4px);
+}
+
+.chart-overlay-panel {
+    position: relative;
+    z-index: 1;
+    width: min(96vw, 1500px);
+    max-height: min(92vh, 900px);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 18px;
+    border: 1px solid var(--creatine-border);
+    border-radius: 8px;
+    background: var(--creatine-panel);
+    box-shadow: 0 28px 70px rgba(0, 0, 0, 0.45);
+}
+
+.chart-overlay-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+}
+
+.chart-overlay-header h2 {
+    margin: 0 0 5px;
+    font-size: 1.1rem;
+}
+
+.chart-overlay-header p {
+    margin: 0;
+    color: var(--creatine-muted);
+    line-height: 1.4;
+}
+
+.chart-overlay-body {
+    min-height: 0;
+}
+
+.chart-overlay-chart {
+    display: block;
+    width: 100%;
+    height: min(72vh, 720px);
+    min-height: 420px;
+}
+
+body.chart-overlay-open {
+    overflow: hidden;
 }
 
 .chart-bg {
@@ -611,45 +690,6 @@ td {
     gap: 16px;
 }
 
-.guide-card {
-    grid-column: 1 / -1;
-}
-
-.guide-grid {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 18px;
-}
-
-.guide-section {
-    min-width: 0;
-}
-
-.guide-section h2 {
-    margin: 0 0 8px;
-    color: var(--creatine-orange);
-    font-size: 0.84rem;
-    font-weight: 800;
-    text-transform: uppercase;
-}
-
-.guide-section ol,
-.guide-section ul {
-    margin: 0;
-    padding-left: 18px;
-    color: var(--creatine-muted);
-    font-size: 0.9rem;
-    line-height: 1.42;
-}
-
-.guide-section li + li {
-    margin-top: 5px;
-}
-
-.guide-section strong {
-    color: var(--creatine-text);
-}
-
 .foldable-card {
     padding: 0;
     overflow: hidden;
@@ -753,10 +793,6 @@ td {
         grid-template-columns: 1fr;
     }
 
-    .guide-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
     .result-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
@@ -771,13 +807,40 @@ td {
         padding: 16px;
     }
 
-    .panel-header,
-    .tool-header {
+    .chart-overlay {
+        padding: 12px;
+    }
+
+    .chart-overlay-panel {
+        max-height: 94vh;
+        padding: 12px;
+    }
+
+    .chart-overlay-header {
         flex-direction: column;
     }
 
+    .chart-overlay-chart {
+        height: 62vh;
+        min-height: 260px;
+    }
+
+    .panel-header,
+    .tool-header,
+    .chart-header {
+        flex-direction: column;
+    }
+
+    .chart-actions {
+        width: 100%;
+        justify-content: stretch;
+    }
+
+    .chart-actions .tool-btn {
+        flex: 1 1 auto;
+    }
+
     .input-grid,
-    .guide-grid,
     .result-grid,
     .preset-grid,
     .tab-row {
