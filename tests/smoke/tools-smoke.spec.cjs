@@ -388,11 +388,13 @@ test('creatine lab default bottle and small-glass presets compute solubility', a
   await expect(page.locator('.scope-warning-block')).not.toHaveAttribute('open', '');
   await page.locator('.scope-warning-block summary').click();
   await expect(page.locator('.scope-warning-block')).toContainText('No warranty. No liability. No suitability claim. You assume all risk.');
-  await expect(page.locator('.how-to-block summary')).toContainText('How To Use This Tool');
-  await expect(page.locator('.how-to-block')).toHaveAttribute('open', '');
-  await expect(page.locator('.how-to-block')).toContainText('Fast Workflow');
-  await expect(page.locator('.how-to-block')).toContainText('Suspended powder is not automatically wasted');
-  await expect(page.locator('.how-to-block')).toContainText('not dosing instructions');
+  await expect(page.locator('.guide-card summary')).toContainText('How To Use This Tool');
+  await expect(page.locator('.guide-card')).not.toHaveAttribute('open', '');
+  await page.locator('.guide-card summary').click();
+  await expect(page.locator('.guide-card')).toHaveAttribute('open', '');
+  await expect(page.locator('.guide-card')).toContainText('Workflow');
+  await expect(page.locator('.guide-card')).toContainText('Suspended powder is not automatically wasted');
+  await expect(page.locator('.guide-card')).toContainText('recommend a dose');
   const missingInputHelp = await page.locator('.control-panel :is(.input-line, .check-line)').evaluateAll((rows) => rows
     .filter((row) => row.querySelector('input, select') && !row.querySelector('.help-chip'))
     .map((row) => (row.querySelector('span')?.textContent || row.textContent || '').trim()));

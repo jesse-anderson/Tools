@@ -72,6 +72,47 @@ License: GPL-3.0
         </header>
 
         <main class="creatine-layout">
+            <details class="panel side-card foldable-card guide-card">
+                <summary><span>How To Use This Tool</span></summary>
+                <div class="foldable-content guide-grid">
+                    <section class="guide-section">
+                        <h2>Workflow</h2>
+                        <ol>
+                            <li>Pick a preset, then change only the inputs that match your scenario.</li>
+                            <li>Use <strong>Mix</strong> for dissolved creatine, suspended powder, and water needed.</li>
+                            <li>Use <strong>Store</strong> only when creatine is premixed before use.</li>
+                            <li>Use <strong>Accumulate</strong> for rough body-pool curves.</li>
+                        </ol>
+                    </section>
+                    <section class="guide-section">
+                        <h2>Scenarios</h2>
+                        <ul>
+                            <li><strong>Default bottle:</strong> 5 g in 1 L at room temperature.</li>
+                            <li><strong>Small glass:</strong> 5 g in 250 mL with visible grit.</li>
+                            <li><strong>Fridge bottle:</strong> water stored first, creatine added later.</li>
+                            <li><strong>Loading comparison:</strong> 20 g/day loading versus 5 g/day daily.</li>
+                        </ul>
+                    </section>
+                    <section class="guide-section">
+                        <h2>Reading Results</h2>
+                        <ul>
+                            <li><strong>Dissolved</strong> and <strong>Suspended</strong> describe the mix, not guaranteed absorption.</li>
+                            <li><strong>Dissolved loss</strong> applies only to the dissolved fraction during premixed storage.</li>
+                            <li><strong>Monte Carlo band</strong> shows assumption uncertainty, not personal measurement.</li>
+                        </ul>
+                    </section>
+                    <section class="guide-section">
+                        <h2>Limits</h2>
+                        <ul>
+                            <li>This does not decide whether creatine is safe for you or recommend a dose.</li>
+                            <li>Suspended powder is not automatically wasted if the full suspension is consumed promptly.</li>
+                            <li>Brain tCr is a separate reference estimate and does not change with the selected protocol.</li>
+                            <li>Body-pool values are rough estimates driven by assumptions.</li>
+                        </ul>
+                    </section>
+                </div>
+            </details>
+
             <section class="panel control-panel" aria-labelledby="input-title">
                 <div class="panel-header">
                     <div>
@@ -89,46 +130,6 @@ License: GPL-3.0
                     <p>Ask a clinician before using creatine if you have kidney disease, abnormal labs, are pregnant, take medicines that affect the kidneys or fluid balance, or have symptoms or medical conditions that could change supplement risk.</p>
                     <p><strong>No warranty. No liability. No suitability claim. You assume all risk.</strong> The tool is provided as-is, without warranty of accuracy, completeness, merchantability, fitness for a particular purpose, medical suitability, regulatory acceptability, or lab-interpretation value. The creators and maintainers expressly disclaim responsibility and liability for dosing decisions, supplement decisions, lab-test interpretation, medical decisions, adverse events, commercial losses, downstream damages, or any other consequence arising from use or misuse of this page.</p>
                     <p><strong>Verify independently.</strong> Check the cited sources and use qualified medical, nutrition, laboratory, or regulatory guidance before using any result for health, safety, clinical, commercial, or other consequence-bearing decisions.</p>
-                </details>
-
-                <details class="how-to-block" open>
-                    <summary>How To Use This Tool</summary>
-                    <div class="how-to-section">
-                        <h3>Fast Workflow</h3>
-                        <ol>
-                            <li>Pick a preset, then change only the inputs that match your real scenario.</li>
-                            <li>Use <strong>Mix</strong> to estimate dissolved creatine, suspended powder, and water needed.</li>
-                            <li>Use <strong>Store</strong> only if creatine is premixed before use. Water stored by itself and dry powder do not use the aqueous-loss model.</li>
-                            <li>Use <strong>Accumulate</strong> for rough body-pool curves. Direct SMM is best, direct FFM is next, and body mass plus body fat is only a proxy.</li>
-                        </ol>
-                    </div>
-                    <div class="how-to-section">
-                        <h3>Useful Scenarios</h3>
-                        <ul>
-                            <li><strong>Default bottle:</strong> 5 g in 1 L at room temperature.</li>
-                            <li><strong>Small glass:</strong> 5 g in 250 mL to see why grit can remain at equilibrium.</li>
-                            <li><strong>Fridge bottle:</strong> cold water stored first, creatine added later, with no premix degradation before adding it.</li>
-                            <li><strong>Loading comparison:</strong> compare 20 g/day loading with 5 g/day daily in the accumulation tab.</li>
-                        </ul>
-                    </div>
-                    <div class="how-to-section">
-                        <h3>Read Results This Way</h3>
-                        <ul>
-                            <li><strong>Dissolved at equilibrium</strong> and <strong>Suspended powder</strong> describe the bottle or glass, not guaranteed absorption.</li>
-                            <li><strong>Dissolved loss</strong> applies to the dissolved fraction during premixed storage.</li>
-                            <li><strong>Modeled saturation</strong>, <strong>Steady-state dose</strong>, and <strong>Waste pressure</strong> are model outputs, not dosing instructions.</li>
-                            <li><strong>Monte Carlo band</strong> shows assumption uncertainty. It is not a personal measurement.</li>
-                        </ul>
-                    </div>
-                    <div class="how-to-section">
-                        <h3>Do Not Conclude</h3>
-                        <ul>
-                            <li>This does not decide whether creatine is safe for you or recommend a dose.</li>
-                            <li>Suspended powder is not automatically wasted if the full suspension is consumed promptly.</li>
-                            <li>The brain tCr estimate is a separate reference estimate and does not change with the selected protocol.</li>
-                            <li>Body-pool values are rough estimates driven by the inputs and assumptions.</li>
-                        </ul>
-                    </div>
                 </details>
 
                 <div class="tab-row" role="tablist" aria-label="Creatine Lab sections">
