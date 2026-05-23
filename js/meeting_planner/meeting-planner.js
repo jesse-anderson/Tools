@@ -951,8 +951,11 @@ function wireAdminActions() {
     document.getElementById("settingsClose")?.addEventListener("click", () => closeModalById("settingsDialog"));
     document.getElementById("settingsForm")?.addEventListener("submit", handleSettingsSubmit);
     document.getElementById("setLongRetentionBtn")?.addEventListener("click", () => openLongRetentionDialog((days) => {
-        document.getElementById("setExpiryDays").value = String(days);
-        document.getElementById("settingsForm").dataset.retentionConfirmed = "true";
+        const expiryInput = document.getElementById("setExpiryDays");
+        expiryInput.max = String(LIMITS.EXPIRY_LONG_MAX_DAYS);
+        expiryInput.value = String(days);
+        const settingsForm = document.getElementById("settingsForm");
+        settingsForm.dataset.retentionConfirmed = "true";
         document.getElementById("setExpiryHint").textContent = "Long-retention (up to 5y) acknowledged.";
     }));
 
@@ -973,9 +976,12 @@ function openSettingsDialog() {
     const visRadios = document.querySelectorAll('input[name="setVisibility"]');
     visRadios.forEach((r) => { r.checked = (r.value === st.event.visibility); });
     const daysUntil = Math.max(1, Math.round((Date.parse(st.event.expiresAt) - Date.now()) / 86_400_000));
-    document.getElementById("setExpiryDays").value = String(Math.min(daysUntil, LIMITS.EXPIRY_STANDARD_MAX_DAYS));
+    const expiryInput = document.getElementById("setExpiryDays");
+    const cappedDaysUntil = Math.min(daysUntil, LIMITS.EXPIRY_LONG_MAX_DAYS);
+    expiryInput.max = String(LIMITS.EXPIRY_LONG_MAX_DAYS);
+    expiryInput.value = String(cappedDaysUntil);
     document.getElementById("setExpiryHint").textContent = "";
-    document.getElementById("settingsForm").dataset.retentionConfirmed = "false";
+    document.getElementById("settingsForm").dataset.retentionConfirmed = String(cappedDaysUntil > LIMITS.EXPIRY_STANDARD_MAX_DAYS);
     document.getElementById("settingsError").hidden = true;
     document.getElementById("settingsDialog").hidden = false;
 }
@@ -997,6 +1003,16 @@ async function handleSettingsSubmit(e) {
     const expiryDays = Number(document.getElementById("setExpiryDays").value || 0);
     const retentionConfirmed = document.getElementById("settingsForm").dataset.retentionConfirmed === "true";
     if (expiryDays) {
+        if (!Number.isInteger(expiryDays) || expiryDays < 1 || expiryDays > LIMITS.EXPIRY_LONG_MAX_DAYS) {
+            errEl.textContent = `Expiry must be 1..${LIMITS.EXPIRY_LONG_MAX_DAYS} days.`;
+            errEl.hidden = false;
+            return;
+        }
+        if (expiryDays > LIMITS.EXPIRY_STANDARD_MAX_DAYS && !retentionConfirmed) {
+            errEl.textContent = `Expiry over ${LIMITS.EXPIRY_STANDARD_MAX_DAYS} days requires the long-retention confirmation.`;
+            errEl.hidden = false;
+            return;
+        }
         const nextExpires = new Date(Date.now() + expiryDays * 86_400_000).toISOString();
         if (nextExpires !== st.event.expiresAt) patch.expiresAt = nextExpires;
     }

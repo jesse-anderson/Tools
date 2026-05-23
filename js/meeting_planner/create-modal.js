@@ -56,6 +56,7 @@ export function initCreateModal({ onDraft }) {
     const closeBtn = document.getElementById("createModalClose");
 
     let state = { ...DEFAULTS, timezone: getViewerTz() };
+    if (expiryDays) expiryDays.max = String(LIMITS.EXPIRY_LONG_MAX_DAYS);
 
     // Populate TZ select once.
     if (tzSelect && tzSelect.options.length === 0) {
@@ -122,6 +123,15 @@ export function initCreateModal({ onDraft }) {
         });
     });
 
+    expiryDays?.addEventListener("input", () => {
+        const value = Number(expiryDays.value || LIMITS.EXPIRY_DEFAULT_DAYS);
+        state.expiryDays = value;
+        if (value <= LIMITS.EXPIRY_STANDARD_MAX_DAYS) {
+            state.retentionConfirmed = false;
+            longRetentionMsg.hidden = true;
+        }
+    });
+
     // Long-retention dialog flow
     longRetentionBtn?.addEventListener("click", () => openLongRetentionDialog((days) => {
         if (days) {
@@ -138,6 +148,13 @@ export function initCreateModal({ onDraft }) {
     modal.addEventListener("click", (e) => { if (e.target === modal) close(); });
 
     // Submit
+    form.addEventListener("keydown", (e) => {
+        if (e.key !== "Enter") return;
+        const target = e.target;
+        if (target?.tagName === "TEXTAREA" || target?.type === "submit") return;
+        e.preventDefault();
+    });
+
     form.addEventListener("submit", (e) => {
         e.preventDefault();
         const draft = buildDraftFromForm({
@@ -185,13 +202,25 @@ export function openLongRetentionDialog(onConfirm) {
     const close = (confirmed) => {
         modal.hidden = true;
         input.removeEventListener("input", onInput);
+        input.removeEventListener("keydown", onKeyDown);
         ok.removeEventListener("click", onOk);
         cancel.removeEventListener("click", onCancel);
         if (confirmed) onConfirm(LIMITS.EXPIRY_LONG_MAX_DAYS);
     };
     const onOk = () => close(true);
     const onCancel = () => close(false);
+    const onKeyDown = (e) => {
+        if (e.key === "Enter" && !ok.disabled) {
+            e.preventDefault();
+            close(true);
+        }
+        if (e.key === "Escape") {
+            e.preventDefault();
+            close(false);
+        }
+    };
     input.addEventListener("input", onInput);
+    input.addEventListener("keydown", onKeyDown);
     ok.addEventListener("click", onOk);
     cancel.addEventListener("click", onCancel);
 }
