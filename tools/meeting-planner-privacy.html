@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meeting Planner - Privacy | Tools Hub</title>
+    <meta http-equiv="Content-Security-Policy" content="
+        default-src 'self';
+        script-src 'self';
+        style-src 'self' https://fonts.googleapis.com;
+        font-src 'self' https://fonts.gstatic.com;
+        img-src 'self' data:;
+        base-uri 'self';
+        form-action 'self';
+    ">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/shared.css">
+    <link rel="stylesheet" href="../css/meeting_planner/meeting-planner.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <div class="header-left">
+                    <a href="meeting-planner.html" class="back-link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="19" y1="12" x2="5" y2="12"/>
+                            <polyline points="12 19 5 12 12 5"/>
+                        </svg>
+                        Back to Meeting Planner
+                    </a>
+                </div>
+                <div class="header-right">
+                    <div class="theme-toggle">
+                        <button data-theme-toggle="light" aria-pressed="false" title="Light mode">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="5"/>
+                                <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+                            </svg>
+                        </button>
+                        <button data-theme-toggle="dark" aria-pressed="false" title="Dark mode">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="tool-icon-container">
+                <div class="tool-icon-header general">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="28" height="28">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                    </svg>
+                </div>
+                <div>
+                    <h1>Meeting Planner - Privacy</h1>
+                    <p class="tagline">// WHAT IS SENT / WHAT IS STORED / HOW LONG</p>
+                </div>
+            </div>
+        </header>
+
+        <main>
+            <article class="calculator-panel privacy-article">
+                <p class="card-text">
+                    Meeting Planner is not a local-only tool. It sends event and participant data over HTTPS
+                    to the Meeting Planner backend at
+                    <a class="text-link" href="https://scheduler.jesse-anderson.net">scheduler.jesse-anderson.net</a>
+                    so a shared schedule can work across people and devices. This page explains what is sent,
+                    what is stored, who can see it, and how long it remains. Use a nickname if you do not want
+                    to enter your real name; opening an event without signing in does not create a participant row.
+                </p>
+
+                <h2>1. What is sent and stored</h2>
+                <ul class="help-list">
+                    <li>Event details supplied by the creator: title, date/time settings, event time zone, visibility, expiry, and optional description.</li>
+                    <li>Participant details you enter: display name, time zone, availability bitfield, and optional comment.</li>
+                    <li>Optional row password protection: the browser sends <code>SHA-256(eventId + ":" + password)</code>; the raw password never leaves your browser.</li>
+                    <li>Admin access data: the admin link contains a secret token. The raw token is kept in the creator's URL fragment and this browser's <code>localStorage</code> when saved; the application database stores verification material rather than the raw token.</li>
+                    <li>Timestamps such as <code>createdAt</code>, <code>updatedAt</code>, and <code>expiresAt</code>.</li>
+                    <li>When an event is created, a Cloudflare Turnstile token is sent for abuse prevention.</li>
+                </ul>
+
+                <h2>2. What we do not intentionally store</h2>
+                <ul class="help-list">
+                    <li>Email addresses or user accounts.</li>
+                    <li>Raw row passwords.</li>
+                    <li>Raw admin tokens in the application database.</li>
+                    <li>Browser fingerprints, device IDs, or analytics identifiers.</li>
+                    <li>Meeting Planner application cookies. This site uses <code>localStorage</code> only for recent events and admin tokens on your own device.</li>
+                    <li>IP addresses in the application database. Cloudflare may process request metadata at the edge for security, abuse prevention, and operations.</li>
+                </ul>
+
+                <h2>3. Where data is sent</h2>
+                <ul class="help-list">
+                    <li>Meeting Planner API requests go to <code>https://scheduler.jesse-anderson.net</code>.</li>
+                    <li>The backend runs on Cloudflare Workers with Cloudflare D1 storage.</li>
+                    <li>The Cloudflare Turnstile widget loads from <code>https://challenges.cloudflare.com</code> only during event creation. Cloudflare's <a class="text-link" href="https://www.cloudflare.com/turnstile-privacy-policy/">Turnstile Privacy Addendum</a> describes the signals Turnstile processes.</li>
+                    <li>Web fonts load from Google Fonts (<code>fonts.googleapis.com</code> / <code>fonts.gstatic.com</code>). Because the fonts are fetched from Google's servers, Google receives your IP address and request headers when a page loads. We do not send any name, availability, or event data to Google.</li>
+                    <li>API requests use <code>credentials: "omit"</code>; the app does not send browser cookies with Meeting Planner API requests.</li>
+                </ul>
+
+                <h2>4. How long we keep it</h2>
+                <ul class="help-list">
+                    <li>Default event retention: <strong>90 days</strong> from creation.</li>
+                    <li>Creators can extend retention up to <strong>2 years</strong> in the Advanced tab; up to <strong>5 years</strong> behind an explicit confirmation step.</li>
+                    <li>After <code>expiresAt</code>, a daily job deletes the event and its participant rows from live storage.</li>
+                    <li>Admins can delete an event at any time. Participants can delete their own row at any time.</li>
+                </ul>
+
+                <h2>5. Who can see it</h2>
+                <ul class="help-list">
+                    <li><strong>Public</strong> events: anyone with the share link can see participant names and availability.</li>
+                    <li><strong>Heatmap only</strong> events: counts and the heatmap are visible to anyone; participant names are hidden until a viewer signs in as a participant.</li>
+                    <li><strong>Blind</strong> events: each participant sees only their own row; only the admin sees the full result.</li>
+                    <li>Anyone with the admin link can edit settings, lock the event, remove participants, or delete the event.</li>
+                    <li>The tool operator has technical access to the Cloudflare D1 database. Individual event data is not reviewed except when necessary to investigate abuse, security issues, or operational problems.</li>
+                </ul>
+
+                <h2>6. Your controls</h2>
+                <ul class="help-list">
+                    <li><strong>Export:</strong> the "Export my data" button next to your row downloads a JSON file of the participant data held for you.</li>
+                    <li><strong>Delete:</strong> "Delete my row" removes your row from live storage. Product commitment: <strong>deleted within 24 hours</strong>; in normal operation the row is gone when the API call returns. Platform-level point-in-time backups age out within 30 days (see section 7).</li>
+                    <li><strong>Edit:</strong> change your availability by re-painting the grid, or change your time zone by signing in again from the relevant browser/time zone.</li>
+                    <li><strong>Sign out:</strong> signing out clears the active browser session but does not delete your stored row. Use "Delete my row" if you want the row removed.</li>
+                    <li><strong>Local browser data:</strong> clearing this site's local storage removes recent-event history and saved admin tokens from this device.</li>
+                </ul>
+
+                <h2>7. Platform processing and backups</h2>
+                <p class="card-text">
+                    Data is processed through Cloudflare's global edge network. The D1 database backing this
+                    tool is configured in the Americas. Reads may be served through Cloudflare infrastructure;
+                    writes go to the backing D1 database. Cloudflare D1 Time Travel keeps an up-to-30-day
+                    point-in-time recovery window for platform durability. These backups are not user-accessible,
+                    are not queried by the application, and age out automatically within that platform window.
+                </p>
+
+                <h2>8. Security</h2>
+                <ul class="help-list">
+                    <li>All traffic to the backend is over HTTPS; data in transit is encrypted.</li>
+                    <li>Row passwords are never stored or transmitted in plaintext. Only <code>SHA-256(eventId + ":" + password)</code> is sent, and there is no password recovery.</li>
+                    <li>Share and admin links use unguessable random tokens (capability URLs) carried in the URL fragment, so they are not sent to the server in request paths or logs. Treat these links like passwords.</li>
+                    <li>The backend enforces rate limits and abuse checks; no public endpoint is fully abuse-proof, so do not put sensitive information in names, comments, or descriptions.</li>
+                </ul>
+
+                <h2>9. Children</h2>
+                <p class="card-text">
+                    This tool is not directed at children and collects no age information. If you're under 16,
+                    please ask a parent or guardian before entering your name or any other details.
+                </p>
+
+                <h2>10. Changes to this policy</h2>
+                <p class="card-text">
+                    Material changes will be reflected by updating the "Last updated" stamp at the bottom of
+                    this page and, where appropriate, surfacing a notice inside the tool.
+                </p>
+
+                <h2>11. Contact</h2>
+                <p class="card-text">
+                    Questions, data requests, or anything else: email
+                    <a class="text-link" href="mailto:jesse200755@gmail.com">jesse200755@gmail.com</a>.
+                </p>
+
+                <p class="form-hint privacy-stamp">Last updated: 2026-05-23</p>
+            </article>
+        </main>
+
+        <footer data-footer></footer>
+    </div>
+
+    <script src="../js/shared.js"></script>
+    <script type="module" src="../js/footer.js" defer></script>
+</body>
+</html>
+

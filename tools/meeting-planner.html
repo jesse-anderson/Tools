@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meeting Planner | Tools Hub</title>
+    <meta name="description" content="Share a link, mark when you're free. Privacy-respecting availability planner with no accounts.">
+<meta http-equiv="Content-Security-Policy" content="
+        default-src 'self';
+        script-src 'self' https://challenges.cloudflare.com;
+        style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+        font-src 'self' https://fonts.gstatic.com;
+        img-src 'self' data:;
+        connect-src 'self' https://scheduler.jesse-anderson.net https://challenges.cloudflare.com;
+        frame-src https://challenges.cloudflare.com;
+        base-uri 'self';
+        form-action 'self';
+    ">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/shared.css">
+    <link rel="stylesheet" href="../css/meeting_planner/meeting-planner.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <div class="header-left">
+                    <a href="../tools.html" class="back-link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="19" y1="12" x2="5" y2="12"/>
+                            <polyline points="12 19 5 12 12 5"/>
+                        </svg>
+                        Back to Tools
+                    </a>
+                </div>
+                <div class="header-right">
+                    <div class="theme-toggle">
+                        <button data-theme-toggle="light" aria-pressed="false" title="Light mode">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="5"/>
+                                <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+                            </svg>
+                        </button>
+                        <button data-theme-toggle="dark" aria-pressed="false" title="Dark mode">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="tool-icon-container">
+                <div class="tool-icon-header general">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="28" height="28">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                        <line x1="16" y1="2" x2="16" y2="6"/>
+                        <line x1="8" y1="2" x2="8" y2="6"/>
+                        <line x1="3" y1="10" x2="21" y2="10"/>
+                    </svg>
+                </div>
+                <div>
+                    <h1>Meeting Planner</h1>
+                    <p class="tagline">// FIND • WHEN • WE'RE FREE</p>
+                </div>
+            </div>
+        </header>
+<div id="globalBanner" class="global-banner" role="status" aria-live="polite" hidden></div>
+
+        <main>
+<section id="landingView" class="view" hidden>
+                <div class="calculator-layout">
+                    <div class="calculator-panel">
+                        <div class="panel-header">
+                            <div>
+                                <h2>Plan a meeting</h2>
+                                <p>Create an event, share the link, let people mark when they're free.</p>
+                            </div>
+                            <button id="createEventCta" class="tool-btn primary" type="button">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="12" y1="5" x2="12" y2="19"/>
+                                    <line x1="5" y1="12" x2="19" y2="12"/>
+                                </svg>
+                                Create new event
+                            </button>
+                        </div>
+
+                        <div class="recent-events">
+                            <div class="recent-events-header">
+                                <h3>Recent events on this browser</h3>
+                                <p class="recent-events-caveat">
+                                    Only events you've opened on this browser appear here. We don't have your account, so
+                                    save your share links elsewhere (email, notes, password manager) to access events
+                                    from other devices or after clearing your history.
+                                </p>
+                            </div>
+                            <ul id="recentEventsList" class="recent-events-list" aria-live="polite"></ul>
+                            <div id="recentEventsEmpty" class="recent-events-empty" hidden>
+                                <p>Nothing here yet. Create an event above, or paste a share link below to jump straight in.</p>
+                            </div>
+                        </div>
+
+                        <form id="pasteLinkForm" class="paste-link-form" autocomplete="off">
+                            <label for="pasteLinkInput">Open an event by link or ID</label>
+                            <div class="paste-link-row">
+                                <input type="text" id="pasteLinkInput" name="link"
+                                       placeholder="https://... or 12-char event ID"
+                                       spellcheck="false" autocapitalize="off">
+                                <button type="submit" class="tool-btn">Open</button>
+                            </div>
+                            <p id="pasteLinkError" class="form-error" hidden></p>
+                        </form>
+                    </div>
+
+                    <aside class="sidebar">
+                        <div class="sidebar-card">
+                            <h3>What is this?</h3>
+                            <ul class="help-list">
+                                <li>A privacy-respecting availability planner. No accounts, no tracking.</li>
+                                <li>Create an event, share a link, and your friends mark when they're free.</li>
+                                <li>The combined availability is rendered as a heatmap so the best slot is obvious.</li>
+                            </ul>
+                        </div>
+
+                        <div class="sidebar-card">
+                            <h3>Privacy</h3>
+                            <p class="card-text">
+                                Meeting Planner is server-backed: event details and participant rows are sent over HTTPS
+                                to <code>scheduler.jesse-anderson.net</code> so share links work. We do not use accounts,
+                                analytics, or application cookies.
+                            </p>
+                            <p class="card-text">
+                                <a href="meeting-planner-privacy.html" class="text-link">Privacy details</a>
+                            </p>
+                        </div>
+                    </aside>
+                </div>
+            </section>
+<section id="eventView" class="view" hidden>
+                <div class="calculator-layout">
+                    <div class="calculator-panel event-panel">
+<div id="eventBanner" class="event-banner" role="status" aria-live="polite" hidden></div>
+<div class="event-header">
+                            <div class="event-title-row">
+                                <h2 id="eventTitle" class="event-title">...</h2>
+                                <div id="eventStatusBadges" class="event-status-badges"></div>
+                            </div>
+                            <p id="eventMeta" class="event-meta"></p>
+                            <p id="eventTzNotice" class="event-tz-notice" hidden></p>
+                            <p id="eventDescription" class="event-description" hidden></p>
+                        </div>
+<div id="privacyNotice" class="privacy-notice" role="note">
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                <circle cx="12" cy="12" r="10"/>
+                                <line x1="12" y1="16" x2="12" y2="12"/>
+                                <line x1="12" y1="8" x2="12.01" y2="8"/>
+                            </svg>
+                            <span>
+                                To use this planner, your name, availability, time zone, and any optional comment are sent
+                                over HTTPS to the Meeting Planner backend and stored for the duration of this event
+                                (default 90 days, then deleted from live storage). You can delete your row at any time.
+                                If you're under 16, ask a parent or guardian before entering your name.
+                                <a href="meeting-planner-privacy.html" class="text-link">Privacy details</a>.
+                            </span>
+                        </div>
+<div id="signInCard" class="signin-card" data-state="signed-out">
+                            <form id="signInForm" class="signin-form" autocomplete="off">
+                                <div class="signin-fields">
+                                    <div class="signin-field">
+                                        <label for="signInName">Name</label>
+                                        <input type="text" id="signInName" name="name" required maxlength="80" autocapitalize="words">
+                                    </div>
+                                    <div class="signin-field">
+                                        <label for="signInPassword">Password (optional)</label>
+                                        <input type="password" id="signInPassword" name="password" maxlength="200"
+                                               placeholder="Protects your row from edits by others using the same name">
+                                    </div>
+                                    <div class="signin-actions">
+                                        <button type="submit" id="signInBtn" class="tool-btn primary">Sign in</button>
+                                    </div>
+                                </div>
+                                <p id="signInError" class="form-error" hidden></p>
+<div id="turnstileMount" class="turnstile-mount" hidden></div>
+                            </form>
+
+                            <div id="signedInBar" class="signed-in-bar" hidden>
+                                <div class="signed-in-info">
+                                    Signed in as <strong id="signedInName"></strong>
+                                </div>
+                                <div class="signed-in-actions">
+                                    <button id="exportMineBtn" class="tool-btn" type="button" title="Download your row data as JSON">Export my data</button>
+                                    <button id="deleteMineBtn" class="tool-btn danger" type="button">Delete my row</button>
+                                    <button id="signOutBtn" class="tool-btn" type="button">Sign out</button>
+                                </div>
+                            </div>
+                        </div>
+<div id="bestSlotsBar" class="best-slots-bar" aria-live="polite" hidden>
+                            <span class="best-slots-label">Best:</span>
+                            <div id="bestSlotsChips" class="best-slots-chips"></div>
+                        </div>
+<div id="gridToolbar" class="grid-toolbar" hidden>
+                            <div class="paint-mode-group" role="group" aria-label="Paint mode">
+                                <button type="button" class="paint-mode-btn active" data-paint="available" aria-pressed="true">
+                                    Available
+                                </button>
+                                <button type="button" class="paint-mode-btn" data-paint="preferred" aria-pressed="false">
+                                    Preferred ★
+                                </button>
+                                <button type="button" class="paint-mode-btn" data-paint="erase" aria-pressed="false">
+                                    Erase
+                                </button>
+                            </div>
+                            <p class="paint-hint">
+                                <span class="paint-hint-desktop">Click + drag to paint. Hold <kbd>Shift</kbd> for preferred, <kbd>Alt</kbd> to erase. Arrow keys + <kbd>Space</kbd> work too.</span>
+                                <span class="paint-hint-touch">Tap to paint. Long-press a cell to mark it preferred. Use the buttons above to switch modes.</span>
+                            </p>
+                        </div>
+<div id="gridScroll" class="grid-scroll">
+                            <div id="gridRoot" class="grid-root" role="grid" aria-label="Availability grid"></div>
+                        </div>
+<div id="paintCursorIndicator" class="paint-cursor-indicator" hidden></div>
+<div id="gridTooltip" class="grid-tooltip" role="tooltip" hidden></div>
+<button id="touchPaintToggle" class="touch-paint-toggle" type="button" hidden aria-label="Cycle paint mode">
+                            <span id="touchPaintToggleLabel">★</span>
+                        </button>
+<section id="subgroupPanel" class="subgroup-panel" hidden>
+                            <div class="subgroup-header">
+                                <h3>Subgroup availability</h3>
+                                <p class="subgroup-hint">
+                                    When no single slot works for everyone, these are the groups
+                                    of <strong>2 or more</strong> participants who <em>are</em> all
+                                    free at the same time, sorted largest first. Split a big
+                                    meetup into smaller meetings by picking a row.
+                                </p>
+                            </div>
+                            <div class="subgroup-table-wrap">
+                                <table class="subgroup-table" id="subgroupTable">
+                                    <thead>
+                                        <tr>
+                                            <th class="col-people">All free</th>
+                                            <th class="col-count">#</th>
+                                            <th class="col-slots">Slots</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="subgroupBody"></tbody>
+                                </table>
+                                <p id="subgroupEmpty" class="subgroup-empty" hidden>
+                                    No overlapping pairs yet. Once two people share at least one
+                                    free slot, groups will appear here.
+                                </p>
+                            </div>
+                        </section>
+                    </div>
+
+                    <aside class="sidebar event-sidebar">
+<div class="sidebar-card">
+                            <h3>Share</h3>
+                            <div class="share-row">
+                                <input type="text" id="shareLinkInput" readonly aria-label="Share link">
+                                <button id="copyShareLinkBtn" class="tool-btn" type="button">Copy</button>
+                            </div>
+                            <button id="downloadIcsBtn" class="tool-btn" type="button" style="width:100%;justify-content:center;margin-top:8px;">
+                                Download .ics for top slot
+                            </button>
+                        </div>
+<div class="sidebar-card">
+                            <h3>Participants <span id="participantCount" class="muted-count"></span></h3>
+                            <ul id="participantList" class="participant-list" aria-live="polite"></ul>
+                            <p id="participantWarn" class="form-warn" hidden></p>
+                        </div>
+<div class="sidebar-card">
+                            <h3>How to use</h3>
+                            <ul class="help-list">
+                                <li><strong>Sign in</strong> with your name. Password is optional and protects your row from being edited by someone else with the same name.</li>
+                                <li><strong>Click and drag</strong> across the grid to mark when you're free.</li>
+                                <li><strong>Hover any cell</strong> to see who's available; darker cells mean more people are free.</li>
+                                <li><strong>Share the link</strong> at the top with others. The admin link (saved separately when you created the event) lets you lock or edit settings.</li>
+                            </ul>
+                        </div>
+<div id="adminCard" class="sidebar-card admin-card" hidden>
+                            <h3>
+                                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                    <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/>
+                                </svg>
+                                Admin actions
+                            </h3>
+                            <button id="adminRenameBtn" class="tool-btn" type="button" style="width:100%;justify-content:center;margin-bottom:6px;">Edit settings</button>
+                            <button id="adminLockBtn" class="tool-btn" type="button" style="width:100%;justify-content:center;margin-bottom:6px;">Lock event</button>
+                            <button id="adminDeleteBtn" class="tool-btn danger" type="button" style="width:100%;justify-content:center;">Delete event</button>
+                        </div>
+<div class="sidebar-card sidebar-card-quiet">
+                            <p class="card-text">
+                                <a href="meeting-planner-privacy.html" class="text-link">Privacy details &amp; data controls</a>
+                            </p>
+                        </div>
+                    </aside>
+                </div>
+            </section>
+<div id="createModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="createModalTitle" hidden>
+                <div class="modal modal-create">
+                    <div class="modal-header">
+                        <div class="modal-title" id="createModalTitle">Create event</div>
+                        <button type="button" class="modal-close" id="createModalClose" aria-label="Close">
+                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                        </button>
+                    </div>
+                    <div class="modal-tabs" role="tablist">
+                        <button class="modal-tab active" data-tab="quick" role="tab" aria-selected="true" type="button">Quick</button>
+                        <button class="modal-tab" data-tab="advanced" role="tab" aria-selected="false" type="button">Advanced</button>
+                    </div>
+                    <form id="createForm" class="modal-body create-form" autocomplete="off">
+<div class="form-field">
+                            <label for="cfTitle">Title</label>
+                            <input type="text" id="cfTitle" name="title" required maxlength="200" placeholder="Team sync, Q3 planning, ...">
+                        </div>
+<div class="form-field" data-only-mode="date_range">
+                            <label for="cfStartDate">Date range</label>
+                            <div class="form-row">
+                                <input type="date" id="cfStartDate" name="startDate" required>
+                                <span class="form-sep">to</span>
+                                <input type="date" id="cfEndDate" name="endDate" required>
+                            </div>
+                        </div>
+<div class="form-field" data-only-mode="weekly" hidden>
+                            <label>Weekdays</label>
+                            <div id="cfWeekdays" class="weekday-chips" role="group" aria-label="Weekdays">
+                                <button type="button" class="weekday-chip" data-day="0">Sun</button>
+                                <button type="button" class="weekday-chip" data-day="1">Mon</button>
+                                <button type="button" class="weekday-chip" data-day="2">Tue</button>
+                                <button type="button" class="weekday-chip" data-day="3">Wed</button>
+                                <button type="button" class="weekday-chip" data-day="4">Thu</button>
+                                <button type="button" class="weekday-chip" data-day="5">Fri</button>
+                                <button type="button" class="weekday-chip" data-day="6">Sat</button>
+                            </div>
+                        </div>
+                        <div class="form-field" data-only-mode="weekly" hidden>
+                            <label for="cfRecurWeeks">Recur for (weeks)</label>
+                            <input type="number" id="cfRecurWeeks" name="recurWeeks" min="1" max="104" value="4">
+                        </div>
+
+                        <div class="form-field">
+                            <label>Day hours</label>
+                            <div class="form-row">
+                                <input type="time" id="cfDayStart" name="dayStart" value="09:00" required>
+                                <span class="form-sep">to</span>
+                                <input type="time" id="cfDayEnd" name="dayEnd" value="18:00" required>
+                            </div>
+                        </div>
+
+                        <div class="form-field">
+                            <label>Slot granularity</label>
+                            <div class="radio-row" role="radiogroup" aria-label="Slot granularity">
+                                <label class="radio-chip"><input type="radio" name="slotMin" value="15"> 15 min</label>
+                                <label class="radio-chip"><input type="radio" name="slotMin" value="30" checked> 30 min</label>
+                                <label class="radio-chip"><input type="radio" name="slotMin" value="60"> 60 min</label>
+                            </div>
+                            <p id="cfSlotWarn" class="form-warn" hidden>15-minute slots can be hard to use on phones.</p>
+                        </div>
+<div class="advanced-only" hidden>
+                            <div class="form-field">
+                                <label>Event mode</label>
+                                <div class="radio-row" role="radiogroup" aria-label="Event mode">
+                                    <label class="radio-chip"><input type="radio" name="mode" value="date_range" checked> Date range</label>
+                                    <label class="radio-chip"><input type="radio" name="mode" value="weekly"> Weekly recurring</label>
+                                </div>
+                            </div>
+
+                            <div class="form-field">
+                                <label for="cfTimezone">Time zone (canonical)</label>
+                                <select id="cfTimezone" name="timezone"></select>
+                                <p class="form-hint">Defines the day boundary for date ranges. Viewers see the grid in their own zone.</p>
+                            </div>
+
+                            <div class="form-field">
+                                <label>Visibility</label>
+                                <div class="radio-stack" role="radiogroup" aria-label="Visibility">
+                                    <label class="radio-row-item"><input type="radio" name="visibility" value="public" checked>
+                                        <span><strong>Public:</strong> anyone with the link sees the heatmap and participant names.</span></label>
+                                    <label class="radio-row-item"><input type="radio" name="visibility" value="heatmap_only">
+                                        <span><strong>Heatmap only:</strong> counts visible, names hidden until you sign in.</span></label>
+                                    <label class="radio-row-item"><input type="radio" name="visibility" value="blind">
+                                        <span><strong>Blind contribution:</strong> participants see only their own row; only the admin sees the full result.</span></label>
+                                </div>
+                            </div>
+
+                            <div class="form-field">
+                                <label for="cfExpiryDays">Expiry (days)</label>
+                                <input type="number" id="cfExpiryDays" name="expiryDays" min="1" max="730" value="90">
+                                <p class="form-hint">Default 90 days. Up to 2 years here; longer requires a confirmation step.</p>
+                                <div class="long-retention-row">
+                                    <button type="button" id="cfLongRetentionBtn" class="text-link">Need longer than 2 years?</button>
+                                </div>
+                                <p id="cfRetentionConfirmed" class="form-hint" hidden>
+                                    Long-retention (up to 5y) acknowledged for this event.
+                                </p>
+                            </div>
+
+                            <div class="form-field">
+                                <label for="cfDescription">Description (optional)</label>
+                                <textarea id="cfDescription" name="description" maxlength="2000" rows="3" placeholder="What's this for? (max 2000 chars)"></textarea>
+                            </div>
+                        </div>
+
+                        <p id="cfError" class="form-error" hidden></p>
+
+                        <div class="modal-footer">
+                            <button type="button" class="tool-btn" id="createModalCancel">Cancel</button>
+                            <button type="submit" class="tool-btn primary" id="createModalSubmit">Continue</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+<div id="adminSaveDialog" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="adminSaveTitle" hidden>
+                <div class="modal modal-admin-save">
+                    <div class="modal-header">
+                        <div class="modal-title" id="adminSaveTitle">Save your admin link</div>
+                    </div>
+                    <div class="modal-body">
+                        <p>
+                            This is the <strong>only</strong> time you'll see this link. It lets you edit settings,
+                            kick participants, lock the event, or delete it. Anyone with this link gets the same powers.
+                        </p>
+                        <div class="form-field">
+                            <label for="adminUrlInput">Admin link</label>
+                            <div class="share-row">
+                                <input type="text" id="adminUrlInput" readonly>
+                                <button id="adminCopyBtn" class="tool-btn" type="button">Copy</button>
+                            </div>
+                        </div>
+                        <div class="admin-save-actions">
+                            <button id="adminDownloadBtn" class="tool-btn" type="button">Download as .txt</button>
+                            <button id="adminEmailBtn" class="tool-btn" type="button">Email it to me</button>
+                        </div>
+                        <p class="form-hint">
+                            We also remember this link in your browser's local storage so you don't lose access on this device.
+                            To use admin rights on another device, you'll need the link above. There is no password recovery.
+                        </p>
+                        <label class="acknowledge-row">
+                            <input type="checkbox" id="adminAckCheckbox"> I've saved this. Don't show again.
+                        </label>
+                        <div class="modal-footer">
+                            <button type="button" id="adminSaveCloseBtn" class="tool-btn primary" disabled>Done</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+<div id="longRetentionDialog" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="longRetentionTitle" hidden>
+                <div class="modal modal-confirm">
+                    <div class="modal-header">
+                        <div class="modal-title" id="longRetentionTitle">Long retention (up to 5 years)</div>
+                    </div>
+                    <div class="modal-body">
+                        <p>Are you sure?</p>
+                        <p>
+                            Keeping availability data for years is unusual. We'll keep this event's data
+                            <strong id="longRetentionDays">1825</strong> days (about <strong id="longRetentionYears">5</strong> years)
+                            from creation, then permanently delete it. Participants can still delete their own rows at any time.
+                        </p>
+                        <p>The default is 90 days, with up to 2 years available in the Advanced tab without this step.</p>
+                        <div class="long-retention-confirm-row">
+                            <label for="longRetentionConfirmInput">Type <code>5y</code> to confirm:</label>
+                            <input type="text" id="longRetentionConfirmInput" maxlength="3" placeholder="5y" autocapitalize="off" autocorrect="off" spellcheck="false">
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" id="longRetentionCancel" class="tool-btn">Cancel</button>
+                            <button type="button" id="longRetentionConfirm" class="tool-btn primary" disabled>Confirm</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+<div id="confirmDialog" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="confirmTitle" hidden>
+                <div class="modal modal-confirm">
+                    <div class="modal-header">
+                        <div class="modal-title" id="confirmTitle">Are you sure?</div>
+                    </div>
+                    <div class="modal-body">
+                        <p id="confirmBody"></p>
+                        <p id="confirmRetentionCopy" class="form-hint" hidden>
+                            Your row will be deleted within 24 hours (usually immediately). Platform backups age out within 30 days. See <a href="meeting-planner-privacy.html" class="text-link">Privacy</a>.
+                        </p>
+                        <div class="modal-footer">
+                            <button type="button" id="confirmCancel" class="tool-btn">Cancel</button>
+                            <button type="button" id="confirmOk" class="tool-btn primary">Confirm</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+<div id="lockDialog" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="lockTitle" hidden>
+                <div class="modal modal-confirm">
+                    <div class="modal-header">
+                        <div class="modal-title" id="lockTitle">Lock event</div>
+                    </div>
+                    <div class="modal-body">
+                        <p>Locking freezes all participant edits. You can optionally pick a decided slot, which will be highlighted on the grid for everyone.</p>
+                        <div class="form-field">
+                            <label for="lockDecidedSlot">Decided slot (optional)</label>
+                            <select id="lockDecidedSlot"></select>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" id="lockCancel" class="tool-btn">Cancel</button>
+                            <button type="button" id="lockConfirm" class="tool-btn primary">Lock</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+<div id="settingsDialog" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="settingsTitle" hidden>
+                <div class="modal modal-create">
+                    <div class="modal-header">
+                        <div class="modal-title" id="settingsTitle">Edit settings</div>
+                        <button type="button" class="modal-close" id="settingsClose" aria-label="Close">
+                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                        </button>
+                    </div>
+                    <form id="settingsForm" class="modal-body">
+                        <div class="form-field">
+                            <label for="setTitle">Title</label>
+                            <input type="text" id="setTitle" maxlength="200">
+                        </div>
+                        <div class="form-field">
+                            <label for="setDescription">Description</label>
+                            <textarea id="setDescription" rows="3" maxlength="2000"></textarea>
+                        </div>
+                        <div class="form-field">
+                            <label>Visibility</label>
+                            <div class="radio-stack">
+                                <label class="radio-row-item"><input type="radio" name="setVisibility" value="public"><span>Public</span></label>
+                                <label class="radio-row-item"><input type="radio" name="setVisibility" value="heatmap_only"><span>Heatmap only</span></label>
+                                <label class="radio-row-item"><input type="radio" name="setVisibility" value="blind"><span>Blind contribution</span></label>
+                            </div>
+                        </div>
+                        <div class="form-field">
+                            <label for="setExpiryDays">Expiry (days from now)</label>
+                            <input type="number" id="setExpiryDays" min="1" max="730">
+                            <p class="form-hint" id="setExpiryHint"></p>
+                            <button type="button" id="setLongRetentionBtn" class="text-link">Need longer than 2 years?</button>
+                        </div>
+                        <p id="settingsError" class="form-error" hidden></p>
+                        <div class="modal-footer">
+                            <button type="button" id="settingsCancel" class="tool-btn">Cancel</button>
+                            <button type="submit" class="tool-btn primary">Save</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+<div id="toastContainer" class="toast-container" aria-live="assertive" aria-atomic="true"></div>
+        </main>
+
+        <footer data-footer></footer>
+    </div>
+<script src="../js/shared.js"></script>
+    <script type="module" src="../js/footer.js" defer></script>
+    <script type="module" src="../js/meeting_planner/meeting-planner.js"></script>
+</body>
+</html>
+

@@ -1,0 +1,11 @@
+{
+  "testosterone_ng_dl_to_nmol_l": 0.0347,
+  "dht_ng_dl_to_nmol_l": 0.0344,
+  "estradiol_pg_ml_to_pmol_l": 3.671,
+  "mg_day_to_ug_day": 1000,
+  "ug_hour_to_ug_day": 24,
+  "notes": [
+    "Conversion constants are staged for test coverage only.",
+    "Displayable rows must still carry source native units and source locators."
+  ]
+}

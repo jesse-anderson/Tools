@@ -3,3 +3,11 @@
 !steam_tables/
 !steam_tables/README.md
 !steam_tables/*.csv
+!hormone_research_reference/
+!hormone_research_reference/README.md
+!hormone_research_reference/*.csv
+!hormone_research_reference/*.json
+!creatine_lab/
+!creatine_lab/README.md
+!creatine_lab/*.csv
+!creatine_lab/*.json

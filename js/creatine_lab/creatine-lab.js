@@ -1,13 +1,78 @@
-import { DEFAULT_MODEL_INPUTS, PRESET_INPUTS, runCreatineModel } from "./creatine-model.js";
+import {
+    BODY_COMPOSITION_PRESETS,
+    DEFAULT_MODEL_INPUTS,
+    DIETARY_INPUTS_G_PER_DAY,
+    LITERATURE_ENDOGENOUS_G_PER_DAY,
+    PRESET_INPUTS,
+    runCreatineModel
+} from "./creatine-model.js";
 import { evaluateCreatineChecks } from "./creatine-validation.js";
-import { getAuditRows } from "./creatine-source-map.js";
+import { getAuditRows, CREATINE_REFERENCES } from "./creatine-source-map.js";
+import { EQUATION_SPECS, getEquationSources, runAllEquationTests, runEquationTest } from "./creatine-math.js";
 
 const dom = {};
 const INPUT_DEBOUNCE_MS = 350;
 const EXPORT_SVG_WIDTH = 3200;
 const EXPORT_SVG_HEIGHT = 1244;
+const SETTINGS_STORAGE_KEY = "creatine-lab:settings:v1";
+const SETTINGS_SCHEMA_VERSION = 1;
 let pendingRecomputeId = null;
+let pendingPersistId = null;
 let chartOverlayReturnFocus = null;
+let mathModalReturnFocus = null;
+let mathModalRendered = false;
+let chartInfoReturnFocus = null;
+let settingsStatusResetId = null;
+
+const CHART_INFO = Object.freeze({
+    storage: {
+        title: "Dissolved Loss Over Storage",
+        plots: "Percentage of dissolved creatine converted to creatinine over the selected storage time. The curve is 1 - exp(-k * t), where k is a first-order rate constant adjusted from a pH anchor by temperature.",
+        watchOuts: "Dry-powder storage shows 0% loss because the model treats aqueous degradation only. Very low pH curves outside the supported anchor range are clamped rather than extrapolated.",
+        anchorGroups: [
+            { label: "Anchored by", keys: ["jager2011", "fdaGras931", "uzzan2009"] }
+        ]
+    },
+    accumulation: {
+        title: "Estimated Saturation And Dose Pressure",
+        plots: "The center line is max(true pool fill, dose pressure). Below 100% it reads as actual saturation: current pool divided by pool cap. Above 100% it represents dose pressure: the supplement amount that exceeds steady-state need on a pool already at cap. That surplus is not stored; the right-axis waste-pressure line quantifies it.",
+        watchOuts: "Reading the line as pure saturation overstates pool fill when the curve sits above ~95%. Use the hover tooltip to see the actual saturation percent and the pressure component separately. Post-load washout in this model is slower than literature suggests (modeled t-half ~41 days; Vandenberghe 1997 observed return-to-baseline within about 4 weeks).",
+        anchorGroups: [
+            { label: "Center curve", keys: ["hultman1996", "cooper2012", "ncbiCreatine", "persky2001", "persky2003", "schedel1999", "vandenberghe1997"] },
+            { label: "Pool-size baseline (body-composition mode)", keys: ["clark2014", "sagayama2023", "pagano2024"] },
+            { label: "Responder spread (Monte Carlo band)", keys: ["harris1992", "greenhaff1994"] }
+        ]
+    },
+    creatinine: {
+        title: "Daily Creatinine Production",
+        plots: "Current pool size times the turnover fraction times the creatine-to-creatinine mass conversion. Turnover fraction is fixed at 1.7% per day from population averages; the creatine-to-creatinine ratio is the molecular-weight conversion from Walker 1979.",
+        watchOuts: "Individual turnover varies and is not personalized. Modeled urinary output is steady-state by construction; transient deviations (fever, intense exercise, renal changes) are out of scope. Raising turnover narrows the post-load washout gap but inflates baseline creatinine output.",
+        anchorGroups: [
+            { label: "Anchored by", keys: ["walker1979", "ncbiCreatine", "cooper2012"] }
+        ]
+    },
+    fate: {
+        title: "Fate Of Supplemental Dose",
+        plots: "Of today's active supplemental dose: retained (added to the muscle pool) versus excreted unchanged in urine. The split comes from the Michaelis-Menten transporter term Vmax * gap^n * active / (Km + active), where gap = max((cap - pool) / (cap - baseline), 0).",
+        watchOuts: "Excreted unchanged on this plot is transporter-limited; it is NOT the same as waste pressure on the Saturation chart, which is pool-cap-limited overflow. Both rise during loading but for different reasons: the gap^n attenuator drops first because the supplementation gap shrinks, then the cap clamp activates when the pool nears saturation.",
+        anchorGroups: [
+            { label: "Saturable transport / clinical PK reviews", keys: ["persky2001", "persky2003"] },
+            { label: "Acute serum creatine PK", keys: ["schedel1999"] },
+            { label: "Day-by-day retention shape", keys: ["hultman1996"] },
+            { label: "Responder spread (Monte Carlo band)", keys: ["harris1992", "greenhaff1994"] }
+        ]
+    },
+    cumulative: {
+        title: "Cumulative Dose Vs Retained",
+        plots: "Running totals of supplemental monohydrate dosed and active creatine retained, with a right-axis lifetime retention efficiency = cumulativeRetained / cumulativeActiveSupplement.",
+        watchOuts: "Efficiency drops as the pool fills. Early-loading efficiency is much higher than maintenance-phase efficiency, so the lifetime number under-represents the absorptive value of the first few days. The model does not credit any extra-muscular benefit (brain, kidney, off-target uptake) when efficiency drops.",
+        anchorGroups: [
+            { label: "Pool size and retention", keys: ["cooper2012", "hultman1996", "persky2001", "persky2003"] },
+            { label: "Pool-size baseline (body-composition mode)", keys: ["clark2014", "sagayama2023", "pagano2024"] },
+            { label: "Responder spread (Monte Carlo band)", keys: ["harris1992", "greenhaff1994"] }
+        ]
+    }
+});
 
 const INPUT_HELP_TEXT = Object.freeze({
     doseG: "Grams of creatine monohydrate powder added. Active creatine equivalent is calculated separately.",
@@ -25,6 +90,7 @@ const INPUT_HELP_TEXT = Object.freeze({
     customLoadingDoseG: "Daily loading dose used only when Custom loading protocol is selected.",
     simulationDays: "Number of days shown in the accumulation curve and threshold table.",
     bodyPoolBasis: "Choose whether the baseline pool comes from body-composition inputs or a manual baseline value.",
+    bodyCompositionPreset: "Picks a literature population centerline for body composition. 'General adult' uses Cooper / ISSN review values (FFM-to-SMM 0.45, 4.6 g/kg muscle Cr, ~120-140 g pool for a 70 kg male). 'Athletic young male' uses D3-creatine values from Clark 2014 / Sagayama 2023 (FFM-to-SMM 0.53, 5.0 g/kg, ~150-175 g pool). 'Custom' leaves the underlying fields untouched.",
     baselinePoolG: "Manual starting total body creatine pool in grams. Used only in manual baseline mode.",
     bodyMassKg: "Body mass used with body fat to estimate fat-free mass when direct FFM or SMM is not supplied.",
     bodyFatPercent: "Used to estimate fat-free mass from body mass. Fat mass is not treated as a creatine-pool driver.",
@@ -44,7 +110,11 @@ const INPUT_HELP_TEXT = Object.freeze({
     monteCarloDraws: "Number of seeded uncertainty draws used for the 10-90% envelope.",
     brainResponseLowPercent: "Low end of the 20 g/day for 4 weeks brain tCr reference band.",
     brainResponseTypicalPercent: "Center value for the 20 g/day for 4 weeks brain tCr reference band.",
-    brainResponseHighPercent: "High end of the 20 g/day for 4 weeks brain tCr reference band."
+    brainResponseHighPercent: "High end of the 20 g/day for 4 weeks brain tCr reference band.",
+    calibrateBackground: "When on, the model pins endogenous synthesis so that diet + synthesis equals baseline turnover and the entered baseline stays put without supplementation. When off, the literature endogenous value is used and the pool drifts toward diet + synthesis divided by turnover.",
+    muscleUptakeMaxGPerDay: "Vmax of the daily muscle uptake curve in grams of active creatine. Defaults to 8 g/day, tuned to Hultman 1996 day-1 retention on 20 g/day loading (~5-6 g retained).",
+    muscleUptakeKmActiveG: "Km of the daily uptake curve in grams of active creatine. Represents the competition between muscle transporter uptake and renal clearance of unabsorbed plasma creatine. Lower values make a higher fraction of small doses get retained.",
+    poolGapHillExponent: "Hill exponent on the supplementation-gap term. Larger values make retention drop more sharply as the pool approaches the modeled cap; the Hultman 6-day loading time-course is approximately Hill ~1 to 1.5."
 });
 
 const RESULT_HELP_TEXT = Object.freeze({
@@ -60,21 +130,26 @@ const RESULT_HELP_TEXT = Object.freeze({
     wastePressureValue: "Estimated creatine monohydrate above the modeled steady-state need for the current pool. It is likely waste pressure, not extra stored creatine.",
     bodyCompositionValue: "Estimated skeletal muscle mass used to derive the body-pool baseline.",
     bodyPoolBasisValue: "Selected starting body-pool estimate and rough uncertainty range.",
-    brainPoolValue: "Brain total-creatine estimate scaled from regional MRS concentration and brain mass.",
-    brainResponseValue: "Reference brain tCr gain from a 20 g/day for 4 weeks study. It is not protocol-driven.",
+    brainPoolValue: "Brain total-creatine estimate scaled from regional MRS concentration and brain mass. The mM-to-grams conversion carries ~±20% interpretation drift depending on whether the MRS mM is reported per liter brain tissue, per liter brain water, or treated as 1 kg ≈ 1 L. The brain pool is informational only and does not feed the skeletal-muscle body mass balance.",
+    brainResponseValue: "Reference brain tCr gain from a Dechent 1999 20 g/day for 4 weeks study. Whole-brain response band is 3.5–13.3% (Dechent intersubject range). The 14.6% thalamus regional peak is shown separately as a regional reference, not as part of the whole-brain band. Band is not protocol-driven.",
     monteCarloBandValue: "10th to 90th percentile uncertainty band from seeded model draws.",
-    steadyDoseValue: "Estimated creatine monohydrate dose needed to hold the current modeled pool, above the diet and endogenous baseline context."
+    steadyDoseValue: "Additional creatine monohydrate dose, on top of diet plus endogenous synthesis, needed to hold the current modeled pool against daily turnover.",
+    creatinineOutputValue: "Modeled urinary creatinine output: current pool times the turnover fraction times the creatinine/creatine mass ratio. Tracks total daily creatine usage.",
+    retentionEfficiencyValue: "Fraction of cumulative active supplemental creatine retained in the pool over the simulation. Drops as the pool approaches saturation.",
+    equilibriumPoolValue: "Pool the model would settle to if you held this diet and synthesis indefinitely without supplementation: (diet + endogenous) divided by turnover fraction.",
+    massBalanceValue: "Residual between the simulated final pool and the closed-form mass balance (initial pool + retained + background - turnover). Should be very small; large values signal numerical drift."
 });
 
 const inputIds = [
     "doseG", "volumeValue", "volumeUnit", "temperatureValue", "temperatureUnit", "consumeFullSuspension",
     "storageMode", "storageTimeValue", "storageTimeUnit", "storageTemperatureValue", "storageTemperatureUnit",
     "phPreset", "customPh", "q10", "bodyMassKg", "bodyFatPercent", "fatFreeMassKg", "skeletalMuscleMassKg",
-    "bodyPoolBasis", "baselinePoolG", "ffmToSmmFraction", "muscleCreatineGPerKg", "skeletalMuscleCreatineShare",
+    "bodyPoolBasis", "bodyCompositionPreset", "baselinePoolG", "ffmToSmmFraction", "muscleCreatineGPerKg", "skeletalMuscleCreatineShare",
     "brainMassKg", "brainCreatineMm", "brainResponseLowPercent", "brainResponseTypicalPercent",
-    "brainResponseHighPercent", "dietaryPattern", "endogenousGPerDay", "turnoverPercentPerDay",
+    "brainResponseHighPercent", "dietaryPattern", "endogenousGPerDay", "calibrateBackground", "turnoverPercentPerDay",
     "protocolPreset", "customLoadingDoseG", "loadingDays", "maintenanceDoseG", "simulationDays",
-    "baselineSaturationPercent", "retentionMax", "monteCarloDraws"
+    "baselineSaturationPercent", "muscleUptakeMaxGPerDay", "muscleUptakeKmActiveG", "poolGapHillExponent",
+    "monteCarloDraws"
 ];
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -82,10 +157,14 @@ document.addEventListener("DOMContentLoaded", () => {
     addHelpTooltips();
     bindEvents();
     applyInputs(DEFAULT_MODEL_INPUTS);
+    const restored = restoreSettingsFromStorage();
     updateAdvancedVisibility();
     recompute();
     renderValidationChecks();
     renderSourceAudit();
+    if (restored) {
+        setSettingsStatus("Restored your saved settings from this browser.", "success");
+    }
 });
 
 function cacheDom() {
@@ -98,11 +177,23 @@ function cacheDom() {
         "bodyFinalPoolValue", "bodyFinalPoolMeta", "bodySaturationValue", "bodySaturationMeta", "wastePressureValue", "wastePressureMeta",
         "bodyCompositionValue", "bodyCompositionMeta", "bodyPoolBasisValue", "bodyPoolBasisMeta",
         "brainPoolValue", "brainPoolMeta", "brainResponseValue", "brainResponseMeta", "monteCarloBandValue",
-        "monteCarloBandMeta", "steadyDoseValue", "steadyDoseMeta", "warningList", "thresholdBody", "validationBody", "storageLossChart",
+        "monteCarloBandMeta", "steadyDoseValue", "steadyDoseMeta",
+        "creatinineOutputValue", "creatinineOutputMeta",
+        "retentionEfficiencyValue", "retentionEfficiencyMeta",
+        "equilibriumPoolValue", "equilibriumPoolMeta",
+        "massBalanceValue", "massBalanceMeta",
+        "warningList", "thresholdBody", "validationBody", "storageLossChart",
         "storageLossChartSummary", "accumulationChart", "chartSummary", "expandStorageChartBtn", "expandChartBtn",
         "exportStoragePlotBtn", "exportPlotBtn",
+        "creatinineChart", "creatinineChartSummary", "expandCreatinineChartBtn", "exportCreatininePlotBtn",
+        "fateChart", "fateChartSummary", "expandFateChartBtn", "exportFatePlotBtn",
+        "cumulativeChart", "cumulativeChartSummary", "expandCumulativeChartBtn", "exportCumulativePlotBtn",
         "chartOverlay", "chartOverlayTitle", "chartOverlaySummary", "chartOverlayBody", "chartOverlayClose",
-        "sourceModelNote", "sourceAuditBody"
+        "sourceModelNote", "sourceAuditBody",
+        "saveSettingsBtn", "loadSettingsBtn", "loadSettingsInput", "settingsStatus",
+        "showMathBtn", "mathModal", "mathModalTitle", "mathModalSummary",
+        "mathModalBody", "mathModalClose", "mathModalRunAll", "mathModalStatus",
+        "chartInfoModal", "chartInfoModalTitle", "chartInfoModalBody", "chartInfoModalClose"
     ];
 
     ids.forEach((id) => {
@@ -117,6 +208,21 @@ function bindEvents() {
         element.addEventListener("focus", closeHelpTooltips);
         element.addEventListener("input", handleInput);
         element.addEventListener("change", handleInput);
+    });
+
+    // Body-composition population preset: when the user picks a named
+    // population, sync the underlying FFM-to-SMM and muscle Cr inputs so
+    // the advanced fields reflect the preset. Manual edits afterwards
+    // implicitly switch the user into "custom" semantics; the preset key
+    // stays selected until the user changes it.
+    dom.bodyCompositionPreset?.addEventListener("change", () => {
+        const key = dom.bodyCompositionPreset.value;
+        const preset = BODY_COMPOSITION_PRESETS[key];
+        if (preset) {
+            dom.ffmToSmmFraction.value = preset.ffmToSmmFraction;
+            dom.muscleCreatineGPerKg.value = preset.muscleCreatineGPerKg;
+            recomputeNow();
+        }
     });
 
     document.querySelectorAll("[data-tab-target]").forEach((button) => {
@@ -136,17 +242,41 @@ function bindEvents() {
         applyInputs(DEFAULT_MODEL_INPUTS);
         updateAdvancedVisibility();
         recomputeNow();
+        clearSettingsFromStorage();
         setStatus("Reset to default bottle scenario.");
+        setSettingsStatus("Reset cleared saved settings. Future edits will auto-save again.", "");
     });
+
+    dom.saveSettingsBtn?.addEventListener("click", saveSettingsToFile);
+    dom.loadSettingsBtn?.addEventListener("click", () => dom.loadSettingsInput?.click());
+    dom.loadSettingsInput?.addEventListener("change", handleSettingsFile);
 
     dom.exportStoragePlotBtn?.addEventListener("click", exportStorageLossPlot);
     dom.exportPlotBtn?.addEventListener("click", exportAccumulationPlot);
+    dom.exportCreatininePlotBtn?.addEventListener("click", exportCreatininePlot);
+    dom.exportFatePlotBtn?.addEventListener("click", exportFatePlot);
+    dom.exportCumulativePlotBtn?.addEventListener("click", exportCumulativePlot);
     dom.expandStorageChartBtn?.addEventListener("click", openStorageChartOverlay);
     dom.expandChartBtn?.addEventListener("click", openAccumulationChartOverlay);
+    dom.expandCreatinineChartBtn?.addEventListener("click", openCreatinineChartOverlay);
+    dom.expandFateChartBtn?.addEventListener("click", openFateChartOverlay);
+    dom.expandCumulativeChartBtn?.addEventListener("click", openCumulativeChartOverlay);
     dom.chartOverlayClose?.addEventListener("click", closeChartOverlay);
     dom.chartOverlay?.addEventListener("click", (event) => {
         const target = event.target instanceof Element ? event.target : null;
         if (target?.closest("[data-chart-overlay-close]")) closeChartOverlay();
+    });
+
+    dom.showMathBtn?.addEventListener("click", openMathModal);
+    dom.mathModalClose?.addEventListener("click", closeMathModal);
+    dom.mathModalRunAll?.addEventListener("click", runAllMathTests);
+    dom.mathModal?.addEventListener("click", (event) => {
+        const target = event.target instanceof Element ? event.target : null;
+        if (target?.closest("[data-math-modal-close]")) closeMathModal();
+        const runButton = target?.closest("[data-math-run]");
+        if (runButton) {
+            runSingleMathTest(runButton.getAttribute("data-math-run"));
+        }
     });
 
     document.addEventListener("click", (event) => {
@@ -165,8 +295,25 @@ function bindEvents() {
         closeHelpTooltips();
     });
 
+    document.querySelectorAll("[data-chart-info]").forEach((button) => {
+        button.addEventListener("click", () => openChartInfoModal(button.getAttribute("data-chart-info"), button));
+    });
+    dom.chartInfoModalClose?.addEventListener("click", closeChartInfoModal);
+    dom.chartInfoModal?.addEventListener("click", (event) => {
+        const target = event.target instanceof Element ? event.target : null;
+        if (target?.closest("[data-chart-info-close]")) closeChartInfoModal();
+    });
+
     document.addEventListener("keydown", (event) => {
         if (event.key !== "Escape") return;
+        if (dom.chartInfoModal && !dom.chartInfoModal.hidden) {
+            closeChartInfoModal();
+            return;
+        }
+        if (dom.mathModal && !dom.mathModal.hidden) {
+            closeMathModal();
+            return;
+        }
         if (dom.chartOverlay && !dom.chartOverlay.hidden) {
             closeChartOverlay();
             return;
@@ -230,9 +377,25 @@ function closeHelpTooltips() {
     });
 }
 
-function handleInput() {
+function handleInput(event) {
+    if (event && event.target && event.target.id === "dietaryPattern") {
+        syncEndogenousToDietaryPattern(event.target.value);
+    }
     updateAdvancedVisibility();
     scheduleRecompute();
+}
+
+function syncEndogenousToDietaryPattern(pattern) {
+    const literatureValue = LITERATURE_ENDOGENOUS_G_PER_DAY[pattern];
+    if (literatureValue == null) return;
+    const knownLiteratureValues = Object.values(LITERATURE_ENDOGENOUS_G_PER_DAY);
+    const currentValue = Number(dom.endogenousGPerDay?.value);
+    // Only auto-update if the user hasn't manually overridden to a value that
+    // isn't itself one of the diet-pattern literature defaults. Lets the user
+    // type a custom number and keep it across diet changes.
+    if (!Number.isFinite(currentValue) || knownLiteratureValues.some((value) => Math.abs(value - currentValue) < 1e-6)) {
+        dom.endogenousGPerDay.value = String(literatureValue);
+    }
 }
 
 function scheduleRecompute() {
@@ -306,6 +469,7 @@ function readInputs() {
         fatFreeMassKg: dom.fatFreeMassKg.value,
         skeletalMuscleMassKg: dom.skeletalMuscleMassKg.value,
         bodyPoolBasis: dom.bodyPoolBasis.value,
+        bodyCompositionPreset: dom.bodyCompositionPreset.value,
         baselinePoolG: dom.baselinePoolG.value,
         ffmToSmmFraction: dom.ffmToSmmFraction.value,
         muscleCreatineGPerKg: dom.muscleCreatineGPerKg.value,
@@ -317,6 +481,7 @@ function readInputs() {
         brainResponseHighPercent: dom.brainResponseHighPercent.value,
         dietaryPattern: dom.dietaryPattern.value,
         endogenousGPerDay: dom.endogenousGPerDay.value,
+        calibrateBackground: dom.calibrateBackground.checked,
         turnoverFractionPerDay: Number(dom.turnoverPercentPerDay.value) / 100,
         protocolPreset: dom.protocolPreset.value,
         customLoadingDoseG: dom.customLoadingDoseG.value,
@@ -324,7 +489,9 @@ function readInputs() {
         maintenanceDoseG: dom.maintenanceDoseG.value,
         simulationDays: dom.simulationDays.value,
         baselineSaturationPercent: dom.baselineSaturationPercent.value,
-        retentionMax: dom.retentionMax.value,
+        muscleUptakeMaxGPerDay: dom.muscleUptakeMaxGPerDay.value,
+        muscleUptakeKmActiveG: dom.muscleUptakeKmActiveG.value,
+        poolGapHillExponent: dom.poolGapHillExponent.value,
         monteCarloDraws: dom.monteCarloDraws.value
     };
 }
@@ -340,6 +507,7 @@ function recompute() {
         const result = runCreatineModel(readInputs());
         render(result);
         setStatus("Estimate updated.");
+        schedulePersist();
     } catch (error) {
         setStatus(error.message || "Could not compute estimate.", "error");
     }
@@ -353,6 +521,9 @@ function render(result) {
     renderWarnings(result.warnings);
     renderStorageLossChart(result);
     renderAccumulationChart(result);
+    renderCreatinineChart(result);
+    renderFateChart(result);
+    renderCumulativeChart(result);
 }
 
 function renderMix({ mix, inputs }) {
@@ -379,21 +550,38 @@ function renderStorage({ storage, inputs }) {
     dom.storageCreatinineMeta.textContent = `${formatG(storage.activeEquivalentLostG)} g active creatine equivalent lost`;
 }
 
-function renderAccumulation({ accumulation, monteCarlo }) {
+function renderAccumulation({ accumulation, monteCarlo, massBalance }) {
     const turnoverFraction = accumulation.baselinePoolG > 0
         ? accumulation.baselineTurnoverG / accumulation.baselinePoolG
         : 0;
     const currentTurnoverG = accumulation.final.poolG * turnoverFraction;
+    const endogenousLabel = accumulation.calibrateBackground
+        ? `endogenous calibrated to ${formatG(accumulation.endogenousGPerDay)} g/day`
+        : `endogenous ${formatG(accumulation.endogenousGPerDay)} g/day (literature)`;
+    const backgroundContext = `diet ${formatG(accumulation.dietaryGPerDay)} g/day + ${endogenousLabel}; background total ${formatG(accumulation.backgroundInputGPerDay)} g/day`;
+
     dom.bodyFinalPoolValue.textContent = `${formatG(accumulation.final.poolG)} g`;
     dom.bodyFinalPoolMeta.textContent = `cap ${formatG(accumulation.poolCapG)} g from baseline ${formatG(accumulation.baselinePoolG)} g at ${formatPercent(accumulation.baselineSaturationFraction * 100)} baseline saturation`;
     dom.bodySaturationValue.textContent = `${formatPercent(accumulation.final.percentSaturation)}`;
-    dom.bodySaturationMeta.textContent = `day ${accumulation.final.day}, supplement gap filled ${formatPercent(accumulation.final.supplementGapFilledPercent)}, retained supplement ${formatG(accumulation.final.retainedSupplementG)} g; turnover ${formatG(accumulation.baselineTurnoverG)} g/day baseline, ${formatG(currentTurnoverG)} g/day current; diet + endogenous context ${formatG(accumulation.backgroundInputGPerDay)} g/day`;
+    dom.bodySaturationMeta.textContent = `day ${accumulation.final.day}, supplement gap filled ${formatPercent(accumulation.final.supplementGapFilledPercent)}, retained supplement ${formatG(accumulation.final.retainedSupplementG)} g; turnover ${formatG(accumulation.baselineTurnoverG)} g/day baseline, ${formatG(currentTurnoverG)} g/day current; ${backgroundContext}`;
     dom.wastePressureValue.textContent = `${formatG(accumulation.final.wastePressureCrMG)} g/day`;
     dom.wastePressureMeta.textContent = `10-90% range ${formatG(monteCarlo.final.wastePressureP10)} to ${formatG(monteCarlo.final.wastePressureP90)} g/day; likely not stored beyond the modeled cap`;
     dom.monteCarloBandValue.textContent = `${formatPercent(monteCarlo.final.saturationP10)} to ${formatPercent(monteCarlo.final.saturationP90)}`;
     dom.monteCarloBandMeta.textContent = `10-90% estimated saturation envelope, median ${formatPercent(monteCarlo.final.saturationMedian)}, ${monteCarlo.drawCount} seeded draws`;
     dom.steadyDoseValue.textContent = `${formatG(monteCarlo.final.steadyDoseP10)} to ${formatG(monteCarlo.final.steadyDoseP90)} g/day`;
-    dom.steadyDoseMeta.textContent = `centerline ${formatG(accumulation.final.steadyStateDoseCrMG)} g/day to hold day ${accumulation.final.day} pool; diet + endogenous context ${formatG(accumulation.backgroundInputGPerDay)} g/day`;
+    dom.steadyDoseMeta.textContent = `centerline ${formatG(accumulation.final.steadyStateDoseCrMG)} g/day extra supplement to hold day ${accumulation.final.day} pool; ${backgroundContext}`;
+    dom.creatinineOutputValue.textContent = `${formatG(accumulation.final.creatinineProducedG)} g/day`;
+    dom.creatinineOutputMeta.textContent = `MC band ${formatG(monteCarlo.final.creatinineP10)} to ${formatG(monteCarlo.final.creatinineP90)} g/day; baseline ${formatG(accumulation.baselineCreatinineGPerDay)} g/day from a ${formatG(accumulation.baselinePoolG)} g baseline pool`;
+    dom.retentionEfficiencyValue.textContent = `${formatPercent(accumulation.final.retentionEfficiency * 100)}`;
+    dom.retentionEfficiencyMeta.textContent = `${formatG(accumulation.final.cumulativeRetainedG)} g retained of ${formatG(accumulation.final.cumulativeActiveSupplementG)} g active supplemental creatine over ${accumulation.final.day} days`;
+    dom.equilibriumPoolValue.textContent = `${formatG(accumulation.equilibriumPoolG)} g`;
+    dom.equilibriumPoolMeta.textContent = accumulation.calibrateBackground
+        ? `Equal to baseline by calibration; pool would drift to ${formatG(accumulation.literatureEndogenousGPerDay + accumulation.dietaryGPerDay)} g/day / turnover = ${formatG((accumulation.literatureEndogenousGPerDay + accumulation.dietaryGPerDay) / Math.max(turnoverFraction, 1e-9))} g if calibration were off`
+        : `Attractor for no-supplement pool given diet + literature endogenous synthesis`;
+    if (massBalance) {
+        dom.massBalanceValue.textContent = `${formatG(massBalance.residualG)} g`;
+        dom.massBalanceMeta.textContent = `${formatPercent(massBalance.residualFractionOfPool * 100)} of final pool; supplemented in ${formatG(massBalance.totalRetainedG)} g, background in ${formatG(massBalance.totalBackgroundG)} g, turnover out ${formatG(massBalance.totalTurnoverG)} g over ${accumulation.final.day} days`;
+    }
 
     const rows = [90, 95, 99].map((threshold) => {
         const center = accumulation.thresholds[threshold];
@@ -422,9 +610,9 @@ function renderBodyCompartments({ inputs }) {
         ? `${basisLabel}; rough pool range ${formatG(composition.totalPoolLowG)} to ${formatG(composition.totalPoolHighG)} g, cap range ${formatG(composition.saturationCapLowG)} to ${formatG(composition.saturationCapHighG)} g`
         : `${basisLabel}; rough body-comp comparison ${formatG(composition.totalPoolLowG)} to ${formatG(composition.totalPoolHighG)} g`;
     dom.brainPoolValue.textContent = `${formatG(brain.baselinePoolG)} g`;
-    dom.brainPoolMeta.textContent = `${formatG(brain.brainCreatineMm)} mM regional MRS estimate scaled to ${formatG(brain.brainMassKg)} kg brain mass`;
+    dom.brainPoolMeta.textContent = `${formatG(brain.brainCreatineMm)} mM MRS estimate scaled to ${formatG(brain.brainMassKg)} kg brain mass (1 kg ≈ 1 L assumption; ~±20% MRS interpretation drift)`;
     dom.brainResponseValue.textContent = `${formatG(brain.responseTypicalGainG)} g`;
-    dom.brainResponseMeta.textContent = `20 g/day for 4 weeks reference: ${formatPercent(brain.responseLowPercent)} to ${formatPercent(brain.responseHighPercent)}; does not change when protocol changes`;
+    dom.brainResponseMeta.textContent = `20 g/day for 4 weeks whole-brain band: ${formatPercent(brain.responseLowPercent)} to ${formatPercent(brain.responseHighPercent)} (Dechent intersubject range; 14.6% thalamus regional peak shown separately as a regional reference, not part of this band); does not change when protocol changes`;
 }
 
 function renderWarnings(warnings) {
@@ -574,6 +762,250 @@ function renderAccumulationChart({ accumulation, monteCarlo }) {
     }), { width, height, pad });
 }
 
+function renderCreatinineChart({ accumulation, monteCarlo }) {
+    const svg = dom.creatinineChart;
+    if (!svg) return;
+    const width = 720;
+    const height = 280;
+    const pad = { left: 64, right: 24, top: 28, bottom: 38 };
+    const plotW = width - pad.left - pad.right;
+    const plotH = height - pad.top - pad.bottom;
+    const days = accumulation.days;
+    const mcDays = monteCarlo.days;
+    const maxDay = Math.max(1, days[days.length - 1].day);
+    const upperBoundCandidates = [
+        ...days.map((day) => day.creatinineProducedG),
+        ...mcDays.map((day) => day.creatinineP90 ?? 0),
+        accumulation.baselineCreatinineGPerDay
+    ];
+    const maxValue = Math.max(0.001, ...upperBoundCandidates);
+    const yMax = Math.ceil(maxValue * 1.15 * 10) / 10;
+    const x = (day) => pad.left + (day / maxDay) * plotW;
+    const y = (value) => pad.top + (1 - clamp(value, 0, yMax) / yMax) * plotH;
+
+    const centerPath = days
+        .map((day, index) => `${index === 0 ? "M" : "L"} ${x(day.day).toFixed(2)} ${y(day.creatinineProducedG).toFixed(2)}`)
+        .join(" ");
+    const upper = mcDays.map((day) => `${x(day.day).toFixed(2)} ${y(day.creatinineP90 ?? 0).toFixed(2)}`);
+    const lower = [...mcDays].reverse().map((day) => `${x(day.day).toFixed(2)} ${y(day.creatinineP10 ?? 0).toFixed(2)}`);
+    const bandPath = `M ${upper.join(" L ")} L ${lower.join(" L ")} Z`;
+
+    const ticks = niceTicks(0, yMax, 4);
+    const gridMarkup = ticks
+        .map((tick) => `<line x1="${pad.left}" y1="${y(tick)}" x2="${width - pad.right}" y2="${y(tick)}" class="chart-grid"></line>`)
+        .join("");
+    const labelMarkup = ticks
+        .map((tick) => `<text x="10" y="${y(tick) + 4}" class="chart-label">${formatG(tick)}</text>`)
+        .join("");
+
+    svg.innerHTML = `
+        <rect x="0" y="0" width="${width}" height="${height}" class="chart-bg"></rect>
+        ${gridMarkup}
+        <line x1="${pad.left}" y1="${pad.top}" x2="${pad.left}" y2="${height - pad.bottom}" class="chart-axis"></line>
+        <line x1="${pad.left}" y1="${height - pad.bottom}" x2="${width - pad.right}" y2="${height - pad.bottom}" class="chart-axis"></line>
+        <path d="${bandPath}" class="chart-creatinine-band"></path>
+        <line x1="${pad.left}" y1="${y(accumulation.baselineCreatinineGPerDay)}" x2="${width - pad.right}" y2="${y(accumulation.baselineCreatinineGPerDay)}" class="chart-grid chart-baseline-line"></line>
+        <path d="${centerPath}" class="chart-creatinine-line"></path>
+        ${labelMarkup}
+        <text x="${pad.left}" y="${pad.top - 9}" class="chart-axis-title">Left axis: creatinine g/day</text>
+        <text x="${pad.left + 10}" y="${pad.top + 16}" class="chart-legend creatinine">creatinine production</text>
+        <text x="${pad.left + 10}" y="${pad.top + 33}" class="chart-legend baseline">baseline creatinine ${formatG(accumulation.baselineCreatinineGPerDay)} g/day</text>
+        <text x="${pad.left}" y="${height - 10}" class="chart-label">day 0</text>
+        <text x="${width - pad.right - 54}" y="${height - 10}" class="chart-label">day ${maxDay}</text>
+        ${renderHoverMarkup("creatinine", 3)}
+    `;
+    dom.creatinineChartSummary.textContent = `Modeled urinary creatinine output rises with pool size and peaks at day ${accumulation.final.day}: ${formatG(accumulation.final.creatinineProducedG)} g/day (MC ${formatG(monteCarlo.final.creatinineP10)} to ${formatG(monteCarlo.final.creatinineP90)} g/day).`;
+
+    attachChartHover(svg, days.map((day) => {
+        const band = mcDays[day.day] || monteCarlo.final;
+        return {
+            x: x(day.day),
+            y: y(day.creatinineProducedG),
+            pointClass: "creatinine",
+            lines: [
+                `Day ${day.day}: ${formatG(day.creatinineProducedG)} g/day creatinine`,
+                `Pool ${formatG(day.poolG)} g; total turnover ${formatG(day.dailyLossG)} g/day creatine`,
+                `MC band ${formatG(band.creatinineP10)}-${formatG(band.creatinineP90)} g/day`
+            ]
+        };
+    }), { width, height, pad });
+}
+
+function renderFateChart({ accumulation, monteCarlo }) {
+    const svg = dom.fateChart;
+    if (!svg) return;
+    const width = 720;
+    const height = 280;
+    const pad = { left: 64, right: 24, top: 28, bottom: 38 };
+    const plotW = width - pad.left - pad.right;
+    const plotH = height - pad.top - pad.bottom;
+    const days = accumulation.days;
+    const mcDays = monteCarlo.days;
+    const maxDay = Math.max(1, days[days.length - 1].day);
+    const maxValue = Math.max(
+        0.5,
+        ...days.map((day) => (day.retainedSupplementG + day.excretedSupplementG))
+    );
+    const yMax = Math.ceil(maxValue * 1.15 * 10) / 10;
+    const x = (day) => pad.left + (day / maxDay) * plotW;
+    const y = (value) => pad.top + (1 - clamp(value, 0, yMax) / yMax) * plotH;
+
+    const retainedTop = days.map((day) => `${x(day.day).toFixed(2)} ${y(day.retainedSupplementG).toFixed(2)}`);
+    const retainedBottom = [...days].reverse().map((day) => `${x(day.day).toFixed(2)} ${y(0).toFixed(2)}`);
+    const retainedPath = `M ${retainedTop.join(" L ")} L ${retainedBottom.join(" L ")} Z`;
+    const totalTop = days.map((day) => `${x(day.day).toFixed(2)} ${y(day.retainedSupplementG + day.excretedSupplementG).toFixed(2)}`);
+    const totalBottom = [...days].reverse().map((day) => `${x(day.day).toFixed(2)} ${y(day.retainedSupplementG).toFixed(2)}`);
+    const excretedPath = `M ${totalTop.join(" L ")} L ${totalBottom.join(" L ")} Z`;
+    const totalLine = days
+        .map((day, index) => `${index === 0 ? "M" : "L"} ${x(day.day).toFixed(2)} ${y(day.retainedSupplementG + day.excretedSupplementG).toFixed(2)}`)
+        .join(" ");
+    const retainedLine = days
+        .map((day, index) => `${index === 0 ? "M" : "L"} ${x(day.day).toFixed(2)} ${y(day.retainedSupplementG).toFixed(2)}`)
+        .join(" ");
+
+    const ticks = niceTicks(0, yMax, 4);
+    const gridMarkup = ticks
+        .map((tick) => `<line x1="${pad.left}" y1="${y(tick)}" x2="${width - pad.right}" y2="${y(tick)}" class="chart-grid"></line>`)
+        .join("");
+    const labelMarkup = ticks
+        .map((tick) => `<text x="10" y="${y(tick) + 4}" class="chart-label">${formatG(tick)}</text>`)
+        .join("");
+
+    svg.innerHTML = `
+        <rect x="0" y="0" width="${width}" height="${height}" class="chart-bg"></rect>
+        ${gridMarkup}
+        <line x1="${pad.left}" y1="${pad.top}" x2="${pad.left}" y2="${height - pad.bottom}" class="chart-axis"></line>
+        <line x1="${pad.left}" y1="${height - pad.bottom}" x2="${width - pad.right}" y2="${height - pad.bottom}" class="chart-axis"></line>
+        <path d="${excretedPath}" class="chart-excreted-area"></path>
+        <path d="${retainedPath}" class="chart-retained-area"></path>
+        <path d="${totalLine}" class="chart-active-dose-line"></path>
+        <path d="${retainedLine}" class="chart-retained-line"></path>
+        ${labelMarkup}
+        <text x="${pad.left}" y="${pad.top - 9}" class="chart-axis-title">Left axis: g/day active creatine</text>
+        <text x="${pad.left + 10}" y="${pad.top + 16}" class="chart-legend retained">retained (added to pool)</text>
+        <text x="${pad.left + 10}" y="${pad.top + 33}" class="chart-legend excreted">excreted unchanged in urine</text>
+        <text x="${pad.left + 10}" y="${pad.top + 50}" class="chart-legend active-dose">total active supplemental dose</text>
+        <text x="${pad.left}" y="${height - 10}" class="chart-label">day 0</text>
+        <text x="${width - pad.right - 54}" y="${height - 10}" class="chart-label">day ${maxDay}</text>
+        ${renderHoverMarkup("retained", 3)}
+    `;
+    const finalRetained = accumulation.final.retainedSupplementG;
+    const finalExcreted = accumulation.final.excretedSupplementG;
+    const finalActive = finalRetained + finalExcreted;
+    dom.fateChartSummary.textContent = finalActive > 0
+        ? `Day ${accumulation.final.day}: ${formatG(finalRetained)} g retained, ${formatG(finalExcreted)} g excreted unchanged (${formatPercent((finalRetained / finalActive) * 100)} retention).`
+        : `No supplemental dose in this scenario; all daily change comes from diet and synthesis vs turnover.`;
+
+    attachChartHover(svg, days.map((day) => {
+        const band = mcDays[day.day] || monteCarlo.final;
+        const total = day.retainedSupplementG + day.excretedSupplementG;
+        return {
+            x: x(day.day),
+            y: y(day.retainedSupplementG + day.excretedSupplementG),
+            pointClass: "retained",
+            lines: [
+                `Day ${day.day}: ${formatG(day.retainedSupplementG)} g retained / ${formatG(day.excretedSupplementG)} g excreted`,
+                `Active dose ${formatG(total)} g/day; retention ${formatPercent(total > 0 ? (day.retainedSupplementG / total) * 100 : 0)}`,
+                `MC retained ${formatG(band.retainedP10)}-${formatG(band.retainedP90)} g/day`
+            ]
+        };
+    }), { width, height, pad });
+}
+
+function renderCumulativeChart({ accumulation, monteCarlo }) {
+    const svg = dom.cumulativeChart;
+    if (!svg) return;
+    const width = 720;
+    const height = 280;
+    const pad = { left: 70, right: 70, top: 28, bottom: 38 };
+    const plotW = width - pad.left - pad.right;
+    const plotH = height - pad.top - pad.bottom;
+    const days = accumulation.days;
+    const mcDays = monteCarlo.days;
+    const maxDay = Math.max(1, days[days.length - 1].day);
+    const cumulativeDoses = days.map((day) => day.cumulativeDoseCrMG);
+    const cumulativeRetained = days.map((day) => day.cumulativeRetainedG);
+    const massMax = Math.max(0.5, ...cumulativeDoses);
+    const massYMax = Math.ceil(massMax * 1.1);
+    const yMass = (value) => pad.top + (1 - clamp(value, 0, massYMax) / massYMax) * plotH;
+    const efficiencies = days.map((day) => day.retentionEfficiency * 100);
+    const effMax = Math.max(10, ...efficiencies);
+    const effYMax = Math.min(100, Math.ceil(effMax / 10) * 10);
+    const yEff = (value) => pad.top + (1 - clamp(value, 0, effYMax) / effYMax) * plotH;
+    const x = (day) => pad.left + (day / maxDay) * plotW;
+
+    const dosePath = days
+        .map((day, index) => `${index === 0 ? "M" : "L"} ${x(day.day).toFixed(2)} ${yMass(day.cumulativeDoseCrMG).toFixed(2)}`)
+        .join(" ");
+    const retainedPath = days
+        .map((day, index) => `${index === 0 ? "M" : "L"} ${x(day.day).toFixed(2)} ${yMass(day.cumulativeRetainedG).toFixed(2)}`)
+        .join(" ");
+    const effPath = days
+        .map((day, index) => `${index === 0 ? "M" : "L"} ${x(day.day).toFixed(2)} ${yEff(day.retentionEfficiency * 100).toFixed(2)}`)
+        .join(" ");
+
+    const massTicks = niceTicks(0, massYMax, 4);
+    const massLabelMarkup = massTicks
+        .map((tick) => `<text x="10" y="${yMass(tick) + 4}" class="chart-label">${formatG(tick)}</text>`)
+        .join("");
+    const massGridMarkup = massTicks
+        .map((tick) => `<line x1="${pad.left}" y1="${yMass(tick)}" x2="${width - pad.right}" y2="${yMass(tick)}" class="chart-grid"></line>`)
+        .join("");
+    const effTicks = niceTicks(0, effYMax, 4);
+    const effLabelMarkup = effTicks
+        .map((tick) => `<text x="${width - pad.right + 8}" y="${yEff(tick) + 4}" class="chart-label chart-efficiency-label">${formatG(tick)}%</text>`)
+        .join("");
+
+    svg.innerHTML = `
+        <rect x="0" y="0" width="${width}" height="${height}" class="chart-bg"></rect>
+        ${massGridMarkup}
+        <line x1="${pad.left}" y1="${pad.top}" x2="${pad.left}" y2="${height - pad.bottom}" class="chart-axis"></line>
+        <line x1="${width - pad.right}" y1="${pad.top}" x2="${width - pad.right}" y2="${height - pad.bottom}" class="chart-axis chart-steady-axis"></line>
+        <line x1="${pad.left}" y1="${height - pad.bottom}" x2="${width - pad.right}" y2="${height - pad.bottom}" class="chart-axis"></line>
+        <path d="${dosePath}" class="chart-cumulative-dose-line"></path>
+        <path d="${retainedPath}" class="chart-cumulative-retained-line"></path>
+        <path d="${effPath}" class="chart-efficiency-line"></path>
+        ${massLabelMarkup}
+        ${effLabelMarkup}
+        <text x="${pad.left}" y="${pad.top - 9}" class="chart-axis-title">Left axis: cumulative grams</text>
+        <text x="${width - pad.right - 174}" y="${pad.top - 9}" class="chart-axis-title chart-right-axis-title">Right axis: retention efficiency %</text>
+        <text x="${pad.left + 10}" y="${pad.top + 16}" class="chart-legend cumulative-dose">cumulative supplement dose</text>
+        <text x="${pad.left + 10}" y="${pad.top + 33}" class="chart-legend cumulative-retained">cumulative retained active</text>
+        <text x="${pad.left + 10}" y="${pad.top + 50}" class="chart-legend efficiency">retention efficiency</text>
+        <text x="${pad.left}" y="${height - 10}" class="chart-label">day 0</text>
+        <text x="${width - pad.right - 54}" y="${height - 10}" class="chart-label">day ${maxDay}</text>
+        ${renderHoverMarkup("efficiency", 3)}
+    `;
+    dom.cumulativeChartSummary.textContent = accumulation.final.cumulativeDoseCrMG > 0
+        ? `Over ${accumulation.final.day} days: ${formatG(accumulation.final.cumulativeDoseCrMG)} g monohydrate dosed, ${formatG(accumulation.final.cumulativeRetainedG)} g active retained (lifetime efficiency ${formatPercent(accumulation.final.retentionEfficiency * 100)}).`
+        : `No supplemental dose in this scenario.`;
+
+    attachChartHover(svg, days.map((day) => {
+        const band = mcDays[day.day] || monteCarlo.final;
+        return {
+            x: x(day.day),
+            y: yEff(day.retentionEfficiency * 100),
+            pointClass: "efficiency",
+            lines: [
+                `Day ${day.day}: ${formatPercent(day.retentionEfficiency * 100)} cumulative retention`,
+                `Cumulative dose ${formatG(day.cumulativeDoseCrMG)} g; retained ${formatG(day.cumulativeRetainedG)} g`,
+                `MC retained band ${formatG(band.cumulativeRetainedP10)}-${formatG(band.cumulativeRetainedP90)} g`
+            ]
+        };
+    }), { width, height, pad });
+}
+
+function niceTicks(min, max, count) {
+    if (!Number.isFinite(min) || !Number.isFinite(max) || max <= min) {
+        return [min, max].filter((value) => Number.isFinite(value));
+    }
+    const ticks = [];
+    for (let i = 0; i <= count; i += 1) {
+        ticks.push(min + ((max - min) * i) / count);
+    }
+    return ticks;
+}
+
 function renderHoverMarkup(pointClass = "", lineCount = 2) {
     const textRows = Array.from({ length: lineCount }, (_, index) => (
         `<text class="chart-tooltip-text" data-line="${index}"></text>`
@@ -667,6 +1099,36 @@ function openStorageChartOverlay() {
     });
 }
 
+function openCreatinineChartOverlay() {
+    if (pendingRecomputeId !== null) recomputeNow();
+    openChartOverlay({
+        chart: dom.creatinineChart,
+        title: document.getElementById("creatinine-chart-title")?.textContent || "Daily Creatinine Production",
+        summary: dom.creatinineChartSummary?.textContent || "Expanded chart view.",
+        label: "Expanded Creatine Lab daily creatinine production chart"
+    });
+}
+
+function openFateChartOverlay() {
+    if (pendingRecomputeId !== null) recomputeNow();
+    openChartOverlay({
+        chart: dom.fateChart,
+        title: document.getElementById("fate-chart-title")?.textContent || "Fate Of Supplemental Dose",
+        summary: dom.fateChartSummary?.textContent || "Expanded chart view.",
+        label: "Expanded Creatine Lab fate-of-dose chart"
+    });
+}
+
+function openCumulativeChartOverlay() {
+    if (pendingRecomputeId !== null) recomputeNow();
+    openChartOverlay({
+        chart: dom.cumulativeChart,
+        title: document.getElementById("cumulative-chart-title")?.textContent || "Cumulative Dose Vs Retained",
+        summary: dom.cumulativeChartSummary?.textContent || "Expanded chart view.",
+        label: "Expanded Creatine Lab cumulative dose versus retained chart"
+    });
+}
+
 function openChartOverlay({ chart, title, summary, label }) {
     if (!chart || !dom.chartOverlay || !dom.chartOverlayBody) return;
     closeHelpTooltips();
@@ -674,6 +1136,7 @@ function openChartOverlay({ chart, title, summary, label }) {
     dom.chartOverlayTitle.textContent = title;
     dom.chartOverlaySummary.textContent = summary;
     dom.chartOverlayBody.replaceChildren(cloneChartForOverlay(chart, label));
+    setAppBackgroundInert(true);
     dom.chartOverlay.hidden = false;
     document.body.classList.add("chart-overlay-open");
     dom.chartOverlayClose?.focus();
@@ -683,9 +1146,226 @@ function closeChartOverlay() {
     if (!dom.chartOverlay || dom.chartOverlay.hidden) return;
     dom.chartOverlay.hidden = true;
     dom.chartOverlayBody?.replaceChildren();
+    setAppBackgroundInert(false);
     document.body.classList.remove("chart-overlay-open");
     chartOverlayReturnFocus?.focus?.();
     chartOverlayReturnFocus = null;
+}
+
+function openMathModal() {
+    if (!dom.mathModal || !dom.mathModalBody) return;
+    if (!mathModalRendered) {
+        renderMathModal();
+        mathModalRendered = true;
+    }
+    closeHelpTooltips();
+    mathModalReturnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    setAppBackgroundInert(true);
+    dom.mathModal.hidden = false;
+    document.body.classList.add("chart-overlay-open");
+    setMathStatus("Press a \"Run test\" button to exercise that equation, or \"Run all tests\" to evaluate every equation against its anchor.", "");
+    dom.mathModalClose?.focus();
+}
+
+function closeMathModal() {
+    if (!dom.mathModal || dom.mathModal.hidden) return;
+    dom.mathModal.hidden = true;
+    setAppBackgroundInert(false);
+    document.body.classList.remove("chart-overlay-open");
+    mathModalReturnFocus?.focus?.();
+    mathModalReturnFocus = null;
+}
+
+function setAppBackgroundInert(inert) {
+    document.querySelectorAll(".container > header, .container > main, .container > footer").forEach((el) => {
+        if (inert) {
+            el.setAttribute("inert", "");
+            el.setAttribute("aria-hidden", "true");
+        } else {
+            el.removeAttribute("inert");
+            el.removeAttribute("aria-hidden");
+        }
+    });
+}
+
+function openChartInfoModal(chartId, trigger) {
+    const info = CHART_INFO[chartId];
+    if (!info || !dom.chartInfoModal || !dom.chartInfoModalBody) return;
+    let sectionIdSeq = 0;
+    renderChartInfo(info, () => `chartInfoSection_${++sectionIdSeq}`);
+    closeHelpTooltips();
+    chartInfoReturnFocus = trigger instanceof HTMLElement
+        ? trigger
+        : (document.activeElement instanceof HTMLElement ? document.activeElement : null);
+    setAppBackgroundInert(true);
+    dom.chartInfoModal.hidden = false;
+    document.body.classList.add("chart-overlay-open");
+    dom.chartInfoModalClose?.focus();
+}
+
+function closeChartInfoModal() {
+    if (!dom.chartInfoModal || dom.chartInfoModal.hidden) return;
+    dom.chartInfoModal.hidden = true;
+    setAppBackgroundInert(false);
+    document.body.classList.remove("chart-overlay-open");
+    chartInfoReturnFocus?.focus?.();
+    chartInfoReturnFocus = null;
+}
+
+function renderChartInfo(info, nextId) {
+    if (dom.chartInfoModalTitle) {
+        dom.chartInfoModalTitle.textContent = info.title;
+    }
+    const body = dom.chartInfoModalBody;
+    body.replaceChildren();
+
+    const sections = [
+        { heading: "What it plots", text: info.plots },
+        { heading: "Watch-outs", text: info.watchOuts }
+    ];
+    sections.forEach((section) => {
+        const wrapper = document.createElement("section");
+        wrapper.className = "chart-info-section";
+        const headingId = nextId();
+        wrapper.setAttribute("aria-labelledby", headingId);
+        const h3 = document.createElement("h3");
+        h3.id = headingId;
+        h3.textContent = section.heading;
+        wrapper.appendChild(h3);
+        const p = document.createElement("p");
+        p.textContent = section.text;
+        wrapper.appendChild(p);
+        body.appendChild(wrapper);
+    });
+
+    const groups = info.anchorGroups || [];
+    groups.forEach((group) => {
+        const refs = (group.keys || []).map((key) => CREATINE_REFERENCES[key]).filter(Boolean);
+        if (refs.length === 0) return;
+        const refSection = document.createElement("section");
+        refSection.className = "chart-info-section";
+        const headingId = nextId();
+        refSection.setAttribute("aria-labelledby", headingId);
+        const refHeading = document.createElement("h3");
+        refHeading.id = headingId;
+        refHeading.textContent = group.label;
+        refSection.appendChild(refHeading);
+        const list = document.createElement("div");
+        list.className = "chart-info-anchors";
+        refs.forEach((ref) => {
+            const link = document.createElement("a");
+            link.href = ref.url;
+            link.target = "_blank";
+            link.rel = "noopener noreferrer";
+            link.textContent = ref.label;
+            list.appendChild(link);
+        });
+        refSection.appendChild(list);
+        body.appendChild(refSection);
+    });
+}
+
+function renderMathModal() {
+    if (!dom.mathModalBody) return;
+    const html = EQUATION_SPECS.map((spec) => {
+        const sourcesHtml = getEquationSources(spec)
+            .map((source) => `<a href="${escapeHtml(source.url || "#")}" target="_blank" rel="noopener noreferrer">${escapeHtml(source.label)}</a>`)
+            .join(", ") || "<span>(no external source)</span>";
+        return `
+            <article class="math-card" data-math-card="${escapeHtml(spec.id)}">
+                <h3>${escapeHtml(spec.title)}</h3>
+                <button type="button" class="tool-btn secondary math-card-run" data-math-run="${escapeHtml(spec.id)}">Run test</button>
+                <div class="math-card-body">
+                    <pre class="math-card-equation">${escapeHtml(spec.equation)}</pre>
+                    <p>${escapeHtml(spec.rationale)}</p>
+                    <div class="math-card-meta">
+                        <span><strong>Implementation:</strong> ${escapeHtml(spec.implementation)}</span>
+                    </div>
+                    <div class="math-card-meta">
+                        <span><strong>Fixture:</strong> ${escapeHtml(spec.fixture)}</span>
+                    </div>
+                    <div class="math-card-meta">
+                        <span><strong>Expected:</strong> ${escapeHtml(spec.expected)}</span>
+                    </div>
+                    <div class="math-card-meta math-card-sources">
+                        <span><strong>Source:</strong></span>
+                        <span>${sourcesHtml}</span>
+                    </div>
+                    <div class="math-card-result" data-math-result="${escapeHtml(spec.id)}" aria-live="polite"></div>
+                </div>
+            </article>
+        `;
+    }).join("");
+    dom.mathModalBody.innerHTML = html;
+}
+
+function runSingleMathTest(id) {
+    const result = runEquationTest(id);
+    if (!result) return;
+    displayMathResult(id, result);
+    setMathStatus(
+        result.pass
+            ? `Test "${id}" passed. The live model matches the documented equation.`
+            : `Test "${id}" failed. ${result.message || "Drift detected between displayed math and implementation."}`,
+        result.pass ? "success" : "error"
+    );
+}
+
+function runAllMathTests() {
+    const results = runAllEquationTests();
+    let passed = 0;
+    results.forEach((entry) => {
+        displayMathResult(entry.id, entry);
+        if (entry.pass) passed += 1;
+    });
+    const total = results.length;
+    const allPass = passed === total;
+    setMathStatus(
+        allPass
+            ? `All ${total} equation tests passed. The displayed math matches the live model.`
+            : `${passed} of ${total} equation tests passed. Inspect failing cards for details.`,
+        allPass ? "success" : "error"
+    );
+}
+
+function displayMathResult(id, result) {
+    if (!dom.mathModalBody) return;
+    const target = dom.mathModalBody.querySelector(`[data-math-result="${cssEscape(id)}"]`);
+    if (!target) return;
+    target.classList.remove("pass", "fail");
+    target.classList.add("visible", result.pass ? "pass" : "fail");
+    const expected = formatMathValue(result.expected, result.units);
+    const actual = formatMathValue(result.actual, result.units);
+    target.innerHTML = `
+        <span class="math-card-result-status">${result.pass ? "PASS" : "FAIL"}</span>
+        <div class="math-card-result-row"><span class="math-card-result-label">Expected:</span><span>${escapeHtml(expected)}</span></div>
+        <div class="math-card-result-row"><span class="math-card-result-label">Actual:</span><span>${escapeHtml(actual)}</span></div>
+        ${result.message ? `<div class="math-card-result-row"><span>${escapeHtml(result.message)}</span></div>` : ""}
+    `;
+}
+
+function formatMathValue(value, units = "") {
+    if (value === null || value === undefined) return "n/a";
+    if (typeof value === "number") {
+        if (!Number.isFinite(value)) return "n/a";
+        const abs = Math.abs(value);
+        const formatted = abs === 0 || (abs >= 1e-3 && abs < 1e6) ? value.toFixed(4) : value.toExponential(3);
+        return units ? `${formatted} ${units}` : formatted;
+    }
+    return String(value);
+}
+
+function setMathStatus(message, type = "") {
+    if (!dom.mathModalStatus) return;
+    dom.mathModalStatus.textContent = message;
+    dom.mathModalStatus.className = `math-modal-status ${type}`.trim();
+}
+
+function cssEscape(value) {
+    if (typeof CSS !== "undefined" && typeof CSS.escape === "function") {
+        return CSS.escape(value);
+    }
+    return String(value).replace(/[^a-zA-Z0-9_-]/g, "\\$&");
 }
 
 function cloneChartForOverlay(svg, label) {
@@ -713,6 +1393,33 @@ function exportStorageLossPlot() {
         title: "Creatine Lab dissolved loss over storage plot",
         ariaLabel: "Exported Creatine Lab dissolved storage loss plot",
         filename: "creatine-lab-dissolved-loss-over-storage.svg"
+    });
+}
+
+function exportCreatininePlot() {
+    exportChartSvg({
+        chart: dom.creatinineChart,
+        title: "Creatine Lab daily creatinine production plot",
+        ariaLabel: "Exported Creatine Lab daily creatinine production plot",
+        filename: "creatine-lab-creatinine-production.svg"
+    });
+}
+
+function exportFatePlot() {
+    exportChartSvg({
+        chart: dom.fateChart,
+        title: "Creatine Lab fate of supplemental dose plot",
+        ariaLabel: "Exported Creatine Lab fate-of-dose plot",
+        filename: "creatine-lab-fate-of-dose.svg"
+    });
+}
+
+function exportCumulativePlot() {
+    exportChartSvg({
+        chart: dom.cumulativeChart,
+        title: "Creatine Lab cumulative dose versus retained plot",
+        ariaLabel: "Exported Creatine Lab cumulative dose versus retained plot",
+        filename: "creatine-lab-cumulative-dose-vs-retained.svg"
     });
 }
 
@@ -761,6 +1468,7 @@ function getExportChartCss() {
             --creatine-orange: ${theme.orange};
             --creatine-cyan: ${theme.cyan};
             --creatine-red: ${theme.red};
+            --creatine-green: ${theme.green};
         }
         .chart-bg { fill: var(--creatine-soft); }
         .chart-grid { stroke: ${withAlpha(theme.muted, 0.24)}; stroke-width: 1; }
@@ -773,11 +1481,28 @@ function getExportChartCss() {
         .chart-steady-line { fill: none; stroke: var(--creatine-cyan); stroke-width: 2.4; stroke-dasharray: 7 5; }
         .chart-waste-line { fill: none; stroke: var(--creatine-red); stroke-width: 2.4; }
         .chart-loss-line { fill: none; stroke: var(--creatine-red); stroke-width: 3; }
+        .chart-creatinine-line { fill: none; stroke: var(--creatine-orange); stroke-width: 2.6; }
+        .chart-creatinine-band { fill: ${withAlpha(theme.orange, 0.18)}; stroke: none; }
+        .chart-baseline-line { stroke: ${withAlpha(theme.cyan, 0.7)}; stroke-dasharray: 5 4; }
+        .chart-retained-area { fill: ${withAlpha(theme.green, 0.32)}; stroke: none; }
+        .chart-excreted-area { fill: ${withAlpha(theme.red, 0.22)}; stroke: none; }
+        .chart-retained-line { fill: none; stroke: var(--creatine-green); stroke-width: 2.2; }
+        .chart-active-dose-line { fill: none; stroke: var(--creatine-cyan); stroke-width: 1.6; stroke-dasharray: 4 4; }
+        .chart-cumulative-dose-line { fill: none; stroke: var(--creatine-cyan); stroke-width: 2.6; }
+        .chart-cumulative-retained-line { fill: none; stroke: var(--creatine-green); stroke-width: 2.6; }
+        .chart-efficiency-line { fill: none; stroke: var(--creatine-orange); stroke-width: 2.2; stroke-dasharray: 6 4; }
         .chart-label { fill: var(--creatine-muted); font: 700 12px "JetBrains Mono", monospace; }
         .chart-steady-label, .chart-legend.steady { fill: var(--creatine-cyan); }
+        .chart-efficiency-label, .chart-legend.efficiency { fill: var(--creatine-orange); }
         .chart-legend { fill: var(--creatine-muted); font: 800 11px "JetBrains Mono", monospace; }
         .chart-legend.saturation { fill: var(--creatine-orange); }
         .chart-legend.waste { fill: var(--creatine-red); }
+        .chart-legend.creatinine { fill: var(--creatine-orange); }
+        .chart-legend.baseline { fill: var(--creatine-cyan); }
+        .chart-legend.retained, .chart-legend.cumulative-retained { fill: var(--creatine-green); }
+        .chart-legend.excreted { fill: var(--creatine-red); }
+        .chart-legend.cumulative-dose { fill: var(--creatine-cyan); }
+        .chart-legend.active-dose { fill: var(--creatine-cyan); }
         .chart-axis-title { fill: var(--creatine-muted); font: 800 10px "JetBrains Mono", monospace; text-transform: uppercase; }
     `;
 }
@@ -793,7 +1518,8 @@ function getActiveExportTheme() {
         muted: read("--creatine-muted", "#9fb1aa"),
         orange: read("--creatine-orange", "#f59e0b"),
         cyan: read("--creatine-cyan", "#38bdf8"),
-        red: read("--creatine-red", "#f87171")
+        red: read("--creatine-red", "#f87171"),
+        green: read("--creatine-green", "#22c55e")
     };
 }
 
@@ -901,4 +1627,142 @@ function escapeHtml(value) {
 
 function clamp(value, min, max) {
     return Math.min(Math.max(value, min), max);
+}
+
+function schedulePersist() {
+    if (typeof window === "undefined" || !window.localStorage) return;
+    window.clearTimeout(pendingPersistId);
+    pendingPersistId = window.setTimeout(() => {
+        pendingPersistId = null;
+        persistSettingsToStorage();
+    }, 200);
+}
+
+function buildSettingsPayload() {
+    const snapshot = {};
+    inputIds.forEach((id) => {
+        const element = dom[id] || document.getElementById(id);
+        if (!element) return;
+        snapshot[id] = element.type === "checkbox" ? element.checked : element.value;
+    });
+    return {
+        tool: "creatine-lab",
+        schemaVersion: SETTINGS_SCHEMA_VERSION,
+        savedAt: new Date().toISOString(),
+        inputs: snapshot
+    };
+}
+
+function persistSettingsToStorage() {
+    try {
+        window.localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(buildSettingsPayload()));
+    } catch (error) {
+        setSettingsStatus("Could not save settings to this browser: " + (error?.message || "storage unavailable"), "error");
+    }
+}
+
+function restoreSettingsFromStorage() {
+    if (typeof window === "undefined" || !window.localStorage) return false;
+    try {
+        const raw = window.localStorage.getItem(SETTINGS_STORAGE_KEY);
+        if (!raw) return false;
+        const payload = JSON.parse(raw);
+        if (!payload || payload.tool !== "creatine-lab" || payload.schemaVersion !== SETTINGS_SCHEMA_VERSION) return false;
+        applySettingsSnapshot(payload.inputs || {});
+        return true;
+    } catch (error) {
+        setSettingsStatus("Saved settings were unreadable and have been ignored.", "error");
+        return false;
+    }
+}
+
+function clearSettingsFromStorage() {
+    try {
+        window.localStorage.removeItem(SETTINGS_STORAGE_KEY);
+    } catch (_error) {
+        // Storage may be disabled; safe to ignore.
+    }
+}
+
+function applySettingsSnapshot(snapshot) {
+    Object.entries(snapshot || {}).forEach(([id, value]) => {
+        const element = dom[id] || document.getElementById(id);
+        if (!element) return;
+        if (element.type === "checkbox") {
+            element.checked = Boolean(value);
+        } else if (element.tagName === "SELECT") {
+            element.value = String(value);
+        } else {
+            element.value = String(value);
+        }
+    });
+}
+
+function saveSettingsToFile() {
+    try {
+        if (pendingPersistId !== null) {
+            window.clearTimeout(pendingPersistId);
+            pendingPersistId = null;
+        }
+        persistSettingsToStorage();
+        const payload = buildSettingsPayload();
+        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        const stamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
+        link.href = url;
+        link.download = `creatine-lab-settings-${stamp}.json`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.setTimeout(() => URL.revokeObjectURL(url), 0);
+        setSettingsStatus("Saved current settings to a JSON file.", "success");
+    } catch (error) {
+        setSettingsStatus("Could not save settings file: " + (error?.message || "unknown error"), "error");
+    }
+}
+
+function handleSettingsFile(event) {
+    const input = event.target;
+    const file = input.files && input.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+        try {
+            const payload = JSON.parse(String(reader.result || ""));
+            if (!payload || payload.tool !== "creatine-lab") {
+                throw new Error("not a Creatine Lab settings file");
+            }
+            if (payload.schemaVersion !== SETTINGS_SCHEMA_VERSION) {
+                throw new Error(`unsupported schema version ${payload.schemaVersion}`);
+            }
+            applySettingsSnapshot(payload.inputs || {});
+            updateAdvancedVisibility();
+            recomputeNow();
+            setSettingsStatus(`Loaded settings from ${file.name}.`, "success");
+        } catch (error) {
+            setSettingsStatus("Could not load settings file: " + (error?.message || "invalid JSON"), "error");
+        } finally {
+            input.value = "";
+        }
+    };
+    reader.onerror = () => {
+        setSettingsStatus("Could not read settings file.", "error");
+        input.value = "";
+    };
+    reader.readAsText(file);
+}
+
+function setSettingsStatus(message, type = "") {
+    if (!dom.settingsStatus) return;
+    dom.settingsStatus.textContent = message;
+    dom.settingsStatus.className = `settings-line ${type}`.trim();
+    if (settingsStatusResetId) window.clearTimeout(settingsStatusResetId);
+    if (type === "success" || type === "error") {
+        settingsStatusResetId = window.setTimeout(() => {
+            dom.settingsStatus.textContent = "Settings auto-save to this browser as you type.";
+            dom.settingsStatus.className = "settings-line";
+            settingsStatusResetId = null;
+        }, 6000);
+    }
 }

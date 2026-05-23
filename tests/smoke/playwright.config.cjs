@@ -4,8 +4,12 @@ const PORT = Number(process.env.PORT || 4173);
 
 module.exports = defineConfig({
   testDir: '.',
-  testMatch: ['tools-smoke.spec.cjs'],
-  timeout: 30_000,
+  // `meeting-planner-smoke.spec.cjs` is intentionally excluded — it requires
+  // the dev-mode flips described at the top of that file (local wrangler dev,
+  // local-worker URL in config.js, CSP relaxed). Add it back to this array
+  // before running it.
+  testMatch: ['tools-smoke.spec.cjs', 'hormone-data.spec.cjs'],
+  timeout: 60_000,
   fullyParallel: false,
   workers: 1,
   outputDir: 'test-results',

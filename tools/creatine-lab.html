@@ -78,8 +78,15 @@ License: GPL-3.0
                         <h2 id="input-title">Inputs</h2>
                         <p>Creatine monohydrate only. Dose inputs are grams of creatine monohydrate, not other forms.</p>
                     </div>
-                    <button class="tool-btn secondary" id="resetBtn" type="button">Reset</button>
+                    <div class="settings-controls">
+                        <button class="tool-btn secondary" id="showMathBtn" type="button" aria-haspopup="dialog">Show the math</button>
+                        <button class="tool-btn secondary" id="saveSettingsBtn" type="button">Save settings</button>
+                        <button class="tool-btn secondary" id="loadSettingsBtn" type="button">Load settings</button>
+                        <input type="file" id="loadSettingsInput" accept=".json,application/json" hidden>
+                        <button class="tool-btn secondary" id="resetBtn" type="button">Reset</button>
+                    </div>
                 </div>
+                <p class="settings-line" id="settingsStatus" aria-live="polite">Settings auto-save to this browser as you type.</p>
 
                 <div class="status-line" id="statusLine" aria-live="polite">Ready.</div>
 
@@ -246,6 +253,14 @@ License: GPL-3.0
                                     <span class="unit-suffix" aria-hidden="true">g</span>
                                 </div>
                             </label>
+                            <label class="input-line wide">
+                                <span>Body composition population</span>
+                                <select id="bodyCompositionPreset">
+                                    <option value="general_adult">General adult (Cooper / ISSN, ~120 g pool centerline)</option>
+                                    <option value="athletic_young_male">Athletic young male (Clark / Sagayama D3, ~155 g pool centerline)</option>
+                                    <option value="custom">Custom (use values below)</option>
+                                </select>
+                            </label>
                             <label class="input-line">
                                 <span>Body mass (kg)</span>
                                 <input id="bodyMassKg" type="number" min="30" max="200" step="1" value="70">
@@ -269,6 +284,10 @@ License: GPL-3.0
                                     <option value="low_meat">Low meat</option>
                                     <option value="vegetarian">Vegetarian</option>
                                 </select>
+                            </label>
+                            <label class="check-line wide">
+                                <input id="calibrateBackground" type="checkbox" checked>
+                                <span>Calibrate synthesis to entered baseline (off: pool drifts toward diet-supported equilibrium)</span>
                             </label>
                         </div>
                     </div>
@@ -322,8 +341,22 @@ License: GPL-3.0
                             <input id="baselineSaturationPercent" type="number" min="50" max="95" step="1" value="75">
                         </label>
                         <label class="input-line">
-                            <span>Retention max</span>
-                            <input id="retentionMax" type="number" min="0" max="1" step="0.01" value="0.60">
+                            <span>Muscle uptake Vmax</span>
+                            <div class="unit-field">
+                                <input id="muscleUptakeMaxGPerDay" type="number" min="1" max="20" step="0.1" value="8.0">
+                                <span class="unit-suffix" aria-hidden="true">g/day</span>
+                            </div>
+                        </label>
+                        <label class="input-line">
+                            <span>Muscle uptake Km</span>
+                            <div class="unit-field">
+                                <input id="muscleUptakeKmActiveG" type="number" min="0.5" max="30" step="0.1" value="6.0">
+                                <span class="unit-suffix" aria-hidden="true">g active</span>
+                            </div>
+                        </label>
+                        <label class="input-line">
+                            <span>Pool gap Hill exponent</span>
+                            <input id="poolGapHillExponent" type="number" min="0.5" max="3" step="0.1" value="1.0">
                         </label>
                         <label class="input-line">
                             <span>Temperature Q10</span>
@@ -434,9 +467,29 @@ License: GPL-3.0
                         <span id="monteCarloBandMeta">Waiting for input.</span>
                     </article>
                     <article class="result-card result-card--wide">
-                        <span class="result-label">Steady-state dose</span>
+                        <span class="result-label">Additional steady dose</span>
                         <strong id="steadyDoseValue">0.00 g/day</strong>
                         <span id="steadyDoseMeta">Waiting for input.</span>
+                    </article>
+                    <article class="result-card">
+                        <span class="result-label">Creatinine output</span>
+                        <strong id="creatinineOutputValue">0.00 g/day</strong>
+                        <span id="creatinineOutputMeta">Waiting for input.</span>
+                    </article>
+                    <article class="result-card">
+                        <span class="result-label">Retention efficiency</span>
+                        <strong id="retentionEfficiencyValue">0.0%</strong>
+                        <span id="retentionEfficiencyMeta">Waiting for input.</span>
+                    </article>
+                    <article class="result-card">
+                        <span class="result-label">Diet-supported equilibrium</span>
+                        <strong id="equilibriumPoolValue">0 g</strong>
+                        <span id="equilibriumPoolMeta">Waiting for input.</span>
+                    </article>
+                    <article class="result-card result-card--wide">
+                        <span class="result-label">Mass-balance residual</span>
+                        <strong id="massBalanceValue">0.00 g</strong>
+                        <span id="massBalanceMeta">Waiting for input.</span>
                     </article>
                 </div>
 
@@ -448,6 +501,7 @@ License: GPL-3.0
                                 <p id="storageLossChartSummary">Waiting for input.</p>
                             </div>
                             <div class="chart-actions">
+                                <button class="tool-btn secondary chart-info-btn" data-chart-info="storage" type="button" aria-haspopup="dialog" aria-label="About the Dissolved Loss Over Storage plot">&#9432;</button>
                                 <button class="tool-btn secondary expand-chart-btn" id="expandStorageChartBtn" type="button" aria-haspopup="dialog">Expand chart</button>
                                 <button class="tool-btn secondary export-plot-btn" id="exportStoragePlotBtn" type="button">Export plot SVG</button>
                             </div>
@@ -462,11 +516,57 @@ License: GPL-3.0
                                 <p id="chartSummary">Waiting for input.</p>
                             </div>
                             <div class="chart-actions">
+                                <button class="tool-btn secondary chart-info-btn" data-chart-info="accumulation" type="button" aria-haspopup="dialog" aria-label="About the Estimated Saturation And Dose Pressure plot">&#9432;</button>
                                 <button class="tool-btn secondary expand-chart-btn" id="expandChartBtn" type="button" aria-haspopup="dialog">Expand chart</button>
                                 <button class="tool-btn secondary export-plot-btn" id="exportPlotBtn" type="button">Export plot SVG</button>
                             </div>
                         </div>
                         <svg id="accumulationChart" class="metric-chart accumulation-chart" viewBox="0 0 720 280" role="img" aria-label="Estimated creatine body-pool saturation, dose pressure, and steady-state dose chart"></svg>
+                    </section>
+
+                    <section class="chart-panel" aria-labelledby="creatinine-chart-title">
+                        <div class="chart-header">
+                            <div>
+                                <h3 id="creatinine-chart-title">Daily Creatinine Production</h3>
+                                <p id="creatinineChartSummary">Waiting for input.</p>
+                            </div>
+                            <div class="chart-actions">
+                                <button class="tool-btn secondary chart-info-btn" data-chart-info="creatinine" type="button" aria-haspopup="dialog" aria-label="About the Daily Creatinine Production plot">&#9432;</button>
+                                <button class="tool-btn secondary expand-chart-btn" id="expandCreatinineChartBtn" type="button" aria-haspopup="dialog">Expand chart</button>
+                                <button class="tool-btn secondary export-plot-btn" id="exportCreatininePlotBtn" type="button">Export plot SVG</button>
+                            </div>
+                        </div>
+                        <svg id="creatinineChart" class="metric-chart" viewBox="0 0 720 280" role="img" aria-label="Modeled urinary creatinine production rate over time"></svg>
+                    </section>
+
+                    <section class="chart-panel" aria-labelledby="fate-chart-title">
+                        <div class="chart-header">
+                            <div>
+                                <h3 id="fate-chart-title">Fate Of Supplemental Dose</h3>
+                                <p id="fateChartSummary">Waiting for input.</p>
+                            </div>
+                            <div class="chart-actions">
+                                <button class="tool-btn secondary chart-info-btn" data-chart-info="fate" type="button" aria-haspopup="dialog" aria-label="About the Fate Of Supplemental Dose plot">&#9432;</button>
+                                <button class="tool-btn secondary expand-chart-btn" id="expandFateChartBtn" type="button" aria-haspopup="dialog">Expand chart</button>
+                                <button class="tool-btn secondary export-plot-btn" id="exportFatePlotBtn" type="button">Export plot SVG</button>
+                            </div>
+                        </div>
+                        <svg id="fateChart" class="metric-chart" viewBox="0 0 720 280" role="img" aria-label="Daily retained versus unchanged-excreted supplemental creatine"></svg>
+                    </section>
+
+                    <section class="chart-panel" aria-labelledby="cumulative-chart-title">
+                        <div class="chart-header">
+                            <div>
+                                <h3 id="cumulative-chart-title">Cumulative Dose Vs Retained</h3>
+                                <p id="cumulativeChartSummary">Waiting for input.</p>
+                            </div>
+                            <div class="chart-actions">
+                                <button class="tool-btn secondary chart-info-btn" data-chart-info="cumulative" type="button" aria-haspopup="dialog" aria-label="About the Cumulative Dose Vs Retained plot">&#9432;</button>
+                                <button class="tool-btn secondary expand-chart-btn" id="expandCumulativeChartBtn" type="button" aria-haspopup="dialog">Expand chart</button>
+                                <button class="tool-btn secondary export-plot-btn" id="exportCumulativePlotBtn" type="button">Export plot SVG</button>
+                            </div>
+                        </div>
+                        <svg id="cumulativeChart" class="metric-chart" viewBox="0 0 720 280" role="img" aria-label="Cumulative supplemental dose and cumulative retained active creatine"></svg>
                     </section>
                 </div>
 
@@ -549,6 +649,15 @@ License: GPL-3.0
                     </div>
                 </details>
 
+                <details class="panel side-card foldable-card">
+                    <summary><span>Cross-Study Harmonization</span></summary>
+                    <div class="foldable-content">
+                        <p>This tool is composed from heterogeneous human studies. Cooper 2012 supplies the baseline body pool, NCBI Bookshelf supplies the 1.7%/day turnover constant, Hultman 1996 anchors the loading curve and the slow-load endpoint, Harris 1992 and Greenhaff 1994 supply the responder spread, Burke 2003 and Lukaszuk 2002 supply the vegetarian baseline shift, and Walker 1979 supplies the creatine-to-creatinine mass ratio. None of these anchors were measured on the same individual or on the same cohort, and few of them sampled women, older adults, or untrained populations adequately.</p>
+                        <p>The Monte Carlo envelope is how the model absorbs that heterogeneity. It samples the inputs we know vary across people: baseline pool size, muscle creatine concentration, turnover fraction, transporter Vmax and Km, dietary intake, and baseline saturation. It then surfaces a 10-90% band so you can see how those known unknowns propagate to the predicted curve. It is not a statistical confidence interval, it does not capture sex differences, age effects, fiber-type composition, training status, or insulin co-ingestion, and a real person's trajectory can comfortably sit outside it.</p>
+                        <p>Read the band as: <em>this is roughly where the model expects most people who match the entered inputs to land, after accounting for the input ranges we sampled</em>. Treat tighter point estimates with appropriate skepticism; every "centerline" in this tool is built from averages of averages.</p>
+                    </div>
+                </details>
+
                 <details class="panel side-card foldable-card" open>
                     <summary><span>Model Notes</span></summary>
                     <div class="foldable-content">
@@ -593,6 +702,35 @@ License: GPL-3.0
                 </details>
             </aside>
         </main>
+
+        <div class="chart-overlay math-modal" id="mathModal" role="dialog" aria-modal="true" aria-labelledby="mathModalTitle" hidden>
+            <div class="chart-overlay-backdrop" data-math-modal-close></div>
+            <section class="chart-overlay-panel math-modal-panel">
+                <div class="chart-overlay-header">
+                    <div>
+                        <h2 id="mathModalTitle">How The Math Works</h2>
+                        <p id="mathModalSummary">Each equation below is what the simulator actually runs. "Run test" exercises the live model code on a literature-anchored fixture so the displayed math cannot drift from the implementation.</p>
+                    </div>
+                    <div class="math-modal-actions">
+                        <button class="tool-btn" id="mathModalRunAll" type="button">Run all tests</button>
+                        <button class="tool-btn secondary" id="mathModalClose" type="button">Close</button>
+                    </div>
+                </div>
+                <p class="math-modal-status" id="mathModalStatus" aria-live="polite">Press a "Run test" button to exercise that equation, or "Run all tests" to evaluate every equation against its anchor.</p>
+                <div class="math-modal-body" id="mathModalBody"></div>
+            </section>
+        </div>
+
+        <div class="chart-info-modal" id="chartInfoModal" role="dialog" aria-modal="true" aria-labelledby="chartInfoModalTitle" aria-describedby="chartInfoModalBody" hidden>
+            <div class="chart-info-modal-backdrop" data-chart-info-close></div>
+            <section class="chart-info-modal-panel" tabindex="-1">
+                <header class="chart-info-modal-header">
+                    <h2 id="chartInfoModalTitle">About this plot</h2>
+                    <button class="tool-btn secondary chart-info-modal-close" id="chartInfoModalClose" type="button" aria-label="Close">&times;</button>
+                </header>
+                <div class="chart-info-modal-body" id="chartInfoModalBody"></div>
+            </section>
+        </div>
 
         <div class="chart-overlay" id="chartOverlay" role="dialog" aria-modal="true" aria-labelledby="chartOverlayTitle" hidden>
             <div class="chart-overlay-backdrop" data-chart-overlay-close></div>

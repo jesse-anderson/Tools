@@ -1,0 +1,289 @@
+[
+  {
+    "source_id": "endotext_menstrual_cycle_table_1",
+    "source_url": "https://www.ncbi.nlm.nih.gov/books/NBK279054/",
+    "source_locator": "Table 1, Production Rate of Sex Steroids in Women at Different Stages of the Menstrual Cycle",
+    "source_role": "direct_value",
+    "use": "Female cycle daily production rates"
+  },
+  {
+    "source_id": "endotext_androgen_physiology",
+    "source_url": "https://www.ncbi.nlm.nih.gov/books/NBK279000/",
+    "source_locator": "Testosterone Physiology, Secretion section, male production rate estimate",
+    "source_role": "direct_value",
+    "use": "Male testosterone production range"
+  },
+  {
+    "source_id": "endotext_testis_spermatogenesis",
+    "source_url": "https://www.ncbi.nlm.nih.gov/books/NBK279031/",
+    "source_locator": "Leydig Cell Steroidogenesis text",
+    "source_role": "cross_check",
+    "use": "Secondary cross-check for about 7 mg/day testosterone and testicular estradiol contribution"
+  },
+  {
+    "source_id": "endotext_lab_testicular_function",
+    "source_url": "https://www.ncbi.nlm.nih.gov/books/NBK279145/",
+    "source_locator": "Laboratory Assessment of Testicular Function, testosterone timing, free testosterone, and DHT sections",
+    "source_role": "method_warning",
+    "use": "DHT serum/source notes, free testosterone method caveats, and assay caveats"
+  },
+  {
+    "source_id": "endotext_male_estrogens",
+    "source_url": "https://www.ncbi.nlm.nih.gov/books/NBK278933/",
+    "source_locator": "The Role of Estrogens in the Male, estradiol source/production and assay sections",
+    "source_role": "direct_value",
+    "use": "Male estradiol production, source split, assay caveat, and serum context"
+  },
+  {
+    "source_id": "endotext_adrenal_androgens",
+    "source_url": "https://www.ncbi.nlm.nih.gov/books/NBK278929/",
+    "source_locator": "Adrenal Androgens and Androgen Precursors, DHEA/DHEAS and metabolism sections",
+    "source_role": "pathway_context",
+    "use": "DHEA/DHEAS timing, androsterone pathway, and 11-ketotestosterone pathway context"
+  },
+  {
+    "source_id": "endotext_adrenal_androgens_aging",
+    "source_url": "https://www.ncbi.nlm.nih.gov/books/NBK279006/",
+    "source_locator": "Adrenal Androgens and Aging, source split and potency sections",
+    "source_role": "pathway_context",
+    "use": "Adrenal contribution source splits, age context, and relative androgen potency"
+  },
+  {
+    "source_id": "jcem_1974_baird_fraser_estradiol_estrone_cycle",
+    "source_url": "https://doi.org/10.1210/jcem-38-6-1009",
+    "source_locator": "JCEM 1974;38(6):1009-1017, DOI 10.1210/jcem-38-6-1009",
+    "source_role": "direct_value",
+    "use": "Estradiol and estrone blood production and ovarian secretion rates across the menstrual cycle"
+  },
+  {
+    "source_id": "jcem_1983_broom_progesterone_production",
+    "source_url": "https://doi.org/10.1210/jcem-56-2-346",
+    "source_locator": "JCEM 1983;56(2):346-349, DOI 10.1210/jcem-56-2-346",
+    "source_role": "direct_value",
+    "use": "Progesterone production rates in the menstrual cycle and pregnancy"
+  },
+  {
+    "source_id": "jci_1966_little_tait_progesterone_mcr_males",
+    "source_url": "https://doi.org/10.1172/JCI105405",
+    "source_locator": "J Clin Invest 1966;45(6):901-912, discussion p. 911",
+    "source_role": "derived_value",
+    "use": "Adult male plasma progesterone production estimate and urinary pregnanediol caveat"
+  },
+  {
+    "source_id": "jcem_dht_production_2001",
+    "source_url": "https://academic.oup.com/jcem/article/86/12/5762/2849261",
+    "source_locator": "JCEM 2001;86(12):5762-5764, DOI 10.1210/jcem.86.12.8078",
+    "source_role": "direct_value",
+    "use": "DHT production rates in healthy men and follicular-phase women"
+  },
+  {
+    "source_id": "jcem_2017_travison_harmonized_testosterone",
+    "source_url": "https://doi.org/10.1210/jc.2016-2935",
+    "source_locator": "JCEM 2017;102(4):1161-1173, Tables 2-4",
+    "source_role": "direct_value",
+    "use": "CDC-standardized harmonized male total testosterone serum reference ranges"
+  },
+  {
+    "source_id": "jcem_2018_bhasin_testosterone_guideline",
+    "source_url": "https://doi.org/10.1210/jc.2018-00229",
+    "source_locator": "JCEM 2018;103(5):1715-1744",
+    "source_role": "method_warning",
+    "use": "Male testosterone repeat-morning and diagnosis-boundary warning"
+  },
+  {
+    "source_id": "jcem_2020_frederiksen_estrogen_lcms",
+    "source_url": "https://doi.org/10.1210/clinem/dgz196",
+    "source_locator": "JCEM 2020;105(3):dgz196",
+    "source_role": "cross_check",
+    "use": "LC-MS/MS sex-specific estrogen reference interval context across age"
+  },
+  {
+    "source_id": "jcem_2020_frederiksen_estrogen_lcms_supplement",
+    "source_url": "https://doi.org/10.6084/m9.figshare.10084145.v1",
+    "source_locator": "Supplementary material for JCEM 2020;105(3):dgz196, Supplementary Table 8",
+    "source_role": "direct_value",
+    "use": "LC-MS/MS cycle-day percentiles for estradiol, estrone, progesterone, estrone sulfate, 17-OHP, androstenedione, testosterone, and DHEA-S"
+  },
+  {
+    "source_id": "cca_2017_eisenhofer_adrenal_steroid_lcms",
+    "source_url": "https://doi.org/10.1016/j.cca.2017.05.002",
+    "source_locator": "Clin Chim Acta 2017;470:115-124, Tables 2-4 and Figures 2-3",
+    "source_role": "direct_value",
+    "use": "Plasma adrenal steroid reference intervals and age/sex context"
+  },
+  {
+    "source_id": "cca_2019_verdonk_estradiol_lcms",
+    "source_url": "https://doi.org/10.1016/j.cca.2019.04.062",
+    "source_locator": "Clin Chim Acta 2019;495:198-204, Results 3.2.1-3.2.2 and Tables 3-4",
+    "source_role": "direct_value",
+    "use": "CDC-traceable LC-MS/MS estradiol serum reference intervals by menstrual phase, postmenopause, and men"
+  },
+  {
+    "source_id": "clinbiochem_2019_vanderveen_five_steroids",
+    "source_url": "https://doi.org/10.1016/j.clinbiochem.2019.03.013",
+    "source_locator": "Clin Biochem 2019;68:15-23, Table 3",
+    "source_role": "direct_value",
+    "use": "LC-MS/MS plasma reference intervals for progesterone, 17-OHP, androstenedione, testosterone, and DHT"
+  },
+  {
+    "source_id": "scandjclinlabinvest_2009_bjerner_male_shbg_norip",
+    "source_url": "https://doi.org/10.3109/00365510903380886",
+    "source_locator": "Scand J Clin Lab Invest 2009;69(8):873-879, Table II",
+    "source_role": "direct_value",
+    "use": "Age-specific male serum testosterone, SHBG, LH, FSH, calculated free testosterone, and bioavailable testosterone reference limits from NORIP"
+  },
+  {
+    "source_id": "jcem_2012_haring_female_testosterone_androstenedione_lcms",
+    "source_url": "https://doi.org/10.1210/jc.2011-2134",
+    "source_locator": "JCEM 2012;97(2):408-415, Table 3",
+    "source_role": "direct_value",
+    "use": "Female age-specific LC-MS/MS total testosterone and androstenedione reference ranges, plus calculated free testosterone context"
+  },
+  {
+    "source_id": "jsbmb_2019_bae_lifespan_steroids_lcms",
+    "source_url": "https://doi.org/10.1016/j.jsbmb.2019.105409",
+    "source_locator": "J Steroid Biochem Mol Biol 2019;193:105409, Table 2",
+    "source_role": "direct_value",
+    "use": "LC-MS/MS age-banded serum reference intervals for steroid hormones, including DHEAS and broad progesterone context"
+  },
+  {
+    "source_id": "jsbmb_2020_mezzullo_sex_precursor_steroids_lcms",
+    "source_url": "https://doi.org/10.1016/j.jsbmb.2019.105538",
+    "source_locator": "J Steroid Biochem Mol Biol 2020;197:105538",
+    "source_role": "cross_check",
+    "use": "LC-MS/MS reference interval context for challenging sex and precursor steroids"
+  },
+  {
+    "source_id": "jcem_2020_davio_11oxygenated_androgen_patterns",
+    "source_url": "https://doi.org/10.1210/clinem/dgaa343",
+    "source_locator": "JCEM 2020;105(8):e2921-e2929, Figures 2-3 and Tables 2-3",
+    "source_role": "cross_check",
+    "use": "Adult age and sex pattern context for 11-oxygenated androgens"
+  },
+  {
+    "source_id": "ijms_2022_zeidler_11oxygenated_androgens",
+    "source_url": "https://doi.org/10.3390/ijms24010539",
+    "source_locator": "Int J Mol Sci 2022;24(1):539",
+    "source_role": "method_warning",
+    "use": "Method and pathway context for 11-oxygenated androgen LC-MS/MS profiling"
+  },
+  {
+    "source_id": "ejendo_2024_adriaansen_pediatric_11oxygenated_androgens",
+    "source_url": "https://doi.org/10.1093/ejendo/lvae008",
+    "source_locator": "Eur J Endocrinol 2024;190(1):96-103, Table 3",
+    "source_role": "direct_value",
+    "use": "Pediatric serum LC-MS/MS reference intervals for classic and 11-oxygenated androgens"
+  },
+  {
+    "source_id": "jcem_2025_charoensri_gonads_11oxygenated_androgens",
+    "source_url": "https://doi.org/10.1210/clinem/dgae420",
+    "source_locator": "JCEM 2025;110(5):1398-1403, Figures 2-3 and supplementary tables",
+    "source_role": "pathway_context",
+    "use": "Gonadal vein and bilateral salpingo-oophorectomy evidence that human gonads do not materially contribute circulating 11-oxygenated androgens"
+  },
+  {
+    "source_id": "jei_2026_pettersen_fit_futures_11oxygenated_androgens",
+    "source_url": "https://doi.org/10.1007/s40618-025-02793-0",
+    "source_locator": "J Endocrinol Invest 2026;49:1059-1070, Tables 3-4",
+    "source_role": "direct_value",
+    "use": "Young-adult serum LC-MS/MS 11-oxygenated androgen reference intervals and contraceptive-use context"
+  },
+  {
+    "source_id": "jcem_2026_walravens_measured_free_testosterone",
+    "source_url": "https://doi.org/10.1210/clinem/dgaf507",
+    "source_locator": "JCEM 2026;111(3):e787-e793, Table 2",
+    "source_role": "direct_value",
+    "use": "Age-stratified directly measured free testosterone reference ranges in non-obese men by equilibrium dialysis plus LC-MS/MS"
+  },
+  {
+    "source_id": "jcem_1999_vermeulen_free_testosterone_estimation",
+    "source_url": "https://doi.org/10.1210/jcem.84.10.6079",
+    "source_locator": "JCEM 1999;84(10):3666-3672",
+    "source_role": "method_warning",
+    "use": "Calculated free testosterone method validation and warnings against analog free testosterone and free androgen index"
+  },
+  {
+    "source_id": "clinbiochem_2012_pesant_female_testosterone_free_bioavailable",
+    "source_url": "https://doi.org/10.1016/j.clinbiochem.2011.10.001",
+    "source_locator": "Clin Biochem 2012;45:148-150, Table 2",
+    "source_role": "direct_value",
+    "use": "Young female total, calculated free, bioavailable testosterone, and SHBG source-specific ranges by oral contraceptive and hyperandrogenism status"
+  },
+  {
+    "source_id": "humreprod_2009_sowers_women_testosterone_shbg_aging",
+    "source_url": "https://doi.org/10.1093/humrep/dep209",
+    "source_locator": "Hum Reprod 2009;24(9):2276-2285",
+    "source_role": "cross_check",
+    "use": "Longitudinal female midlife testosterone, SHBG, and free androgen index aging context"
+  },
+  {
+    "source_id": "annclinbiochem_2016_handelsman_lifespan_testosterone_shbg",
+    "source_url": "https://doi.org/10.1177/0004563215610589",
+    "source_locator": "Ann Clin Biochem 2016;53(Pt 3):377-384, Figures 1-2",
+    "source_role": "cross_check",
+    "use": "Large laboratory-dataset lifespan trends for testosterone, SHBG, and calculated free testosterone"
+  },
+  {
+    "source_id": "fertilstertil_2022_huang_dht_testosterone_cycle",
+    "source_url": "https://doi.org/10.1016/j.fertnstert.2022.09.011",
+    "source_locator": "Fertil Steril 2022;118(6):1150-1158, Tables 1-3",
+    "source_role": "cross_check",
+    "use": "Female menstrual-cycle total testosterone, free testosterone, DHT, SHBG, and DHT-to-testosterone ratio context"
+  },
+  {
+    "source_id": "clinchem_2010_kushnir_androstenedione_dhea_testosterone_lcms",
+    "source_url": "https://doi.org/10.1373/clinchem.2010.143222",
+    "source_locator": "Clin Chem 2010;56(7):1138-1147, Tables 1-2",
+    "source_role": "direct_value",
+    "use": "LC-MS/MS serum androgen reference intervals for DHEA, androstenedione, and testosterone across pediatric and adult groups"
+  },
+  {
+    "source_id": "steroids_2019_fabregat_3alpha_diol_g_lcms",
+    "source_url": "https://doi.org/10.1016/j.steroids.2018.12.008",
+    "source_locator": "Steroids 2019;143:62-66, Table 3",
+    "source_role": "direct_value",
+    "use": "LC-MS/MS serum reference intervals for 3-alpha androstanediol glucuronide in healthy Belgian subjects"
+  },
+  {
+    "source_id": "cca_2026_liu_backdoor_pathway_steroids_lcms",
+    "source_url": "https://doi.org/10.1016/j.cca.2026.120918",
+    "source_locator": "Clin Chim Acta 2026;586:120918, Tables 2-3",
+    "source_role": "direct_value",
+    "use": "UPLC-MS/MS plasma reference intervals for six androgen backdoor-pathway steroids in healthy Chinese adults"
+  },
+  {
+    "source_id": "cdc_hormone_standardization",
+    "source_url": "https://www.cdc.gov/clinical-standardization-programs/php/hormones/index.html",
+    "source_locator": "CDC Clinical Standardization Programs hormone standardization overview",
+    "source_role": "method_warning",
+    "use": "Testosterone and estradiol assay standardization warning"
+  },
+  {
+    "source_id": "cdc_nhanes_tst_est_2015_2016",
+    "source_url": "https://wwwn.cdc.gov/nchs/data/nhanes/public/2015/labmethods/TST_I_MET_TST_EST.pdf",
+    "source_locator": "NHANES 2015-2016 TST/EST LC-MS/MS method, Table 9 literature normal ranges",
+    "source_role": "harmonization_review",
+    "use": "Review-only serum reference rows for testosterone and estradiol, not NHANES-derived population intervals"
+  },
+  {
+    "source_id": "annlabmed_2026_liu_guangxi_reproductive_women_adrenocortical_hormone_reference_intervals",
+    "source_url": "https://doi.org/10.3343/alm.2025.0090",
+    "source_locator": "Ann Lab Med 2026;46(2):146-156, Table 3",
+    "source_role": "direct_value",
+    "use": "HPLC-MS/MS serum reference intervals for eight adrenocortical hormones in reproductive-age Guangxi women after PCOS exclusion"
+  },
+  {
+    "source_id": "jmsacl_2021_holmes_pediatric_testosterone_shbg_free_testosterone_quantile_reference_intervals",
+    "source_url": "https://doi.org/10.1016/j.jmsacl.2021.10.005",
+    "source_locator": "J Mass Spectrom Adv Clin Lab 2021;22:64-70, Tables 1-2",
+    "source_role": "direct_value",
+    "use": "Pediatric continuous quantile-regression point estimates for total testosterone, SHBG, calculated free testosterone, and calculated bioavailable testosterone"
+  },
+  {
+    "source_id": "cca_2024_frederiksen_16_steroid_metabolites_lifespan_lcms",
+    "source_url": "https://doi.org/10.1016/j.cca.2024.119852",
+    "source_locator": "Clin Chim Acta 2024;562:119852, Table 1, Figures 2-3, Supplementary Tables 1-8 and Supplementary Figures 4-5",
+    "source_role": "cross_check",
+    "use": "Whole-life serum LC-MS/MS steroid reference-profile source and assay validation/censoring context; numeric age-sex RI grid is not supplied as a clean table in the local article or supplement"
+  }
+]

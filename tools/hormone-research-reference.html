@@ -1,0 +1,302 @@
+<!-- Hormone Research Reference -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hormone Research Reference | Tools Hub</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/shared.css">
+    <link rel="stylesheet" href="../css/hormone_research_reference/hormone-research-reference.css">
+</head>
+<body>
+    <div class="disclaimer-splash" id="disclaimerSplash" role="dialog" aria-modal="true" aria-labelledby="disclaimerSplashTitle" aria-describedby="disclaimerSplashText" tabindex="-1">
+        <div class="disclaimer-splash-panel" tabindex="-1">
+            <span class="status-pill locked">Academic Reference Only</span>
+            <h2 id="disclaimerSplashTitle">Research Reference Use Only</h2>
+            <div id="disclaimerSplashText" class="disclaimer-splash-copy">
+                <p>This page is provided only as an academic and educational reference for reviewing selected published hormone source tables, assay caveats, unit-context notes, and physiology references. It is not designed, reviewed, validated, cleared, approved, or suitable for medical, diagnostic, clinical, safety, screening, treatment, monitoring, dosing, fertility, wellness, performance, medication, or personal lab interpretation use.</p>
+                <p>By continuing, you agree that you will not use this page to identify, diagnose, rule out, prevent, monitor, manage, treat, or assess any disease, disorder, symptom, risk state, endocrine condition, fertility condition, medication effect, supplement effect, hormone deficiency, hormone excess, adverse event, or health status for yourself or anyone else. You also agree that you will not use this page to start, stop, adjust, avoid, justify, or evaluate any medication, hormone therapy, supplement, lab test, medical visit, medical decision, or health-related action.</p>
+                <p>The cited papers, method documents, laboratory reports, current professional guidance, and qualified clinical care are the controlling sources. If anything on this page conflicts with a source paper, method document, lab report, clinician instruction, product label, regulation, or professional judgment, this page is wrong and the external source controls. You assume all risk, and you are responsible for independently verifying every value and caveat against the original source before relying on it for any academic or research purpose.</p>
+            </div>
+            <label class="acknowledgement-line">
+                <input id="disclaimerAcknowledge" type="checkbox">
+                <span>I understand and will use this page only as an academic research reference, not for medical interpretation or action.</span>
+            </label>
+            <button class="tool-btn disclaimer-continue" id="disclaimerContinueBtn" type="button" disabled>Enter Reference Tool</button>
+        </div>
+    </div>
+
+    <div class="container" id="appRoot" inert aria-hidden="true">
+        <header>
+            <div class="header-content">
+                <div class="header-left">
+                    <a href="../tools.html" class="back-link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <line x1="19" y1="12" x2="5" y2="12"></line>
+                            <polyline points="12 19 5 12 12 5"></polyline>
+                        </svg>
+                        Back to Tools
+                    </a>
+                </div>
+                <div class="header-right">
+                    <div class="theme-toggle">
+                        <button type="button" data-theme-toggle="light" aria-pressed="false" title="Light mode">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                <circle cx="12" cy="12" r="5"></circle>
+                                <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path>
+                            </svg>
+                        </button>
+                        <button type="button" data-theme-toggle="dark" aria-pressed="false" title="Dark mode">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tool-header">
+                <div class="tool-icon-header biochemical">
+                    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M9 3h6"></path>
+                        <path d="M10 3v6l-5 8a3 3 0 0 0 2.58 4.5h8.84A3 3 0 0 0 19 17l-5-8V3"></path>
+                        <path d="M8.5 14h7"></path>
+                        <path d="M9 18h6"></path>
+                    </svg>
+                </div>
+                <div>
+                    <h1>Hormone Research Reference</h1>
+                    <p class="tagline">Source-table browser for hormone ranges, production estimates, cycle profiles, and assay caveats</p>
+                </div>
+            </div>
+        </header>
+
+        <main class="hormone-layout">
+            <section class="liability-banner" aria-label="Required disclaimer">
+                <div>
+                    <strong>Experimental research reference only. Not medical advice.</strong>
+                    <p>The cited papers, method documents, lab reports, and qualified clinical care are the ground truth. This reference does not accept personal lab values, diagnose, treat, dose, monitor, or recommend action.</p>
+                </div>
+                <span class="status-pill active">Source-Linked Rows</span>
+            </section>
+
+            <section class="panel control-panel" aria-labelledby="filter-title">
+                <div class="panel-header">
+                    <div>
+                        <h2 id="filter-title">Reference Filters</h2>
+                        <p>Choose source-table slices only. This page does not accept personal lab values or compare an individual result.</p>
+                    </div>
+                    <button class="tool-btn secondary" id="resetBtn" type="button">Reset</button>
+                </div>
+
+                <div class="status-line" id="statusLine" aria-live="polite">Ready. Reference filters only; no personal lab interpretation.</div>
+
+                <details class="scope-warning-block" role="note" aria-label="Scope, medical limitation, and liability disclaimer">
+                    <summary>Full Disclaimer / Use At Your Own Risk</summary>
+                    <p>This page is an educational reference tool for exploring selected published hormone research tables, assay notes, unit conversions, and population context. It is not a medical device, diagnostic tool, clinical decision-support system, treatment guide, fertility tool, dosing tool, screening tool, safety tool, or substitute for a licensed clinician, laboratory director, or the original research papers.</p>
+                    <p>The source papers and method documents are the ground truth. If this page conflicts with a paper, method document, lab report, clinician instruction, product label, regulation, or professional judgment, this page is wrong and the external source controls.</p>
+                    <p><strong>No diagnosis or treatment.</strong> Do not use this page to diagnose, rule out, monitor, or treat hypogonadism, PCOS, menopause, infertility, adrenal disease, pituitary disease, tumors, pregnancy-related conditions, medication effects, or any other medical condition.</p>
+                    <p><strong>No warranty. No liability. No suitability claim. You assume all risk.</strong> The page, source tables, charts, copied summaries, and exports are provided as-is and as-available, without warranty of accuracy, completeness, timeliness, reliability, fitness for a particular purpose, merchantability, medical suitability, clinical validity, regulatory acceptability, lab-interpretation value, or non-infringement.</p>
+                    <p><strong>Independent verification required.</strong> Verify every value against the cited source, current clinical guidance, and qualified professional care before acting on anything.</p>
+                </details>
+
+                <form id="referenceFilterForm" class="filter-grid" novalidate aria-describedby="filterPreviewNote">
+                    <p id="filterPreviewNote" class="filter-preview-note">Filters show reviewed source-table rows only. They do not accept personal lab values or produce medical interpretation.</p>
+                    <label class="filter-line wide">
+                        <span>Analyte</span>
+                        <select id="analyteSelect">
+                            <option value="testosterone_total">Loading reviewed rows...</option>
+                        </select>
+                    </label>
+
+                    <label class="filter-line">
+                        <span>Source context</span>
+                        <select id="sourceContext">
+                            <option value="all">All contexts</option>
+                        </select>
+                    </label>
+
+                    <label class="filter-line">
+                        <span>Cycle phase</span>
+                        <select id="cyclePhase">
+                            <option value="all">All phases/timing</option>
+                        </select>
+                    </label>
+
+                    <label class="filter-line">
+                        <span>Source method</span>
+                        <select id="assayMethod">
+                            <option value="all">All methods</option>
+                        </select>
+                    </label>
+
+                    <label class="filter-line wide">
+                        <span>Reference view</span>
+                        <select id="referenceView">
+                            <option value="phase">Serum/plasma reference rows</option>
+                            <option value="chart">Cycle profile rows</option>
+                            <option value="production">Production-rate context</option>
+                        </select>
+                    </label>
+                </form>
+            </section>
+
+            <section class="panel results-panel" aria-labelledby="result-title">
+                <div class="panel-header">
+                    <div>
+                        <h2 id="result-title">Reference Tables</h2>
+                        <p id="resultIntro">Loading source-linked reference rows.</p>
+                    </div>
+                    <button class="tool-btn" id="copySummaryBtn" type="button">Copy Source Summary</button>
+                </div>
+
+                <div class="result-grid">
+                    <article class="result-card active-card">
+                        <div class="result-label">Serum reference rows</div>
+                        <div class="result-value" id="serumReferenceStatus">Loading</div>
+                        <p>Serum/plasma rows include only source-linked values selected for display.</p>
+                    </article>
+                    <article class="result-card active-card">
+                        <div class="result-label">Daily production references</div>
+                        <div class="result-value" id="productionStatus">Loading</div>
+                        <p>Daily production rows are active, source-linked, and kept separate from serum concentration tables.</p>
+                    </article>
+                    <article class="result-card active-card">
+                        <div class="result-label">Cycle profile references</div>
+                        <div class="result-value" id="cycleStatus">Loading</div>
+                        <p>Cycle rows are source-reported population percentiles, not personal predictions.</p>
+                    </article>
+                </div>
+
+                <div class="workflow-tabs" role="tablist" aria-label="Reference views">
+                    <button type="button" class="tab-btn active" data-view="phase" aria-pressed="true">Reference Rows</button>
+                    <button type="button" class="tab-btn" data-view="chart" aria-pressed="false">Cycle Profile</button>
+                    <button type="button" class="tab-btn" data-view="production" aria-pressed="false">Production</button>
+                </div>
+
+                <section class="analyte-warning-block" id="analyteWarningBlock" hidden aria-live="polite"></section>
+
+                <section class="view-panel" data-view-panel="phase">
+                    <div class="chart-header">
+                        <h3>Reviewed Serum / Plasma Rows</h3>
+                        <p>Rows are source-specific and method-labeled. Do not collapse them into universal clinical cutoffs.</p>
+                    </div>
+                    <div class="table-scroll">
+                        <table class="reference-table">
+                            <thead>
+                                <tr>
+                                    <th>Analyte</th>
+                                    <th>Context</th>
+                                    <th>Band</th>
+                                    <th>Specimen / Method</th>
+                                    <th>Source</th>
+                                    <th>Confidence</th>
+                                    <th>Caveat</th>
+                                </tr>
+                            </thead>
+                            <tbody id="phaseTableBody"></tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section class="view-panel" data-view-panel="chart" hidden>
+                    <div class="chart-header">
+                        <h3>Source-Reported Cycle Profile</h3>
+                        <p>Frederiksen supplement rows are calendar cycle-day buckets for women age 24.7-43.9. They are not LH-peak aligned and are not personal predictions.</p>
+                    </div>
+                    <div class="chart-shell" id="cycleProfileChart" data-source-status="loading" role="img" aria-label="Cycle profile chart loading reviewed data"></div>
+                    <div class="table-scroll cycle-profile-summary">
+                        <table class="reference-table">
+                            <thead>
+                                <tr>
+                                    <th>Cycle bucket</th>
+                                    <th>P2.5</th>
+                                    <th>Median</th>
+                                    <th>P97.5</th>
+                                    <th>Unit</th>
+                                    <th>Source</th>
+                                    <th>Source caveat</th>
+                                </tr>
+                            </thead>
+                            <tbody id="cycleProfileTableBody"></tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section class="view-panel" data-view-panel="production" hidden>
+                    <div class="chart-header">
+                        <h3>Daily Production Reference Rows</h3>
+                        <p>Daily production estimates are population/reference values and stay visually separate from blood levels.</p>
+                    </div>
+                    <div class="table-scroll">
+                        <table class="reference-table">
+                            <thead>
+                                <tr>
+                                    <th>Analyte</th>
+                                    <th>Context</th>
+                                    <th>Production rate</th>
+                                    <th>Source</th>
+                                    <th>Confidence</th>
+                                    <th>Caveat</th>
+                                </tr>
+                            </thead>
+                            <tbody id="productionTableBody"></tbody>
+                        </table>
+                    </div>
+                </section>
+            </section>
+
+            <aside class="side-stack">
+                <section class="panel side-card">
+                    <h2>Data Safeguards</h2>
+                    <ul class="gate-list" id="reviewGateList"></ul>
+                </section>
+
+                <section class="panel side-card">
+                    <div class="side-card-header">
+                        <h2>Citation Coverage</h2>
+                        <button class="tool-btn secondary" id="viewSourcesBtn" type="button">View Sources</button>
+                    </div>
+                    <p class="side-note">When this page conflicts with a source paper, method document, lab report, clinician instruction, or professional judgment, the external source controls.</p>
+                    <div class="table-scroll">
+                        <table class="audit-table">
+                            <thead>
+                                <tr>
+                                    <th>Area</th>
+                                    <th>Status</th>
+                                    <th>Citation note</th>
+                                </tr>
+                            </thead>
+                            <tbody id="sourceAuditBody"></tbody>
+                        </table>
+                    </div>
+                </section>
+            </aside>
+        </main>
+
+        <footer data-footer></footer>
+    </div>
+
+    <div class="sources-modal-overlay" id="sourcesModal" hidden role="dialog" aria-modal="true" aria-labelledby="sourcesModalTitle">
+        <div class="sources-modal" tabindex="-1">
+            <div class="sources-modal-header">
+                <div>
+                    <h2 id="sourcesModalTitle">Sources &amp; Attribution</h2>
+                    <p class="side-note">Cited papers, method documents, and standardization programs underlying the staged data. External sources control whenever they conflict with this page.</p>
+                </div>
+                <button class="modal-close" id="closeSourcesBtn" type="button" aria-label="Close sources">&times;</button>
+            </div>
+            <div class="sources-modal-body" id="sourcesModalBody">
+                <p class="sources-loading">Loading source registry&hellip;</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/shared.js"></script>
+    <script src="../js/footer.js"></script>
+    <script type="module" src="../js/hormone_research_reference/hormone-research-reference.js"></script>
+</body>
+</html>

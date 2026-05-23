@@ -76,6 +76,28 @@ header {
     padding: 18px;
 }
 
+.settings-controls {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.settings-line {
+    margin: 4px 0 12px;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 0.78rem;
+    color: var(--creatine-muted);
+}
+
+.settings-line.success {
+    color: var(--creatine-green);
+}
+
+.settings-line.error {
+    color: var(--creatine-red);
+}
+
 .panel-header {
     display: flex;
     justify-content: space-between;
@@ -535,6 +557,285 @@ body.chart-overlay-open {
     overflow: hidden;
 }
 
+.chart-info-btn {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    line-height: 1;
+    text-align: center;
+    font-size: 1rem;
+}
+
+.chart-info-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 1001;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+}
+
+.chart-info-modal[hidden] {
+    display: none;
+}
+
+.chart-info-modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(3, 7, 12, 0.82);
+    backdrop-filter: blur(4px);
+    cursor: pointer;
+}
+
+.chart-info-modal-panel {
+    position: relative;
+    z-index: 1;
+    width: min(92vw, 720px);
+    max-height: min(88vh, 760px);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 20px;
+    border: 1px solid var(--creatine-border);
+    border-radius: 10px;
+    background: var(--creatine-panel);
+    color: var(--creatine-text);
+    box-shadow: 0 28px 70px rgba(0, 0, 0, 0.45);
+    overflow: hidden;
+}
+
+.chart-info-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+}
+
+.chart-info-modal-header h2 {
+    margin: 0;
+    font-size: 1.15rem;
+}
+
+.chart-info-modal-close {
+    width: 36px;
+    padding: 4px 0;
+    font-size: 1.2rem;
+    line-height: 1;
+}
+
+.chart-info-modal-body {
+    overflow-y: auto;
+    display: grid;
+    gap: 14px;
+    padding-right: 4px;
+}
+
+.chart-info-section h3 {
+    margin: 0 0 4px;
+    color: var(--creatine-accent);
+    font-size: 0.8rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-family: "JetBrains Mono", monospace;
+}
+
+.chart-info-section p {
+    margin: 0;
+    color: var(--creatine-text);
+    line-height: 1.5;
+    font-size: 0.92rem;
+}
+
+.chart-info-anchors {
+    display: grid;
+    gap: 6px;
+}
+
+.chart-info-anchors a {
+    color: var(--creatine-accent);
+    word-break: break-word;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 0.84rem;
+    text-decoration: none;
+}
+
+.chart-info-anchors a:focus-visible {
+    outline: 2px solid var(--creatine-accent);
+    outline-offset: 2px;
+    text-decoration: underline;
+}
+
+.chart-info-anchors a:hover {
+    text-decoration: underline;
+}
+
+.math-modal-panel {
+    width: min(96vw, 1100px);
+    max-height: min(94vh, 900px);
+}
+
+.math-modal-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.math-modal-status {
+    margin: 0;
+    padding: 6px 10px;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 0.78rem;
+    color: var(--creatine-muted);
+    border: 1px solid var(--creatine-border);
+    border-radius: 6px;
+    background: var(--creatine-soft);
+}
+
+.math-modal-status.success {
+    color: var(--creatine-green);
+    border-color: rgba(34, 197, 94, 0.45);
+}
+
+.math-modal-status.error {
+    color: var(--creatine-red);
+    border-color: rgba(248, 113, 113, 0.55);
+}
+
+.math-modal-body {
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding-right: 4px;
+}
+
+.math-card {
+    border: 1px solid var(--creatine-border);
+    border-radius: 8px;
+    background: var(--creatine-soft);
+    padding: 14px 16px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+        "title button"
+        "body  body";
+    gap: 10px 12px;
+}
+
+.math-card h3 {
+    grid-area: title;
+    margin: 0;
+    font-size: 1rem;
+    color: var(--creatine-text);
+}
+
+.math-card-run {
+    grid-area: button;
+    align-self: start;
+    white-space: nowrap;
+}
+
+.math-card-body {
+    grid-area: body;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    color: var(--creatine-muted);
+    font-size: 0.86rem;
+    line-height: 1.45;
+}
+
+.math-card-equation {
+    margin: 0;
+    padding: 8px 10px;
+    background: var(--creatine-panel);
+    border: 1px solid var(--creatine-border);
+    border-radius: 6px;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 0.84rem;
+    color: var(--creatine-text);
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.math-card-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 14px;
+    font-size: 0.78rem;
+    color: var(--creatine-muted);
+}
+
+.math-card-meta strong {
+    color: var(--creatine-text);
+    font-weight: 600;
+}
+
+.math-card-sources a {
+    color: var(--creatine-cyan);
+    text-decoration: none;
+}
+
+.math-card-sources a:hover,
+.math-card-sources a:focus-visible {
+    text-decoration: underline;
+}
+
+.math-card-result {
+    margin-top: 4px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--creatine-border);
+    background: var(--creatine-panel);
+    font-family: "JetBrains Mono", monospace;
+    font-size: 0.8rem;
+    color: var(--creatine-text);
+    display: none;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.math-card-result.visible {
+    display: flex;
+}
+
+.math-card-result.pass {
+    border-color: rgba(34, 197, 94, 0.55);
+}
+
+.math-card-result.fail {
+    border-color: rgba(248, 113, 113, 0.7);
+}
+
+.math-card-result-status {
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.math-card-result.pass .math-card-result-status {
+    color: var(--creatine-green);
+}
+
+.math-card-result.fail .math-card-result-status {
+    color: var(--creatine-red);
+}
+
+.math-card-result-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 12px;
+    color: var(--creatine-muted);
+}
+
+.math-card-result-row span.math-card-result-label {
+    color: var(--creatine-text);
+    font-weight: 600;
+}
+
 .chart-bg {
     fill: transparent;
 }
@@ -593,6 +894,76 @@ body.chart-overlay-open {
     stroke-width: 3;
 }
 
+.chart-creatinine-line {
+    fill: none;
+    stroke: var(--creatine-orange);
+    stroke-width: 2.6;
+}
+
+.chart-creatinine-band {
+    fill: rgba(245, 158, 11, 0.18);
+    stroke: none;
+}
+
+.chart-baseline-line {
+    stroke: rgba(56, 189, 248, 0.7);
+    stroke-dasharray: 5 4;
+}
+
+.chart-retained-area {
+    fill: rgba(34, 197, 94, 0.32);
+    stroke: none;
+}
+
+.chart-excreted-area {
+    fill: rgba(248, 113, 113, 0.22);
+    stroke: none;
+}
+
+.chart-retained-line {
+    fill: none;
+    stroke: var(--creatine-green);
+    stroke-width: 2.2;
+}
+
+.chart-active-dose-line {
+    fill: none;
+    stroke: var(--creatine-cyan);
+    stroke-width: 1.6;
+    stroke-dasharray: 4 4;
+}
+
+.chart-cumulative-dose-line {
+    fill: none;
+    stroke: var(--creatine-cyan);
+    stroke-width: 2.6;
+}
+
+.chart-cumulative-retained-line {
+    fill: none;
+    stroke: var(--creatine-green);
+    stroke-width: 2.6;
+}
+
+.chart-efficiency-line {
+    fill: none;
+    stroke: var(--creatine-orange);
+    stroke-width: 2.2;
+    stroke-dasharray: 6 4;
+}
+
+.chart-hover-point.creatinine {
+    stroke: var(--creatine-orange);
+}
+
+.chart-hover-point.retained {
+    stroke: var(--creatine-green);
+}
+
+.chart-hover-point.efficiency {
+    stroke: var(--creatine-orange);
+}
+
 .chart-hover-line {
     stroke: rgba(238, 246, 241, 0.55);
     stroke-width: 1;
@@ -646,6 +1017,33 @@ body.chart-overlay-open {
 }
 
 .chart-legend.saturation {
+    fill: var(--creatine-orange);
+}
+
+.chart-legend.creatinine {
+    fill: var(--creatine-orange);
+}
+
+.chart-legend.baseline {
+    fill: var(--creatine-cyan);
+}
+
+.chart-legend.retained,
+.chart-legend.cumulative-retained {
+    fill: var(--creatine-green);
+}
+
+.chart-legend.excreted {
+    fill: var(--creatine-red);
+}
+
+.chart-legend.cumulative-dose,
+.chart-legend.active-dose {
+    fill: var(--creatine-cyan);
+}
+
+.chart-efficiency-label,
+.chart-legend.efficiency {
     fill: var(--creatine-orange);
 }
 
