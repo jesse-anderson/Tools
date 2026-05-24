@@ -3,9 +3,9 @@ const SPECIES_DATA = [
         id: "s-thermophilus",
         name: "S. thermophilus",
         behaviors: [
-            { id: "st-36", label: "36C / pH 5.7 / td 55 min", tdMin: 55, tdLabel: "55 min", tempC: 36, tempLabel: "36C" },
-            { id: "st-40", label: "40C / pH 6.5 / td 34 min", tdMin: 34, tdLabel: "34 min", tempC: 40, tempLabel: "40C" },
-            { id: "st-44", label: "44C / pH 7.3 / td 38 min", tdMin: 38, tdLabel: "38 min", tempC: 44, tempLabel: "44C" }
+            { id: "st-36", label: "36C / pH 5.7 / td 24 min (log10 slope derived)", tdMin: 24, tdLabel: "24 min", tempC: 36, tempLabel: "36C" },
+            { id: "st-40", label: "40C / pH 6.5 / td 14.5-15.2 min (plot midpoint 15)", tdMin: 15, tdLabel: "14.5-15.2 min", tempC: 40, tempLabel: "40C" },
+            { id: "st-44", label: "44C / pH 7.3 / td 16.6 min (log10 slope derived)", tdMin: 17, tdLabel: "16.6 min", tempC: 44, tempLabel: "44C" }
         ]
     },
     {
@@ -13,16 +13,16 @@ const SPECIES_DATA = [
         name: "L. bulgaricus",
         behaviors: [
             { id: "lb-42", label: "42C / MPL lactose / td 60 min", tdMin: 60, tdLabel: "60 min", tempC: 42, tempLabel: "42C" },
-            { id: "lb-44", label: "44C / pH 5.7 / td 31-41 min (plot midpoint 36)", tdMin: 36, tdLabel: "31-41 min", tempC: 44, tempLabel: "44C" },
-            { id: "lb-48", label: "48C / pH 4.9 / td 41 min", tdMin: 41, tdLabel: "41 min", tempC: 48, tempLabel: "48C" }
+            { id: "lb-44", label: "44C / pH 5.7 / td 13.6-17.8 min (plot midpoint 16)", tdMin: 16, tdLabel: "13.6-17.8 min", tempC: 44, tempLabel: "44C" },
+            { id: "lb-48", label: "48C / pH 4.9 / td 17.6 min (log10 slope derived)", tdMin: 18, tdLabel: "17.6 min", tempC: 48, tempLabel: "48C" }
         ]
     },
     {
         id: "l-acidophilus",
         name: "L. acidophilus",
         behaviors: [
-            { id: "la-lab", label: "Controlled culture / td 54 min", tdMin: 54, tdLabel: "54 min", tempC: 37, tempLabel: "37C" },
-            { id: "la-dairy", label: "Dairy benchmark / td 60-150 min (plot midpoint 105)", tdMin: 105, tdLabel: "60-150 min", tempC: null, tempLabel: "37-42C range" }
+            { id: "la-milk-early", label: "37C / 11% skim milk / 5 min-4 h apparent td ~4.6 h", tdMin: 275, tdLabel: "~4.6 h", tempC: 37, tempLabel: "37C" },
+            { id: "la-milk-late", label: "37C / 11% skim milk / 8-12 h apparent td ~3.7 h", tdMin: 222, tdLabel: "~3.7 h", tempC: 37, tempLabel: "37C" }
         ]
     },
     {
@@ -59,6 +59,24 @@ const SPECIES_DATA = [
         ]
     },
     {
+        id: "l-gasseri",
+        name: "L. gasseri",
+        behaviors: [
+            { id: "lg-pfj", label: "44C / passion fruit juice pH 7.5 / td ~148 min", tdMin: 148, tdLabel: "~148 min", tempC: 44, tempLabel: "44C" },
+            { id: "lg-tea", label: "44C / passion fruit + green tea pH 7.5 / td ~223 min", tdMin: 223, tdLabel: "~223 min", tempC: 44, tempLabel: "44C" },
+            { id: "lg-svf", label: "37C / simulated vaginal fluid pH 4.5 / td 4.6-6.3 h (plot midpoint 328 min)", tdMin: 328, tdLabel: "4.6-6.3 h", tempC: 37, tempLabel: "37C" }
+        ]
+    },
+    {
+        id: "b-coagulans",
+        name: "B. coagulans",
+        behaviors: [
+            { id: "bc-mrs", label: "50C / MRS broth / td 60-64 min (plot midpoint 62)", tdMin: 62, tdLabel: "60-64 min", tempC: 50, tempLabel: "50C" },
+            { id: "bc-droplet", label: "50C / glucose-yeast-tryptone / td 87-92 min (plot midpoint 90)", tdMin: 90, tdLabel: "87-92 min", tempC: 50, tempLabel: "50C" },
+            { id: "bc-molasses", label: "50C / 1% molasses / td 5.0 h", tdMin: 297, tdLabel: "~5.0 h", tempC: 50, tempLabel: "50C" }
+        ]
+    },
+    {
         id: "b-lactis",
         name: "B. animalis subsp. lactis",
         behaviors: [
@@ -77,7 +95,7 @@ const SPECIES_DATA = [
         id: "listeria",
         name: "L. monocytogenes",
         behaviors: [
-            { id: "lm-37", label: "37C / BHI / td 45-60 min (plot midpoint 53)", tdMin: 53, tdLabel: "45-60 min", tempC: 37, tempLabel: "37C" },
+            { id: "lm-37", label: "37C / BHI / td 43.55-48.61 min (plot midpoint 46)", tdMin: 46, tdLabel: "43.55-48.61 min", tempC: 37, tempLabel: "37C" },
             { id: "lm-14", label: "14C / diluted BHI / td 12.4-19.9 h (plot midpoint 16.2 h)", tdMin: 969, tdLabel: "12.4-19.9 h", tempC: 14, tempLabel: "14C" }
         ]
     }
