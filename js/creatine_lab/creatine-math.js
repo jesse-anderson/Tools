@@ -198,7 +198,7 @@ export const EQUATION_SPECS = Object.freeze([
                 && day6.poolG >= 135 && day6.poolG <= 158;
             return makeResult({
                 pass,
-                expected: "Day 1: 25-40% retention; Day 6: <20% retention, pool 140-158 g.",
+                expected: "Day 1: 25-42% retention; Day 6: <20% retention, pool 135-158 g.",
                 actual: `Day 1: ${day1Pct.toFixed(1)}% retention; Day 6: ${day6Pct.toFixed(1)}% retention, pool ${day6.poolG.toFixed(1)} g.`,
                 units: "% / g",
                 message: "Saturable M-M dose term × empirical gap-power attenuator reproduces Hultman day-by-day loading."

@@ -728,6 +728,19 @@ test('creatine lab exposes claim-to-source audit trail', async ({ page, baseURL 
   await expect(auditPanel).toHaveAttribute('open', '');
 });
 
+test('creatine lab ships no failing model sanity checks', async ({ page, baseURL }) => {
+  await expectPageToLoadCleanly(page, baseURL, '/tools/creatine-lab.html');
+
+  // Rows render at init even though the panel starts collapsed, so we can count
+  // statuses without expanding it. Guards against literature-anchor drift between
+  // the model and its own validation thresholds shipping a red check to users.
+  const statuses = page.locator('#validationBody .check-status');
+  const total = await statuses.count();
+  expect(total).toBeGreaterThanOrEqual(22);
+  await expect(page.locator('#validationBody .check-status.fail')).toHaveCount(0);
+  await expect(page.locator('#validationBody .check-status.pass')).toHaveCount(total);
+});
+
 test('creatine lab vegetarian no-supplement drift surfaces equilibrium', async ({ page, baseURL }) => {
   await expectPageToLoadCleanly(page, baseURL, '/tools/creatine-lab.html');
 
