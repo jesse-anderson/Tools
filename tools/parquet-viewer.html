@@ -1,0 +1,215 @@
+<!--
+============================================
+PARQUET VIEWER / INSPECTOR v1.0.0
+============================================
+Description: Client-side Apache Parquet inspector. Loads a .parquet file
+(drag-drop, file picker, or URL) and shows file metadata, schema, per-row-group
+and per-column storage/compression stats, a paginated data preview, and the raw
+footer metadata. Everything runs in the browser; files are never uploaded.
+
+Dependencies (pinned versions, loaded lazily from jsDelivr):
+- hyparquet: 1.26.2 (Parquet parser: metadata, schema, row reads)
+    https://github.com/hyparam/hyparquet
+    MIT License: https://github.com/hyparam/hyparquet/blob/master/LICENSE
+- hyparquet-compressors: 1.1.1 (gzip / zstd / brotli / lz4 decoders)
+    https://github.com/hyparam/hyparquet-compressors
+    MIT License: https://github.com/hyparam/hyparquet-compressors/blob/master/LICENSE
+    (bundles code adapted from fflate, fzstd, and brotli.js, all MIT)
+
+Snappy and uncompressed data are handled by hyparquet itself; the compressors
+bundle is only imported when a data preview needs another codec.
+
+Project: Tools Hub by Jesse Anderson
+Repository: https://github.com/jesse-anderson/Tools
+License: GPL-3.0 - https://github.com/jesse-anderson/Tools/blob/main/LICENSE
+
+Last Updated: July 2026
+============================================
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Parquet Viewer | Tools Hub</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/shared.css">
+    <link rel="stylesheet" href="../css/parquet_viewer/parquet-viewer.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-row">
+                <a href="../tools.html" class="back-link">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <path d="M15 18l-6-6 6-6"></path>
+                    </svg>
+                    Back to Tools
+                </a>
+
+                <div class="theme-toggle" aria-label="Theme toggle">
+                    <button data-theme-toggle="light" aria-pressed="false" title="Light mode">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <circle cx="12" cy="12" r="5"></circle>
+                            <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path>
+                        </svg>
+                    </button>
+                    <button data-theme-toggle="dark" aria-pressed="false" title="Dark mode">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <div class="tool-header-content">
+                <div class="tool-icon it">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <rect x="3" y="3" width="5" height="18" rx="1"></rect>
+                        <rect x="10" y="3" width="5" height="18" rx="1"></rect>
+                        <rect x="17" y="3" width="4" height="18" rx="1"></rect>
+                    </svg>
+                </div>
+                <div>
+                    <h1>Parquet Viewer</h1>
+                    <p class="tagline">// SCHEMA | ROW GROUPS | COMPRESSION | PREVIEW</p>
+                </div>
+            </div>
+        </header>
+
+        <main class="pv-main">
+            <section class="pv-panel">
+                <!-- LOADER -->
+                <div id="loader">
+                    <div class="drop-zone" id="dropZone" tabindex="0" role="button" aria-label="Choose or drop a Parquet file">
+                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="7 10 12 15 17 10"></polyline>
+                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                        </svg>
+                        <h3>Drop a .parquet file here</h3>
+                        <p>or click to choose. Files stay in your browser and are never uploaded.</p>
+                        <input type="file" id="fileInput" accept=".parquet,application/octet-stream" hidden>
+                    </div>
+
+                    <div class="loader-row">
+                        <input type="text" id="urlInput" class="main-input" placeholder="...or paste a public .parquet URL (CORS-enabled)" spellcheck="false">
+                        <button id="urlLoad" class="tool-btn primary" type="button">Load URL</button>
+                    </div>
+
+                    <div class="samples-row">
+                        <span class="samples-label">Try a sample:</span>
+                        <span id="samples"></span>
+                    </div>
+
+                    <div id="loaderStatus" class="loader-status" aria-live="polite"></div>
+                    <div id="loaderError" class="error-text" aria-live="polite"></div>
+                </div>
+
+                <!-- RESULTS -->
+                <div id="results" hidden>
+                    <div id="summaryBar" class="summary-bar"></div>
+
+                    <div id="tabs" class="tabs" role="tablist">
+                        <button class="tab-btn active" data-tab="overview" type="button">Overview</button>
+                        <button class="tab-btn" data-tab="schema" type="button">Schema</button>
+                        <button class="tab-btn" data-tab="rowgroups" type="button">Row Groups</button>
+                        <button class="tab-btn" data-tab="columns" type="button">Columns</button>
+                        <button class="tab-btn" data-tab="preview" type="button">Data Preview</button>
+                        <button class="tab-btn" data-tab="raw" type="button">Raw Metadata</button>
+                    </div>
+
+                    <div id="panel-overview" class="tab-panel"></div>
+                    <div id="panel-schema" class="tab-panel" hidden></div>
+                    <div id="panel-rowgroups" class="tab-panel" hidden></div>
+                    <div id="panel-columns" class="tab-panel" hidden></div>
+                    <div id="panel-preview" class="tab-panel" hidden></div>
+                    <div id="panel-raw" class="tab-panel" hidden></div>
+                </div>
+            </section>
+
+            <aside class="pv-side">
+                <div class="info-panel">
+                    <h3>What This Shows</h3>
+                    <ul>
+                        <li><strong>Overview</strong> - rows, columns, size, compression ratio, and embedded pandas/Arrow/Geo metadata.</li>
+                        <li><strong>Schema</strong> - physical and logical types with repetition, including nested groups.</li>
+                        <li><strong>Row Groups</strong> - size and compression of each independently readable slice.</li>
+                        <li><strong>Columns</strong> - per-column storage, codec, encodings, null counts, and min/max from the footer statistics.</li>
+                        <li><strong>Data Preview</strong> - paginated rows, exportable to CSV or JSON.</li>
+                        <li><strong>Raw Metadata</strong> - the full parsed file footer.</li>
+                    </ul>
+
+                    <h3>Notes</h3>
+                    <ul>
+                        <li>Statistics (min/max/nulls) are read from the file footer, not by scanning data, so they load instantly for any file size.</li>
+                        <li>Snappy and uncompressed files work immediately; gzip/zstd/brotli/lz4 load a small extra decoder on first preview.</li>
+                        <li>URL loading needs the host to allow cross-origin requests. If it fails, download the file and drop it in.</li>
+                    </ul>
+
+                    <div class="privacy-note" role="note">
+                        <strong>Local only.</strong> Parsing happens entirely in your browser. Files and their contents are never sent to any server.
+                    </div>
+
+                    <h3>Licenses</h3>
+                    <button id="viewLicenses" class="tool-btn" type="button">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                        </svg>
+                        View Licenses
+                    </button>
+                </div>
+            </aside>
+        </main>
+
+        <footer data-footer></footer>
+    </div>
+
+    <!-- Attributions modal -->
+    <div class="modal-overlay" id="attributionsModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title">Attributions &amp; Licenses</h2>
+                <button class="modal-close" id="closeAttributions" aria-label="Close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="library-entry">
+                    <h4>hyparquet 1.26.2</h4>
+                    <p>Pure-JavaScript Apache Parquet reader (metadata, schema, and row decoding). Zero dependencies.</p>
+                    <div class="library-license">License:
+                        <a href="https://github.com/hyparam/hyparquet/blob/master/LICENSE" target="_blank" rel="noopener">MIT
+                            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline></svg>
+                        </a>
+                    </div>
+                </div>
+                <div class="library-entry">
+                    <h4>hyparquet-compressors 1.1.1</h4>
+                    <p>Optional codec bundle adding gzip, zstd, brotli, and lz4 decompression. Contains code adapted from fflate, fzstd, and brotli.js (all MIT).</p>
+                    <div class="library-license">License:
+                        <a href="https://github.com/hyparam/hyparquet-compressors/blob/master/LICENSE" target="_blank" rel="noopener">MIT
+                            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline></svg>
+                        </a>
+                    </div>
+                </div>
+                <div class="library-entry">
+                    <h4>Tools Hub</h4>
+                    <p>This tool and its interface are part of Tools Hub by Jesse Anderson.</p>
+                    <div class="library-license">License:
+                        <a href="https://github.com/jesse-anderson/Tools/blob/main/LICENSE" target="_blank" rel="noopener">GPL-3.0
+                            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline></svg>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/shared.js"></script>
+    <script type="module" src="../js/footer.js"></script>
+    <script type="module" src="../js/parquet_viewer/parquet-viewer.js"></script>
+</body>
+</html>

@@ -8,7 +8,13 @@ module.exports = defineConfig({
   // the dev-mode flips described at the top of that file (local wrangler dev,
   // local-worker URL in config.js, CSP relaxed). Add it back to this array
   // before running it.
-  testMatch: ['tools-smoke.spec.cjs', 'hormone-data.spec.cjs'],
+  testMatch: [
+    'tools-smoke.spec.cjs',
+    'hormone-data.spec.cjs',
+    'uncertainty-engine.spec.cjs',
+    'psychrometric.spec.cjs',
+    'steam-tables.spec.cjs'
+  ],
   timeout: 60_000,
   fullyParallel: false,
   workers: 1,

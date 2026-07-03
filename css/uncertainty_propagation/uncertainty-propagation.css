@@ -1,0 +1,387 @@
+/* ============================================
+   UNCERTAINTY / ERROR PROPAGATION CALCULATOR
+   Tool-specific styles. Uses shared.css tokens.
+   Accent: engineering (amber).
+   ============================================ */
+
+.calculator-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 320px;
+    gap: 24px;
+    align-items: start;
+    position: relative;
+    z-index: 1;
+    margin-top: 24px;
+}
+
+.calculator-panel,
+.sidebar .info-panel {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    padding: 24px;
+}
+
+.panel-header h2 {
+    font-size: 1.5rem;
+    margin-bottom: 6px;
+}
+.panel-header p {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    margin-bottom: 20px;
+}
+
+/* --- generic inputs --- */
+.main-input,
+.main-select,
+.formula-input {
+    width: 100%;
+    background: var(--bg-input);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-primary);
+    padding: 10px 12px;
+    font-size: 0.95rem;
+    font-family: 'JetBrains Mono', monospace;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.main-select {
+    font-family: 'Space Grotesk', sans-serif;
+    cursor: pointer;
+}
+.main-input:focus,
+.main-select:focus,
+.formula-input:focus {
+    outline: none;
+    border-color: var(--accent-engineering);
+    box-shadow: 0 0 0 3px var(--accent-engineering-dim);
+}
+.formula-input {
+    font-size: 1.15rem;
+    padding: 14px 16px;
+    letter-spacing: 0.02em;
+}
+
+.field-block { margin-bottom: 20px; }
+.field-block > label,
+.section-label {
+    display: block;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+    font-weight: 600;
+}
+
+.formula-row {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+.formula-row .formula-input { flex: 1 1 320px; }
+.example-select { flex: 0 1 260px; }
+
+.error-text {
+    color: var(--accent-error);
+    font-size: 0.85rem;
+    font-family: 'JetBrains Mono', monospace;
+    margin-top: 8px;
+    min-height: 1.1em;
+}
+.hint-text {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    margin-top: 6px;
+}
+
+/* --- variables table --- */
+.vars-head,
+.var-row {
+    display: grid;
+    grid-template-columns: minmax(64px, 1fr) minmax(90px, 1.4fr) minmax(110px, 1.4fr) 130px;
+    gap: 10px;
+    align-items: center;
+}
+.vars-head {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    padding: 0 2px 8px;
+    font-weight: 600;
+}
+.var-row { margin-bottom: 10px; }
+.var-name {
+    font-weight: 700;
+    color: var(--accent-engineering);
+    font-size: 1rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.var-unc-wrap {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.var-unc-wrap .pm { color: var(--text-muted); font-family: 'JetBrains Mono', monospace; }
+.var-unc:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.vars-empty {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    padding: 12px 0;
+}
+
+/* --- options row --- */
+.options-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 14px;
+    margin-top: 8px;
+}
+.option-item label {
+    display: block;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+    font-weight: 600;
+}
+.checkbox-line {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 42px;
+}
+.checkbox-line input { width: 18px; height: 18px; accent-color: var(--accent-engineering); }
+.checkbox-line span { font-size: 0.9rem; }
+
+/* --- buttons --- */
+.tool-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    padding: 9px 16px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.15s ease, border-color 0.15s ease, transform 0.05s ease;
+}
+.tool-btn:hover { background: var(--bg-card-hover); border-color: var(--border-hover); }
+.tool-btn:active { transform: translateY(1px); }
+.tool-btn.primary {
+    background: var(--accent-engineering);
+    border-color: var(--accent-engineering);
+    color: #1a1a1a;
+    font-weight: 600;
+}
+.tool-btn.primary:hover { filter: brightness(1.08); }
+
+/* --- result hero --- */
+.result-hero {
+    margin-top: 24px;
+    background: linear-gradient(180deg, var(--accent-engineering-dim), transparent);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    padding: 22px 24px;
+}
+.result-hero.empty { opacity: 0.55; }
+.result-label {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    font-weight: 600;
+}
+.result-main {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin: 6px 0 4px;
+    font-family: 'JetBrains Mono', monospace;
+}
+#resultValue { font-size: 2.4rem; font-weight: 700; line-height: 1.1; }
+#resultUnc { font-size: 1.5rem; color: var(--accent-engineering); font-weight: 600; }
+.result-sub {
+    display: flex;
+    gap: 8px 20px;
+    flex-wrap: wrap;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    margin-top: 4px;
+}
+#resultExpanded { font-family: 'JetBrains Mono', monospace; }
+.dominant {
+    margin-top: 12px;
+    padding: 10px 12px;
+    background: var(--bg-secondary);
+    border-left: 3px solid var(--accent-engineering);
+    border-radius: 6px;
+    font-size: 0.9rem;
+}
+.result-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 14px;
+}
+.copy-feedback { color: var(--accent-success); font-size: 0.85rem; }
+
+/* --- steps (foldable) --- */
+details.steps {
+    margin-top: 18px;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    background: var(--bg-secondary);
+    overflow: hidden;
+}
+details.steps > summary {
+    cursor: pointer;
+    padding: 14px 18px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    user-select: none;
+}
+details.steps > summary::-webkit-details-marker { display: none; }
+details.steps > summary::before {
+    content: '▸';
+    color: var(--accent-engineering);
+    transition: transform 0.15s ease;
+}
+details.steps[open] > summary::before { transform: rotate(90deg); }
+details.steps > summary:hover { background: var(--bg-card-hover); }
+
+.steps-inner { padding: 4px 18px 20px; }
+.steps-formula { color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 6px; }
+.steps-eq {
+    font-size: 1.05rem;
+    padding: 10px 14px;
+    background: var(--bg-input);
+    border-radius: 8px;
+    display: inline-block;
+    margin-bottom: 16px;
+}
+.steps-table-wrap { overflow-x: auto; }
+.steps-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+    min-width: 560px;
+}
+.steps-table th {
+    text-align: left;
+    color: var(--text-muted);
+    font-weight: 600;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border-color);
+}
+.steps-table td {
+    padding: 9px 10px;
+    border-bottom: 1px solid var(--border-color);
+    vertical-align: middle;
+}
+.steps-table td.num { text-align: right; white-space: nowrap; }
+.steps-table td.deriv { color: var(--text-secondary); }
+.bar-wrap {
+    display: inline-block;
+    width: 70px;
+    height: 7px;
+    background: var(--bg-input);
+    border-radius: 4px;
+    overflow: hidden;
+    vertical-align: middle;
+    margin-right: 8px;
+}
+.bar-wrap .bar {
+    display: block;
+    height: 100%;
+    background: var(--accent-engineering);
+    border-radius: 4px;
+}
+.steps-table .pct { font-family: 'JetBrains Mono', monospace; color: var(--text-secondary); }
+.steps-sum {
+    margin-top: 14px;
+    font-size: 0.95rem;
+    padding: 10px 14px;
+    background: var(--bg-input);
+    border-radius: 8px;
+}
+.steps-caveat, .mc-note {
+    margin-top: 12px;
+    color: var(--text-muted);
+    font-size: 0.82rem;
+    line-height: 1.5;
+}
+.mc-summary {
+    margin-top: 18px;
+    padding-top: 14px;
+    border-top: 1px dashed var(--border-color);
+}
+.mc-summary h4 { font-size: 0.95rem; margin-bottom: 6px; }
+.mc-summary p { color: var(--text-secondary); font-size: 0.85rem; }
+.mc-summary ul { list-style: none; margin: 8px 0; }
+.mc-summary li { font-size: 0.88rem; padding: 2px 0; }
+
+.mono { font-family: 'JetBrains Mono', monospace; }
+
+/* --- sidebar --- */
+.sidebar { position: relative; z-index: 1; margin-top: 24px; display: flex; flex-direction: column; gap: 20px; }
+.sidebar h3 { font-size: 1rem; margin-bottom: 10px; }
+.sidebar h3:not(:first-child) { margin-top: 20px; }
+.sidebar p, .sidebar li { color: var(--text-secondary); font-size: 0.88rem; line-height: 1.55; }
+.sidebar ol, .sidebar ul { padding-left: 18px; }
+.sidebar li { margin-bottom: 6px; }
+.syntax-help code {
+    font-family: 'JetBrains Mono', monospace;
+    background: var(--bg-input);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 1px 5px;
+    font-size: 0.82rem;
+    color: var(--text-primary);
+}
+.syntax-help .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.disclaimer {
+    margin-top: 8px;
+    padding: 12px;
+    background: var(--accent-warning-dim);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+/* --- responsive --- */
+@media (max-width: 900px) {
+    .calculator-layout { grid-template-columns: 1fr; }
+    #resultValue { font-size: 1.9rem; }
+    .vars-head { display: none; }
+    .var-row {
+        grid-template-columns: 1fr 1fr;
+        gap: 8px 10px;
+        padding: 12px;
+        border: 1px solid var(--border-color);
+        border-radius: 10px;
+        background: var(--bg-secondary);
+    }
+    .var-name { grid-column: 1 / -1; }
+    .var-mode { grid-column: 1 / -1; }
+}

@@ -1,0 +1,233 @@
+<!--
+============================================
+UNCERTAINTY / ERROR PROPAGATION CALCULATOR v1.0.0
+============================================
+Description: Propagate measurement uncertainty (±) through an
+arbitrary formula using first-order Taylor (partial-derivative)
+propagation, with a foldable panel showing the symbolic partial
+derivatives and each variable's contribution, plus an optional
+Monte Carlo cross-check.
+
+Dependencies: None (Vanilla JavaScript)
+  - Custom expression parser, symbolic differentiator, and
+    propagation engine are all hand-rolled. No external libraries.
+
+Project: Tools Hub by Jesse Anderson
+Repository: https://github.com/jesse-anderson/Tools
+License: GPL-3.0 - https://github.com/jesse-anderson/Tools/blob/main/LICENSE
+
+Features:
+- Arbitrary formulas: + - * / ^, parentheses, and a full function
+  library (exp, ln, log10, sqrt, trig, hyperbolic, abs, ...)
+- Per-variable uncertainty as absolute, percent, or exact (no error)
+- First-order Taylor propagation: sigma_f = sqrt( sum( (df/dx * sigma)^2 ) )
+- Foldable "show the steps" panel with symbolic partial derivatives,
+  per-term contribution, and a dominant-source callout
+- Symbolic partial derivatives, with a numeric central-difference
+  fallback where the symbolic form cannot be evaluated
+- Optional Monte Carlo cross-check (normal or uniform sampling) that
+  flags when the linear approximation is weak
+- Worked examples: density, ideal gas, Reynolds, Arrhenius, power, yield
+
+Last Updated: July 2026
+============================================
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Uncertainty Propagation Calculator | Tools Hub</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/shared.css">
+    <link rel="stylesheet" href="../css/uncertainty_propagation/uncertainty-propagation.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-row">
+                <a href="../tools.html" class="back-link">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <path d="M15 18l-6-6 6-6"></path>
+                    </svg>
+                    Back to Tools
+                </a>
+
+                <div class="theme-toggle" aria-label="Theme toggle">
+                    <button data-theme-toggle="light" aria-pressed="false" title="Light mode">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <circle cx="12" cy="12" r="5"></circle>
+                            <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path>
+                        </svg>
+                    </button>
+                    <button data-theme-toggle="dark" aria-pressed="false" title="Dark mode">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <div class="tool-header-content">
+                <div class="tool-icon engineering">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <line x1="12" y1="3" x2="12" y2="21"></line>
+                        <polyline points="7 8 12 3 17 8"></polyline>
+                        <polyline points="7 16 12 21 17 16"></polyline>
+                        <line x1="4" y1="12" x2="20" y2="12"></line>
+                    </svg>
+                </div>
+                <div>
+                    <h1>Uncertainty Propagation Calculator</h1>
+                    <p class="tagline">// PARTIAL DERIVATIVES | TAYLOR PROPAGATION | MONTE CARLO CHECK</p>
+                </div>
+            </div>
+        </header>
+
+        <main class="calculator-layout">
+            <section class="calculator-panel">
+                <div class="panel-header">
+                    <h2>Propagate ± Through a Formula</h2>
+                    <p>Enter a formula, give each variable a value and its uncertainty, and read off the result with a propagated 1σ error. Expand the steps to see the symbolic partial derivatives and which variable dominates.</p>
+                </div>
+
+                <div class="field-block">
+                    <label for="formula">Formula &nbsp;<span style="text-transform:none;color:var(--text-muted);font-weight:400;">(use variable names, e.g. <span class="mono">m / V</span>)</span></label>
+                    <div class="formula-row">
+                        <input id="formula" class="formula-input" type="text" spellcheck="false" autocomplete="off"
+                               placeholder="e.g.  P * V / (R * T)" value="m / V">
+                        <select id="examples" class="main-select example-select" aria-label="Load a worked example">
+                            <option value="">Load an example...</option>
+                        </select>
+                    </div>
+                    <div id="formulaError" class="error-text" aria-live="polite"></div>
+                    <p id="exampleNote" class="hint-text"></p>
+                </div>
+
+                <div class="field-block">
+                    <span class="section-label">Variables</span>
+                    <div class="vars-head">
+                        <span>Name</span><span>Value</span><span>Uncertainty (±)</span><span>Type</span>
+                    </div>
+                    <div id="varsBody"></div>
+                    <p id="varsEmpty" class="vars-empty" hidden>Type a formula above to list its variables.</p>
+                </div>
+
+                <div class="field-block">
+                    <span class="section-label">Options</span>
+                    <div class="options-grid">
+                        <div class="option-item">
+                            <label for="coverage">Coverage factor (k)</label>
+                            <select id="coverage" class="main-select">
+                                <option value="1">k = 1  (≈68%, 1σ)</option>
+                                <option value="1.96">k = 1.96  (95%)</option>
+                                <option value="2">k = 2  (≈95%)</option>
+                                <option value="3">k = 3  (≈99.7%)</option>
+                            </select>
+                        </div>
+                        <div class="option-item">
+                            <label>Monte Carlo check</label>
+                            <div class="checkbox-line">
+                                <input type="checkbox" id="mcToggle" checked>
+                                <span>Cross-check by sampling</span>
+                            </div>
+                        </div>
+                        <div class="option-item">
+                            <label for="mcDist">MC distribution</label>
+                            <select id="mcDist" class="main-select">
+                                <option value="normal">Normal (Gaussian)</option>
+                                <option value="uniform">Uniform</option>
+                            </select>
+                        </div>
+                        <div class="option-item">
+                            <label for="mcSamples">MC samples</label>
+                            <select id="mcSamples" class="main-select">
+                                <option value="10000">10,000</option>
+                                <option value="100000" selected>100,000</option>
+                                <option value="500000">500,000</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- RESULT -->
+                <div id="resultHero" class="result-hero empty">
+                    <div class="result-label">Result</div>
+                    <div class="result-main">
+                        <span id="resultValue" class="mono">--</span>
+                        <span id="resultUnc" class="mono"></span>
+                    </div>
+                    <div class="result-sub">
+                        <span id="resultRel"></span>
+                        <span id="resultExpanded"></span>
+                    </div>
+                    <div id="dominant" class="dominant" hidden></div>
+                    <div class="result-actions">
+                        <button id="copyBtn" class="tool-btn" type="button">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                            </svg>
+                            Copy value ± uncertainty
+                        </button>
+                        <span id="copyFeedback" class="copy-feedback" aria-live="polite"></span>
+                    </div>
+                </div>
+
+                <!-- FOLDABLE STEPS -->
+                <details class="steps" id="stepsDetails">
+                    <summary>Show the calculation steps</summary>
+                    <div id="steps"></div>
+                </details>
+            </section>
+
+            <aside class="sidebar">
+                <div class="info-panel">
+                    <h3>How To Use This</h3>
+                    <ol>
+                        <li><strong>Write the formula</strong> using variable names and standard operators.</li>
+                        <li><strong>Set each variable's value</strong> and its uncertainty. Pick <em>absolute</em>, <em>percent</em>, or <em>exact</em> (a constant with no error).</li>
+                        <li><strong>Read the result</strong> as value ± 1σ, then raise the coverage factor <em>k</em> for a wider confidence interval.</li>
+                        <li><strong>Expand the steps</strong> to see the partial derivatives and which variable drives the error.</li>
+                    </ol>
+
+                    <h3>Formula Syntax</h3>
+                    <div class="syntax-help">
+                        <p>Operators: <code>+</code> <code>-</code> <code>*</code> <code>/</code> <code>^</code> and <code>( )</code>.</p>
+                        <p>Constants: <code>pi</code>, <code>e</code>.</p>
+                        <p>Functions:</p>
+                        <div class="chips">
+                            <code>exp</code><code>ln</code><code>log10</code><code>log2</code><code>sqrt</code><code>cbrt</code><code>abs</code>
+                            <code>sin</code><code>cos</code><code>tan</code><code>asin</code><code>acos</code><code>atan</code>
+                            <code>sinh</code><code>cosh</code><code>tanh</code>
+                        </div>
+                        <p style="margin-top:8px;">Variable names may include letters, digits, and underscores, e.g. <code>m_out</code>, <code>T2</code>.</p>
+                    </div>
+
+                    <h3>The Math</h3>
+                    <p>For independent variables, first-order (Taylor) propagation gives</p>
+                    <p class="mono" style="padding:8px 0;">σ_f = √( Σ (∂f/∂xᵢ · σᵢ)² )</p>
+                    <p>Each term <span class="mono">∂f/∂xᵢ · σᵢ</span> is that variable's share of the total error, added in quadrature.</p>
+
+                    <h3>Scope &amp; Limits</h3>
+                    <div class="disclaimer" role="note" aria-label="Scope, accuracy, and liability disclaimer">
+                        <p><strong>Estimates only - verify before you rely on them</strong></p>
+                        <p>This uses <strong>first-order</strong> propagation and assumes variables are <strong>independent</strong> (uncorrelated). It is accurate when uncertainties are small relative to the values, so the formula is roughly linear across ±σ.</p>
+                        <p style="margin-top:8px;">For strongly nonlinear formulas or large uncertainties, enable the <strong>Monte Carlo check</strong>. When it disagrees with the Taylor result, trust the sampled spread. Correlated inputs are not modeled.</p>
+                        <p style="margin-top:8px;">Provided as-is with no warranty of accuracy or fitness. Verify any result you depend on against an independent method and qualified engineering judgment before acting on it.</p>
+                    </div>
+                </div>
+            </aside>
+        </main>
+
+        <footer data-footer></footer>
+    </div>
+
+    <script src="../js/shared.js"></script>
+    <script type="module" src="../js/footer.js"></script>
+    <script type="module" src="../js/uncertainty_propagation/uncertainty-propagation.js"></script>
+</body>
+</html>

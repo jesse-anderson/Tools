@@ -12,3 +12,5 @@ node_modules/
 playwright-report/
 test-results/
 tests/smoke/_shot_*.png
+historical/
+docs/
