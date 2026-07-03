@@ -13,7 +13,10 @@ module.exports = defineConfig({
     'hormone-data.spec.cjs',
     'uncertainty-engine.spec.cjs',
     'psychrometric.spec.cjs',
-    'steam-tables.spec.cjs'
+    'steam-tables.spec.cjs',
+    'parquet-viewer.spec.cjs',
+    'species-doubling.spec.cjs',
+    'excel-engine.spec.cjs'
   ],
   timeout: 60_000,
   fullyParallel: false,

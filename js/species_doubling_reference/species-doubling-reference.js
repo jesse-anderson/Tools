@@ -125,6 +125,36 @@ const DEFAULT_DURATION = Object.freeze({
 const MIN_DURATION_VALUE = 0.1;
 const LOG10_2 = Math.log10(2);
 
+// Convert a duration value in the given unit to minutes. Unknown units fall
+// back to the default unit.
+function durationToMinutes(value, unitKey) {
+    const unit = DURATION_UNITS[unitKey] || DURATION_UNITS[DEFAULT_DURATION.unitKey];
+    return value * unit.multiplier;
+}
+
+// Given selections (each carrying behavior.tdMin) and an elapsed time in
+// minutes, compute each row's doubling count and its normalized endpoint share.
+// Assuming equal starting abundance, final abundance scales as 2^doublings; the
+// exponent is max-subtracted so many doublings do not overflow before dividing.
+function computeComparisonResults(selections, totalMinutes) {
+    const results = selections.map((entry) => ({
+        ...entry,
+        doublings: totalMinutes / entry.behavior.tdMin
+    }));
+
+    const maxDoublings = results.length > 0 ? Math.max(...results.map((entry) => entry.doublings)) : 0;
+    const totalRelativeWeight = results.reduce((sum, entry) => {
+        entry.endpointWeight = 2 ** (entry.doublings - maxDoublings);
+        return sum + entry.endpointWeight;
+    }, 0);
+
+    results.forEach((entry) => {
+        entry.normalizedSharePercent = totalRelativeWeight > 0 ? (entry.endpointWeight / totalRelativeWeight) * 100 : 0;
+    });
+
+    return results;
+}
+
 document.addEventListener("DOMContentLoaded", () => {
     initSearchAndFilter();
     initComparison();
@@ -470,25 +500,9 @@ function initComparison() {
 
         const duration = durationState.duration;
         const palette = getSeriesPalette();
-        const results = selections.map((entry, index) => {
-            const doublings = duration.totalMinutes / entry.behavior.tdMin;
-
-            return {
-                ...entry,
-                color: palette[index % palette.length],
-                doublings
-            };
-        });
-
-        const maxDoublings = results.length > 0 ? Math.max(...results.map((entry) => entry.doublings)) : 0;
-        const totalRelativeWeight = results.reduce((sum, entry) => {
-            const endpointWeight = 2 ** (entry.doublings - maxDoublings);
-            entry.endpointWeight = endpointWeight;
-            return sum + endpointWeight;
-        }, 0);
-
-        results.forEach((entry) => {
-            entry.normalizedSharePercent = totalRelativeWeight > 0 ? (entry.endpointWeight / totalRelativeWeight) * 100 : 0;
+        const results = computeComparisonResults(selections, duration.totalMinutes);
+        results.forEach((entry, index) => {
+            entry.color = palette[index % palette.length];
         });
 
         const fastest = results.reduce((best, entry) => {
@@ -868,3 +882,11 @@ function escapeSvgText(value) {
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;");
 }
+
+// Exposed for automated tests (tests/smoke/species-doubling.spec.cjs).
+window.SpeciesDoublingReference = {
+    SPECIES_DATA,
+    DURATION_UNITS,
+    durationToMinutes,
+    computeComparisonResults
+};

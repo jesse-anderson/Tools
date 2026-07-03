@@ -233,12 +233,15 @@ function aggregateColumns(metadata) {
                     uncompressed: 0,
                     numValues: 0,
                     nulls: 0,
+                    chunkCount: 0,   // column chunks seen (one per row group)
+                    nullChunks: 0,   // chunks that reported a null_count
                     hasNullStat: false,
                     min: undefined,
                     max: undefined,
                 };
                 map.set(key, entry);
             }
+            entry.chunkCount += 1;
             entry.codecs.add(md.codec);
             (md.encodings || []).forEach((e) => entry.encodings.add(e));
             entry.compressed += Number(md.total_compressed_size || 0);
@@ -248,7 +251,7 @@ function aggregateColumns(metadata) {
             if (st) {
                 if (st.null_count !== undefined && st.null_count !== null) {
                     entry.nulls += Number(st.null_count);
-                    entry.hasNullStat = true;
+                    entry.nullChunks += 1;
                 }
                 const mn = st.min_value !== undefined ? st.min_value : st.min;
                 const mx = st.max_value !== undefined ? st.max_value : st.max;
@@ -257,7 +260,14 @@ function aggregateColumns(metadata) {
             }
         });
     });
-    return [...map.values()];
+    // The null total is only exact when every chunk of the column reported a
+    // null_count. A partial set would undercount, so it is shown as unknown
+    // rather than a confident wrong number.
+    const columns = [...map.values()];
+    columns.forEach((entry) => {
+        entry.hasNullStat = entry.chunkCount > 0 && entry.nullChunks === entry.chunkCount;
+    });
+    return columns;
 }
 
 // combine group-level extremes when the values are safely comparable
@@ -301,6 +311,17 @@ function renderOverview() {
     const uncompressedTotal = state.columns.reduce((s, c) => s + c.uncompressed, 0);
     const totalNulls = state.columns.reduce((s, c) => s + c.nulls, 0);
     const cells = state.totalRows * state.columns.length;
+    // totalNulls only counts chunks that carried a null_count. When any column's
+    // stats are incomplete it is a lower bound, so avoid a confident count/percent.
+    const nullsComplete = state.columns.length > 0 && state.columns.every((c) => c.hasNullStat);
+    let nullCellsLabel;
+    if (!nullsComplete) {
+        nullCellsLabel = `≥ ${fmtInt(totalNulls)} (partial stats)`;
+    } else if (cells) {
+        nullCellsLabel = `${fmtInt(totalNulls)} (${(100 * totalNulls / cells).toFixed(1)}%)`;
+    } else {
+        nullCellsLabel = fmtInt(totalNulls);
+    }
 
     const cards = [
         ['Rows', fmtInt(state.totalRows)],
@@ -310,7 +331,7 @@ function renderOverview() {
         ['Data (compressed)', fmtBytes(compressedTotal)],
         ['Data (uncompressed)', fmtBytes(uncompressedTotal)],
         ['Compression', compressedTotal ? (uncompressedTotal / compressedTotal).toFixed(2) + 'x' : 'n/a'],
-        ['Null cells', cells ? `${fmtInt(totalNulls)} (${(100 * totalNulls / cells).toFixed(1)}%)` : fmtInt(totalNulls)],
+        ['Null cells', nullCellsLabel],
     ].map(([label, value]) => `
         <div class="stat-card">
             <div class="stat-label">${label}</div>
@@ -564,16 +585,23 @@ function switchTab(name) {
 }
 
 // ---- export -----------------------------------------------------------------
+// Serialize rows to CSV. Uses the raw value, not formatCell (which truncates
+// strings to 80 chars and renders byte arrays as a short hex preview). Header
+// names and cells are quoted whenever they contain a comma, quote, CR, or LF.
+function rowsToCsv(rows, headers) {
+    const esc = (v) => {
+        const f = csvValue(v);
+        return /[",\r\n]/.test(f) ? '"' + f.replace(/"/g, '""') + '"' : f;
+    };
+    return [headers.map(esc).join(','), ...rows.map((r) => headers.map((h) => esc(r[h])).join(','))].join('\n');
+}
+
 function exportRows(rows, headers, format) {
     let text, mime, ext;
     if (format === 'json') {
         text = safeJson(rows, 2); mime = 'application/json'; ext = 'json';
     } else {
-        const esc = (v) => {
-            const f = formatCell(v).text;
-            return /[",\n]/.test(f) ? '"' + f.replace(/"/g, '""') + '"' : f;
-        };
-        text = [headers.join(','), ...rows.map((r) => headers.map((h) => esc(r[h])).join(','))].join('\n');
+        text = rowsToCsv(rows, headers);
         mime = 'text/csv'; ext = 'csv';
     }
     const base = state.fileName.replace(/\.parquet$/i, '') || 'parquet';
@@ -607,6 +635,16 @@ function shortVal(v) {
     const f = formatCell(v);
     return f.text.length > 40 ? f.text.slice(0, 40) + '...' : f.text;
 }
+// Faithful, untruncated serialization of a raw cell value for data export.
+function csvValue(v) {
+    if (v === null || v === undefined) return '';
+    if (typeof v === 'string') return v;
+    if (typeof v === 'bigint') return v.toString();
+    if (typeof v === 'number' || typeof v === 'boolean') return String(v);
+    if (v instanceof Uint8Array) return [...v].map((b) => b.toString(16).padStart(2, '0')).join('');
+    if (v instanceof Date) return v.toISOString();
+    return safeJson(v);
+}
 function safeJson(obj, indent) {
     return JSON.stringify(obj, (k, val) => {
         if (typeof val === 'bigint') return val.toString();
@@ -638,3 +676,6 @@ function escapeHtml(s) {
         { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
     ));
 }
+
+// Exposed for automated tests (tests/smoke/parquet-viewer.spec.cjs).
+window.ParquetViewer = { csvValue, rowsToCsv, formatCell, fmtBytes, fmtInt, safeJson, aggregateColumns, reduceExtreme };
