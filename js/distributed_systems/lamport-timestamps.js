@@ -1307,6 +1307,12 @@ class LamportTimestampsVisualizer {
         } else {
             this.dom.diagramView.classList.add('hidden');
             this.dom.timelineView.classList.remove('hidden');
+            // Hide the overview canvas immediately; render() is what toggles
+            // it, and skipping this left the stale radial drawing visible
+            // behind the timeline after switching views.
+            if (this.dom.diagramCanvas) {
+                this.dom.diagramCanvas.style.display = 'none';
+            }
             setTimeout(() => this.renderTimeline(this.buildStateSnapshot()), 0);
         }
 

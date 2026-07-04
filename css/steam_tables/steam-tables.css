@@ -911,7 +911,7 @@
     pointer-events: all;
 }
 
-/* Subtle ring on hover/select — no bright fill, so a moving cursor doesn't
+/* Subtle ring on hover/select: no bright fill, so a moving cursor doesn't
    light up the chart with blobs. */
 .chart-hover-point:hover,
 .chart-hover-point.hovered,
@@ -1189,7 +1189,7 @@
 }
 
 .chart-detail {
-    /* Collapsed by default — kill the grid row entirely so chart-block's
+    /* Collapsed by default: kill the grid row entirely so chart-block's
        gap doesn't reserve space for an empty strip. */
     display: none;
 }

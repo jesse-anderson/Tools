@@ -1186,7 +1186,9 @@ test('steam tables lookup computes states and passes internal consistency checks
   const steamCsv = fs.readFileSync(await csvDownload.path(), 'utf8');
   expect(steamCsv).toContain('Steam Tables Lookup');
   expect(steamCsv).toContain('Enthalpy');
-  await page.locator('details.action-menu').filter({ hasText: 'Export / Share' }).locator('summary').click();
+  // Menus now close themselves after an item is picked (July 2026 UX fix),
+  // so each menu action below reopens its menu first.
+  await expect(page.locator('details.action-menu').filter({ hasText: 'Export / Share' })).not.toHaveAttribute('open', '');
 
   await page.fill('#field-T', '250');
   await page.click('#computeBtn');
@@ -1196,8 +1198,10 @@ test('steam tables lookup computes states and passes internal consistency checks
   await expect(page.locator('#chartPanel')).toContainText('State B');
   await expect(page.locator('#comparisonPanel')).toContainText('Enthalpy');
   await expect(page.locator('#comparisonPanel')).toContainText('Temperature: 250 deg C');
+  await page.locator('details.action-menu').filter({ hasText: 'Compare' }).locator('summary').click();
   await page.click('#swapStatesBtn');
   await expect(page.locator('#statusBanner')).toContainText('Swapped pinned states');
+  await page.locator('details.action-menu').filter({ hasText: 'Compare' }).locator('summary').click();
   await page.click('#clearStatesBtn');
   await expect(page.locator('#comparisonPanel')).toContainText('Pin State A and State B');
 

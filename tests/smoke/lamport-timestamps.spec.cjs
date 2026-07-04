@@ -281,4 +281,27 @@ test.describe('Page integration', () => {
 
     expect(errors).toEqual([]);
   });
+
+  test('switching timeline -> overview -> timeline hides the overview canvas', async ({ page }) => {
+    await openTool(page);
+    await page.evaluate(() => localStorage.clear());
+    await page.reload();
+    await page.waitForFunction(() => window.app);
+
+    await page.click('[data-view="diagram"]');
+    await page.waitForTimeout(200);
+    await page.click('[data-view="timeline"]');
+    await page.waitForTimeout(200);
+
+    const state = await page.evaluate(() => ({
+      canvasDisplay: getComputedStyle(document.getElementById('diagramCanvas')).display,
+      timelineVisible: !document.getElementById('timelineView').classList.contains('hidden'),
+      timelineHasContent: document.querySelectorAll('#timelineContainer .timeline-marker').length > 0
+    }));
+
+    // The stale radial overview used to stay painted behind the timeline.
+    expect(state.canvasDisplay).toBe('none');
+    expect(state.timelineVisible).toBe(true);
+    expect(state.timelineHasContent).toBe(true);
+  });
 });

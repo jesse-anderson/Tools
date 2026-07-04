@@ -128,6 +128,14 @@ function setupExampleSelector() {
 }
 
 function setupEvents() {
+    const closeMenu = (menu) => {
+        menu.removeAttribute('open');
+        const summary = menu.querySelector('summary');
+        if (summary) {
+            summary.setAttribute('aria-expanded', 'false');
+        }
+    };
+
     document.querySelectorAll('.action-menu').forEach((menu) => {
         menu.addEventListener('toggle', () => {
             const summary = menu.querySelector('summary');
@@ -139,14 +147,27 @@ function setupEvents() {
             }
             document.querySelectorAll('.action-menu[open]').forEach((otherMenu) => {
                 if (otherMenu !== menu) {
-                    otherMenu.removeAttribute('open');
-                    const otherSummary = otherMenu.querySelector('summary');
-                    if (otherSummary) {
-                        otherSummary.setAttribute('aria-expanded', 'false');
-                    }
+                    closeMenu(otherMenu);
                 }
             });
         });
+    });
+
+    // Menus behave like menus: choosing an item or clicking outside closes
+    // them, and Escape closes any open menu.
+    document.addEventListener('click', (event) => {
+        document.querySelectorAll('.action-menu[open]').forEach((menu) => {
+            const clickedInside = menu.contains(event.target);
+            const pickedItem = clickedInside && event.target.closest('.action-menu-panel [role="menuitem"]');
+            if (!clickedInside || pickedItem) {
+                closeMenu(menu);
+            }
+        });
+    });
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+            document.querySelectorAll('.action-menu[open]').forEach(closeMenu);
+        }
     });
     byId('lookupMode').addEventListener('change', () => {
         markCustomExample();

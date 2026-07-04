@@ -16,6 +16,12 @@ const HS_MARGIN = { top: 18, right: 14, bottom: 46, left: 58 };
 const PV_MARGIN = { top: 18, right: 14, bottom: 46, left: 62 };
 const PT_MARGIN = { top: 18, right: 14, bottom: 46, left: 62 };
 const REPRESENTATIVE_PRESSURES_MPA = [0.1, 1, 10, 25];
+// The combined table runs to 2000 deg C and 1000 MPa. Uncapped, isobar tails
+// and isotherm liquid branches stretch the chart domains so far that the
+// saturation dome collapses into a corner. These caps keep the textbook
+// framing; markers can still extend the domain when a state needs it.
+const CHART_MAX_ISOBAR_T_C = 800;
+const CHART_MAX_ISOTHERM_P_MPA = 100;
 // Representative isotherms for the P-v diagram. Subcritical curves get a
 // horizontal segment inside the dome at P = Psat(T); the critical isotherm
 // passes through CP with a horizontal tangent there (rendered dashed); a
@@ -57,8 +63,24 @@ export function renderChartsPanel(container, engine, currentResult, pinnedStateA
     const allIsobars = representativeIsobars(engine.tables.blocks || []);
     const isobars = opts.isobars ? allIsobars.slice(0, opts.isobarCount) : [];
     const markers = opts.markers ? collectMarkers(currentResult, pinnedStateA, pinnedStateB) : [];
-    const cp = opts.critPoint ? pickCriticalPoint(satRows, engine) : null;
+    // Phase-region tinting needs CP even when the CP glyph is toggled off.
+    const cpForRegions = pickCriticalPoint(satRows, engine);
+    const cp = opts.critPoint ? cpForRegions : null;
     const tp = opts.triplePoint ? pickTriplePoint(satRows) : null;
+
+    // Boundary curves for the phase-region tints: the P = Pc isobar splits
+    // superheated vapor from supercritical fluid on T-s / h-s, and the T = Tc
+    // isotherm splits compressed liquid from supercritical fluid on P-v.
+    if (opts.phaseLabels) {
+        opts.regionCp = cpForRegions;
+        opts.critIsobarPoints = criticalIsobarPoints(engine, CHART_MAX_ISOBAR_T_C);
+        // Only the P >= Pc portion of the critical isotherm is a region
+        // boundary; its subcritical vapor tail runs down the dome and would
+        // drag the polygon with it.
+        opts.critIsothermPoints = (representativeIsotherms(engine.tables.blocks || [], engine.tables.satT, engine.tables.tCrit)
+            .find((curve) => curve.kind === 'crit')?.points || [])
+            .filter((point) => Number.isFinite(point.P) && point.P >= (engine.tables.pCrit || 0));
+    }
 
     container.innerHTML = `
         ${renderOverlayControls(opts)}
@@ -69,7 +91,7 @@ export function renderChartsPanel(container, engine, currentResult, pinnedStateA
             ${renderPressureTemperatureChart(satRows, markers, units, opts, cp, tp)}
         </div>
         <div class="chart-stack-footnote" role="note">
-            Charts cover liquid, vapor, and supercritical regions from the loaded IAPWS-IF97 tables. The solid phase, fusion line, and sublimation line are not included; the gray band on the P-T chart marks where solid would live but cannot be evaluated.
+            Charts cover liquid, vapor, and supercritical regions from the loaded IAPWS-IF97 tables. Isobars are drawn to ${CHART_MAX_ISOBAR_T_C} deg C and isotherms to ${CHART_MAX_ISOTHERM_P_MPA} MPa to keep the dome readable. Region tints follow the saturation curves, the P = Pc isobar, and the T = Tc isotherm from the tables; on the h-s chart the supercritical boundary below h_crit is approximate. The solid phase, fusion line, and sublimation line are not included; the gray band on the P-T chart marks where solid would live but cannot be evaluated.
         </div>
     `;
 }
@@ -129,11 +151,11 @@ function renderQualityLabel(curve, scaleX, scaleY) {
     return `<text class="chart-quality-label" x="${round(x + 4)}" y="${round(y + 10)}">x=${curve.quality}</text>`;
 }
 
-// Region tint colors — one place to change if we ever rebrand the palette.
+// Region tint colors: one place to change if we ever rebrand the palette.
 // Keep alphas low (≤ 0.12) so the dome line, isobars, curves, and markers
 // remain the visually dominant elements.
 // Region tint colors. The "saturated" entry intentionally matches the
-// existing .chart-dome-fill rule (rgba(34,197,94,0.08)) — we don't paint
+// existing .chart-dome-fill rule (rgba(34,197,94,0.08)): we don't paint
 // our own dome polygon, we let chart-dome-fill provide the tint and the
 // key swatch reflects the same color.
 const PHASE_COLORS = {
@@ -147,13 +169,13 @@ const PHASE_COLORS = {
     vapor: 'rgba(245, 158, 11, 0.10)',
     // Marker for the conceptual solid region on P-T. The IAPWS-IF97 tables
     // we load are liquid-vapor only, so this is purely a "where solid would
-    // live" indicator — the engine cannot evaluate states here. Slightly
+    // live" indicator; the engine cannot evaluate states here. Slightly
     // higher alpha than the data-backed regions so it doesn't disappear in
     // the narrow strip below T_TP, but still subdued.
     solidNoData: 'rgba(148, 163, 184, 0.20)'
 };
 
-function renderPhaseRegions(chartType, satRows, scaleX, scaleY, margin, height, cp, units) {
+function renderPhaseRegions(chartType, satRows, scaleX, scaleY, margin, height, cp, units, boundary = null) {
     if (!cp) {
         return '';
     }
@@ -161,6 +183,14 @@ function renderPhaseRegions(chartType, satRows, scaleX, scaleY, margin, height, 
     const x1 = WIDTH - margin.right;
     const y0 = margin.top;
     const y1 = height - margin.bottom;
+    const clampX = (value) => Math.min(Math.max(value, x0), x1);
+    const clampY = (value) => Math.min(Math.max(value, y0), y1);
+    // Boundary curve in clamped pixel coords, sorted top-of-plot last.
+    const boundaryPx = (boundary || [])
+        .map((point) => ({ px: clampX(scaleX(point.dx)), py: clampY(scaleY(point.dy)) }))
+        .filter((point) => Number.isFinite(point.px) && Number.isFinite(point.py))
+        .sort((a, b) => b.py - a.py);
+    const boundaryLineTo = (points) => points.map((point) => `L ${round(point.px)} ${round(point.py)}`).join(' ');
 
     if (chartType === 'ts' || chartType === 'hs' || chartType === 'pv') {
         const xKey = chartType === 'pv' ? 'v' : 's';
@@ -182,55 +212,103 @@ function renderPhaseRegions(chartType, satRows, scaleX, scaleY, margin, height, 
             return '';
         }
 
-        // For T-s and h-s the saturation lines run "up" (sat-liq from low-T
-        // to CP), so above-CP is supercritical. For P-v the dome opens
-        // downward (sat lines run from high-P apex down to low-P TP), so
-        // "above" in display = above CP-P = supercritical region.
-        // The polygon construction below is identical for all three because
-        // we work in display (pixel) coords: y0 = top of plot, y1 = bottom.
-        const liquidPath = pathFromDisplayPoints(liquid, scaleX, scaleY);
+        // Pixel coords everywhere: y0 = top of plot, y1 = bottom.
         const vaporPath = pathFromDisplayPoints(vapor, scaleX, scaleY);
+        const hasBoundary = boundaryPx.length >= 2;
+        const boundaryTopY = hasBoundary ? boundaryPx[boundaryPx.length - 1].py : y0;
 
-        // Compressed Liquid: bounded by left plot edge, sat-liquid curve, CP
-        // horizontal line back to left edge.
-        const compressedLiquidPath = `
-            M ${x0} ${y1}
-            L ${x0} ${round(cpY)}
-            L ${round(cpX)} ${round(cpY)}
-            ${reversedLineTo(liquid, scaleX, scaleY)}
-            Z
-        `.replace(/\s+/g, ' ');
+        let compressedLiquidPath;
+        let superheatedPath;
+        let supercriticalPath;
 
-        // Superheated Vapor: bounded by sat-vapor curve, right edge, bottom,
-        // back to vapor curve start.
-        const superheatedPath = `
-            ${vaporPath}
-            L ${round(scaleX(vapor[vapor.length - 1].dx))} ${round(scaleY(vapor[vapor.length - 1].dy))}
-            L ${round(cpX)} ${round(cpY)}
-            L ${x1} ${round(cpY)}
-            L ${x1} ${y1}
-            L ${round(scaleX(vapor[0].dx))} ${y1}
-            Z
-        `.replace(/\s+/g, ' ');
+        if ((chartType === 'ts' || chartType === 'hs') && hasBoundary) {
+            // Supercritical fluid sits LEFT of the P = Pc isobar for T > Tc
+            // (higher pressure means lower entropy at fixed temperature).
+            // Superheated vapor is right of the sat-vapor curve below CP and
+            // right of the Pc isobar above it.
+            compressedLiquidPath = `
+                M ${x0} ${y1}
+                L ${x0} ${round(cpY)}
+                L ${round(cpX)} ${round(cpY)}
+                ${reversedLineTo(liquid, scaleX, scaleY)}
+                Z
+            `;
+            superheatedPath = `
+                ${vaporPath}
+                L ${round(cpX)} ${round(cpY)}
+                ${boundaryLineTo(boundaryPx)}
+                L ${x1} ${round(boundaryTopY)}
+                L ${x1} ${y1}
+                L ${round(scaleX(vapor[0].dx))} ${y1}
+                Z
+            `;
+            supercriticalPath = `
+                M ${round(cpX)} ${round(cpY)}
+                ${boundaryLineTo(boundaryPx)}
+                L ${x0} ${round(boundaryTopY)}
+                L ${x0} ${round(cpY)}
+                Z
+            `;
+        } else if (chartType === 'pv' && hasBoundary) {
+            // On P-v the T = Tc isotherm splits the P > Pc band: liquid-like
+            // states (T < Tc) sit left of it, supercritical fluid right of it.
+            compressedLiquidPath = `
+                M ${x0} ${y1}
+                L ${x0} ${round(boundaryTopY)}
+                ${boundaryLineTo(boundaryPx.slice().reverse())}
+                ${reversedLineTo(liquid, scaleX, scaleY)}
+                Z
+            `;
+            superheatedPath = `
+                ${vaporPath}
+                L ${round(cpX)} ${round(cpY)}
+                L ${x1} ${round(cpY)}
+                L ${x1} ${y1}
+                L ${round(scaleX(vapor[0].dx))} ${y1}
+                Z
+            `;
+            supercriticalPath = `
+                M ${round(cpX)} ${round(cpY)}
+                ${boundaryLineTo(boundaryPx)}
+                L ${x1} ${round(boundaryTopY)}
+                L ${x1} ${round(cpY)}
+                Z
+            `;
+        } else {
+            // Fallback when no boundary curve is available: approximate the
+            // supercritical region as the band above CP.
+            compressedLiquidPath = `
+                M ${x0} ${y1}
+                L ${x0} ${round(cpY)}
+                L ${round(cpX)} ${round(cpY)}
+                ${reversedLineTo(liquid, scaleX, scaleY)}
+                Z
+            `;
+            superheatedPath = `
+                ${vaporPath}
+                L ${round(cpX)} ${round(cpY)}
+                L ${x1} ${round(cpY)}
+                L ${x1} ${y1}
+                L ${round(scaleX(vapor[0].dx))} ${y1}
+                Z
+            `;
+            supercriticalPath = `
+                M ${x0} ${y0}
+                L ${x1} ${y0}
+                L ${x1} ${round(cpY)}
+                L ${x0} ${round(cpY)}
+                Z
+            `;
+        }
 
-        // Supercritical: entire band above CP horizontal.
-        const supercriticalPath = `
-            M ${x0} ${y0}
-            L ${x1} ${y0}
-            L ${x1} ${round(cpY)}
-            L ${x0} ${round(cpY)}
-            Z
-        `.replace(/\s+/g, ' ');
-
-        // We don't paint a saturated polygon — the existing chart-dome-fill
-        // (rendered just after this group) already tints the dome interior
-        // with the same color/alpha.
+        // No saturated polygon here: the chart-dome-fill rendered right after
+        // this group already tints the dome interior with the same color.
 
         return `
             <g class="chart-phase-regions" pointer-events="none">
-                <path d="${compressedLiquidPath}" fill="${PHASE_COLORS.compressedLiquid}"></path>
-                <path d="${superheatedPath}" fill="${PHASE_COLORS.superheatedVapor}"></path>
-                <path d="${supercriticalPath}" fill="${PHASE_COLORS.supercritical}"></path>
+                <path d="${compressedLiquidPath.replace(/\s+/g, ' ')}" fill="${PHASE_COLORS.compressedLiquid}"></path>
+                <path d="${superheatedPath.replace(/\s+/g, ' ')}" fill="${PHASE_COLORS.superheatedVapor}"></path>
+                <path d="${supercriticalPath.replace(/\s+/g, ' ')}" fill="${PHASE_COLORS.supercritical}"></path>
             </g>
         `;
     }
@@ -248,7 +326,7 @@ function renderPhaseRegions(chartType, satRows, scaleX, scaleY, margin, height, 
         const curvePath = pathFromDisplayPoints(curve, scaleX, scaleY);
         const tpX = scaleX(curve[0].dx);
 
-        // Solid (no data): T < T_TP. Conceptual region only — the dataset
+        // Solid (no data): T < T_TP. Conceptual region only; the dataset
         // doesn't cover solid water, so we paint a faint gray tint without
         // any boundary lines (fusion / sublimation are unmodelled).
         const solidPath = `
@@ -270,21 +348,28 @@ function renderPhaseRegions(chartType, satRows, scaleX, scaleY, margin, height, 
             Z
         `.replace(/\s+/g, ' ');
 
-        // Vapor: below the saturation curve, T_TP < T < Tc.
+        // Vapor: below the saturation curve for T < Tc, plus the T > Tc band
+        // below P = Pc (gas at subcritical pressure, conventionally still
+        // shown as vapor rather than supercritical fluid).
         const vaporPath = `
             ${curvePath}
             L ${round(cpX)} ${y1}
             L ${round(tpX)} ${y1}
             L ${round(scaleX(curve[0].dx))} ${y1}
             Z
+            M ${round(cpX)} ${round(cpY)}
+            L ${x1} ${round(cpY)}
+            L ${x1} ${y1}
+            L ${round(cpX)} ${y1}
+            Z
         `.replace(/\s+/g, ' ');
 
-        // Supercritical: T > Tc band.
+        // Supercritical fluid: T > Tc AND P > Pc quadrant only.
         const supercriticalPath = `
             M ${round(cpX)} ${y0}
             L ${x1} ${y0}
-            L ${x1} ${y1}
-            L ${round(cpX)} ${y1}
+            L ${x1} ${round(cpY)}
+            L ${round(cpX)} ${round(cpY)}
             Z
         `.replace(/\s+/g, ' ');
 
@@ -357,7 +442,7 @@ function pickTriplePoint(satRows) {
         T: first.T,
         P: first.P,
         // For T-s / h-s / P-v projections we anchor at the saturated-liquid
-        // branch at the lowest tabulated T — that's the bottom-left corner of
+        // branch at the lowest tabulated T; that's the bottom-left corner of
         // the dome on s-T, s-h, and v-P axes.
         s: first.sf,
         h: first.hf,
@@ -486,7 +571,7 @@ function renderTemperatureEntropyChart(satRows, isobars, markers, engine, units,
                 <title id="ts-chart-title">T-s context chart</title>
                 <desc id="ts-chart-desc">Saturation dome, representative combined-table isobars, and current or pinned state markers.</desc>
                 ${opts.grid ? renderLinearGrid(domainX, scaleX, domainY, scaleY, TS_MARGIN, TS_HEIGHT) : renderAxesOnly(TS_MARGIN, TS_HEIGHT)}
-                ${opts.phaseLabels ? renderPhaseRegions('ts', satRows, scaleX, scaleY, TS_MARGIN, TS_HEIGHT, cp, units) : ''}
+                ${opts.phaseLabels ? renderPhaseRegions('ts', satRows, scaleX, scaleY, TS_MARGIN, TS_HEIGHT, opts.regionCp || cp, units, convertSeries((opts.critIsobarPoints || []).map((point) => ({ x: point.s, y: point.T })), 's', 'T', units)) : ''}
                 ${opts.dome ? `<path class="chart-dome-fill" d="${domeFillPath(liquid, vapor, scaleX, scaleY)}"></path>` : ''}
                 ${opts.isobars ? renderIsobarLines(isobarSeries, scaleX, scaleY, units) : ''}
                 ${opts.qualityLines ? renderQualityCurves(qualityCurves, scaleX, scaleY) : ''}
@@ -542,7 +627,7 @@ function renderMollierChart(satRows, isobars, markers, units, opts, cp, tp) {
                 <title id="hs-chart-title">Mollier h-s context chart</title>
                 <desc id="hs-chart-desc">Saturation boundary and representative combined-table isobars in enthalpy and entropy coordinates.</desc>
                 ${opts.grid ? renderLinearGrid(domainX, scaleX, domainY, scaleY, HS_MARGIN, HS_HEIGHT) : renderAxesOnly(HS_MARGIN, HS_HEIGHT)}
-                ${opts.phaseLabels ? renderPhaseRegions('hs', satRows, scaleX, scaleY, HS_MARGIN, HS_HEIGHT, cp, units) : ''}
+                ${opts.phaseLabels ? renderPhaseRegions('hs', satRows, scaleX, scaleY, HS_MARGIN, HS_HEIGHT, opts.regionCp || cp, units, convertSeries((opts.critIsobarPoints || []).map((point) => ({ x: point.s, y: point.h })), 's', 'h', units)) : ''}
                 ${opts.dome ? `<path class="chart-dome-fill" d="${domeFillPath(liquid, vapor, scaleX, scaleY)}"></path>` : ''}
                 ${opts.isobars ? renderIsobarLines(isobarSeries, scaleX, scaleY, units) : ''}
                 ${opts.qualityLines ? renderQualityCurves(qualityCurves, scaleX, scaleY) : ''}
@@ -601,7 +686,7 @@ function renderPressureVolumeChart(satRows, markers, units, opts, cp, tp, engine
                 <title id="pv-chart-title">P-v saturation dome</title>
                 <desc id="pv-chart-desc">Saturated liquid and vapor specific-volume boundaries with constant-temperature curves and current or pinned state markers.</desc>
                 ${opts.grid ? renderLogGrid(domainX, scaleX, domainY, scaleY, PV_MARGIN, PV_HEIGHT) : renderAxesOnly(PV_MARGIN, PV_HEIGHT)}
-                ${opts.phaseLabels ? renderPhaseRegions('pv', satRows, scaleX, scaleY, PV_MARGIN, PV_HEIGHT, cp, units) : ''}
+                ${opts.phaseLabels ? renderPhaseRegions('pv', satRows, scaleX, scaleY, PV_MARGIN, PV_HEIGHT, opts.regionCp || cp, units, convertSeries((opts.critIsothermPoints || []).map((point) => ({ x: point.v, y: point.P })), 'v', 'P', units)) : ''}
                 ${opts.dome ? `<path class="chart-dome-fill" d="${domeFillPath(liquid, vapor, scaleX, scaleY)}"></path>` : ''}
                 ${opts.isotherms ? renderIsothermLines(isothermSeries, scaleX, scaleY, units) : ''}
                 ${opts.dome ? `<path class="chart-dome-line liquid" d="${pathFromDisplayPoints(liquid, scaleX, scaleY)}"></path>` : ''}
@@ -645,7 +730,7 @@ function renderPressureTemperatureChart(satRows, markers, units, opts, cp, tp) {
                 <title id="pt-chart-title">P-T saturation curve</title>
                 <desc id="pt-chart-desc">Saturation pressure against temperature with current and pinned state markers.</desc>
                 ${opts.grid ? renderMixedGrid(domainX, scaleX, domainY, scaleY, PT_MARGIN, PT_HEIGHT) : renderAxesOnly(PT_MARGIN, PT_HEIGHT)}
-                ${opts.phaseLabels ? renderPhaseRegions('pt', satRows, scaleX, scaleY, PT_MARGIN, PT_HEIGHT, cp, units) : ''}
+                ${opts.phaseLabels ? renderPhaseRegions('pt', satRows, scaleX, scaleY, PT_MARGIN, PT_HEIGHT, opts.regionCp || cp, units, null) : ''}
                 ${opts.dome ? `<path class="chart-saturation-line" d="${pathFromDisplayPoints(curve, scaleX, scaleY)}"></path>` : ''}
                 ${opts.triplePoint ? renderTriplePointGlyph(tp, 'T', 'P', scaleX, scaleY, units, { dx: 10, dy: -8 }) : ''}
                 ${opts.critPoint ? renderCriticalPointGlyph(cp, 'T', 'P', scaleX, scaleY, units) : ''}
@@ -739,6 +824,7 @@ function representativeIsobars(blocks) {
         }
         const rows = block.rows
             .filter((row) => !row.incomplete && Number.isFinite(row.T) && Number.isFinite(row.s) && Number.isFinite(row.h))
+            .filter((row) => row.T <= CHART_MAX_ISOBAR_T_C)
             .sort((a, b) => a.T - b.T);
         if (rows.length < 2) {
             continue;
@@ -774,6 +860,9 @@ function representativeIsotherms(blocks, satT, tCrit) {
         const vaporBranch = [];
         const all = [];
         for (const block of blocks) {
+            if (block.P > CHART_MAX_ISOTHERM_P_MPA) {
+                continue;
+            }
             const v = interpolateBlockAtT(block, targetT);
             if (!Number.isFinite(v)) {
                 continue;
@@ -812,19 +901,19 @@ function representativeIsotherms(blocks, satT, tCrit) {
     }).filter((curve) => curve.points.length >= 2);
 }
 
-function interpolateBlockAtT(block, targetT) {
+function interpolateBlockAtT(block, targetT, prop = 'v') {
     if (!block || block.completeMinT == null || block.completeMaxT == null) {
         return null;
     }
     if (targetT < block.completeMinT - 1e-9 || targetT > block.completeMaxT + 1e-9) {
         return null;
     }
-    const rows = block.rows.filter((row) => !row.incomplete && Number.isFinite(row.T) && Number.isFinite(row.v));
+    const rows = block.rows.filter((row) => !row.incomplete && Number.isFinite(row.T) && Number.isFinite(row[prop]));
     for (let i = 0; i < rows.length - 1; i++) {
         const a = rows[i];
         const b = rows[i + 1];
         if (Math.abs(a.T - b.T) < 1e-9) {
-            // Saturated-liquid + saturated-vapor pair at Tsat — skip; target T
+            // Saturated-liquid + saturated-vapor pair at Tsat: skip; target T
             // would only land exactly here by accident, and the dome splice
             // handles that case anyway.
             continue;
@@ -832,10 +921,54 @@ function interpolateBlockAtT(block, targetT) {
         const lo = Math.min(a.T, b.T);
         const hi = Math.max(a.T, b.T);
         if (targetT >= lo - 1e-9 && targetT <= hi + 1e-9) {
-            return lerpValue(targetT, a.T, a.v, b.T, b.v);
+            return lerpValue(targetT, a.T, a[prop], b.T, b[prop]);
         }
     }
     return null;
+}
+
+// Interpolated P = Pc isobar for T >= Tc from the blocks bracketing the
+// critical pressure (log-P blend). This is the physically correct boundary
+// between superheated vapor and supercritical fluid on T-s and h-s axes;
+// a plain "everything above CP" band would mislabel low-pressure steam.
+function criticalIsobarPoints(engine, maxT) {
+    const tables = engine?.tables;
+    const blocks = (tables?.blocks || []).filter((block) => Number.isFinite(block?.P) && block.P > 0);
+    const pCrit = tables?.pCrit;
+    const tCrit = tables?.tCrit;
+    if (!blocks.length || !Number.isFinite(pCrit) || !Number.isFinite(tCrit)) {
+        return [];
+    }
+    const below = blocks.filter((block) => block.P <= pCrit).sort((a, b) => b.P - a.P)[0];
+    const above = blocks.filter((block) => block.P > pCrit).sort((a, b) => a.P - b.P)[0];
+    if (!below || !above) {
+        return [];
+    }
+    const frac = Math.abs(Math.log(above.P) - Math.log(below.P)) < 1e-12
+        ? 0
+        : (Math.log(pCrit) - Math.log(below.P)) / (Math.log(above.P) - Math.log(below.P));
+    const grid = Array.from(new Set(
+        below.rows
+            .filter((row) => !row.incomplete && Number.isFinite(row.T) && row.T >= tCrit && row.T <= maxT)
+            .map((row) => row.T)
+    )).sort((a, b) => a - b);
+
+    const points = [];
+    for (const T of grid) {
+        const sLo = interpolateBlockAtT(below, T, 's');
+        const sHi = interpolateBlockAtT(above, T, 's');
+        const hLo = interpolateBlockAtT(below, T, 'h');
+        const hHi = interpolateBlockAtT(above, T, 'h');
+        if (![sLo, sHi, hLo, hHi].every(Number.isFinite)) {
+            continue;
+        }
+        points.push({
+            T,
+            s: sLo + frac * (sHi - sLo),
+            h: hLo + frac * (hHi - hLo)
+        });
+    }
+    return points;
 }
 
 function lerpValue(x, x1, y1, x2, y2) {
@@ -880,7 +1013,7 @@ function isothermPayload(item, units) {
     const temperature = formatDisplay('T', item.T, units);
     let detail;
     if (item.kind === 'crit') {
-        detail = `Critical isotherm at ${temperature} — horizontal tangent through CP.`;
+        detail = `Critical isotherm at ${temperature}: horizontal tangent through CP.`;
     } else if (item.kind === 'super') {
         detail = `Supercritical isotherm at ${temperature}: smooth P-v curve with no phase change.`;
     } else if (Number.isFinite(item.psat)) {
@@ -1278,7 +1411,15 @@ function logTicksWithKind([min, max]) {
         powers.push(10 ** power);
     }
     if (powers.length >= 2) {
-        return { kind: 'log', step: null, values: powers.slice(0, 5) };
+        // Thin to at most ~6 ticks but always keep the top decade so wide
+        // domains stay labeled end to end (the old slice(0, 5) left the
+        // upper decades of the P-v chart with no ticks at all).
+        const stride = Math.ceil(powers.length / 6);
+        const values = powers.filter((_, index) => index % stride === 0);
+        if (values[values.length - 1] !== powers[powers.length - 1]) {
+            values.push(powers[powers.length - 1]);
+        }
+        return { kind: 'log', step: null, values };
     }
     return { kind: 'log', step: null, values: [min, Math.sqrt(min * max), max] };
 }
