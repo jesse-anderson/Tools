@@ -1230,6 +1230,45 @@
             color: var(--text-secondary);
             font-weight: 600;
         }
+
+        /* Inline helpers: compute Re, estimate ε/D from material */
+        .input-helper {
+            margin-top: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background: var(--bg-secondary);
+        }
+        .input-helper > summary {
+            cursor: pointer;
+            padding: 8px 10px;
+            font-size: 0.78rem;
+            color: var(--text-secondary);
+            list-style: none;
+            user-select: none;
+        }
+        .input-helper > summary::before { content: '▸ '; color: var(--text-muted); }
+        .input-helper[open] > summary::before { content: '▾ '; }
+        .helper-body {
+            padding: 4px 10px 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .helper-body .field { margin: 0; }
+        .helper-result {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            min-height: 1em;
+        }
+        .helper-result.ok { color: var(--chart-smooth, #22c55e); }
+        .helper-result.err { color: var(--accent-error, #ef4444); }
+        .helper-source {
+            margin: 4px 0 0;
+            font-size: 0.7rem;
+            line-height: 1.4;
+            color: var(--text-muted);
+        }
+        .helper-source a { color: var(--text-secondary); }
     </style>
 </head>
 <body>
@@ -1366,6 +1405,67 @@
                                 <input type="text" id="inputFriction" value="0.02" placeholder="e.g., 0.02">
                             </div>
                         </div>
+
+                        <!-- Helper: compute Reynolds number from flow parameters (fills Re above) -->
+                        <details class="input-helper" id="reynoldsHelper">
+                            <summary>Don't have Re? Compute it from flow parameters</summary>
+                            <div class="helper-body">
+                                <div class="field">
+                                    <label>Velocity V (m/s)</label>
+                                    <input type="text" id="reV" value="2" placeholder="e.g., 2">
+                                </div>
+                                <div class="field">
+                                    <label>Diameter D (m)</label>
+                                    <input type="text" id="reD" value="0.05" placeholder="e.g., 0.05">
+                                </div>
+                                <div class="field">
+                                    <label>Viscosity</label>
+                                    <select id="reViscType">
+                                        <option value="dynamic">Dynamic μ (Pa·s) with density ρ</option>
+                                        <option value="kinematic">Kinematic ν (m²/s)</option>
+                                    </select>
+                                </div>
+                                <div class="field" id="reRhoRow">
+                                    <label>Density ρ (kg/m³)</label>
+                                    <input type="text" id="reRho" value="998" placeholder="e.g., 998">
+                                </div>
+                                <div class="field">
+                                    <label id="reViscLabel">Dynamic viscosity μ (Pa·s)</label>
+                                    <input type="text" id="reVisc" value="0.001" placeholder="e.g., 0.001">
+                                </div>
+                                <button class="tool-btn" id="reComputeBtn" type="button">Compute Re = ρVD/μ and fill above</button>
+                                <div class="helper-result" id="reHelperResult"></div>
+                            </div>
+                        </details>
+
+                        <!-- Helper: estimate relative roughness from pipe material (fills ε/D above) -->
+                        <details class="input-helper" id="roughnessHelper">
+                            <summary>Don't have ε/D? Pick a pipe material</summary>
+                            <div class="helper-body">
+                                <div class="field">
+                                    <label>Pipe material</label>
+                                    <select id="roughMaterial"></select>
+                                </div>
+                                <div class="field">
+                                    <label>Absolute roughness ε (mm)</label>
+                                    <input type="text" id="roughEps" value="0.045" placeholder="e.g., 0.045">
+                                </div>
+                                <div class="field">
+                                    <label>Pipe diameter D (mm)</label>
+                                    <input type="text" id="roughD" value="50" placeholder="e.g., 50">
+                                </div>
+                                <button class="tool-btn" id="roughApplyBtn" type="button">Compute ε/D and fill above</button>
+                                <div class="helper-result" id="roughHelperResult"></div>
+                                <p class="helper-source">
+                                    Typical ε values from
+                                    <a href="https://www.pipeflow.com/pipe-pressure-drop-calculations/pipe-roughness" target="_blank" rel="noopener">pipeflow.com</a>
+                                    and
+                                    <a href="https://enggcyclopedia.com/2011/09/absolute-roughness/" target="_blank" rel="noopener">EnggCyclopedia</a>.
+                                    Roughness rises with age and corrosion, so verify for critical work.
+                                </p>
+                            </div>
+                        </details>
+
                         <div class="toolbar" style="margin-top: 12px;">
                             <button class="tool-btn primary" id="computeBtn">Calculate</button>
                             <button class="tool-btn" id="resetInputBtn">Reset</button>
@@ -1711,7 +1811,7 @@
             if (Re <= 0) return { f: NaN, error: 'Re must be positive' };
             
             // Initial guess: Blasius (valid for Re < 10^5)
-            // f ≈ 0.316/Re^0.25 — Source: Blasius (1913)
+            // f ≈ 0.316/Re^0.25. Source: Blasius (1913)
             let f = Re < 1e5 ? 0.316 / Math.pow(Re, 0.25) : 0.01;
             const initialGuess = f;
             const iterationLog = [];
@@ -1768,7 +1868,7 @@
 
         // Colebrook-White equation (1939)
         // 1/√f = -2.0·log₁₀(ε/(3.7D) + 2.51/(Re·√f))
-        // Constants: -2.0, 3.7, 2.51 — Source: Colebrook (1939), Eq. 4
+        // Constants: -2.0, 3.7, 2.51. Source: Colebrook (1939), Eq. 4
         // Solved via fixed-point iteration (successive substitution)
         colebrook(Re, relRoughness, tol = CONFIG.solver.tolerance, maxIter = CONFIG.solver.maxIterations) {
             if (Re <= 0) return { f: NaN, error: 'Re must be positive' };
@@ -2656,13 +2756,34 @@
     // ========================================
     // UI CONTROLLER
     // ========================================
+    // Common pipe absolute roughness ε in millimetres. Discrete values validated
+    // (Jul 2026) against published pipe-roughness tables at pipeflow.com and
+    // enggcyclopedia.com/2011/09/absolute-roughness; the six discrete values match
+    // pipeflow.com exactly. Range materials (wood stave, concrete, riveted steel)
+    // show the published range with a representative value inside it.
+    // Note: EnggCyclopedia lists asphalted cast iron 0.012 and galvanized iron
+    // 0.015, which are 10x below every other source and the classic 0.0004 ft /
+    // 0.0005 ft conversions, so they are treated as typos and not used.
+    const PIPE_MATERIALS = [
+        { name: 'Custom (enter ε below)', eps: null },
+        { name: 'Drawn tubing / glass / plastic (PVC)', eps: 0.0015 },
+        { name: 'Commercial steel / wrought iron', eps: 0.045 },
+        { name: 'Asphalted cast iron', eps: 0.12 },
+        { name: 'Galvanized iron', eps: 0.15 },
+        { name: 'Cast iron', eps: 0.26 },
+        { name: 'Wood stave (0.18 to 0.9)', eps: 0.5 },
+        { name: 'Concrete (0.3 to 3.0)', eps: 1.5 },
+        { name: 'Riveted steel (0.9 to 9.0)', eps: 3.0 }
+    ];
+
     const UI = {
         lastCalcResult: null,
-        
+
         init() {
             this.bindModeButtons();
             this.bindToggles();
             this.bindInputs();
+            this.bindHelpers();
             this.bindCanvas();
             this.bindModals();
             this.bindFoldable();
@@ -2703,7 +2824,8 @@
             const inputSection = document.getElementById('inputSection');
             const relRoughRow = document.getElementById('inputRelRoughRow');
             const frictionRow = document.getElementById('inputFrictionRow');
-            
+            const roughnessHelper = document.getElementById('roughnessHelper');
+
             if (STATE.mode === 'drag') {
                 inputSection.style.display = 'none';
             } else {
@@ -2711,9 +2833,13 @@
                 if (STATE.mode === 'compute') {
                     relRoughRow.style.display = 'block';
                     frictionRow.style.display = 'none';
+                    // ε/D is an input in compute mode, so the material helper applies
+                    if (roughnessHelper) roughnessHelper.style.display = 'block';
                 } else {
                     relRoughRow.style.display = 'none';
                     frictionRow.style.display = 'block';
+                    // Infer mode computes ε/D, so hide the material helper
+                    if (roughnessHelper) { roughnessHelper.style.display = 'none'; roughnessHelper.open = false; }
                 }
             }
         },
@@ -2753,6 +2879,75 @@
                     if (e.key === 'Enter') this.handleCompute();
                 });
             });
+        },
+
+        bindHelpers() {
+            // Populate the pipe-material dropdown from PIPE_MATERIALS
+            const matSelect = document.getElementById('roughMaterial');
+            PIPE_MATERIALS.forEach((m, i) => {
+                const opt = document.createElement('option');
+                opt.value = String(i);
+                opt.textContent = m.eps === null ? m.name : `${m.name} (ε ≈ ${m.eps} mm)`;
+                matSelect.appendChild(opt);
+            });
+            matSelect.value = '2'; // default: commercial steel
+            document.getElementById('roughEps').value = String(PIPE_MATERIALS[2].eps);
+            matSelect.addEventListener('change', () => {
+                const m = PIPE_MATERIALS[Number(matSelect.value)];
+                if (m && m.eps !== null) document.getElementById('roughEps').value = String(m.eps);
+            });
+            // Editing ε by hand means the value is no longer a preset
+            document.getElementById('roughEps').addEventListener('input', () => { matSelect.value = '0'; });
+            document.getElementById('roughApplyBtn').addEventListener('click', () => this.applyRoughness());
+
+            // Reynolds helper: swap the density row in/out with viscosity type
+            document.getElementById('reComputeBtn').addEventListener('click', () => this.computeReynolds());
+            const viscType = document.getElementById('reViscType');
+            const syncVisc = () => {
+                const kinematic = viscType.value === 'kinematic';
+                document.getElementById('reRhoRow').style.display = kinematic ? 'none' : 'block';
+                document.getElementById('reViscLabel').textContent =
+                    kinematic ? 'Kinematic viscosity ν (m²/s)' : 'Dynamic viscosity μ (Pa·s)';
+                document.getElementById('reComputeBtn').textContent =
+                    kinematic ? 'Compute Re = VD/ν and fill above' : 'Compute Re = ρVD/μ and fill above';
+            };
+            viscType.addEventListener('change', syncVisc);
+            syncVisc();
+        },
+
+        computeReynolds() {
+            const out = document.getElementById('reHelperResult');
+            const setErr = (msg) => { out.className = 'helper-result err'; out.textContent = msg; };
+            const V = parseFloat(document.getElementById('reV').value);
+            const D = parseFloat(document.getElementById('reD').value);
+            const kinematic = document.getElementById('reViscType').value === 'kinematic';
+            const visc = parseFloat(document.getElementById('reVisc').value);
+            const rho = parseFloat(document.getElementById('reRho').value);
+
+            if (!(V > 0) || !(D > 0) || !(visc > 0)) { setErr('Enter positive V, D, and viscosity.'); return; }
+            if (!kinematic && !(rho > 0)) { setErr('Enter a positive density ρ.'); return; }
+
+            const Re = kinematic ? (V * D) / visc : (rho * V * D) / visc;
+            if (!isFinite(Re) || Re <= 0) { setErr('Could not compute a valid Re.'); return; }
+
+            document.getElementById('inputRe').value = Re < 1e5 ? String(Math.round(Re)) : Re.toExponential(3);
+            out.className = 'helper-result ok';
+            out.textContent = `Filled Reynolds Number above with Re = ${Re.toExponential(3)}.`;
+        },
+
+        applyRoughness() {
+            const out = document.getElementById('roughHelperResult');
+            const setErr = (msg) => { out.className = 'helper-result err'; out.textContent = msg; };
+            const eps = parseFloat(document.getElementById('roughEps').value);
+            const D = parseFloat(document.getElementById('roughD').value);
+
+            if (!(eps >= 0)) { setErr('Enter a non-negative roughness ε.'); return; }
+            if (!(D > 0)) { setErr('Enter a positive diameter D.'); return; }
+
+            const rr = eps / D; // ε and D both in mm, so units cancel
+            document.getElementById('inputRelRough').value = rr.toExponential(3);
+            out.className = 'helper-result ok';
+            out.textContent = `Filled Relative Roughness above with ε/D = ${rr.toExponential(3)}.`;
         },
 
         handleCompute() {
@@ -3446,7 +3641,7 @@
                         <div class="step-content">
                             <div class="step-desc">At Re = 4000 (turbulent boundary, using Colebrook):</div>
                             <div class="step-math">f_turbulent(4000) = ${fTurbBoundary.toFixed(6)}</div>
-                            <div class="step-note">Note: f_turb > f_lam — this is why f increases through transition</div>
+                            <div class="step-note">Note: f_turb > f_lam, which is why f increases through transition</div>
                         </div>
                     </div>
                 </div>
@@ -3498,7 +3693,7 @@
                         <div class="step-content">
                             <div class="step-desc">Convert back from log space:</div>
                             <div class="step-math">f ≈ ${f.toFixed(6)}</div>
-                            <div class="step-note">⚠️ This is an approximation — actual values may vary significantly due to flow instability</div>
+                            <div class="step-note">⚠️ This is an approximation; actual values may vary significantly due to flow instability</div>
                         </div>
                     </div>
                 </div>
@@ -3546,9 +3741,9 @@
                         
                         <h3>Chart Overlays Explained</h3>
                         <ul>
-                            <li><strong>ε/D curves:</strong> Lines of constant relative roughness — each curve represents a specific pipe surface condition</li>
+                            <li><strong>ε/D curves:</strong> Lines of constant relative roughness; each curve represents a specific pipe surface condition</li>
                             <li><strong>Laminar:</strong> The straight diagonal line where f = 64/Re (valid only for Re < 2300)</li>
-                            <li><strong>Smooth:</strong> The lower bound of turbulent flow — theoretical limit for perfectly smooth pipes</li>
+                            <li><strong>Smooth:</strong> The lower bound of turbulent flow, the theoretical limit for perfectly smooth pipes</li>
                             <li><strong>Transition:</strong> Yellow shaded unstable region where flow alternates between laminar and turbulent</li>
                             <li><strong>Full rough:</strong> Horizontal asymptotes where f becomes independent of Re (very high turbulence)</li>
                         </ul>
@@ -3567,11 +3762,11 @@
                         <h3>Variable Definitions</h3>
                         <table>
                             <tr><th>Symbol</th><th>Name</th><th>Physical Meaning</th><th>Units</th></tr>
-                            <tr><td><strong>f</strong> or <strong>f<sub>D</sub></strong></td><td>Darcy friction factor</td><td>Dimensionless measure of flow resistance due to pipe friction</td><td>—</td></tr>
-                            <tr><td><strong>Re</strong></td><td>Reynolds number</td><td>Ratio of inertial to viscous forces; determines flow regime</td><td>—</td></tr>
+                            <tr><td><strong>f</strong> or <strong>f<sub>D</sub></strong></td><td>Darcy friction factor</td><td>Dimensionless measure of flow resistance due to pipe friction</td><td>n/a</td></tr>
+                            <tr><td><strong>Re</strong></td><td>Reynolds number</td><td>Ratio of inertial to viscous forces; determines flow regime</td><td>n/a</td></tr>
                             <tr><td><strong>ε</strong> (epsilon)</td><td>Absolute roughness</td><td>Average height of surface irregularities on pipe wall</td><td>mm, m</td></tr>
                             <tr><td><strong>D</strong></td><td>Pipe diameter</td><td>Internal diameter of the circular pipe</td><td>mm, m</td></tr>
-                            <tr><td><strong>ε/D</strong></td><td>Relative roughness</td><td>Roughness height compared to pipe size; determines which curve to use</td><td>—</td></tr>
+                            <tr><td><strong>ε/D</strong></td><td>Relative roughness</td><td>Roughness height compared to pipe size; determines which curve to use</td><td>n/a</td></tr>
                             <tr><td><strong>ρ</strong> (rho)</td><td>Fluid density</td><td>Mass per unit volume of the flowing fluid</td><td>kg/m³</td></tr>
                             <tr><td><strong>V</strong></td><td>Average velocity</td><td>Mean flow velocity across the pipe cross-section</td><td>m/s</td></tr>
                             <tr><td><strong>μ</strong> (mu)</td><td>Dynamic viscosity</td><td>Fluid's resistance to shearing motion</td><td>Pa·s</td></tr>
@@ -3581,26 +3776,26 @@
                         <div class="equation">Re = ρVD/μ = VD/ν</div>
                         <p>The Reynolds number determines the flow regime:</p>
                         <ul>
-                            <li><strong>Re < 2300:</strong> Laminar flow — smooth, orderly layers</li>
-                            <li><strong>2300 < Re < 4000:</strong> Transition — unstable, intermittent</li>
-                            <li><strong>Re > 4000:</strong> Turbulent — chaotic, mixing motion</li>
+                            <li><strong>Re < 2300:</strong> Laminar flow: smooth, orderly layers</li>
+                            <li><strong>2300 < Re < 4000:</strong> Transition: unstable, intermittent</li>
+                            <li><strong>Re > 4000:</strong> Turbulent: chaotic, mixing motion</li>
                         </ul>
                         
                         <h3>Governing Equations by Region</h3>
                         
-                        <p><strong>Laminar Flow (Re < 2300) — Hagen-Poiseuille:</strong></p>
+                        <p><strong>Laminar Flow (Re < 2300), Hagen-Poiseuille:</strong></p>
                         <div class="equation">f = 64 / Re</div>
                         <p>Exact analytical solution. Roughness has no effect in laminar flow.</p>
                         
-                        <p><strong>Turbulent Flow — Colebrook-White (1939):</strong></p>
+                        <p><strong>Turbulent Flow, Colebrook-White (1939):</strong></p>
                         <div class="equation">1/√f = −2·log₁₀(ε/(3.7D) + 2.51/(Re·√f))</div>
                         <p>Implicit equation requiring iteration. Valid for all turbulent conditions.</p>
                         
-                        <p><strong>Smooth Pipe Limit — Prandtl-von Kármán:</strong></p>
+                        <p><strong>Smooth Pipe Limit, Prandtl-von Kármán:</strong></p>
                         <div class="equation">1/√f = 2·log₁₀(Re·√f) − 0.8</div>
                         <p>As ε/D → 0, Colebrook reduces to this form.</p>
                         
-                        <p><strong>Fully Rough Limit — von Kármán:</strong></p>
+                        <p><strong>Fully Rough Limit, von Kármán:</strong></p>
                         <div class="equation">1/√f = −2·log₁₀(ε/(3.7D)) = 1.14 − 2·log₁₀(ε/D)</div>
                         <p>At very high Re, f becomes independent of Re (horizontal asymptotes).</p>
                         
@@ -3676,7 +3871,7 @@
                         <div class="warning-box">
                             <strong>⚠️ Transition Region (2300 < Re < 4000):</strong>
                             <ul>
-                                <li>Flow is <strong>inherently unstable</strong> — alternates unpredictably between laminar and turbulent</li>
+                                <li>Flow is <strong>inherently unstable</strong>, and alternates unpredictably between laminar and turbulent</li>
                                 <li>Neither the laminar equation (f = 64/Re) nor Colebrook equation is valid here</li>
                                 <li>Small disturbances (vibration, surface imperfections) can trigger transition at different Re values</li>
                                 <li>Values shown in this tool are <strong>interpolated approximations only</strong></li>
@@ -3685,7 +3880,7 @@
                         </div>
                         
                         <h3>What ε (Roughness) Actually Represents</h3>
-                        <p>The roughness value ε is an <strong>equivalent sand-grain roughness</strong> — the size of uniform sand grains that would produce the same friction factor. Real pipe surfaces have irregular roughness, so ε is determined experimentally, not by direct measurement.</p>
+                        <p>The roughness value ε is an <strong>equivalent sand-grain roughness</strong>, the size of uniform sand grains that would produce the same friction factor. Real pipe surfaces have irregular roughness, so ε is determined experimentally, not by direct measurement.</p>
                         
                         <h3>Roughness Changes Over Time</h3>
                         <p>Pipe roughness can change significantly:</p>
@@ -3722,16 +3917,16 @@
                         
                         <h3>Primary References</h3>
                         <ol>
-                            <li><strong>Moody, L.F.</strong> (1944). "Friction Factors for Pipe Flow." <em>Transactions of the ASME</em>, 66(8), 671-684. — The original Moody diagram paper</li>
+                            <li><strong>Moody, L.F.</strong> (1944). "Friction Factors for Pipe Flow." <em>Transactions of the ASME</em>, 66(8), 671-684. The original Moody diagram paper.</li>
                             <li><strong>Colebrook, C.F.</strong> (1939). "Turbulent Flow in Pipes, with Particular Reference to the Transition Region between the Smooth and Rough Pipe Laws." <em>Journal of the Institution of Civil Engineers</em>, 11(4), 133-156.</li>
                             <li><strong>Colebrook, C.F. & White, C.M.</strong> (1937). "Experiments with Fluid Friction in Roughened Pipes." <em>Proceedings of the Royal Society A</em>, 161(906), 367-381.</li>
                         </ol>
                         
                         <h3>Recommended Textbooks</h3>
                         <ul>
-                            <li><strong>White, F.M.</strong> <em>Fluid Mechanics</em>, 8th ed., McGraw-Hill, 2016. — Chapter 6</li>
-                            <li><strong>Munson, Young, Okiishi & Huebsch.</strong> <em>Fundamentals of Fluid Mechanics</em>, 7th ed., Wiley, 2013. — Chapter 8</li>
-                            <li><strong>Fox, McDonald & Pritchard.</strong> <em>Introduction to Fluid Mechanics</em>, 9th ed., Wiley, 2015. — Chapter 8</li>
+                            <li><strong>White, F.M.</strong> <em>Fluid Mechanics</em>, 8th ed., McGraw-Hill, 2016. Chapter 6.</li>
+                            <li><strong>Munson, Young, Okiishi & Huebsch.</strong> <em>Fundamentals of Fluid Mechanics</em>, 7th ed., Wiley, 2013. Chapter 8.</li>
+                            <li><strong>Fox, McDonald & Pritchard.</strong> <em>Introduction to Fluid Mechanics</em>, 9th ed., Wiley, 2015. Chapter 8.</li>
                         </ul>
                         
                         <h3>Typical Roughness Values (ε)</h3>
@@ -3755,7 +3950,7 @@
                         
                         <h3>Technical Implementation</h3>
                         <ul>
-                            <li>100% client-side JavaScript — no server, no dependencies</li>
+                            <li>100% client-side JavaScript, no server, no dependencies</li>
                             <li>Curves computed from governing equations (not digitized from image)</li>
                             <li>Colebrook equation solved by fixed-point iteration (tolerance: 10⁻¹⁰)</li>
                             <li>Swamee-Jain explicit approximation used for initial guess</li>
@@ -3770,7 +3965,7 @@
                     `
                 },
                 techref: {
-                    title: 'Technical Reference — Implementation Specification',
+                    title: 'Technical Reference: Implementation Specification',
                     html: `
                         <p style="background: var(--accent-info-dim); padding: 12px; border-radius: 8px; border-left: 3px solid var(--accent-info);">
                             <strong>Purpose:</strong> This section documents the exact equations, constants, numerical methods, and sources used in this implementation. It is intended for verification by engineers and researchers who need to validate outputs against their own references.
@@ -3778,7 +3973,7 @@
                         
                         <h3>1. Equation Formulations & Constants</h3>
                         
-                        <h4>1.1 Laminar Flow — Hagen-Poiseuille Equation</h4>
+                        <h4>1.1 Laminar Flow: Hagen-Poiseuille Equation</h4>
                         <div class="equation">f = 64 / Re</div>
                         <table>
                             <tr><th>Constant</th><th>Value</th><th>Source</th><th>Notes</th></tr>
@@ -3787,7 +3982,7 @@
                         <p><strong>Valid range:</strong> Re < 2300 (critical Reynolds number)</p>
                         <p><strong>Implementation:</strong> Direct calculation, no iteration required.</p>
                         
-                        <h4>1.2 Turbulent Flow — Colebrook-White Equation (1939)</h4>
+                        <h4>1.2 Turbulent Flow: Colebrook-White Equation (1939)</h4>
                         <div class="equation">1/√f = −2.0 · log₁₀( ε/(3.7·D) + 2.51/(Re·√f) )</div>
                         <table>
                             <tr><th>Constant</th><th>Value Used</th><th>Source</th><th>Alternative Values</th></tr>
@@ -3797,9 +3992,9 @@
                         </table>
                         <p><strong>Valid range:</strong> Re > 4000, 0 ≤ ε/D ≤ 0.05</p>
                         <p><strong>Implementation:</strong> Fixed-point iteration (successive substitution). See Section 2 for numerical method details.</p>
-                        <p><strong>Primary reference:</strong> Colebrook, C.F. (1939). "Turbulent Flow in Pipes, with Particular Reference to the Transition Region Between the Smooth and Rough Pipe Laws." <em>J. Inst. Civil Engineers</em>, 11(4), 133–156.</p>
+                        <p><strong>Primary reference:</strong> Colebrook, C.F. (1939). "Turbulent Flow in Pipes, with Particular Reference to the Transition Region Between the Smooth and Rough Pipe Laws." <em>J. Inst. Civil Engineers</em>, 11(4), 133-156.</p>
                         
-                        <h4>1.3 Smooth Pipe Limit — Prandtl-von Kármán Equation</h4>
+                        <h4>1.3 Smooth Pipe Limit: Prandtl-von Kármán Equation</h4>
                         <div class="equation">1/√f = 2.0 · log₁₀(Re·√f) − 0.8</div>
                         <table>
                             <tr><th>Constant</th><th>Value Used</th><th>Source</th><th>Alternative Values</th></tr>
@@ -3809,7 +4004,7 @@
                         <p><strong>Note on alternative constants:</strong> The values 2.0 and 0.8 are the classical Prandtl-Nikuradse-Kármán (PNK) values widely used in textbooks and consistent with Colebrook's formulation. More recent high-Reynolds-number experiments (Zagarola & Smits, 1998) suggest 1.930 and 0.537 provide a marginally better fit, especially for Re > 10⁶. This implementation uses the classical values for consistency with the Colebrook equation and standard Moody chart.</p>
                         <p><strong>Implementation:</strong> Newton-Raphson iteration. This equation is the limit of Colebrook as ε/D → 0.</p>
                         
-                        <h4>1.4 Fully Rough Limit — von Kármán Equation</h4>
+                        <h4>1.4 Fully Rough Limit: von Kármán Equation</h4>
                         <div class="equation">1/√f = −2.0 · log₁₀( ε/(3.7·D) )  =  1.14 − 2.0 · log₁₀(ε/D)</div>
                         <table>
                             <tr><th>Constant</th><th>Value</th><th>Derivation</th></tr>
@@ -3818,10 +4013,10 @@
                         <p><strong>Physical meaning:</strong> At very high Re, the viscous sublayer becomes negligible compared to roughness elements, and f becomes independent of Re.</p>
                         <p><strong>Implementation:</strong> Direct calculation (explicit formula).</p>
                         
-                        <h4>1.5 Initial Guess — Swamee-Jain Approximation (1976)</h4>
+                        <h4>1.5 Initial Guess: Swamee-Jain Approximation (1976)</h4>
                         <div class="equation">f ≈ 0.25 / [ log₁₀( ε/(3.7·D) + 5.74/Re⁰·⁹ ) ]²</div>
                         <p><strong>Purpose:</strong> Provides explicit initial estimate for Colebrook iteration. Accurate to ±1% for 10⁻⁶ < ε/D < 10⁻² and 5×10³ < Re < 10⁸.</p>
-                        <p><strong>Reference:</strong> Swamee, P.K. & Jain, A.K. (1976). "Explicit Equations for Pipe-Flow Problems." <em>J. Hydraulics Division, ASCE</em>, 102(5), 657–664.</p>
+                        <p><strong>Reference:</strong> Swamee, P.K. & Jain, A.K. (1976). "Explicit Equations for Pipe-Flow Problems." <em>J. Hydraulics Division, ASCE</em>, 102(5), 657-664.</p>
                         
                         <h4>1.6 Blasius Initial Guess (Smooth Pipes)</h4>
                         <div class="equation">f ≈ 0.316 / Re⁰·²⁵</div>
@@ -3829,7 +4024,7 @@
                         
                         <h3>2. Numerical Methods</h3>
                         
-                        <h4>2.1 Colebrook Solver — Fixed-Point Iteration</h4>
+                        <h4>2.1 Colebrook Solver: Fixed-Point Iteration</h4>
                         <p>The implicit Colebrook equation is solved by rearranging to:</p>
                         <div class="equation">f<sub>n+1</sub> = 1 / [ −2·log₁₀( ε/(3.7D) + 2.51/(Re·√f<sub>n</sub>) ) ]²</div>
                         <table>
@@ -3841,7 +4036,7 @@
                         </table>
                         <p><strong>Residual verification:</strong> After convergence, the implementation computes |LHS − RHS| of the Colebrook equation as a sanity check (typically < 10⁻⁸).</p>
                         
-                        <h4>2.2 Smooth Pipe Solver — Newton-Raphson</h4>
+                        <h4>2.2 Smooth Pipe Solver: Newton-Raphson</h4>
                         <p>For the Prandtl equation G(f) = 1/√f − 2·log₁₀(Re·√f) + 0.8 = 0:</p>
                         <div class="equation">f<sub>n+1</sub> = f<sub>n</sub> − G(f<sub>n</sub>) / G'(f<sub>n</sub>)</div>
                         <p>where:</p>
@@ -3867,7 +4062,7 @@
                         <h4>3.1 Test Cases Against Published Values</h4>
                         <table>
                             <tr><th>Re</th><th>ε/D</th><th>f (computed)</th><th>f (reference)</th><th>Source</th></tr>
-                            <tr><td>1,000</td><td>—</td><td>0.0640</td><td>0.0640</td><td>Exact: 64/Re</td></tr>
+                            <tr><td>1,000</td><td>n/a</td><td>0.0640</td><td>0.0640</td><td>Exact: 64/Re</td></tr>
                             <tr><td>100,000</td><td>0 (smooth)</td><td>0.0180</td><td>0.0180</td><td>Prandtl equation</td></tr>
                             <tr><td>1,000,000</td><td>0 (smooth)</td><td>0.0116</td><td>0.0116</td><td>Prandtl equation</td></tr>
                             <tr><td>100,000</td><td>0.001</td><td>0.0222</td><td>0.0222</td><td>Colebrook iteration</td></tr>
@@ -3907,12 +4102,12 @@
                         <h3>6. Source Code Access</h3>
                         <p>All solver functions are exposed globally for verification:</p>
                         <ul>
-                            <li><code>SOLVER.laminar(Re)</code> — Returns {f, method, equation, ...}</li>
-                            <li><code>SOLVER.smoothPipe(Re)</code> — Returns {f, iterations, residual, ...}</li>
-                            <li><code>SOLVER.colebrook(Re, εD)</code> — Returns {f, iterations, residual, verification, ...}</li>
-                            <li><code>SOLVER.fullyRough(εD)</code> — Returns {f, equation, ...}</li>
-                            <li><code>SOLVER.getFrictionFactor(Re, εD)</code> — Unified solver with regime detection</li>
-                            <li><code>CONFIG</code> — All configuration constants</li>
+                            <li><code>SOLVER.laminar(Re)</code>:Returns {f, method, equation, ...}</li>
+                            <li><code>SOLVER.smoothPipe(Re)</code>:Returns {f, iterations, residual, ...}</li>
+                            <li><code>SOLVER.colebrook(Re, εD)</code>:Returns {f, iterations, residual, verification, ...}</li>
+                            <li><code>SOLVER.fullyRough(εD)</code>:Returns {f, equation, ...}</li>
+                            <li><code>SOLVER.getFrictionFactor(Re, εD)</code>:Unified solver with regime detection</li>
+                            <li><code>CONFIG</code>:All configuration constants</li>
                         </ul>
                         <p>Example console verification:</p>
                         <pre style="background: var(--bg-input); padding: 12px; border-radius: 6px; overflow-x: auto; font-family: 'JetBrains Mono', monospace; font-size: 0.75rem;">

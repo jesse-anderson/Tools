@@ -132,6 +132,17 @@ export function classifyScalar(value) {
         return { kind: 'boolean', parsed: lowered === 'true' || lowered === 'yes', hasTime: false };
     }
 
+    const numeric = parseNumeric(trimmed);
+
+    // A redundant leading zero in the integer part (007, 00, 01.5, -00.9) marks
+    // an identifier or code like a ZIP or account number, not a quantity. This
+    // applies to any otherwise-numeric token so schema inference keeps it as text
+    // and does not drop the zero. A bare zero (0, 0.5) is a real number and stays.
+    const isNumericShape = numeric !== null || /^[-+]?\d+$/.test(trimmed);
+    if (isNumericShape && /^[-+]?0\d/.test(trimmed)) {
+        return { kind: 'text', parsed: trimmed, hasTime: false };
+    }
+
     if (/^[-+]?\d+$/.test(trimmed)) {
         const parsed = Number(trimmed);
         if (Number.isSafeInteger(parsed)) {
@@ -139,7 +150,6 @@ export function classifyScalar(value) {
         }
     }
 
-    const numeric = parseNumeric(trimmed);
     if (numeric !== null) {
         return { kind: 'number', parsed: numeric, hasTime: false };
     }

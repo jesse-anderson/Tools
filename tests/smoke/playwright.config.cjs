@@ -16,7 +16,9 @@ module.exports = defineConfig({
     'steam-tables.spec.cjs',
     'parquet-viewer.spec.cjs',
     'species-doubling.spec.cjs',
-    'excel-engine.spec.cjs'
+    'excel-engine.spec.cjs',
+    'moody-chart.spec.cjs',
+    'csv-profiler.spec.cjs'
   ],
   timeout: 60_000,
   fullyParallel: false,

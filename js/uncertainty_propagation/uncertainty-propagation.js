@@ -683,7 +683,7 @@ function init() {
 
 function scheduleRebuild() {
     // A rebuild re-reads the current field values (readVarMeta) and computes at
-    // the end, so any queued value-only compute is redundant — drop it.
+    // the end, so any queued value-only compute is redundant, so drop it.
     clearTimeout(computeTimer);
     computeTimer = null;
     clearTimeout(rebuildTimer);

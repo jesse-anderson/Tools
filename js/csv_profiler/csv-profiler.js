@@ -1,7 +1,9 @@
 import { MAX_CELL_PREVIEW_LENGTH, MAX_FILE_SIZE_BYTES, MAX_PROFILE_ROWS, MAX_UNIQUE_TRACKED } from './csv-profiler-config.js';
 import { profileCsvFile } from './csv-profiler-profile.js';
+import { detectDelimiter, parseCsvText } from './csv-profiler-parser.js';
 import { createBadCsvSampleFile, createGoodCsvSampleFile } from './csv-profiler-samples.js';
 import {
+    classifyScalar,
     copyText,
     createElement,
     formatBytes,
@@ -10,6 +12,9 @@ import {
     formatPercent,
     truncateText
 } from './csv-profiler-utils.js';
+
+// Exposed for automated tests (tests/smoke/csv-profiler.spec.cjs).
+window.CsvProfilerEngine = { classifyScalar, detectDelimiter, parseCsvText, profileCsvFile };
 
 const state = {
     file: null,
