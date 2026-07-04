@@ -46,39 +46,29 @@ export async function buildDocxBlob(docxLib, exportRoot, options) {
 }
 
 function buildNumberingConfig(docxLib) {
+    // Cover deep nesting (Word only renders numbering for levels that are
+    // defined). Formats cycle decimal -> lower-letter -> lower-roman, matching
+    // the original levels 0-3 while extending coverage to level 8.
+    const formats = [
+        docxLib.LevelFormat.DECIMAL,
+        docxLib.LevelFormat.LOWER_LETTER,
+        docxLib.LevelFormat.LOWER_ROMAN
+    ];
+    const levels = [];
+    for (let level = 0; level < 9; level += 1) {
+        levels.push({
+            level,
+            format: formats[level % formats.length],
+            text: `%${level + 1}.`,
+            alignment: docxLib.AlignmentType.LEFT,
+            style: { paragraph: { indent: { left: 720 * (level + 1), hanging: 360 } } }
+        });
+    }
+
     return [
         {
             reference: "markdown-exporter-ordered",
-            levels: [
-                {
-                    level: 0,
-                    format: docxLib.LevelFormat.DECIMAL,
-                    text: "%1.",
-                    alignment: docxLib.AlignmentType.LEFT,
-                    style: { paragraph: { indent: { left: 720, hanging: 360 } } }
-                },
-                {
-                    level: 1,
-                    format: docxLib.LevelFormat.LOWER_LETTER,
-                    text: "%2.",
-                    alignment: docxLib.AlignmentType.LEFT,
-                    style: { paragraph: { indent: { left: 1440, hanging: 360 } } }
-                },
-                {
-                    level: 2,
-                    format: docxLib.LevelFormat.LOWER_ROMAN,
-                    text: "%3.",
-                    alignment: docxLib.AlignmentType.LEFT,
-                    style: { paragraph: { indent: { left: 2160, hanging: 360 } } }
-                },
-                {
-                    level: 3,
-                    format: docxLib.LevelFormat.DECIMAL,
-                    text: "%4.",
-                    alignment: docxLib.AlignmentType.LEFT,
-                    style: { paragraph: { indent: { left: 2880, hanging: 360 } } }
-                }
-            ]
+            levels
         }
     ];
 }
@@ -308,17 +298,24 @@ async function convertTable(tableElement, context) {
     const rows = [];
     for (const rowElement of rowElements) {
         const cells = [];
+        let cellCount = 0;
+        let headerCellCount = 0;
         for (const cellElement of Array.from(rowElement.children)) {
             const cellTag = cellElement.tagName.toUpperCase();
             if (cellTag !== "TH" && cellTag !== "TD") continue;
+            cellCount += 1;
             const isHeader = cellTag === "TH";
+            if (isHeader) headerCellCount += 1;
             const cellChildren = await convertTableCellChildren(cellElement, context);
             cells.push(new docxLib.TableCell({
                 shading: isHeader ? { type: docxLib.ShadingType.CLEAR, fill: "EEF4FF", color: "auto" } : undefined,
                 children: cellChildren.length ? cellChildren : [new docxLib.Paragraph("")]
             }));
         }
-        rows.push(new docxLib.TableRow({ children: cells }));
+        // A fully-header row (GFM tables emit one) repeats at the top of each
+        // page the table spills onto.
+        const isHeaderRow = cellCount > 0 && headerCellCount === cellCount;
+        rows.push(new docxLib.TableRow({ children: cells, tableHeader: isHeaderRow }));
     }
 
     return new docxLib.Table({
@@ -328,6 +325,8 @@ async function convertTable(tableElement, context) {
 }
 
 async function convertTableCellChildren(cellElement, context) {
+    const align = tableCellAlignment(cellElement);
+    const cellContext = align ? { ...context, cellAlign: align } : context;
     const groupedContent = groupContentNodes(Array.from(cellElement.childNodes));
     if (groupedContent.length) {
         const children = [];
@@ -336,20 +335,31 @@ async function convertTableCellChildren(cellElement, context) {
                 if (!inlineNodesHaveVisibleContent(group.nodes)) {
                     continue;
                 }
-                const runs = await extractInlineChildrenFromNodes(group.nodes, context, { preserveWhitespace: false });
+                const runs = await extractInlineChildrenFromNodes(group.nodes, cellContext, { preserveWhitespace: false });
                 if (runs.length) {
-                    children.push(makeParagraph(context.docxLib, runs, paragraphStyleForContext(context)));
+                    children.push(makeParagraph(cellContext.docxLib, runs, paragraphStyleForContext(cellContext)));
                 }
                 continue;
             }
-            children.push(...(await convertBlockElement(group.element, context)));
+            children.push(...(await convertBlockElement(group.element, cellContext)));
         }
         if (children.length) {
             return children;
         }
     }
 
-    return [await convertParagraph(cellElement, context)];
+    return [await convertParagraph(cellElement, cellContext)];
+}
+
+function tableCellAlignment(cellElement) {
+    const align = (cellElement.getAttribute("align") || "").toLowerCase();
+    return align === "center" || align === "right" || align === "left" ? align : null;
+}
+
+function mapDocxAlignment(docxLib, align) {
+    if (align === "center") return docxLib.AlignmentType.CENTER;
+    if (align === "right") return docxLib.AlignmentType.RIGHT;
+    return docxLib.AlignmentType.LEFT;
 }
 
 async function convertStandaloneImage(element, context) {
@@ -587,7 +597,9 @@ function buildCodeLineRuns(docxLib, line) {
 function paragraphStyleForContext(context) {
     const style = {
         spacing: { after: 180 },
-        alignment: context.docxLib.AlignmentType.LEFT
+        alignment: context.cellAlign
+            ? mapDocxAlignment(context.docxLib, context.cellAlign)
+            : context.docxLib.AlignmentType.LEFT
     };
 
     if (context.inBlockquote) {

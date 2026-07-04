@@ -12,6 +12,9 @@ Dependencies:
 - DOMPurify (local vendored HTML sanitization)
     https://github.com/cure53/DOMPurify
     Apache-2.0 / MPL-2.0: https://github.com/cure53/DOMPurify/blob/main/LICENSE
+- Prism.js 1.29.0 (local vendored code-block syntax highlighting)
+    https://prismjs.com/
+    MIT License: https://github.com/PrismJS/prism/blob/master/LICENSE
 - pdfmake 0.2.x (direct PDF download, local-first CDN fallback)
     https://pdfmake.github.io/docs/0.1/
     MIT License: https://github.com/bpampuch/pdfmake/blob/master/LICENSE
@@ -136,6 +139,8 @@ License: GPL-3.0 - https://github.com/jesse-anderson/Tools/blob/main/LICENSE
                             <button class="tool-btn primary" id="exportPdfBtn" type="button">Export PDF</button>
                             <button class="tool-btn" id="printPdfBtn" type="button">Download PDF</button>
                             <button class="tool-btn primary" id="exportDocxBtn" type="button">Export DOCX</button>
+                            <button class="tool-btn" id="downloadHtmlBtn" type="button">Download HTML</button>
+                            <button class="tool-btn" id="copyHtmlBtn" type="button">Copy HTML</button>
                         </div>
                     </div>
 
@@ -194,6 +199,7 @@ License: GPL-3.0 - https://github.com/jesse-anderson/Tools/blob/main/LICENSE
                         <ul class="license-list">
                             <li><strong><a href="https://github.com/markedjs/marked" target="_blank" rel="noopener">marked</a></strong> - MIT License</li>
                             <li><strong><a href="https://github.com/cure53/DOMPurify" target="_blank" rel="noopener">DOMPurify</a></strong> - Apache-2.0 / MPL-2.0</li>
+                            <li><strong><a href="https://github.com/PrismJS/prism" target="_blank" rel="noopener">Prism.js</a></strong> - MIT License<br><span>Code block syntax highlighting.</span></li>
                             <li><strong><a href="https://github.com/dolanmiu/docx" target="_blank" rel="noopener">docx</a></strong> - MIT License<br><span>Primary structured DOCX generation.</span></li>
                             <li><strong><a href="https://github.com/bpampuch/pdfmake" target="_blank" rel="noopener">pdfmake</a></strong> - MIT License<br><span>Direct-download text PDF generation.</span></li>
                             <li><strong><a href="https://github.com/adobe-fonts/source-serif-pro" target="_blank" rel="noopener">Source Serif Pro</a></strong> - SIL OFL 1.1<br><span>Direct-download PDF body and heading typography.</span></li>
@@ -218,6 +224,14 @@ License: GPL-3.0 - https://github.com/jesse-anderson/Tools/blob/main/LICENSE
     <script src="../js/vendor/markdown_preview/prism-bash.min.js"></script>
     <script src="../js/vendor/markdown_preview/prism-json.min.js"></script>
     <script src="../js/vendor/markdown_preview/prism-markdown.min.js"></script>
+    <script src="../js/vendor/markdown_preview/prism-typescript.min.js"></script>
+    <script src="../js/vendor/markdown_preview/prism-sql.min.js"></script>
+    <script src="../js/vendor/markdown_preview/prism-yaml.min.js"></script>
+    <script src="../js/vendor/markdown_preview/prism-rust.min.js"></script>
+    <script src="../js/vendor/markdown_preview/prism-go.min.js"></script>
+    <script src="../js/vendor/markdown_preview/prism-c.min.js"></script>
+    <script src="../js/vendor/markdown_preview/prism-cpp.min.js"></script>
+    <script src="../js/vendor/markdown_preview/prism-java.min.js"></script>
     <script type="module" src="../js/markdown_exporter/markdown-exporter.js"></script>
 </body>
 </html>

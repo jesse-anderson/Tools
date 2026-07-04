@@ -1,11 +1,17 @@
+// Path note: script-tag loads (`loader: "script"` / `"scriptBundle"`) resolve
+// their src relative to the DOCUMENT (/tools/*.html), so the local copies need
+// the `../js/vendor/...` prefix. The docx `loader: "module"` uses dynamic
+// import(), which resolves relative to THIS module (/js/markdown_exporter/), so
+// its local copy is `../vendor/...` and still lands in /js/vendor/. Both point
+// at js/vendor/markdown_exporter/. The CDN entries are automatic fallbacks.
 const LIBRARIES = {
     pdfMake: {
         loader: "scriptBundle",
         global: "pdfMake",
         bundles: [
             [
-                { src: "../vendor/markdown_exporter/pdfmake.min.js" },
-                { src: "../vendor/markdown_exporter/vfs_fonts.js" }
+                { src: "../js/vendor/markdown_exporter/pdfmake.min.js" },
+                { src: "../js/vendor/markdown_exporter/vfs_fonts.js" }
             ],
             [
                 { src: "https://cdn.jsdelivr.net/npm/pdfmake@0.2.20/build/pdfmake.min.js" },
@@ -16,7 +22,9 @@ const LIBRARIES = {
     docx: {
         loader: "module",
         sources: [
-            { src: "../vendor/markdown_exporter/docx.mjs" },
+            // .js (not .mjs) so any static host serves it as JavaScript; the
+            // dynamic import() does not care about the extension.
+            { src: "../vendor/markdown_exporter/docx.js" },
             { src: "https://cdn.jsdelivr.net/npm/docx@9.6.1/+esm" }
         ]
     },
@@ -24,7 +32,7 @@ const LIBRARIES = {
         loader: "script",
         global: "htmlDocx",
         sources: [
-            { src: "../vendor/markdown_exporter/html-docx.js" },
+            { src: "../js/vendor/markdown_exporter/html-docx.js" },
             { src: "https://cdn.jsdelivr.net/npm/html-docx-js@0.3.1/dist/html-docx.js" }
         ]
     }

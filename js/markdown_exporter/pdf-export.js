@@ -3,10 +3,18 @@ import { getPrismTokenStyle } from "./token-styles.js";
 const BLOCK_CONTAINER_TAGS = new Set(["DIV", "SECTION", "ARTICLE", "FIGURE"]);
 const LIST_TAGS = new Set(["UL", "OL"]);
 
+const PAGE_DIMENSIONS_PT = {
+    LETTER: { widthPt: 612, heightPt: 792 },
+    A4: { widthPt: 595.28, heightPt: 841.89 }
+};
+
 export function buildPdfDefinition(exportRoot, options = {}) {
     const pageSize = options.pageSize === "a4" ? "A4" : "LETTER";
     const pageOrientation = options.orientation === "landscape" ? "landscape" : "portrait";
     const marginPt = inchesToPt(options.marginIn || 0.5);
+    const dimensions = PAGE_DIMENSIONS_PT[pageSize];
+    const pageWidthPt = pageOrientation === "landscape" ? dimensions.heightPt : dimensions.widthPt;
+    const contentWidthPt = Math.max(72, pageWidthPt - marginPt * 2);
 
     return {
         version: "1.7",
@@ -27,7 +35,7 @@ export function buildPdfDefinition(exportRoot, options = {}) {
             lineHeight: 1.5,
             color: "#111827"
         },
-        content: convertBlockNodes(Array.from(exportRoot.childNodes), { topLevel: true }),
+        content: convertBlockNodes(Array.from(exportRoot.childNodes), { topLevel: true, contentWidthPt }),
         styles: {
             h1: { font: "SourceSerifPro", fontSize: 22, bold: true, color: "#0f172a", margin: [0, 0, 0, 8] },
             h2: { font: "SourceSerifPro", fontSize: 17, bold: true, color: "#0f172a", margin: [0, 6, 0, 6] },
@@ -97,7 +105,9 @@ function convertBlockElement(element, context) {
                     type: "line",
                     x1: 0,
                     y1: 0,
-                    x2: 480,
+                    // Cap at the available content width so wide margins do not
+                    // push the rule past the right edge of the page.
+                    x2: Math.min(480, context.contentWidthPt || 480),
                     y2: 0,
                     lineWidth: 1,
                     lineColor: "#cbd5e1"
@@ -279,23 +289,31 @@ function convertTable(tableElement) {
 function convertTableCell(cellElement) {
     const content = convertBlockNodes(Array.from(cellElement.childNodes));
     const tag = cellElement.tagName.toUpperCase();
+    const align = tableCellAlignment(cellElement);
 
+    let node;
     if (!content.length) {
-        return { text: "" };
+        node = { text: "" };
+    } else if (content.length === 1 && tag === "TH" && isTextNode(content[0])) {
+        node = { ...content[0], style: ["tableHeader"] };
+    } else if (content.length === 1 && isTextNode(content[0])) {
+        node = { ...content[0] };
+    } else {
+        node = {
+            stack: content,
+            ...(tag === "TH" ? { style: "tableHeader" } : {})
+        };
     }
 
-    if (content.length === 1 && tag === "TH" && isTextNode(content[0])) {
-        return { ...content[0], style: ["tableHeader"] };
+    if (align) {
+        node.alignment = align;
     }
+    return node;
+}
 
-    if (content.length === 1 && isTextNode(content[0])) {
-        return content[0];
-    }
-
-    return {
-        stack: content,
-        ...(tag === "TH" ? { style: "tableHeader" } : {})
-    };
+function tableCellAlignment(cellElement) {
+    const align = (cellElement.getAttribute("align") || "").toLowerCase();
+    return align === "center" || align === "right" || align === "left" ? align : null;
 }
 
 function convertImage(element) {

@@ -18,13 +18,17 @@ Features:
 - Event creation with timestamps (E markers)
 - Message sending/receiving (M# with S/R markers)
 - Simple Lamport clock mode
-- Vector clock mode
+- Vector clock mode with concurrency detection
 - Animated timeline with causal dependency graph
-- Export sequence logs to JSON/CSV
-- Step-by-step and continuous animation
-- Process diagram with connection visualization
+- Export sequence log to JSON and timeline to SVG
+- Step-by-step (forward/back) and continuous animation
+- Process overview diagram with message arrows
 
-Last Updated: April 2026
+Testing: pure clock engine exposed on window.LamportEngine
+(js/distributed_systems/lamport-engine.js); covered by
+tests/smoke/lamport-timestamps.spec.cjs.
+
+Last Updated: July 2026
 ============================================
 -->
 <!DOCTYPE html>
@@ -196,7 +200,8 @@ Last Updated: April 2026
                         <label>Message ID (for Send/Receive)</label>
                         <input type="text" id="messageIdInput" class="main-input" placeholder="e.g., M1">
                     </div>
-                    <button class="tool-btn" id="addEventBtn" disabled>Create Event</button>
+                    <button class="tool-btn primary" id="addEventBtn" disabled>Create Event</button>
+                    <p class="form-status" id="eventFormStatus" role="status" aria-live="polite" hidden></p>
                 </div>
 
                 <!-- Animation Controls -->
@@ -243,6 +248,7 @@ Last Updated: April 2026
                         </div>
                         <span id="eventCounter" class="event-count">Events: 0</span>
                     </div>
+                    <p class="hint shortcut-hint">Shortcuts: Space play/pause, Left/Right arrows step, Esc pause</p>
                 </div>
             </aside>
 
@@ -419,7 +425,7 @@ Last Updated: April 2026
         </main>
 
         <!-- Footer -->
-        <div id="footer-container"></div>
+        <footer data-footer></footer>
     </div>
 
     <!-- Shared JS -->
@@ -427,5 +433,6 @@ Last Updated: April 2026
 
     <!-- Tool-Specific JS Module -->
     <script type="module" src="../js/distributed_systems/lamport-timestamps.js"></script>
+    <script type="module" src="../js/footer.js"></script>
 </body>
 </html>

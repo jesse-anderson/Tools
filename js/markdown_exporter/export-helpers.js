@@ -56,8 +56,29 @@ export function normalizeExportFilename(raw) {
 }
 
 export function extractTitle(content) {
-    const match = String(content || "").match(/^\s*#\s+(.+)$/m);
-    return match ? match[1].trim() : "";
+    // Return the first ATX H1 (`# ...`) that is not inside a fenced code block.
+    // A raw-text regex would happily pick up a `# comment` line inside a ```
+    // fence, so track fence state line by line instead.
+    const lines = String(content || "").split(/\r?\n/);
+    let fence = null;
+    for (const line of lines) {
+        const fenceMatch = line.match(/^\s*(`{3,}|~{3,})/);
+        if (fence) {
+            if (fenceMatch && fenceMatch[1][0] === fence[0] && fenceMatch[1].length >= fence.length) {
+                fence = null;
+            }
+            continue;
+        }
+        if (fenceMatch) {
+            fence = fenceMatch[1];
+            continue;
+        }
+        const heading = line.match(/^\s*#\s+(.+)$/);
+        if (heading) {
+            return heading[1].trim();
+        }
+    }
+    return "";
 }
 
 export function stripExtension(filename) {

@@ -4,7 +4,7 @@ const PORT = Number(process.env.PORT || 4173);
 
 module.exports = defineConfig({
   testDir: '.',
-  // `meeting-planner-smoke.spec.cjs` is intentionally excluded — it requires
+  // `meeting-planner-smoke.spec.cjs` is intentionally excluded: it requires
   // the dev-mode flips described at the top of that file (local wrangler dev,
   // local-worker URL in config.js, CSP relaxed). Add it back to this array
   // before running it.
@@ -18,7 +18,10 @@ module.exports = defineConfig({
     'species-doubling.spec.cjs',
     'excel-engine.spec.cjs',
     'moody-chart.spec.cjs',
-    'csv-profiler.spec.cjs'
+    'csv-profiler.spec.cjs',
+    'scientific-graph-digitizer.spec.cjs',
+    'markdown-exporter.spec.cjs',
+    'lamport-timestamps.spec.cjs'
   ],
   timeout: 60_000,
   fullyParallel: false,

@@ -102,10 +102,14 @@ to confirm line-break behavior in preview and export.
 If the preview looks right, the export should be close. For the cleanest PDF, use **Export PDF**. Use **Download PDF** when you want a direct downloadable file.
 `;
 
+const AUTOSAVE_KEY = "markdown-exporter.autosave.v1";
+
 const state = {
     lastHtml: "",
     renderTimeMs: 0
 };
+
+let autosaveTimer = null;
 
 const dom = {
     fileInput: document.getElementById("fileInput"),
@@ -118,6 +122,8 @@ const dom = {
     exportPdfBtn: document.getElementById("exportPdfBtn"),
     printPdfBtn: document.getElementById("printPdfBtn"),
     exportDocxBtn: document.getElementById("exportDocxBtn"),
+    downloadHtmlBtn: document.getElementById("downloadHtmlBtn"),
+    copyHtmlBtn: document.getElementById("copyHtmlBtn"),
     statusLine: document.getElementById("statusLine"),
     editor: document.getElementById("editor"),
     preview: document.getElementById("preview"),
@@ -136,27 +142,99 @@ marked.setOptions({
     mangle: false
 });
 
+// Testable engine handle. Exposes the pure conversion surfaces (the pdfmake
+// definition builder and the string/number export helpers) plus an end-to-end
+// helper that mirrors the real render pipeline (marked -> DOMPurify -> DOM ->
+// pdf content) without the async image-inlining step. Covered by
+// markdown-exporter.spec.cjs.
+window.MarkdownExporter = {
+    buildPdfDefinition,
+    normalizeExportFilename,
+    extractTitle,
+    stripExtension,
+    clampNumber,
+    getPaperDimensions,
+    dedupeWarnings,
+    renderToPdfDefinition(markdown, options = {}) {
+        return buildPdfDefinition(markdownToExportRoot(markdown), options);
+    },
+    renderStandaloneHtml(markdown, options = {}) {
+        const prepared = {
+            title: options.title || "Untitled",
+            pageSize: options.pageSize || "letter",
+            orientation: options.orientation || "portrait",
+            marginIn: Number.isFinite(options.marginIn) ? options.marginIn : 0.5,
+            exportRoot: markdownToExportRoot(markdown)
+        };
+        return buildExportDocumentHtml(prepared, document.baseURI || window.location.href);
+    },
+    async inspectDocx(markdown, options = {}) {
+        const docxLib = await ensureLibrary("docx");
+        const { blob } = await buildDocxBlob(docxLib, markdownToExportRoot(markdown), {
+            filename: options.filename || "test",
+            title: options.title || "Test",
+            pageSize: options.pageSize || "letter",
+            orientation: options.orientation || "portrait",
+            marginIn: Number.isFinite(options.marginIn) ? options.marginIn : 0.5
+        });
+        const bytes = new Uint8Array(await blob.arrayBuffer());
+        return {
+            byteLength: bytes.length,
+            // DOCX is a ZIP container, so a valid file starts with "PK".
+            signature: bytes.length >= 2 ? String.fromCharCode(bytes[0], bytes[1]) : ""
+        };
+    }
+};
+
+function markdownToExportRoot(markdown) {
+    const parsed = marked.parse(String(markdown ?? ""));
+    const sanitized = window.DOMPurify && typeof window.DOMPurify.sanitize === "function"
+        ? window.DOMPurify.sanitize(parsed, { USE_PROFILES: { html: true } })
+        : parsed;
+    const root = document.createElement("article");
+    root.className = "md-export-root";
+    root.innerHTML = sanitized;
+    return root;
+}
+
 document.addEventListener("DOMContentLoaded", () => {
     applyPreviewDocumentStyles();
     bindEvents();
     updatePreviewPaperLayout();
+
+    const savedDraft = loadDraft();
+    const restored = Boolean(savedDraft) && !dom.editor.value.trim();
+    if (restored) {
+        dom.editor.value = savedDraft;
+    }
+
     renderMarkdown();
+
+    if (restored) {
+        setStatus("Restored your autosaved draft.");
+    }
 });
 
 function bindEvents() {
-    dom.editor.addEventListener("input", renderMarkdown);
+    dom.editor.addEventListener("input", () => {
+        renderMarkdown();
+        scheduleAutosave();
+    });
     dom.fileInput.addEventListener("change", handleFileSelect);
+    setupDragAndDrop();
     dom.loadSampleBtn.addEventListener("click", () => {
         dom.editor.value = SAMPLE_MARKDOWN;
         if (!dom.filenameInput.value.trim()) {
             dom.filenameInput.value = "markdown-export";
         }
         renderMarkdown();
+        saveDraft();
         setStatus("Sample Markdown loaded.");
     });
     dom.clearBtn.addEventListener("click", () => {
         dom.editor.value = "";
         renderMarkdown();
+        clearDraft();
         setStatus("Editor cleared.");
     });
     [dom.pageSizeSelect, dom.orientationSelect].forEach((control) => {
@@ -166,21 +244,83 @@ function bindEvents() {
     dom.exportPdfBtn.addEventListener("click", exportPdf);
     dom.printPdfBtn.addEventListener("click", downloadPdf);
     dom.exportDocxBtn.addEventListener("click", exportDocx);
+    dom.downloadHtmlBtn.addEventListener("click", downloadHtml);
+    dom.copyHtmlBtn.addEventListener("click", copyHtml);
+}
+
+function setupDragAndDrop() {
+    const zone = dom.editor;
+    ["dragenter", "dragover"].forEach((type) => {
+        zone.addEventListener(type, (event) => {
+            if (!event.dataTransfer) return;
+            event.preventDefault();
+            event.dataTransfer.dropEffect = "copy";
+            zone.classList.add("drag-active");
+        });
+    });
+    ["dragleave", "dragend"].forEach((type) => {
+        zone.addEventListener(type, () => zone.classList.remove("drag-active"));
+    });
+    zone.addEventListener("drop", (event) => {
+        zone.classList.remove("drag-active");
+        const file = event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files[0];
+        if (!file) return;
+        event.preventDefault();
+        loadFileContent(file);
+    });
+}
+
+function scheduleAutosave() {
+    window.clearTimeout(autosaveTimer);
+    autosaveTimer = window.setTimeout(saveDraft, 400);
+}
+
+function saveDraft() {
+    try {
+        const value = dom.editor.value;
+        if (value) {
+            localStorage.setItem(AUTOSAVE_KEY, value);
+        } else {
+            localStorage.removeItem(AUTOSAVE_KEY);
+        }
+    } catch (error) {
+        // Private-mode or storage-quota failures are non-fatal for the editor.
+    }
+}
+
+function loadDraft() {
+    try {
+        return localStorage.getItem(AUTOSAVE_KEY) || "";
+    } catch (error) {
+        return "";
+    }
+}
+
+function clearDraft() {
+    try {
+        localStorage.removeItem(AUTOSAVE_KEY);
+    } catch (error) {
+        // Ignore storage failures.
+    }
 }
 
 async function handleFileSelect(event) {
     const file = event.target.files && event.target.files[0];
     if (!file) return;
+    await loadFileContent(file);
+    dom.fileInput.value = "";
+}
+
+async function loadFileContent(file) {
     try {
         const content = await file.text();
         dom.editor.value = content;
         dom.filenameInput.value = stripExtension(file.name) || "markdown-export";
         renderMarkdown();
+        saveDraft();
         setStatus(`Loaded ${file.name}.`);
     } catch (error) {
         setStatus(`Could not read ${file.name}.`, "error");
-    } finally {
-        dom.fileInput.value = "";
     }
 }
 
@@ -237,7 +377,11 @@ function renderMarkdown() {
 
 function updateStats(content) {
     const chars = content.length;
-    const words = content.trim() ? content.trim().split(/\s+/).length : 0;
+    // Count words from the rendered document text when a preview exists so
+    // Markdown syntax (**, #, |, list markers) is not counted as words.
+    const previewDoc = dom.preview.querySelector(".preview-doc");
+    const wordSource = previewDoc ? (previewDoc.textContent || "") : content;
+    const words = wordSource.trim() ? wordSource.trim().split(/\s+/).length : 0;
     const lines = content ? content.split(/\r?\n/).length : 0;
     const title = extractTitle(content);
 
@@ -394,6 +538,41 @@ async function exportDocx() {
         setStatus(`DOCX export failed: ${error.message}`, "error");
     } finally {
         setBusy(dom.exportDocxBtn, false, "Export DOCX");
+    }
+}
+
+async function downloadHtml() {
+    if (!ensureContentReady()) return;
+    setBusy(dom.downloadHtmlBtn, true, "Building HTML...");
+    setStatus("Generating standalone HTML...");
+    try {
+        const prepared = await prepareCurrentExport();
+        const html = buildExportDocumentHtml(prepared, document.baseURI || window.location.href);
+        downloadBlob(new Blob([html], { type: "text/html" }), `${prepared.filename}.html`);
+        setOutcomeStatus(`Saved ${prepared.filename}.html.`, prepared.warnings);
+    } catch (error) {
+        setStatus(`Download HTML failed: ${error.message}`, "error");
+    } finally {
+        setBusy(dom.downloadHtmlBtn, false, "Download HTML");
+    }
+}
+
+async function copyHtml() {
+    if (!ensureContentReady()) return;
+    setBusy(dom.copyHtmlBtn, true, "Copying...");
+    setStatus("Copying standalone HTML...");
+    try {
+        if (!navigator.clipboard || typeof navigator.clipboard.writeText !== "function") {
+            throw new Error("Clipboard access is unavailable in this browser context.");
+        }
+        const prepared = await prepareCurrentExport();
+        const html = buildExportDocumentHtml(prepared, document.baseURI || window.location.href);
+        await navigator.clipboard.writeText(html);
+        setOutcomeStatus("Copied standalone HTML to the clipboard.", prepared.warnings);
+    } catch (error) {
+        setStatus(`Copy HTML failed: ${error.message}`, "error");
+    } finally {
+        setBusy(dom.copyHtmlBtn, false, "Copy HTML");
     }
 }
 

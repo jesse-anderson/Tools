@@ -1,6 +1,14 @@
 // ============================================
 // LAMPORT TIMESTAMP VISUALIZER
 // ============================================
+// All clock math lives in lamport-engine.js (pure, DOM-free); this module
+// owns the DOM, canvas, and playback state.
+
+import {
+    replaySequence,
+    countConcurrentPairs,
+    removeProcessFromEvents
+} from './lamport-engine.js';
 
 const COLORS = [
     '#ef4444', '#f97316', '#f59e0b', '#84cc16',
@@ -51,6 +59,8 @@ class LamportTimestampsVisualizer {
         this.canvas = null;
         this.ctx = null;
         this.animationInterval = null;
+        this.formStatusTimer = null;
+        this.popupCleanup = null;
 
         this.init();
     }
@@ -97,6 +107,7 @@ class LamportTimestampsVisualizer {
             eventIdInput: document.getElementById('messageIdInput'),
             eventTypes: document.querySelectorAll('.event-type-btn'),
             addEventBtn: document.getElementById('addEventBtn'),
+            eventFormStatus: document.getElementById('eventFormStatus'),
 
             // Animation
             stepBtn: document.getElementById('stepBtn'),
@@ -221,9 +232,11 @@ class LamportTimestampsVisualizer {
             }
         });
 
-        // Keyboard shortcuts
+        // Keyboard shortcuts. Skip when focus is on a form control so space
+        // and arrows keep their native behavior there.
         document.addEventListener('keydown', (e) => {
-            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+            const target = e.target;
+            if (target.closest?.('input, textarea, select, button') || target.isContentEditable) return;
 
             switch(e.key) {
                 case ' ': // Space
@@ -232,6 +245,9 @@ class LamportTimestampsVisualizer {
                     break;
                 case 'ArrowRight':
                     this.stepAnimation();
+                    break;
+                case 'ArrowLeft':
+                    this.stepBackAnimation();
                     break;
                 case 'Escape':
                     this.pauseAnimation();
@@ -262,97 +278,26 @@ class LamportTimestampsVisualizer {
         }
 
         this.updateUI();
+        this.saveState();
     }
 
     recomputeSequenceData() {
-        const processStates = this.processes.map((process) => ({
-            id: process.id,
-            timestamp: 0,
-            vector: this.currentMode === 'vector' ? new Array(this.processes.length).fill(0) : null
-        }));
-        const openMessages = [];
+        const result = replaySequence(
+            this.processes.map((process) => process.id),
+            this.events,
+            this.currentMode
+        );
 
-        this.events.forEach((event) => {
-            const processState = processStates.find((process) => process.id === event.processId);
-            if (!processState) {
-                return;
-            }
-
-            if (event.type === 'local' || event.type === 'send') {
-                processState.timestamp += 1;
-
-                if (this.currentMode === 'vector' && processState.vector) {
-                    processState.vector[processState.id - 1] += 1;
-                    event.vector = [...processState.vector];
-                }
-
-                event.timestamp = processState.timestamp;
-            }
-
-            if (event.type === 'send' && event.targetProcessId) {
-                openMessages.push({
-                    id: event.messageId || '',
-                    from: event.processId,
-                    to: event.targetProcessId,
-                    timestamp: event.timestamp,
-                    vector: Array.isArray(event.vector) ? [...event.vector] : null,
-                    sendEventId: event.id,
-                    processed: false
-                });
-            }
-
-            if (event.type === 'receive') {
-                const matchingIndex = openMessages.findIndex((message) =>
-                    message.from === event.receiveFrom &&
-                    message.to === event.processId &&
-                    (!event.messageId || message.id === event.messageId)
-                );
-                const matchingMessage = matchingIndex >= 0 ? openMessages[matchingIndex] : null;
-
-                processState.timestamp = Math.max(processState.timestamp, matchingMessage?.timestamp || 0) + 1;
-
-                if (this.currentMode === 'vector' && processState.vector) {
-                    if (Array.isArray(matchingMessage?.vector)) {
-                        for (let index = 0; index < processState.vector.length; index++) {
-                            processState.vector[index] = Math.max(
-                                processState.vector[index],
-                                matchingMessage.vector[index] || 0
-                            );
-                        }
-                    }
-
-                    processState.vector[processState.id - 1] += 1;
-                    event.vector = [...processState.vector];
-                }
-
-                event.timestamp = processState.timestamp;
-                event.pairedSendEventId = matchingMessage?.sendEventId || event.pairedSendEventId || null;
-
-                if (matchingIndex >= 0) {
-                    openMessages.splice(matchingIndex, 1);
-                }
-            }
-
-            if (this.currentMode !== 'vector') {
-                event.vector = null;
-            }
-        });
-
+        this.events = result.events;
         this.processes = this.processes.map((process) => {
-            const processState = processStates.find((candidate) => candidate.id === process.id);
+            const state = result.processes.find((candidate) => candidate.id === process.id);
             return {
                 ...process,
-                timestamp: processState ? processState.timestamp : process.timestamp,
-                vector: this.currentMode === 'vector' && processState?.vector
-                    ? [...processState.vector]
-                    : null
+                timestamp: state ? state.timestamp : process.timestamp,
+                vector: state && Array.isArray(state.vector) ? [...state.vector] : null
             };
         });
-
-        this.pendingMessages = openMessages.map((message) => ({
-            ...message,
-            vector: Array.isArray(message.vector) ? [...message.vector] : null
-        }));
+        this.pendingMessages = result.pendingMessages;
     }
 
     setEventType(type) {
@@ -418,44 +363,15 @@ class LamportTimestampsVisualizer {
         const processIndex = this.processes.findIndex(p => p.id === processId);
         if (processIndex === -1) return;
 
-        // Remove process and shift IDs
+        // Remove process and shift IDs; the replay rebuilds vectors and
+        // pending messages at the new process count.
         this.processes.splice(processIndex, 1);
         this.processes.forEach((p, i) => {
             p.id = i + 1;
             p.name = `P${i + 1}`;
-            if (this.currentMode === 'vector' && Array.isArray(p.vector)) {
-                p.vector = p.vector.filter((_, index) => index !== processId - 1);
-            }
         });
 
-        this.events = this.events
-            .filter(event =>
-                event.processId !== processId &&
-                event.receiveFrom !== processId &&
-                event.targetProcessId !== processId
-            )
-            .map(event => ({
-                ...event,
-                processId: event.processId > processId ? event.processId - 1 : event.processId,
-                receiveFrom: event.receiveFrom && event.receiveFrom > processId ? event.receiveFrom - 1 : event.receiveFrom,
-                targetProcessId: event.targetProcessId && event.targetProcessId > processId
-                    ? event.targetProcessId - 1
-                    : event.targetProcessId,
-                vector: Array.isArray(event.vector)
-                    ? event.vector.filter((_, index) => index !== processId - 1)
-                    : event.vector
-            }));
-
-        this.pendingMessages = this.pendingMessages
-            .filter(message => message.from !== processId && message.to !== processId)
-            .map(message => ({
-                ...message,
-                from: message.from > processId ? message.from - 1 : message.from,
-                to: message.to > processId ? message.to - 1 : message.to,
-                vector: Array.isArray(message.vector)
-                    ? message.vector.filter((_, index) => index !== processId - 1)
-                    : message.vector
-            }));
+        this.events = removeProcessFromEvents(this.events, processId);
 
         this.currentEventIndex = -1;
         this.showFullSequenceWhenIdle = this.events.length > 0;
@@ -550,6 +466,22 @@ class LamportTimestampsVisualizer {
         this.dom.addEventBtn.disabled = !hasProcess || !hasCounterparty;
     }
 
+    // Inline, auto-clearing message under the Create Event form (no alert()).
+    showFormStatus(message) {
+        const statusEl = this.dom.eventFormStatus;
+        if (!statusEl) return;
+
+        clearTimeout(this.formStatusTimer);
+        statusEl.textContent = message;
+        statusEl.hidden = !message;
+
+        if (message) {
+            this.formStatusTimer = setTimeout(() => {
+                statusEl.hidden = true;
+            }, 5000);
+        }
+    }
+
     addEvent() {
         const processId = parseInt(this.dom.eventProcessSelect.value);
         if (!processId) return;
@@ -578,8 +510,12 @@ class LamportTimestampsVisualizer {
         if (!event) return;
 
         this.events.push(event);
+        // Replay the whole sequence so live-added events and reloaded state
+        // always agree on timestamps, vectors, and pairing.
+        this.recomputeSequenceData();
         this.currentEventIndex = -1;
         this.showFullSequenceWhenIdle = true;
+        this.showFormStatus('');
         this.updateUI();
 
         // Clear form
@@ -664,9 +600,9 @@ class LamportTimestampsVisualizer {
         const matchingMessage = this.findPendingMessage(sourceId, receiver.id, requestedMessageId);
 
         if (!matchingMessage) {
-            alert(requestedMessageId
+            this.showFormStatus(requestedMessageId
                 ? `No pending message "${requestedMessageId}" from P${sourceId} to ${receiver.name}.`
-                : `No pending message from P${sourceId} to ${receiver.name}.`);
+                : `No pending message from P${sourceId} to ${receiver.name}. Send one first.`);
             return null;
         }
 
@@ -910,43 +846,12 @@ class LamportTimestampsVisualizer {
         return `${type.symbol}${event.id} on ${processName}`;
     }
 
-    vectorLessThanOrEqual(left, right) {
-        if (!Array.isArray(left) || !Array.isArray(right) || left.length !== right.length) {
-            return false;
-        }
-
-        for (let index = 0; index < left.length; index++) {
-            if ((left[index] || 0) > (right[index] || 0)) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
     countConcurrentPairs(events = this.events) {
         if (this.currentMode !== 'vector') {
             return 0;
         }
 
-        let concurrentPairs = 0;
-
-        for (let leftIndex = 0; leftIndex < events.length; leftIndex++) {
-            for (let rightIndex = leftIndex + 1; rightIndex < events.length; rightIndex++) {
-                const left = events[leftIndex];
-                const right = events[rightIndex];
-                if (!left.vector || !right.vector) continue;
-
-                const leftBeforeRight = this.vectorLessThanOrEqual(left.vector, right.vector);
-                const rightBeforeLeft = this.vectorLessThanOrEqual(right.vector, left.vector);
-
-                if (!leftBeforeRight && !rightBeforeLeft) {
-                    concurrentPairs++;
-                }
-            }
-        }
-
-        return concurrentPairs;
+        return countConcurrentPairs(events);
     }
 
     updateCurrentState(snapshot = this.buildStateSnapshot()) {
@@ -1088,6 +993,8 @@ class LamportTimestampsVisualizer {
         this.dom.stepBtn.disabled = this.events.length === 0 || this.currentEventIndex >= this.events.length - 1;
         this.dom.playBtn.disabled = this.events.length === 0 || this.currentEventIndex >= this.events.length - 1;
         this.dom.pauseBtn.disabled = !this.isPlaying;
+        this.dom.clearLogBtn.disabled = this.events.length === 0;
+        this.dom.exportLogBtn.disabled = this.events.length === 0;
         if (this.dom.exportTimelineBtn) {
             this.dom.exportTimelineBtn.disabled = this.events.length === 0;
         }
@@ -1156,6 +1063,10 @@ class LamportTimestampsVisualizer {
         const sendEvents = snapshot.visibleEvents.filter(event => event.type === 'send' && event.targetProcessId);
 
         if (sendEvents.length > 0) {
+            // Bend arrows so opposite directions (and repeat messages on the
+            // same pair) do not draw on top of each other.
+            const pairCounts = new Map();
+
             sendEvents.forEach((messageEvent) => {
                 const fromProcess = snapshot.processes.find(p => p.id === messageEvent.processId);
                 const toProcess = snapshot.processes.find(p => p.id === messageEvent.targetProcessId);
@@ -1169,6 +1080,14 @@ class LamportTimestampsVisualizer {
                     const toX = centerX + Math.cos(toAngle) * availableWidth / 2;
                     const toY = centerY + Math.sin(toAngle) * availableHeight / 2;
 
+                    const pairKey = `${fromProcess.id}->${toProcess.id}`;
+                    const occurrence = pairCounts.get(pairKey) || 0;
+                    pairCounts.set(pairKey, occurrence + 1);
+                    // A constant positive bend curves opposite directions to
+                    // opposite sides, because the perpendicular flips with the
+                    // travel direction. Repeats on the same direction fan out.
+                    const bend = 30 + occurrence * 22;
+
                     this.drawArrow(
                         fromX,
                         fromY,
@@ -1176,7 +1095,8 @@ class LamportTimestampsVisualizer {
                         toY,
                         messageEvent.messageId,
                         messageEvent.timestamp,
-                        snapshot.focusedEvent?.id === messageEvent.id
+                        snapshot.focusedEvent?.id === messageEvent.id,
+                        bend
                     );
                 }
             });
@@ -1224,55 +1144,56 @@ class LamportTimestampsVisualizer {
         this.ctx.textBaseline = 'middle';
         this.ctx.fillText(process.name, x, y - 10);
 
-        // Timestamp
+        // Timestamp: same dark-on-color treatment as the name for contrast
         const timeLabel = this.currentMode === 'vector'
             ? `v[${process.vector?.join(',')}]`
             : `t=${process.timestamp}`;
 
-        this.ctx.fillStyle = getComputedStyle(document.body).getPropertyValue('--clock-color');
+        this.ctx.fillStyle = getComputedStyle(document.body).getPropertyValue('--bg-card');
         this.ctx.font = '12px JetBrains Mono';
         this.ctx.fillText(timeLabel, x, y + 10);
     }
 
-    drawArrow(fromX, fromY, toX, toY, messageId, timestamp, highlighted) {
-        const { width, height } = this.canvas;
+    drawArrow(fromX, fromY, toX, toY, messageId, timestamp, highlighted, bend = 0) {
+        const strokeColor = highlighted
+            ? getComputedStyle(document.body).getPropertyValue('--accent-lamport')
+            : getComputedStyle(document.body).getPropertyValue('--text-muted');
 
-        // Calculate midpoint
-        const midX = (fromX + toX) / 2;
-        const midY = (fromY + toY) / 2;
-
-        // Calculate perpendicular offset for text
+        // Quadratic curve with a perpendicular control-point offset so
+        // arrows on the same process pair stay visually separated.
         const angle = Math.atan2(toY - fromY, toX - fromX);
         const perpAngle = angle + Math.PI / 2;
-        const offset = 30;
+        const controlX = (fromX + toX) / 2 + Math.cos(perpAngle) * bend;
+        const controlY = (fromY + toY) / 2 + Math.sin(perpAngle) * bend;
 
-        // Draw arrow line
         this.ctx.beginPath();
         this.ctx.moveTo(fromX, fromY);
-        this.ctx.lineTo(toX, toY);
-        this.ctx.strokeStyle = highlighted ? getComputedStyle(document.body).getPropertyValue('--accent-lamport') : getComputedStyle(document.body).getPropertyValue('--text-muted');
+        this.ctx.quadraticCurveTo(controlX, controlY, toX, toY);
+        this.ctx.strokeStyle = strokeColor;
         this.ctx.lineWidth = 2;
         this.ctx.stroke();
 
-        // Draw arrowhead
+        // Arrowhead aligned with the curve tangent at the endpoint
+        const headAngle = Math.atan2(toY - controlY, toX - controlX);
         const headLength = 10;
         this.ctx.beginPath();
         this.ctx.moveTo(toX, toY);
-        this.ctx.lineTo(toX - headLength * Math.cos(angle - Math.PI / 6), toY - headLength * Math.sin(angle - Math.PI / 6));
-        this.ctx.lineTo(toX - headLength * Math.cos(angle + Math.PI / 6), toY - headLength * Math.sin(angle + Math.PI / 6));
+        this.ctx.lineTo(toX - headLength * Math.cos(headAngle - Math.PI / 6), toY - headLength * Math.sin(headAngle - Math.PI / 6));
+        this.ctx.lineTo(toX - headLength * Math.cos(headAngle + Math.PI / 6), toY - headLength * Math.sin(headAngle + Math.PI / 6));
         this.ctx.closePath();
-        this.ctx.fillStyle = highlighted ? getComputedStyle(document.body).getPropertyValue('--accent-lamport') : getComputedStyle(document.body).getPropertyValue('--text-muted');
+        this.ctx.fillStyle = strokeColor;
         this.ctx.fill();
 
-        // Draw message ID background
+        // Label sits at the curve midpoint (t = 0.5 on the quadratic)
+        const midX = 0.25 * fromX + 0.5 * controlX + 0.25 * toX;
+        const midY = 0.25 * fromY + 0.5 * controlY + 0.25 * toY;
+
         const text = messageId || '';
         this.ctx.font = 'bold 11px JetBrains Mono';
         const textWidth = this.ctx.measureText(text).width;
         const padding = 6;
 
-        this.ctx.fillStyle = highlighted
-            ? getComputedStyle(document.body).getPropertyValue('--bg-card')
-            : getComputedStyle(document.body).getPropertyValue('--bg-card');
+        this.ctx.fillStyle = getComputedStyle(document.body).getPropertyValue('--bg-card');
         this.ctx.fillRect(
             midX - textWidth / 2 - padding,
             midY - 8 - padding,
@@ -1280,13 +1201,11 @@ class LamportTimestampsVisualizer {
             16 + padding * 2
         );
 
-        // Draw message ID
         this.ctx.fillStyle = highlighted
             ? getComputedStyle(document.body).getPropertyValue('--accent-lamport')
             : getComputedStyle(document.body).getPropertyValue('--text-primary');
         this.ctx.fillText(text, midX, midY);
 
-        // Draw timestamp
         this.ctx.fillStyle = getComputedStyle(document.body).getPropertyValue('--text-muted');
         this.ctx.font = '9px JetBrains Mono';
         this.ctx.fillText(`t${timestamp}`, midX, midY + 12);
@@ -1297,6 +1216,15 @@ class LamportTimestampsVisualizer {
         if (this.currentEventIndex < this.events.length - 1) {
             this.showFullSequenceWhenIdle = false;
             this.currentEventIndex++;
+            this.highlightEvent(this.currentEventIndex);
+            this.updateUI();
+        }
+    }
+
+    stepBackAnimation() {
+        if (this.currentEventIndex >= 0) {
+            this.showFullSequenceWhenIdle = false;
+            this.currentEventIndex--;
             this.highlightEvent(this.currentEventIndex);
             this.updateUI();
         }
@@ -1442,18 +1370,13 @@ class LamportTimestampsVisualizer {
             <div class="timeline-scale-shell">
                 <div class="timeline-scale-stage" style="width: ${metrics.frameWidth}px; transform: scale(${metrics.scale});">
                     <div class="timeline-frame" style="width: ${metrics.frameWidth}px;">
-                <div class="timeline-time-direction">Time →</div>
+                <div class="timeline-time-direction">Time -&gt;</div>
                 <div class="timeline-lanes">${rowsHtml}</div>
                 <svg class="timeline-message-layer" aria-hidden="true"></svg>
                     </div>
                 </div>
             </div>
         `;
-
-        const timeDirection = container.querySelector('.timeline-time-direction');
-        if (timeDirection) {
-            timeDirection.textContent = 'Time ->';
-        }
 
         const frame = container.querySelector('.timeline-frame');
         if (frame) {
@@ -1591,7 +1514,10 @@ class LamportTimestampsVisualizer {
         const process = this.processes.find(p => p.id === event.processId);
         const type = EVENT_TYPES[event.type];
 
-        // Remove existing popup
+        // Remove existing popup and its outside-click listener
+        if (this.popupCleanup) {
+            this.popupCleanup();
+        }
         const existingPopup = document.querySelector('.timeline-popup');
         if (existingPopup) {
             existingPopup.remove();
@@ -1623,15 +1549,20 @@ class LamportTimestampsVisualizer {
             `;
             marker.appendChild(popup);
 
-            // Click outside to close
-            setTimeout(() => {
-                document.addEventListener('click', function closePopup(e) {
-                    if (!e.target.closest('.timeline-marker')) {
-                        popup.remove();
-                        document.removeEventListener('click', closePopup);
-                    }
-                });
-            }, 100);
+            // Click outside to close; keep a cleanup handle so replacing the
+            // popup also removes the document listener.
+            const closePopup = (e) => {
+                if (!e.target.closest('.timeline-marker')) {
+                    cleanup();
+                }
+            };
+            const cleanup = () => {
+                popup.remove();
+                document.removeEventListener('click', closePopup);
+                this.popupCleanup = null;
+            };
+            this.popupCleanup = cleanup;
+            setTimeout(() => document.addEventListener('click', closePopup), 100);
         }
     }
 
@@ -1650,10 +1581,7 @@ class LamportTimestampsVisualizer {
     }
 
     exportLog() {
-        if (this.events.length === 0) {
-            alert('No events to export');
-            return;
-        }
+        if (this.events.length === 0) return;
 
         const data = {
             mode: this.currentMode,
@@ -1691,10 +1619,7 @@ class LamportTimestampsVisualizer {
     }
 
     exportTimeline() {
-        if (this.events.length === 0) {
-            alert('No timeline to export');
-            return;
-        }
+        if (this.events.length === 0) return;
 
         const svg = this.buildTimelineExportSvg();
         const blob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
@@ -1932,6 +1857,7 @@ class LamportTimestampsVisualizer {
                 this.events.push(this.createReceiveEvent(p2, p3.id, 'M2'));
             }
 
+            this.recomputeSequenceData();
             this.updateUI();
             this.switchView('timeline');
             this.saveState();

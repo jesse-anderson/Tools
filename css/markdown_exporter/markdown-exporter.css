@@ -185,6 +185,12 @@
     font: 400 0.92rem/1.65 "JetBrains Mono", monospace;
 }
 
+#editor.drag-active {
+    outline: 2px dashed var(--accent-it);
+    outline-offset: -6px;
+    background: rgba(59, 130, 246, 0.08);
+}
+
 .preview-container {
     flex: 1;
     min-height: 560px;

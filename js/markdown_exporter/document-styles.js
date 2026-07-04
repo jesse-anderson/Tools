@@ -135,6 +135,12 @@ ${rootSelector} td {
   text-align: left;
   vertical-align: top;
 }
+${rootSelector} th[align="center"],
+${rootSelector} td[align="center"] { text-align: center; }
+${rootSelector} th[align="right"],
+${rootSelector} td[align="right"] { text-align: right; }
+${rootSelector} th[align="left"],
+${rootSelector} td[align="left"] { text-align: left; }
 ${rootSelector} tr > *:last-child {
   border-right: 0;
 }
