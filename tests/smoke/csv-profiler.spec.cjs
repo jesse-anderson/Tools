@@ -57,24 +57,31 @@ test.describe('scalar classification', () => {
     expect(kinds.nan).toBe('text');
   });
 
-  test('leading-zero numerics are text, not integers (no data loss)', async ({ page }) => {
+  test('leading-zero numerics are text, not numbers (no data loss)', async ({ page }) => {
     await openTool(page);
     const out = await page.evaluate(() => {
       const { classifyScalar } = window.CsvProfilerEngine;
+      const k = (v) => classifyScalar(v).kind;
       return {
-        zip: classifyScalar('00501').kind,
-        padded: classifyScalar('007').kind,
-        doubleZero: classifyScalar('00').kind,
-        negPadded: classifyScalar('-01').kind,
-        singleZero: classifyScalar('0').kind,     // a bare zero is still an integer
-        normalInt: classifyScalar('10001').kind
+        zip: k('00501'), padded: k('007'), doubleZero: k('00'), negPadded: k('-01'),
+        // leading zero in the integer part of a float is an identifier too
+        leadingZeroFloat: k('01.5'), doubleZeroFloat: k('00.5'), negLeadingZeroFloat: k('-00.9'),
+        // real numbers with a bare zero are unaffected
+        singleZero: k('0'), zeroFloat: k('0.0'), normalFloat: k('0.5'), leadingDot: k('.5'),
+        normalInt: k('10001')
       };
     });
     expect(out.zip).toBe('text');
     expect(out.padded).toBe('text');
     expect(out.doubleZero).toBe('text');
     expect(out.negPadded).toBe('text');
+    expect(out.leadingZeroFloat).toBe('text');
+    expect(out.doubleZeroFloat).toBe('text');
+    expect(out.negLeadingZeroFloat).toBe('text');
     expect(out.singleZero).toBe('integer');
+    expect(out.zeroFloat).toBe('number');
+    expect(out.normalFloat).toBe('number');
+    expect(out.leadingDot).toBe('number');
     expect(out.normalInt).toBe('integer');
   });
 });
