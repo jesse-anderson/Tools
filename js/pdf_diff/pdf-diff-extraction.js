@@ -137,15 +137,13 @@ async function extractTextFromPDF(pdfDoc, sourcePdf, updateProgressFn) {
                     fontName: item.fontName || 'Helvetica'
                 };
 
-                // Split into character-level tokens using font metrics
+                // Split into character-level tokens using font metrics.
+                // Space tokens are kept (flagged isSpace) so word boundaries
+                // survive into the diff text; they are excluded from
+                // highlighting by getTokensInRange.
                 const charTokens = splitTextItemToChars(tempTextItem);
-
-                // Add all character tokens to the textItems array
-                // Skip spaces - they don't need highlighting
                 for (const charToken of charTokens) {
-                    if (!/^\s+$/.test(charToken.text)) {
-                        textItems.push(charToken);
-                    }
+                    textItems.push(charToken);
                 }
 
                 // Debug: Log first few text items per page to understand granularity

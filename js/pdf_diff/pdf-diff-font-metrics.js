@@ -178,7 +178,10 @@ function calculateCharPositions(text, startX, totalWidth, fontName, fontSize) {
 }
 
 /**
- * Split a text item into character-level tokens
+ * Split a text item into character-level tokens.
+ * Whitespace characters are kept (flagged isSpace) so word boundaries
+ * survive into the diff text; dropping them used to mush "Hello world"
+ * into "Helloworld" and degrade diff quality and report readability.
  */
 function splitTextItemToChars(textItem) {
     const chars = [];
@@ -191,12 +194,10 @@ function splitTextItemToChars(textItem) {
     );
 
     for (const pos of positions) {
-        // Skip spaces
-        if (/^\s$/.test(pos.char)) continue;
-
         chars.push({
             ...textItem,
-            text: pos.char,
+            text: /^\s$/.test(pos.char) ? ' ' : pos.char,
+            isSpace: /^\s$/.test(pos.char),
             x: pos.x,
             width: pos.width,
             charIndex: pos.index

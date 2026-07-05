@@ -21,7 +21,10 @@ module.exports = defineConfig({
     'csv-profiler.spec.cjs',
     'scientific-graph-digitizer.spec.cjs',
     'markdown-exporter.spec.cjs',
-    'lamport-timestamps.spec.cjs'
+    'lamport-timestamps.spec.cjs',
+    'pdf-diff.spec.cjs',
+    'ai-image-detector.spec.cjs',
+    'toxicology-body-burden.spec.cjs'
   ],
   timeout: 60_000,
   fullyParallel: false,

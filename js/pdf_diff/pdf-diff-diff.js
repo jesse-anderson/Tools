@@ -48,72 +48,190 @@ function initDiffEngine() {
 }
 
 /**
- * Get the diff-match-patch instance (lazy initialization)
+ * Get the diff-match-patch instance (lazy initialization).
+ * Module-local so the pure diff pipeline does not depend on app state.
  * @returns {Object} diff-match-patch instance
  */
+let dmpInstance = null;
 function getDiffEngine() {
-    if (!state.diffEngine) {
-        state.diffEngine = initDiffEngine();
+    if (!dmpInstance) {
+        dmpInstance = initDiffEngine();
     }
-    return state.diffEngine;
+    return dmpInstance;
 }
 
 /**
- * Compute diff between two text strings
+ * Apply length-preserving text transforms for diff options.
+ * Length preservation is what keeps the diff indices aligned with the
+ * original token sequences, so only per-character substitutions happen here.
+ * @param {string} text - Diff text built from the token sequence
+ * @param {Object} options - { ignoreCase, pageBreaksAsSpaces }
+ * @returns {string} Transformed text with identical length
+ */
+function prepareDiffText(text, options = {}) {
+    let out = text;
+    if (options.pageBreaksAsSpaces) {
+        out = out.replace(/\f/g, ' ');
+    }
+    if (options.ignoreCase) {
+        const chars = out.split('');
+        for (let i = 0; i < chars.length; i++) {
+            const lower = chars[i].toLowerCase();
+            // Skip the rare mappings that change length (e.g. Turkish dotted I)
+            if (lower.length === 1) {
+                chars[i] = lower;
+            }
+        }
+        out = chars.join('');
+    }
+    return out;
+}
+
+/**
+ * Encode both texts word-by-word into single characters so diff-match-patch
+ * operates on whole words (the standard dmp line-mode recipe applied to
+ * words). Each word and each whitespace character becomes one token.
+ * @returns {Object|null} { encodedA, encodedB, tokens } or null if the
+ *                        vocabulary would spill into surrogate code units
+ */
+function encodeWordTokens(textA, textB) {
+    const tokens = [];
+    const tokenIds = new Map();
+
+    const encode = (text) => {
+        const parts = text.match(/[^\s]+|\s/g) || [];
+        let encoded = '';
+        for (const part of parts) {
+            let id = tokenIds.get(part);
+            if (id === undefined) {
+                id = tokens.length;
+                if (id >= 0xD7FF) {
+                    return null; // vocabulary too large for safe encoding
+                }
+                tokens.push(part);
+                tokenIds.set(part, id);
+            }
+            encoded += String.fromCharCode(id);
+        }
+        return encoded;
+    };
+
+    const encodedA = encode(textA);
+    if (encodedA === null) return null;
+    const encodedB = encode(textB);
+    if (encodedB === null) return null;
+    return { encodedA, encodedB, tokens };
+}
+
+/**
+ * Rewrite encoded diff texts back to the original word tokens, in place.
+ */
+function decodeWordTokens(diffs, tokens) {
+    for (let i = 0; i < diffs.length; i++) {
+        const encoded = diffs[i][1];
+        let text = '';
+        for (let j = 0; j < encoded.length; j++) {
+            text += tokens[encoded.charCodeAt(j)];
+        }
+        diffs[i][1] = text;
+    }
+}
+
+/**
+ * Compute diff between two text strings.
  * @param {string} text1 - Original text
  * @param {string} text2 - Modified text
- * @returns {Array} Array of diff objects from diff-match-patch
- *                   Each diff: [type, text] where type is -1 (delete), 0 (equal), or 1 (insert)
+ * @param {Object} options - { granularity: 'char'|'word', ignoreCase, pageBreaksAsSpaces }
+ * @returns {Array} Array of dmp Diff entries. Each entry supports index
+ *                  access: entry[0] is -1 (delete), 0 (equal), or 1 (insert);
+ *                  entry[1] is the text. Entries are NOT array-destructurable.
  */
-function computeDiff(text1, text2) {
+function computeDiff(text1, text2, options = {}) {
     const dmp = getDiffEngine();
+    const a = prepareDiffText(text1, options);
+    const b = prepareDiffText(text2, options);
 
-    // Compute the diff
-    // The second parameter (0) is the timeout in seconds
-    // The third parameter (false) means don't check for line-by-line diff
-    const diffs = dmp.diff_main(text1, text2);
+    if (options.granularity === 'word') {
+        const encoded = encodeWordTokens(a, b);
+        if (encoded) {
+            const diffs = dmp.diff_main(encoded.encodedA, encoded.encodedB, false);
+            decodeWordTokens(diffs, encoded.tokens);
+            // Merge adjacent same-op runs after rehydration
+            dmp.diff_cleanupMerge(diffs);
+            return diffs;
+        }
+        // Fall through to character mode when encoding is not possible
+    }
 
-    // Clean up the diff for human readability
-    // This merges adjacent diffs of the same type and eliminates trivial equalities
+    const diffs = dmp.diff_main(a, b);
+
+    // Clean up the diff for human readability: merges adjacent diffs of the
+    // same type and eliminates trivial equalities
     dmp.diff_cleanupSemantic(diffs);
-
-    // Optional: further cleanup to eliminate very short equalities
     dmp.diff_cleanupEfficiency(diffs);
 
     return diffs;
 }
 
 /**
- * Get diff statistics (counts of insertions, deletions, modifications)
+ * Shared classification for a delete-followed-by-insert pair.
+ * Used by both getDiffStats and mapDiffsToCoordinates so the summary
+ * numbers always agree with what gets highlighted.
+ */
+function isModificationPair(deletedText, insertedText) {
+    const lenRatio = Math.min(deletedText.length, insertedText.length) /
+                     Math.max(deletedText.length, insertedText.length);
+    return lenRatio > 0.3 || (deletedText.length <= 50 && insertedText.length <= 50);
+}
+
+/**
+ * Get diff statistics.
+ * Region counts are what the summary UI shows (one modification = one
+ * delete+insert pair, counted once, NOT halved afterwards); char counts
+ * give magnitude for reports.
  * @param {Array} diffs - Diff array from computeDiff
- * @returns {Object} { insertions, deletions, modifications, unchanged }
+ * @returns {Object} { insertions, deletions, modifications,
+ *                     insertedChars, deletedChars, modifiedChars, unchanged }
  */
 function getDiffStats(diffs) {
     let insertions = 0;
     let deletions = 0;
     let modifications = 0;
+    let insertedChars = 0;
+    let deletedChars = 0;
+    let modifiedChars = 0;
     let unchanged = 0;
 
-    // Track if we're in a delete followed by insert (modification pattern)
+    // NOTE: diff-match-patch returns Diff objects that support index access
+    // ([0] = op, [1] = text) but are NOT iterable, so no array destructuring.
     let i = 0;
     while (i < diffs.length) {
-        const [type, text] = diffs[i];
+        const type = diffs[i][0];
+        const text = diffs[i][1];
 
         if (type === 0) {
-            // Equal/unchanged
             unchanged += text.length;
         } else if (type === -1) {
-            // Delete
-            if (i + 1 < diffs.length && diffs[i + 1][0] === 1) {
-                // Delete followed by insert = modification
-                modifications += Math.max(text.length, diffs[i + 1][1].length);
+            const next = i + 1 < diffs.length ? diffs[i + 1] : null;
+            if (next && next[0] === 1 && isModificationPair(text, next[1])) {
+                // Delete followed by insert = one modification region
+                modifications++;
+                modifiedChars += Math.max(text.length, next[1].length);
                 i++; // Skip the insert we just counted
+            } else if (next && next[0] === 1) {
+                // Dissimilar pair: count as separate delete + insert
+                deletions++;
+                deletedChars += text.length;
+                insertions++;
+                insertedChars += next[1].length;
+                i++;
             } else {
-                deletions += text.length;
+                deletions++;
+                deletedChars += text.length;
             }
         } else if (type === 1) {
-            // Insert (not preceded by delete)
-            insertions += text.length;
+            insertions++;
+            insertedChars += text.length;
         }
 
         i++;
@@ -123,6 +241,9 @@ function getDiffStats(diffs) {
         insertions,
         deletions,
         modifications,
+        insertedChars,
+        deletedChars,
+        modifiedChars,
         unchanged
     };
 }
@@ -145,22 +266,66 @@ function getDiffStats(diffs) {
  * @param {Array} diffs - Diff array from computeDiff
  * @param {Array} sequenceA - Document sequence for PDF A
  * @param {Array} sequenceB - Document sequence for PDF B
- * @returns {Object} { diffsA, diffsB } - Arrays of diffs with coordinate info
+ * @returns {Object} { diffsA, diffsB, changes } - Per-PDF highlight entries
+ *                   plus an ordered change list for change navigation. Each
+ *                   change: { type, pageIndexA, pageIndexB, bboxA, bboxB,
+ *                   textA, textB }; highlight entries carry changeIndex.
  */
 function mapDiffsToCoordinates(diffs, sequenceA, sequenceB) {
     const diffsA = []; // Diffs to highlight on PDF A (deletions, modifications)
     const diffsB = []; // Diffs to highlight on PDF B (insertions, modifications)
+    const changes = []; // Ordered regions for prev/next change navigation
 
     let charIndexA = 0; // Current character position in text A
     let charIndexB = 0; // Current character position in text B
 
+    const tokenAnchor = (tokens) => tokens.length
+        ? {
+            pageIndex: tokens[0].pageIndex,
+            bbox: {
+                x: tokens[0].x,
+                y: tokens[0].y,
+                width: tokens[0].width,
+                height: tokens[0].height,
+                rotation: tokens[0].rotation || 0
+            }
+        }
+        : null;
+
+    // Word-granularity diffs emit one delete/insert pair per word with a
+    // single-space equal between them. Cluster those into one navigable
+    // change region: a change joins the previous one when only a short
+    // all-space equal separates them (page breaks never join).
+    let joinableGap = false;
+    const openChange = (entry) => {
+        if (joinableGap && changes.length) {
+            const previous = changes[changes.length - 1];
+            if (previous.type !== entry.type) {
+                previous.type = 'modified';
+            }
+            previous.textA = [previous.textA, entry.textA].filter(Boolean).join(' ') || null;
+            previous.textB = [previous.textB, entry.textB].filter(Boolean).join(' ') || null;
+            if (previous.pageIndexA == null) previous.pageIndexA = entry.pageIndexA;
+            if (previous.pageIndexB == null) previous.pageIndexB = entry.pageIndexB;
+            if (!previous.bboxA) previous.bboxA = entry.bboxA;
+            if (!previous.bboxB) previous.bboxB = entry.bboxB;
+            return changes.length - 1;
+        }
+        changes.push(entry);
+        return changes.length - 1;
+    };
+
     let i = 0;
     while (i < diffs.length) {
-        const [type, text] = diffs[i];
+        // Index access, not destructuring: dmp Diff objects are not iterable.
+        const type = diffs[i][0];
+        const text = diffs[i][1];
         const textLength = text.length;
 
         if (type === 0) {
-            // Equal - skip, nothing to highlight
+            // Equal - skip, nothing to highlight. A short all-space equal
+            // marks the next change as joinable with the previous one.
+            joinableGap = /^ {1,2}$/.test(text) && changes.length > 0;
             charIndexA += textLength;
             charIndexB += textLength;
             i++;
@@ -168,17 +333,10 @@ function mapDiffsToCoordinates(diffs, sequenceA, sequenceB) {
             // Check if this deletion is followed by an insertion (modification pattern)
             if (i + 1 < diffs.length && diffs[i + 1][0] === 1) {
                 // This is a modification (delete + insert)
-                const [_, deletedText] = diffs[i];
-                const [__, insertedText] = diffs[i + 1];
+                const deletedText = diffs[i][1];
+                const insertedText = diffs[i + 1][1];
 
-                // Determine if this qualifies as a modification (similar lengths)
-                // Allow some flexibility since word counts can differ
-                const lenRatio = Math.min(deletedText.length, insertedText.length) /
-                                Math.max(deletedText.length, insertedText.length);
-                const isModification = lenRatio > 0.3 || // At least 30% size match
-                                     (deletedText.length <= 50 && insertedText.length <= 50); // Or both are short
-
-                if (isModification) {
+                if (isModificationPair(deletedText, insertedText)) {
                     // Get tokens for the deleted part (from PDF A)
                     const charStartA = charIndexA;
                     const charEndA = charIndexA + deletedText.length;
@@ -188,6 +346,22 @@ function mapDiffsToCoordinates(diffs, sequenceA, sequenceB) {
                     const charStartB = charIndexB;
                     const charEndB = charIndexB + insertedText.length;
                     const tokensB = getTokensInRange(sequenceB, charStartB, charEndB);
+
+                    // Record one navigable change region for the pair
+                    const anchorA = tokenAnchor(tokensA);
+                    const anchorB = tokenAnchor(tokensB);
+                    let changeIndex = null;
+                    if (anchorA || anchorB) {
+                        changeIndex = openChange({
+                            type: 'modified',
+                            pageIndexA: anchorA ? anchorA.pageIndex : null,
+                            pageIndexB: anchorB ? anchorB.pageIndex : null,
+                            bboxA: anchorA ? anchorA.bbox : null,
+                            bboxB: anchorB ? anchorB.bbox : null,
+                            textA: deletedText,
+                            textB: insertedText
+                        });
+                    }
 
                     // Create modification entries for both PDFs - ONE PER TOKEN (word-level)
                     // For PDF A, show what was deleted (in yellow)
@@ -214,6 +388,7 @@ function mapDiffsToCoordinates(diffs, sequenceA, sequenceB) {
                             text: token.text,
                             pageIndex: token.pageIndex,
                             boundingBox: bbox,
+                            changeIndex,
                             modifiedText: insertedText // Show what it became
                         });
                     }
@@ -242,6 +417,7 @@ function mapDiffsToCoordinates(diffs, sequenceA, sequenceB) {
                             text: token.text,
                             pageIndex: token.pageIndex,
                             boundingBox: bbox,
+                            changeIndex,
                             originalText: deletedText // Show what it was before
                         });
                     }
@@ -259,6 +435,20 @@ function mapDiffsToCoordinates(diffs, sequenceA, sequenceB) {
 
             // Find all tokens that overlap this range
             const tokens = getTokensInRange(sequenceA, charStart, charEnd);
+
+            const anchor = tokenAnchor(tokens);
+            let changeIndex = null;
+            if (anchor) {
+                changeIndex = openChange({
+                    type: 'deletion',
+                    pageIndexA: anchor.pageIndex,
+                    pageIndexB: null,
+                    bboxA: anchor.bbox,
+                    bboxB: null,
+                    textA: text,
+                    textB: null
+                });
+            }
 
             // Create one diff entry per TOKEN for word-level highlighting
             for (const token of tokens) {
@@ -285,7 +475,8 @@ function mapDiffsToCoordinates(diffs, sequenceA, sequenceB) {
                     type: 'deletion',
                     text: token.text,
                     pageIndex: token.pageIndex,
-                    boundingBox: bbox
+                    boundingBox: bbox,
+                    changeIndex
                 });
             }
 
@@ -298,6 +489,20 @@ function mapDiffsToCoordinates(diffs, sequenceA, sequenceB) {
 
             // Find all tokens that overlap this range
             const tokens = getTokensInRange(sequenceB, charStart, charEnd);
+
+            const anchor = tokenAnchor(tokens);
+            let changeIndex = null;
+            if (anchor) {
+                changeIndex = openChange({
+                    type: 'insertion',
+                    pageIndexA: null,
+                    pageIndexB: anchor.pageIndex,
+                    bboxA: null,
+                    bboxB: anchor.bbox,
+                    textA: null,
+                    textB: text
+                });
+            }
 
             // Create one diff entry per TOKEN for word-level highlighting
             for (const token of tokens) {
@@ -324,7 +529,8 @@ function mapDiffsToCoordinates(diffs, sequenceA, sequenceB) {
                     type: 'insertion',
                     text: token.text,
                     pageIndex: token.pageIndex,
-                    boundingBox: bbox
+                    boundingBox: bbox,
+                    changeIndex
                 });
             }
 
@@ -335,7 +541,7 @@ function mapDiffsToCoordinates(diffs, sequenceA, sequenceB) {
         }
     }
 
-    return { diffsA, diffsB };
+    return { diffsA, diffsB, changes };
 }
 
 /**
@@ -503,5 +709,9 @@ export {
     getTokensInRange,
     groupTokensByPage,
     mergeBoundingBoxes,
-    buildPageDiffMapping
+    buildPageDiffMapping,
+    prepareDiffText,
+    encodeWordTokens,
+    decodeWordTokens,
+    isModificationPair
 };

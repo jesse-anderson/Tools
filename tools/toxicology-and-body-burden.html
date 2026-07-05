@@ -1,273 +1,39 @@
 <!DOCTYPE html>
+<!--
+============================================
+TOXICOLOGY BODY BURDEN v1.1.0
+============================================
+Description: Estimate an apparent total systemic load (body burden) from a
+measured plasma/blood concentration using volume-of-distribution models, with
+an optional first-order elimination back-calculation to an earlier concentration.
+
+Dependencies: None (Vanilla JavaScript, ES modules)
+
+Project: Tools Hub by Jesse Anderson
+Repository: https://github.com/jesse-anderson/Tools
+License: GPL-3.0 - https://github.com/jesse-anderson/Tools/blob/main/LICENSE
+
+Features:
+- Unit normalization for 9 mass and 5 molar concentration units (MW-aware)
+- Three Vd models: blood volume, total body water, and custom apparent Vd/kg
+- Optional first-order kinetic back-calculation (C0, clearance time estimates)
+- Species reference table with sourced blood-volume and total-body-water values
+- Transparent, copyable calculation ledger
+
+Last Updated: July 2026
+============================================
+-->
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
     <title>Toxicology & Body Burden Calculator | Tools Hub</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../css/shared.css">
-    <style>
-        /* Page-Specific Overrides */
-        .calculator-layout {
-            display: grid;
-            grid-template-columns: 1fr 380px; 
-            gap: 24px;
-            min-height: calc(100vh - 300px);
-        }
-
-        .calculator-panel {
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 24px;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .panel-header {
-            margin-bottom: 24px;
-            padding-bottom: 16px;
-            border-bottom: 1px solid var(--border-color);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .panel-header h2 { font-size: 1.5rem; margin-bottom: 4px; }
-        .panel-header p { color: var(--text-secondary); font-size: 0.9375rem; }
-
-        /* Input Grid */
-        .input-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 16px;
-            margin-bottom: 16px;
-        }
-
-        .input-group label {
-            display: block;
-            font-family: 'Space Grotesk', sans-serif;
-            font-size: 0.8125rem;
-            color: var(--text-secondary);
-            margin-bottom: 8px;
-            font-weight: 600;
-        }
-
-        .main-input, .main-select {
-            width: 100%;
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 12px 16px;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 1rem;
-            color: var(--text-primary);
-            outline: none;
-            transition: border-color 0.2s;
-        }
-        .main-input:focus, .main-select:focus { border-color: var(--accent-engineering); }
-
-        .unit-group { display: flex; gap: 8px; }
-        .unit-select {
-            width: 130px;
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 0 8px;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.8rem;
-            color: var(--text-primary);
-            outline: none;
-        }
-
-        /* Mode Selection Cards */
-        .mode-container {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 12px;
-            margin-bottom: 24px;
-        }
-        
-        .mode-card {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 12px;
-            cursor: pointer;
-            transition: all 0.2s;
-            position: relative;
-        }
-        .mode-card:hover { border-color: var(--accent-engineering); background: var(--bg-card); }
-        .mode-card.active {
-            border-color: var(--accent-engineering);
-            background: var(--accent-engineering-dim);
-        }
-        .mode-card input { display: none; }
-        .mode-title { font-size: 0.8rem; font-weight: 700; color: var(--text-primary); display: block; margin-bottom: 4px; }
-        .mode-desc { font-size: 0.7rem; color: var(--text-secondary); line-height: 1.3; display: block; }
-
-        /* Custom Vd Input */
-        .custom-vd-wrapper {
-            margin-top: 12px;
-            padding: 16px;
-            background: var(--bg-secondary);
-            border: 1px dashed var(--border-color);
-            border-radius: 6px;
-            display: none;
-        }
-        .custom-vd-wrapper.visible { display: block; }
-
-        /* Kinetic Toggle Area */
-        .kinetic-wrapper {
-            margin-bottom: 24px;
-            padding: 16px;
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-        }
-        .kinetic-header {
-            display: flex; align-items: center; gap: 10px; cursor: pointer;
-        }
-        .kinetic-header input { width: 16px; height: 16px; accent-color: var(--accent-engineering); }
-        .kinetic-label { font-size: 0.9rem; font-weight: 600; color: var(--text-primary); }
-        .kinetic-content {
-            margin-top: 16px;
-            display: none;
-            grid-template-columns: 1fr 1fr;
-            gap: 16px;
-        }
-        .kinetic-content.visible { display: grid; }
-
-        /* Result Box */
-        .result-box {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 24px;
-            margin-top: auto;
-        }
-        .result-row {
-            display: flex; justify-content: space-between; align-items: center;
-            margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--border-color);
-        }
-        .result-row:last-child { border: none; margin: 0; padding: 0; }
-        .res-label { font-family: 'Space Grotesk', sans-serif; color: var(--text-secondary); font-size: 0.9rem; }
-        .res-value { font-family: 'JetBrains Mono', monospace; font-size: 1.25rem; font-weight: 700; color: var(--accent-engineering); }
-        .res-sub { font-size: 0.8rem; color: var(--text-muted); font-weight: 400; margin-left: 4px; }
-
-        /* Ledger */
-        .calc-ledger {
-            margin-top: 20px; padding: 16px; background: var(--bg-card); border: 1px dashed var(--border-color);
-            border-radius: 6px; font-family: 'JetBrains Mono', monospace; font-size: 0.75rem;
-            color: var(--text-secondary); line-height: 1.6;
-        }
-        .ledger-title { font-size: 0.7rem; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px; font-weight: 600; }
-        .ledger-line { margin-bottom: 6px; display: flex; justify-content: space-between; }
-
-        /* Sidebar - ADDED/FIXED */
-        .sidebar {
-            display: flex;
-            flex-direction: column;
-            gap: 0;
-        }
-
-        .sidebar-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 20px;
-        }
-
-        .sidebar-card h3 {
-            font-family: 'Space Grotesk', sans-serif;
-            font-size: 1rem;
-            font-weight: 600;
-            color: var(--text-primary);
-            margin: 0 0 16px 0;
-            padding-bottom: 12px;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        /* Warning Box (Sidebar) */
-        .critical-warning {
-            background: var(--bg-card); border: 1px solid rgba(239, 68, 68, 0.4);
-            border-left: 4px solid rgba(239, 68, 68, 0.8); border-radius: 8px; padding: 20px; margin-top: 0;
-        }
-        .warning-title {
-            color: #ef4444; font-size: 0.8rem; text-transform:uppercase; margin-bottom: 12px; font-weight: 700;
-            display: flex; align-items: center; gap: 8px; letter-spacing: 0.05em;
-        }
-        .warning-text p { font-size: 0.75rem; color: var(--text-secondary); line-height: 1.6; margin-bottom: 10px; }
-        .warning-text p:last-child { margin-bottom: 0; }
-        .warning-text p strong { color: var(--text-primary); }
-
-        /* Sidebar Tables - FIXED */
-        .sidebar-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.75rem;
-            font-family: 'JetBrains Mono', monospace;
-            margin-top: 0;
-        }
-        .sidebar-table thead th {
-            text-align: left;
-            color: var(--text-secondary);
-            padding: 8px 6px;
-            border-bottom: 2px solid var(--border-color);
-            font-weight: 600;
-            font-size: 0.7rem;
-            text-transform: uppercase;
-            letter-spacing: 0.03em;
-        }
-        .sidebar-table tbody td {
-            padding: 8px 6px;
-            color: var(--text-primary);
-            border-bottom: 1px solid var(--border-color);
-            vertical-align: top;
-        }
-        .sidebar-table tbody tr:last-child td {
-            border-bottom: none;
-        }
-        .sidebar-table tbody tr:hover {
-            background: var(--bg-secondary);
-        }
-
-        /* Dropdowns */
-        .dropdown-container {
-            margin-top: 24px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-card); overflow: hidden;
-        }
-        .dropdown-header {
-            padding: 16px; background: var(--bg-secondary); cursor: pointer; display: flex;
-            justify-content: space-between; align-items: center; font-weight: 600; font-family: 'Space Grotesk';
-        }
-        .dropdown-content {
-            padding: 24px; display: none; font-size: 0.9rem; line-height: 1.6; color: var(--text-secondary); border-top: 1px solid var(--border-color);
-        }
-        .dropdown-content.open { display: block; }
-        
-        /* Math Blocks */
-        .math-block {
-            background: var(--bg-primary); border-left: 3px solid var(--accent-engineering);
-            padding: 12px; margin: 12px 0; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: var(--text-primary);
-        }
-        .variable { color: var(--accent-engineering); font-weight: bold; }
-
-        /* Tag hover enhancement for interactive tags */
-        .tag[style*="cursor:pointer"]:hover,
-        .tag.clickable:hover {
-            border-color: var(--accent-engineering);
-            color: var(--accent-engineering);
-            background: var(--accent-engineering-dim);
-        }
-        
-        .hidden { display: none; }
-        
-        @media (max-width: 1024px) {
-            .calculator-layout { grid-template-columns: 1fr; }
-            .mode-container { grid-template-columns: 1fr; }
-        }
-    </style>
+    <link rel="stylesheet" href="../css/toxicology_body_burden/toxicology-body-burden.css">
 </head>
 <body>
     <div class="container">
@@ -314,10 +80,10 @@
 
                     <div class="input-grid">
                         <div class="input-group">
-                            <label>Concentration (C<sub>measured</sub>)</label>
+                            <label for="conc">Concentration (C<sub>measured</sub>)</label>
                             <div class="unit-group">
-                                <input type="number" id="conc" class="main-input" placeholder="e.g. 10" oninput="calculate()">
-                                <select id="concUnit" class="unit-select" onchange="calculate()">
+                                <input type="number" id="conc" class="main-input" placeholder="e.g. 10">
+                                <select id="concUnit" class="unit-select" aria-label="Concentration unit">
                                     <optgroup label="Molar (Requires MW)">
                                         <option value="mol">mol/L (M)</option>
                                         <option value="mmol">mmol/L</option>
@@ -340,42 +106,42 @@
                             </div>
                         </div>
                         <div class="input-group">
-                            <label>Molecular Weight (MW)</label>
-                            <input type="number" id="mw" class="main-input" placeholder="Req. for Molar" oninput="calculate()">
+                            <label for="mw">Molecular Weight (MW)</label>
+                            <input type="number" id="mw" class="main-input" placeholder="Req. for Molar">
                         </div>
                     </div>
 
                     <div class="input-grid">
                         <div class="input-group">
-                            <label>Species</label>
-                            <select id="species" class="main-select" onchange="handleSpeciesChange()">
+                            <label for="species">Species</label>
+                            <select id="species" class="main-select">
                             </select>
                         </div>
                         <div class="input-group">
-                            <label>Weight (kg)</label>
-                            <input type="number" id="weight" class="main-input" step="0.01" oninput="calculate()">
+                            <label for="weight">Weight (kg)</label>
+                            <input type="number" id="weight" class="main-input" step="0.01">
                         </div>
                     </div>
 
                     <div class="input-group" style="margin-bottom: 24px;">
-                        <label>Fluid Loss Adjustment (L)</label>
-                        <input type="number" id="loss" class="main-input" placeholder="0" oninput="calculate()">
+                        <label for="loss">Fluid Loss Adjustment (L)</label>
+                        <input type="number" id="loss" class="main-input" placeholder="0">
                     </div>
 
                     <div style="margin-bottom: 8px;">
                         <label>Volume of Distribution (V<sub>d</sub>) Model</label>
                         <div class="mode-container">
-                            <label class="mode-card active" id="card-modeA" onclick="setMode('modeA')">
+                            <label class="mode-card active" id="card-modeA">
                                 <input type="radio" name="mode" value="modeA" checked>
                                 <span class="mode-title">Mode A: Vascular</span>
                                 <span class="mode-desc">Total Blood Volume. For large/bound molecules.</span>
                             </label>
-                            <label class="mode-card" id="card-modeB" onclick="setMode('modeB')">
+                            <label class="mode-card" id="card-modeB">
                                 <input type="radio" name="mode" value="modeB">
                                 <span class="mode-title">Mode B: Body Water</span>
                                 <span class="mode-desc">Total Body Water. For small/polar molecules.</span>
                             </label>
-                            <label class="mode-card" id="card-modeC" onclick="setMode('modeC')">
+                            <label class="mode-card" id="card-modeC">
                                 <input type="radio" name="mode" value="modeC">
                                 <span class="mode-title">Mode C: Custom</span>
                                 <span class="mode-desc">Apparent V<sub>d</sub>. For tissue binding / lipophilic.</span>
@@ -384,12 +150,12 @@
                         
                         <div id="customVd" class="custom-vd-wrapper">
                             <div class="input-group">
-                                <label>Custom Coefficient (L/kg)</label>
-                                <input type="number" id="vdCoeff" class="main-input" value="1.0" step="0.1" oninput="calculate()">
+                                <label for="vdCoeff">Custom Coefficient (L/kg)</label>
+                                <input type="number" id="vdCoeff" class="main-input" value="1.0" step="0.1">
                                 <div style="margin-top:8px; display:flex; gap:8px; flex-wrap: wrap;">
-                                    <span class="tag" style="cursor:pointer;" onclick="setCoeff(0.07)">Insulin (0.07)</span>
-                                    <span class="tag" style="cursor:pointer;" onclick="setCoeff(0.6)">Ethanol (0.6)</span>
-                                    <span class="tag" style="cursor:pointer;" onclick="setCoeff(4.0)">Digoxin (4.0)</span>
+                                    <span class="tag" data-coeff="0.07" role="button" tabindex="0">Insulin (0.07)</span>
+                                    <span class="tag" data-coeff="0.6" role="button" tabindex="0">Ethanol (0.6)</span>
+                                    <span class="tag" data-coeff="4.0" role="button" tabindex="0">Digoxin (4.0)</span>
                                 </div>
                             </div>
                         </div>
@@ -397,21 +163,21 @@
 
                     <div class="kinetic-wrapper">
                         <label class="kinetic-header">
-                            <input type="checkbox" id="kineticToggle" onchange="toggleKinetics()">
+                            <input type="checkbox" id="kineticToggle">
                             <span class="kinetic-label">Enable Kinetic Back-Calculation (Estimated C<sub>0</sub>)</span>
                         </label>
                         <div class="kinetic-content" id="kineticInputs">
                             <div class="input-group">
-                                <label>Time Elapsed (hrs)</label>
-                                <input type="number" id="time" class="main-input" value="0" oninput="calculate()">
+                                <label for="time">Time Elapsed (hrs)</label>
+                                <input type="number" id="time" class="main-input" value="0">
                             </div>
                             <div class="input-group">
-                                <label>Elimination Half-Life (t<sub>1/2</sub>)</label>
-                                <input type="number" id="halflife" class="main-input" value="4" oninput="calculate()">
+                                <label for="halflife">Elimination Half-Life (t<sub>1/2</sub>)</label>
+                                <input type="number" id="halflife" class="main-input" value="4">
                             </div>
                             <div class="input-group" style="grid-column: 1 / -1;">
-                                <label>Clearance Target (Remaining %)</label>
-                                <select id="clearTargetPct" class="main-select" onchange="calculate()">
+                                <label for="clearTargetPct">Clearance Target (Remaining %)</label>
+                                <select id="clearTargetPct" class="main-select">
                                     <option value="0" selected>0% remaining (100% cleared, asymptotic)</option>
                                     <option value="0.1">0.1% remaining (99.9% cleared)</option>
                                     <option value="1">1% remaining (99% cleared)</option>
@@ -564,7 +330,7 @@
             </div>
 
             <div class="dropdown-container">
-                <div class="dropdown-header" onclick="toggleDropdown('methodContent', this)">
+                <div class="dropdown-header" data-dropdown-target="methodContent" role="button" tabindex="0" aria-expanded="false" aria-controls="methodContent">
                     <span>Methodology: Kinetic Modeling &amp; V<sub>d</sub></span>
                     <svg class="dropdown-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
                 </div>
@@ -903,365 +669,6 @@
 
     <script type="module" src="../js/shared.js"></script>
     <script type="module" src="../js/footer.js"></script>
-    <script>
-        const SPECIES_DB = [
-            // Reference-value fields:
-            //   bv: circulating blood volume (mL/kg) used in Mode A
-            //   bv_range: display-only range string like '(47-66)' when available
-            //   tbw: total body water as a fraction of body mass (L/kg ~ fraction) used in Mode B
-            //   tbw_note: display-only qualifiers like '(est.)' when TBW is a generic approximation
-            //   refs_bv / refs_tbw: short tags that map to the HTML reference list (for transparency)
-            // Unit conversions in code:
-            //   Mode A: Vblood(L) = BW(kg) × BV(mL/kg) / 1000
-            //   Mode B: Vtbw(L) ≈ BW(kg) × TBW(fraction)   (1 kg water ≈ 1 L)
-
-            { id: 'human', name: 'Human (Adult, generic)', weight: 70.0, bv: 70.0, bv_range: '(60-75)*', tbw: 0.55, tbw_note: '(50-60%)', refs_bv: '[H1,H2]', refs_tbw: '[W1]' },
-            { id: 'human_male', name: 'Human (Adult male)', weight: 80.0, bv: 75.0, bv_range: '', tbw: 0.6, tbw_note: '', refs_bv: '[H2]', refs_tbw: '[W1]' },
-            { id: 'human_female', name: 'Human (Adult female)', weight: 65.0, bv: 65.0, bv_range: '', tbw: 0.5, tbw_note: '', refs_bv: '[H2]', refs_tbw: '[W1]' },
-            { id: 'mouse', name: 'Mouse', weight: 0.025, bv: 79.0, bv_range: '(78-80)', tbw: 0.725, tbw_note: '', refs_bv: '[B1]', refs_tbw: '[D1]' },
-            { id: 'rat', name: 'Rat', weight: 0.25, bv: 64.0, bv_range: '(50-70)', tbw: 0.668, tbw_note: '', refs_bv: '[B1]', refs_tbw: '[D1]' },
-            { id: 'rabbit', name: 'Rabbit', weight: 4.0, bv: 56.0, bv_range: '(44-70)', tbw: 0.716, tbw_note: '', refs_bv: '[B1]', refs_tbw: '[D1]' },
-            { id: 'dog', name: 'Dog', weight: 10.0, bv: 86.0, bv_range: '(79-90)', tbw: 0.604, tbw_note: '', refs_bv: '[B1,Diehl]', refs_tbw: '[D1]' },
-            { id: 'cat', name: 'Cat', weight: 4.0, bv: 55.0, bv_range: '(47-66)', tbw: 0.6, tbw_note: '(est.)', refs_bv: '[B1]', refs_tbw: '[W1]' },
-            { id: 'guinea_pig', name: 'Guinea pig', weight: 0.8, bv: 75.0, bv_range: '(67-92)', tbw: 0.6, tbw_note: '(est.)', refs_bv: '[B1]', refs_tbw: '[W1]' },
-            { id: 'hamster', name: 'Hamster', weight: 0.12, bv: 78.0, bv_range: '', tbw: 0.6, tbw_note: '(est.)', refs_bv: '[B1]', refs_tbw: '[W1]' },
-            { id: 'gerbil', name: 'Gerbil', weight: 0.1, bv: 67.0, bv_range: '', tbw: 0.6, tbw_note: '(est.)', refs_bv: '[B1]', refs_tbw: '[W1]' },
-            { id: 'ferret', name: 'Ferret', weight: 1.2, bv: 75.0, bv_range: '', tbw: 0.6, tbw_note: '(est.)', refs_bv: '[B1]', refs_tbw: '[W1]' },
-            { id: 'monkey_rhesus', name: 'Monkey (rhesus)', weight: 5.0, bv: 54.0, bv_range: '', tbw: 0.693, tbw_note: '', refs_bv: '[B1]', refs_tbw: '[D1]' },
-            { id: 'marmoset', name: 'Marmoset', weight: 0.35, bv: 65.0, bv_range: '(60-70)', tbw: 0.6, tbw_note: '(est.)', refs_bv: '[VT1,Wolf]', refs_tbw: '[W1]' },
-            { id: 'pig', name: 'Pig', weight: 90.0, bv: 65.0, bv_range: '', tbw: 0.6, tbw_note: '(est.)', refs_bv: '[B1,VT1]', refs_tbw: '[W1]' },
-            { id: 'sheep', name: 'Sheep', weight: 55.0, bv: 60.0, bv_range: '', tbw: 0.6, tbw_note: '(est.)', refs_bv: '[B1,VT1]', refs_tbw: '[W1]' },
-            { id: 'goat', name: 'Goat', weight: 50.0, bv: 70.0, bv_range: '', tbw: 0.6, tbw_note: '(est.)', refs_bv: '[B1,VT1]', refs_tbw: '[W1]' },
-            { id: 'cow', name: 'Cow', weight: 600.0, bv: 55.0, bv_range: '(52-57)', tbw: 0.6, tbw_note: '(est.)', refs_bv: '[VT1,Rey]', refs_tbw: '[W1]' },
-            { id: 'horse', name: 'Horse', weight: 500.0, bv: 76.0, bv_range: '', tbw: 0.6, tbw_note: '(est.)', refs_bv: '[VT1]', refs_tbw: '[W1]' },
-        ];
-
-        let currentMode = 'modeA';
-
-        document.addEventListener('DOMContentLoaded', () => {
-            populateSpecies();
-            populateRefTable();
-
-            // Initialize the weight field to the default for the currently selected species.
-            handleSpeciesChange();
-
-            calculate();
-        });
-
-        function populateSpecies() {
-            const sel = document.getElementById('species');
-            if (!sel) return;
-            sel.innerHTML = SPECIES_DB.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
-        }
-
-        function populateRefTable() {
-            const tbody = document.getElementById('refTableBody');
-            if (!tbody) {
-                console.error('refTableBody element not found');
-                return;
-            }
-
-            const rows = SPECIES_DB.map(s => {
-                // Format blood volume with range if available
-                const bvVal = Number(s.bv).toFixed(0);
-                const bvTxt = (s.bv_range && String(s.bv_range).trim().length)
-                    ? `${bvVal} ${s.bv_range}`
-                    : bvVal;
-
-                // Format TBW as percentage
-                const tbwPct = Number.isFinite(s.tbw) ? (s.tbw * 100) : NaN;
-                let tbwTxt = '—';
-                if (Number.isFinite(tbwPct)) {
-                    const tbwVal = tbwPct.toFixed(0);
-                    tbwTxt = (s.tbw_note && String(s.tbw_note).trim().length)
-                        ? `${tbwVal}% ${s.tbw_note}`
-                        : `${tbwVal}%`;
-                }
-
-                return `<tr>
-                    <td>${s.name}</td>
-                    <td>${bvTxt}</td>
-                    <td>${tbwTxt}</td>
-                </tr>`;
-            });
-
-            tbody.innerHTML = rows.join('');
-        }
-
-
-        function handleSpeciesChange() {
-            const id = document.getElementById('species').value;
-            const data = SPECIES_DB.find(s => s.id === id);
-            if (data) document.getElementById('weight').value = data.weight;
-            calculate();
-        }
-
-        function setMode(mode) {
-            currentMode = mode;
-
-            // Visual state (CSS-driven)
-            ['modeA', 'modeB', 'modeC'].forEach(m => {
-                document.getElementById('card-' + m).classList.toggle('active', m === mode);
-            });
-
-            // Show/hide custom coefficient panel
-            document.getElementById('customVd').classList.toggle('visible', mode === 'modeC');
-            calculate();
-        }
-
-        function toggleKinetics() {
-            const isActive = document.getElementById('kineticToggle').checked;
-            const content = document.getElementById('kineticInputs');
-            content.classList.toggle('visible', isActive);
-            calculate();
-        }
-
-        function toggleDropdown(id, header) {
-            const content = document.getElementById(id);
-            const icon = header.querySelector('.dropdown-icon');
-            content.classList.toggle('open');
-            icon.style.transform = content.classList.contains('open') ? 'rotate(180deg)' : 'rotate(0deg)';
-        }
-
-        function setCoeff(val) {
-            document.getElementById('vdCoeff').value = val;
-            calculate();
-        }
-
-        function calculate() {
-            // 1) Gather inputs
-            const rawConc = parseFloat(document.getElementById('conc').value);
-            const unit = document.getElementById('concUnit').value;
-            const mw = parseFloat(document.getElementById('mw').value);
-
-            const speciesId = document.getElementById('species').value;
-            const weight = parseFloat(document.getElementById('weight').value);
-            const loss = parseFloat(document.getElementById('loss').value) || 0;
-
-            const speciesData = SPECIES_DB.find(s => s.id === speciesId);
-
-            // Helper: render a consistent "error" state
-            function renderError(msg) {
-                document.getElementById('ledgerText').textContent = msg;
-
-                document.getElementById('resCt').textContent = "---";
-                document.getElementById('resC0').textContent = "---";
-                document.getElementById('resVd').textContent = "---";
-                document.getElementById('resAt').textContent = "---";
-                document.getElementById('resA0').textContent = "---";
-                document.getElementById('resTotal').textContent = "---";
-                document.getElementById('resABasis').textContent = "";
-
-                document.getElementById('resT99').textContent = "---";
-                document.getElementById('resT97').textContent = "---";
-            }
-
-            // Basic presence checks
-            if (!speciesData || !Number.isFinite(rawConc) || !Number.isFinite(weight)) {
-                document.getElementById('ledgerText').textContent = "Waiting for valid input...";
-
-                document.getElementById('resCt').textContent = "0";
-                document.getElementById('resC0').textContent = "---";
-                document.getElementById('resVd').textContent = "0";
-                document.getElementById('resAt').textContent = "0";
-                document.getElementById('resA0').textContent = "---";
-                document.getElementById('resTotal').textContent = "0";
-                document.getElementById('resABasis').textContent = "(At)";
-
-                document.getElementById('resT99').textContent = "---";
-                document.getElementById('resT97').textContent = "---";
-                return;
-            }
-
-            // Sanity checks
-            if (rawConc < 0) return renderError("Error: Concentration must be non-negative.");
-            if (weight <= 0) return renderError("Error: Weight must be > 0.");
-            if (loss < 0) return renderError("Error: Fluid loss must be >= 0.");
-
-            // 2) Normalize to mg/L
-            let mgL = 0;
-            let normLedger = "";
-
-            const MASS_UNIT_TO_MG_L_FACTOR = {
-                g_l:   1000,
-                g_dl:  10000,
-                mg_l:  1,
-                mg_dl: 10,
-                ug_ml: 1,
-                ug_l:  1/1000,
-                ng_ml: 1/1000,
-                ng_l:  1/1000000,
-                pg_ml: 1/1000000
-            };
-
-            const MOLAR_UNIT_TO_MOL_L_FACTOR = {
-                mol:  1,
-                mmol: 1e-3,
-                umol: 1e-6,
-                nmol: 1e-9,
-                pmol: 1e-12
-            };
-
-            if (unit in MOLAR_UNIT_TO_MOL_L_FACTOR) {
-                if (!Number.isFinite(mw) || mw <= 0) {
-                    return renderError("Error: Molecular Weight (g/mol) must be > 0 for molar units.");
-                }
-
-                const molPerL = rawConc * MOLAR_UNIT_TO_MOL_L_FACTOR[unit];
-                mgL = molPerL * mw * 1000;
-
-                normLedger =
-                    `Ct_norm: ${rawConc} ${unit}/L → ${molPerL.toExponential(3)} mol/L; ` +
-                    `(${molPerL.toExponential(3)} mol/L) × (${mw} g/mol) × (1000 mg/g) = ${mgL.toExponential(2)} mg/L`;
-            } else if (unit in MASS_UNIT_TO_MG_L_FACTOR) {
-                const factor = MASS_UNIT_TO_MG_L_FACTOR[unit];
-                mgL = rawConc * factor;
-
-                const unitLabel = unit.replace('_', '/');
-
-                if (factor === 1) {
-                    normLedger = `Ct_norm: ${rawConc} ${unitLabel} = ${mgL.toExponential(2)} mg/L`;
-                } else {
-                    normLedger = `Ct_norm: ${rawConc} ${unitLabel} × ${factor} = ${mgL.toExponential(2)} mg/L`;
-                }
-            } else {
-                return renderError("Error: Unknown concentration unit.");
-            }
-
-            // Ct: normalized concentration corresponding to the user's measurement at time t
-            const Ct = mgL;
-
-            // 3) Kinetic back-calc (optional)
-            let C0 = Ct;
-            let kinLedger = "";
-            let clearLedger = "";
-            let t97 = null;
-            let t99 = null;
-
-            const kineticsEnabled = document.getElementById('kineticToggle').checked;
-
-            if (kineticsEnabled) {
-                const t = parseFloat(document.getElementById('time').value);
-                const th = parseFloat(document.getElementById('halflife').value);
-
-                if (!Number.isFinite(t) || t < 0) return renderError("Error: Time elapsed must be >= 0.");
-                if (!Number.isFinite(th) || th <= 0) return renderError("Error: Half-life must be > 0.");
-
-                const k = 0.693147 / th;   // ln(2) / t1/2, 1/hr
-                const exponent = k * t;    // +k t
-                const factor = Math.exp(exponent);
-
-                if (!Number.isFinite(factor) || factor <= 0) {
-                    return renderError("Error: Kinetic back-calc overflow/underflow (inputs out of numeric range).");
-                }
-
-                C0 = Ct * factor;
-
-                // Clearance / "time-to-threshold" heuristics (first-order elimination)
-                t97 = 5.0 * th; // rule-of-thumb (~97% eliminated; ~3% remaining)
-
-                const targetPct = parseFloat(document.getElementById('clearTargetPct')?.value ?? "0");
-                const targetFrac = targetPct / 100.0;
-
-                // Time to reach a given remaining fraction under first-order elimination:
-                // fraction_remaining = exp(-k t) = (1/2)^(t / t1/2)
-                // => t = -ln(fraction_remaining)/k = t1/2 * log2(1/fraction_remaining)
-                if (!Number.isFinite(targetPct) || targetPct < 0) {
-                    return renderError("Error: Clearance target must be >= 0% remaining.");
-                }
-
-                if (targetFrac === 0) {
-                    // Exactly 0 remaining is asymptotic for exponential decay.
-                    t99 = Infinity;
-                } else if (targetFrac >= 1) {
-                    t99 = 0;
-                } else {
-                    t99 = th * (Math.log(1 / targetFrac) / Math.log(2));
-                }
-                kinLedger =
-                    `k = ln(2)/t1/2 = 0.693/${th} = ${k.toFixed(6)} 1/hr; ` +
-                    `C0 = Ct × e^(k×t) = ${Ct.toExponential(2)} × e^(${(k*t).toFixed(4)}) = ${C0.toExponential(2)} mg/L`;
-
-                const labelPct = parseFloat(document.getElementById('clearTargetPct')?.value ?? "0");
-                const labelText = (labelPct === 0)
-                    ? "0% remaining (asymptotic)"
-                    : `${labelPct}% remaining`;
-
-                clearLedger =
-                    `5×t1/2 ≈ ${t97.toFixed(2)} hr (~97% eliminated); ` +
-                    (Number.isFinite(t99)
-                        ? `t(≤${labelText}) = t1/2×log2(1/f) ≈ ${t99.toFixed(2)} hr`
-                        : `t(≤${labelText}) = ∞ (exponential decay never reaches exactly 0)`);
-
-            }
-
-            // 4) Volume calculation
-            let Vd = 0;
-            let vLedger = "";
-
-            if (currentMode === 'modeA') {
-                const physV_L = (weight * speciesData.bv) / 1000;
-                Vd = Math.max(0, physV_L - loss);
-
-                vLedger =
-                    `Mode A (Blood): Vphys = (${weight} kg × ${speciesData.bv} mL/kg)/1000 = ${physV_L.toFixed(3)} L; ` +
-                    `Veff = max(0, Vphys - loss) = max(0, ${physV_L.toFixed(3)} - ${loss}); Vd = ${Vd.toFixed(3)} L`;
-            } else if (currentMode === 'modeB') {
-                const physV_L = weight * speciesData.tbw;
-                Vd = Math.max(0, physV_L - loss);
-
-                vLedger =
-                    `Mode B (TBW): Vphys ≈ ${weight} kg × ${speciesData.tbw} L/kg = ${physV_L.toFixed(3)} L; ` +
-                    `Veff = max(0, Vphys - loss) = max(0, ${physV_L.toFixed(3)} - ${loss}); Vd = ${Vd.toFixed(3)} L`;
-            } else {
-                const coeff = parseFloat(document.getElementById('vdCoeff').value);
-                if (!Number.isFinite(coeff) || coeff <= 0) return renderError("Error: Custom Vd coefficient (L/kg) must be > 0.");
-
-                Vd = weight * coeff;
-                vLedger = `Mode C (Custom): Vd = ${weight} kg × ${coeff} L/kg = ${Vd.toFixed(3)} L (loss ignored)`;
-            }
-
-            // 5) Amount calculations
-            const At = Ct * Vd;
-            const A0 = C0 * Vd;
-            const Astar = kineticsEnabled ? A0 : At;
-
-            // Render outputs
-            document.getElementById('resCt').textContent = Ct.toExponential(2);
-            document.getElementById('resC0').textContent = kineticsEnabled ? C0.toExponential(2) : "---";
-            document.getElementById('resVd').textContent = Vd.toFixed(3);
-            document.getElementById('resAt').textContent = At.toExponential(2);
-            document.getElementById('resA0').textContent = kineticsEnabled ? A0.toExponential(2) : "---";
-            document.getElementById('resTotal').textContent = Astar.toExponential(2);
-            document.getElementById('resABasis').textContent = kineticsEnabled ? "(A0)" : "(At)";
-
-            document.getElementById('labelClearPct').textContent = (document.getElementById('clearTargetPct')?.value ?? "0");
-            document.getElementById('resT99').textContent = kineticsEnabled ? (Number.isFinite(t99) ? t99.toFixed(2) : "∞") : "---";
-            document.getElementById('resT97').textContent = kineticsEnabled ? t97.toFixed(2) : "---";
-
-            // Ledger lines
-            const ledgerLines = [];
-            ledgerLines.push(`<div class="ledger-line"><strong>1. Norm:</strong> <span>${normLedger}</span></div>`);
-
-            if (kineticsEnabled) {
-                ledgerLines.push(`<div class="ledger-line"><strong>2. Kinetic:</strong> <span>${kinLedger}</span></div>`);
-            } else {
-                ledgerLines.push(`<div class="ledger-line"><strong>2. Kinetic:</strong> <span>Disabled (Ct used directly).</span></div>`);
-            }
-
-            ledgerLines.push(`<div class="ledger-line"><strong>3. Vol:</strong> <span>${vLedger}</span></div>`);
-
-            ledgerLines.push(`<div class="ledger-line"><strong>4. Amount@t:</strong> <span>At = Ct × Vd = ${Ct.toExponential(2)} mg/L × ${Vd.toFixed(3)} L = ${At.toExponential(2)} mg</span></div>`);
-
-            if (kineticsEnabled) {
-                ledgerLines.push(`<div class="ledger-line" style="color:var(--accent-engineering)"><strong>5. Amount@0:</strong> <span>A0 = C0 × Vd = ${C0.toExponential(2)} mg/L × ${Vd.toFixed(3)} L = ${A0.toExponential(2)} mg</span></div>`);
-                ledgerLines.push(`<div class="ledger-line"><strong>6. Clearance:</strong> <span>${clearLedger}</span></div>`);
-            } else {
-                ledgerLines.push(`<div class="ledger-line" style="color:var(--accent-engineering)"><strong>5. Body Burden:</strong> <span>A* = At (kinetics disabled) = ${At.toExponential(2)} mg</span></div>`);
-            }
-
-            document.getElementById('ledgerText').innerHTML = ledgerLines.join("");
-        }
-    </script>
+    <script type="module" src="../js/toxicology_body_burden/toxicology-body-burden.js"></script>
 </body>
 </html>

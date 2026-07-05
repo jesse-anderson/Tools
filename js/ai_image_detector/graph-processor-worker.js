@@ -1,15 +1,11 @@
 // ============================================
 // GRAPH PROCESSING WEB WORKER
 // ============================================
-// Handles heavy FFT post-processing off the main thread:
+// Heavy FFT post-processing off the main thread:
 // - Polar spectrum unwrapping
-// - Azimuthal angle analysis
-// - Radial frequency falloff
-//
-// Math optimizations:
-// - Uses squared distance to avoid sqrt where possible
-// - Combines azimuthal + radial into single pass
-// - Pre-computes trig values for polar plot
+// - Azimuthal angle profile (linear for scoring, display
+//   series honoring the Visual Log Scale toggle)
+// - Radial frequency falloff (display series)
 // ============================================
 
 // Magma colormap (same as main thread)
@@ -41,80 +37,73 @@ function lerp(a, b, t) {
 }
 
 // ============================================
-// COMBINED SCAN: Azimuthal + Radial in one pass
+// COMBINED SCAN: azimuthal + radial in one pass
 // ============================================
-// OPTIMIZATION: Single O(w*h) pass instead of two separate passes
-// OPTIMIZATION: Uses squared distance to avoid sqrt for comparisons
+// Accumulates two azimuthal series in the same O(w*h) sweep:
+// linear power (scoring must never depend on the log toggle)
+// and the display series (log-transformed per pixel when the
+// Visual Log Scale toggle is on, matching the main-thread
+// fallback path). The radial series is display-only.
 // ============================================
-function computeMetricsCombined(mag, w, h) {
+function computeMetricsCombined(mag, w, h, useLog) {
     const startTime = performance.now();
 
     const cx = w / 2;
     const cy = h / 2;
     const maxR = Math.ceil(Math.sqrt(cx * cx + cy * cy));
 
-    // Azimuthal setup
     const bins = 360;
-    const azimuthalSums = new Float32Array(bins);
-    const azimuthalCounts = new Uint32Array(bins);
+    const azSumsLin = new Float32Array(bins);
+    const azSumsVis = new Float32Array(bins);
+    const azCounts = new Uint32Array(bins);
     const minR = Math.min(w, h) * 0.25;
     const maxRAzimuthal = Math.min(w, h) * 0.45;
-    const minRSq = minR * minR;  // Pre-compute squared for comparison
+    const minRSq = minR * minR;
     const maxRSq = maxRAzimuthal * maxRAzimuthal;
 
-    // Radial setup
     const radialSums = new Float32Array(maxR);
     const radialCounts = new Uint32Array(maxR);
 
-    // TO_DEG = 180 / PI, pre-computed
     const TO_DEG = 57.29577951308232;
 
-    // Single pass through all pixels
     for (let y = 0; y < h; y++) {
         const dy = y - cy;
-        const dySq = dy * dy;  // Pre-compute Y squared
+        const dySq = dy * dy;
 
         for (let x = 0; x < w; x++) {
             const dx = x - cx;
-            const dxSq = dx * dx;  // Pre-compute X squared
+            const distSq = dx * dx + dySq;
+            const v = mag[y * w + x];
+            const vis = useLog ? Math.log(1 + v) : v;
 
-            // OPTIMIZATION: Use squared distance to avoid sqrt for comparison
-            const distSq = dxSq + dySq;
-
-            // ==================== AZIMUTHAL ====================
-            // Only process pixels in the annulus (ring)
             if (distSq >= minRSq && distSq < maxRSq) {
-                // Only compute sqrt here since we need the actual radius for the angle check
-                // Actually, for atan2 we don't need radius - it handles the ratio directly
                 let angle = Math.atan2(dy, dx) * TO_DEG;
                 if (angle < 0) angle += 360;
                 const b = Math.floor(angle) % 360;
-                azimuthalSums[b] += mag[y * w + x];
-                azimuthalCounts[b]++;
+                azSumsLin[b] += v;
+                azSumsVis[b] += vis;
+                azCounts[b]++;
             }
 
-            // ==================== RADIAL ====================
-            // OPTIMIZATION: Floor of sqrt is the same as floor(sqrt(distSq))
-            // We only compute sqrt once per pixel here
             const r = Math.floor(Math.sqrt(distSq));
             if (r < maxR) {
-                radialSums[r] += mag[y * w + x];
+                radialSums[r] += vis;
                 radialCounts[r]++;
             }
         }
     }
 
-    // Process azimuthal data
-    const azimuthalData = [];
+    const azimuthal = [];
+    const azimuthalVis = [];
     for (let i = 0; i < bins; i++) {
-        azimuthalData.push(azimuthalCounts[i] ? azimuthalSums[i] / azimuthalCounts[i] : 0);
+        azimuthal.push(azCounts[i] ? azSumsLin[i] / azCounts[i] : 0);
+        azimuthalVis.push(azCounts[i] ? azSumsVis[i] / azCounts[i] : 0);
     }
 
-    // Process radial data
-    const radialData = [];
+    const radialVis = [];
     for (let r = 1; r < maxR; r++) {
         if (radialCounts[r]) {
-            radialData.push(radialSums[r] / radialCounts[r]);
+            radialVis.push(radialSums[r] / radialCounts[r]);
         }
     }
 
@@ -122,16 +111,15 @@ function computeMetricsCombined(mag, w, h) {
     console.log(`[WORKER] Combined metrics scan: ${elapsed.toFixed(1)}ms`);
 
     return {
-        azimuthal: azimuthalData,
-        radial: radialData,
+        azimuthal: azimuthal,
+        azimuthalVis: azimuthalVis,
+        radialVis: radialVis,
         scanTime: elapsed
     };
 }
 
 // ============================================
 // POLAR PLOT UNWRAPPING
-// ============================================
-// OPTIMIZATION: Pre-compute all cos/sin values
 // ============================================
 function computePolarPlot(mag, w, h, outputW, outputH) {
     const startTime = performance.now();
@@ -140,16 +128,16 @@ function computePolarPlot(mag, w, h, outputW, outputH) {
     const cy = h / 2;
     const maxR = Math.min(w, h) / 2;
 
-    // Find max value for normalization
+    // Deterministic strided max for normalization (the old random
+    // sampling made the plot differ between runs of the same image).
     let maxVal = 0;
-    for (let i = 0; i < 1000; i++) {
-        const v = mag[Math.floor(Math.random() * mag.length)];
-        if (v > maxVal) maxVal = v;
+    const stride = Math.max(1, Math.floor(mag.length / 2000));
+    for (let i = 0; i < mag.length; i += stride) {
+        if (mag[i] > maxVal) maxVal = mag[i];
     }
     if (maxVal === 0) maxVal = 1;
 
-    // OPTIMIZATION: Pre-compute trig values for each output pixel
-    // This avoids computing cos/sin 120,000 times (for 400x300 output)
+    // Pre-compute trig values for each output column
     const cosTable = new Float32Array(outputW);
     const sinTable = new Float32Array(outputW);
     for (let x = 0; x < outputW; x++) {
@@ -164,7 +152,6 @@ function computePolarPlot(mag, w, h, outputW, outputH) {
         const r = (y / outputH) * maxR;
 
         for (let x = 0; x < outputW; x++) {
-            // Use pre-computed trig values
             const px = Math.floor(cx + r * cosTable[x]);
             const py = Math.floor(cy + r * sinTable[x]);
 
@@ -173,7 +160,7 @@ function computePolarPlot(mag, w, h, outputW, outputH) {
                 val = mag[py * w + px];
             }
 
-            let t = val / maxVal;
+            let t = Math.min(1, val / maxVal);
             t = Math.pow(t, 0.8);
             const c = getMagmaColor(t);
 
@@ -213,22 +200,23 @@ function smoothAzimuthal(data) {
 // MESSAGE HANDLER
 // ============================================
 self.onmessage = function(e) {
-    const { type, mag, w, h, outputW, outputH } = e.data;
+    const { type, mag, w, h, log, outputW, outputH } = e.data;
 
     try {
         switch (type) {
-            case 'computeMetrics':
-                const metrics = computeMetricsCombined(mag, w, h);
+            case 'computeMetrics': {
+                const metrics = computeMetricsCombined(mag, w, h, !!log);
                 self.postMessage({
                     type: 'metricsComplete',
                     azimuthal: metrics.azimuthal,
-                    radial: metrics.radial,
-                    smoothedAzimuthal: smoothAzimuthal(metrics.azimuthal),
+                    radialVis: metrics.radialVis,
+                    smoothedAzimuthalVis: smoothAzimuthal(metrics.azimuthalVis),
                     scanTime: metrics.scanTime
                 });
                 break;
+            }
 
-            case 'computePolar':
+            case 'computePolar': {
                 const polar = computePolarPlot(mag, w, h, outputW, outputH);
                 self.postMessage({
                     type: 'polarComplete',
@@ -238,6 +226,7 @@ self.onmessage = function(e) {
                     outputH: outputH
                 });
                 break;
+            }
 
             default:
                 console.warn('[WORKER] Unknown message type:', type);
@@ -250,5 +239,3 @@ self.onmessage = function(e) {
         });
     }
 };
-
-console.log('[WORKER] Graph processor worker loaded');

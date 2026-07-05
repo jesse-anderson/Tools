@@ -273,15 +273,20 @@ function buildDocumentTextSequence(textItems) {
             group.column = assignedColumn;
         });
 
-        // Sort groups by Y first, then by column for multi-column layouts
+        // Sort groups by Y first, then by column for multi-column layouts.
+        // Same-row, same-column groups tie-break on X so two items on one
+        // visual line keep left-to-right order instead of Map insertion order.
         groupArray.sort((a, b) => {
             const yDiff = a.avgY - b.avgY;
             if (Math.abs(yDiff) > 10) {
                 // Different rows - sort by Y (descending since PDF Y increases upward)
                 return b.avgY - a.avgY;
             }
-            // Same row - sort by column (left to right)
-            return a.column - b.column;
+            if (a.column !== b.column) {
+                // Same row - sort by column (left to right)
+                return a.column - b.column;
+            }
+            return a.avgX - b.avgX;
         });
 
         // Build sequence from sorted groups

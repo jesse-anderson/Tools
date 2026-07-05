@@ -81,11 +81,12 @@ function renderHighlights(pdfKey, pageIndex) {
         const height = Math.max(1, canvasCoords.height);
 
         // Set rectangle attributes
+        const isFocused = diff.changeIndex != null && diff.changeIndex === state.focusedChangeIndex;
         rect.setAttribute('x', canvasCoords.x.toFixed(2));
         rect.setAttribute('y', canvasCoords.y.toFixed(2));
         rect.setAttribute('width', width.toFixed(2));
         rect.setAttribute('height', height.toFixed(2));
-        rect.setAttribute('class', `highlight-rect ${diff.type}`);
+        rect.setAttribute('class', `highlight-rect ${diff.type}${isFocused ? ' focused' : ''}`);
         rect.setAttribute('rx', '2'); // Rounded corners
 
         // Add title for tooltip

@@ -1,24 +1,33 @@
 <!--
 ============================================
-AI IMAGE DETECTOR v1.0
+AI IMAGE DETECTOR v1.1
 ============================================
 Description: Browser-based AI-generated image detection tool
 using FFT noise analysis and forensic signal processing.
 
-Dependencies: None (Vanilla JavaScript)
+Dependencies (compiled into the bundled WASM binary,
+js/ai_image_detector/WASM/, sources in rust/ai_image_detection_fft_wasm/):
+- rustfft 6.1 (SIMD-accelerated FFT library for Rust)
+    https://github.com/ejmahler/RustFFT
+    MIT OR Apache-2.0: https://github.com/ejmahler/RustFFT/blob/master/LICENSE-MIT
+- wasm-bindgen / js-sys / web-sys (Rust to WASM bindings)
+    https://github.com/rustwasm/wasm-bindgen
+    MIT OR Apache-2.0: https://github.com/rustwasm/wasm-bindgen/blob/main/LICENSE-MIT
+The JavaScript fallback FFT and all UI code are dependency-free.
 
 Project: Tools Hub by Jesse Anderson
 Repository: https://github.com/jesse-anderson/Tools
 License: GPL-3.0 - https://github.com/jesse-anderson/Tools/blob/main/LICENSE
 
 Features:
-- Custom Cooley-Tukey FFT implementation (2D separable)
-- Laplacian high-pass edge detection filtering
+- Rust/WASM FFT (arbitrary sizes) with custom Cooley-Tukey JS fallback
+- Laplacian high-pass edge detection filtering (border-safe)
 - Channel-specific analysis (RGB, Luminance)
 - Configurable FFT size and Hanning windowing
 - Interactive pan/zoom source viewport
 - Polar spectrum unwrapping visualization
 - Azimuthal and radial frequency analysis graphs
+- Grid Prominence score with qualitative band
 - Template images for real vs. AI comparison
 
 Methodology:
@@ -27,7 +36,7 @@ Analyzes frequency domain artifacts in the blue channel
 to detect checkerboard patterns characteristic of CNN
 upsampling artifacts in generative AI images.
 
-Last Updated: January 2025
+Last Updated: July 2026
 ============================================
 -->
 <!DOCTYPE html>
@@ -35,6 +44,7 @@ Last Updated: January 2025
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
     <title>AI Image Detector - FFT Noise Analysis | Tools Hub</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -103,7 +113,7 @@ Last Updated: January 2025
                     </div>
 
                     <div class="control-group">
-                        <div class="control-label">Signal Filter</div>
+                        <label class="control-label" for="signalSelect">Signal Filter</label>
                         <select id="signalSelect" class="control-select">
                             <option value="laplacian" selected>Laplacian (High-Pass Edge)</option>
                             <option value="raw">Raw Intensity (Unfiltered)</option>
@@ -111,7 +121,7 @@ Last Updated: January 2025
                     </div>
 
                     <div class="control-group">
-                        <div class="control-label">Channel</div>
+                        <label class="control-label" for="channelSelect">Channel</label>
                         <select id="channelSelect" class="control-select">
                             <option value="blue" selected>Blue Channel (Best for AI)</option>
                             <option value="green">Green Channel</option>
@@ -121,7 +131,7 @@ Last Updated: January 2025
                     </div>
 
                     <div class="control-group">
-                        <div class="control-label">FFT Size</div>
+                        <label class="control-label" for="fftSizeSelect">FFT Size</label>
                         <select id="fftSizeSelect" class="control-select">
                             <option value="native" selected>Native (Best Quality)</option>
                             <option value="1024">1024px</option>
@@ -131,7 +141,7 @@ Last Updated: January 2025
                     </div>
 
                     <div class="control-group">
-                        <div class="control-label">FFT Engine</div>
+                        <label class="control-label" for="fftEngineSelect">FFT Engine</label>
                         <select id="fftEngineSelect" class="control-select">
                             <option value="auto" selected>Auto (WASM preferred)</option>
                             <option value="wasm">Rust/WASM (Fast)</option>
@@ -154,6 +164,15 @@ Last Updated: January 2025
                     </div>
 
                     <div class="control-group">
+                        <div class="control-label">Grid Prominence</div>
+                        <div class="score-box" id="scoreBox">
+                            <span class="score-value" id="scoreValue">--</span>
+                            <span class="score-band" id="scoreBand">No image analyzed</span>
+                        </div>
+                        <p class="score-note">Peak-to-baseline power ratio at cardinal angles of the spectrum. Elevated values mean periodic structure, which scans and halftone prints also produce. A heuristic, not a verdict.</p>
+                    </div>
+
+                    <div class="control-group">
                         <div class="control-label">Toggles</div>
                         <label class="checkbox-label" for="windowCheck" title="Applies smoothing window. Turn OFF to see edge artifacts more clearly.">
                             <input type="checkbox" id="windowCheck" class="checkbox-input">
@@ -168,12 +187,24 @@ Last Updated: January 2025
                     <div class="template-section">
                         <div class="control-label">Templates</div>
                         <div class="template-grid">
-                            <button class="template-btn" onclick="loadTemplate('../img/tree.jpg')"><div class="template-status status-real"></div><span>Real</span></button>
-                            <button class="template-btn" onclick="loadTemplate('../img/tree_scan.jpg')"><div class="template-status status-real"></div><span>Scan</span></button>
-                            <button class="template-btn" onclick="loadTemplate('../img/tree-midjourney.png')"><div class="template-status status-ai"></div><span>MidJ</span></button>
-                            <button class="template-btn" onclick="loadTemplate('../img/tree-nano-banana.png')"><div class="template-status status-ai"></div><span>Nano</span></button>
+                            <button class="template-btn" data-template="../img/tree.jpg"><div class="template-status status-real"></div><span>Real</span></button>
+                            <button class="template-btn" data-template="../img/tree_scan.jpg"><div class="template-status status-real"></div><span>Scan</span></button>
+                            <button class="template-btn" data-template="../img/tree-midjourney.png"><div class="template-status status-ai"></div><span>MidJ</span></button>
+                            <button class="template-btn" data-template="../img/tree-nano-banana.png"><div class="template-status status-ai"></div><span>Nano</span></button>
+                            <button class="template-btn" data-template="../img/tree-chatgpt.png"><div class="template-status status-ai"></div><span>ChatGPT</span></button>
+                            <button class="template-btn" data-template="../img/tree-deepAI.jpeg"><div class="template-status status-ai"></div><span>DeepAI</span></button>
                         </div>
                     </div>
+
+                    <button id="viewLicenses" class="licenses-btn">
+                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <polyline points="14 2 14 8 20 8"/>
+                            <line x1="16" y1="13" x2="8" y2="13"/>
+                            <line x1="16" y1="17" x2="8" y2="17"/>
+                        </svg>
+                        View Licenses
+                    </button>
                 </aside>
 
                 <div class="panel">
@@ -255,7 +286,7 @@ Last Updated: January 2025
                             Analysis Quick Guide
                         </div>
                         <div class="guide-content">
-                            <p><strong>1. Log Visuals vs. Linear Truth:</strong> The images use Log scaling so you can see them. Internally, we score using Linear power to catch "invisible" grid spikes that are mathematically massive. This is standard practice in signal processing—log for visibility, linear for accuracy.</p>
+                            <p><strong>1. Log Visuals vs. Linear Truth:</strong> The images use Log scaling so you can see them. Internally, we score using Linear power to catch "invisible" grid spikes that are mathematically massive. This is standard practice in signal processing: log for visibility, linear for accuracy.</p>
 
                             <p><strong>2. Why Laplacian?</strong> We run a High-Pass filter (3×3 Laplacian kernel) to strip image content. The filter sums to zero, guaranteeing removal of the DC component (average brightness). We're looking for the manufacturing defects of the generator, not the picture itself.</p>
 
@@ -290,13 +321,13 @@ Last Updated: January 2025
                             <h3>2. Channel Selection (Blue Channel)</h3>
 
                             <p>
-                                We default to the <strong>Blue Channel</strong>. In digital sensors using a Bayer Filter, color sampling is non-uniform: 50% green, 25% red, 25% blue. The blue channel has the lowest sampling density and typically the lowest signal-to-noise ratio. Compression artifacts and generation errors are most prominent in this channel—making it the "canary in the coal mine" for forensic analysis.
+                                We default to the <strong>Blue Channel</strong>. In digital sensors using a Bayer Filter, color sampling is non-uniform: 50% green, 25% red, 25% blue. The blue channel has the lowest sampling density and typically the lowest signal-to-noise ratio. Compression artifacts and generation errors are most prominent in this channel, making it the "canary in the coal mine" for forensic analysis.
                             </p>
 
                             <h3>3. Edge Detection (Laplacian High-Pass)</h3>
 
                             <p>
-                                A 3×3 Laplacian kernel acts as a second-order derivative filter. Because the kernel sums to zero, it guarantees removal of the DC component (average pixel intensity), leaving only high-frequency content. This effectively removes the "picture" (faces, objects, scenes) and reveals the underlying "texture" (pixel-level relationships, compression artifacts, generation defects).
+                                A 3×3 Laplacian kernel acts as a second-order derivative filter. Because the kernel sums to zero, it guarantees removal of the DC component (average pixel intensity), leaving only high-frequency content. This effectively removes the "picture" (faces, objects, scenes) and reveals the underlying "texture" (pixel-level relationships, compression artifacts, generation defects). The one-pixel border, which the kernel cannot reach, is zeroed after filtering; leaving raw intensities there would paint a bright frame around the zero-centered interior and stamp a large artificial cross onto the spectrum at exactly the cardinal angles the grid score measures.
                             </p>
 
                             <h3>4. Windowing (Hanning)</h3>
@@ -316,7 +347,7 @@ Last Updated: January 2025
                             </p>
                             <p>
                                 <strong>Transposed Convolutions & Checkerboard Artifacts:</strong><br>
-                                Many GANs and older generative models use transposed convolutions (also called deconvolution) for upsampling. This operation can create checkerboard patterns in the spatial domain—subtle enough to be invisible to the eye, but mathematically regular. In the frequency domain, these artifacts manifest as a periodic grid or star pattern at regular intervals, corresponding to the upsampling factor.
+                                Many GANs and older generative models use transposed convolutions (also called deconvolution) for upsampling. This operation can create checkerboard patterns in the spatial domain that are subtle enough to be invisible to the eye, but mathematically regular. In the frequency domain, these artifacts manifest as a periodic grid or star pattern at regular intervals, corresponding to the upsampling factor.
                             </p>
 
                             <h3>6. FFT Engine: WASM vs JavaScript</h3>
@@ -325,24 +356,26 @@ Last Updated: January 2025
                                 The tool supports two FFT implementations with automatic fallback:
                             </p>
                             <p style="margin-left: 12px;">
-                                <strong>WASM (Rust) – Preferred:</strong><br>
-                                <span style="color: var(--text-secondary);">• Handles any image dimensions (not limited to powers of 2)</span><br>
-                                <span style="color: var(--text-secondary);">• 3-10x faster through native compiled code and SIMD optimizations</span><br>
-                                <span style="color: var(--text-secondary);">• Uses Rust's FFT library for production-grade accuracy</span><br>
+                                <strong>WASM (Rust) - Preferred:</strong><br>
+                                <span style="color: var(--text-secondary);">• Handles any image dimensions (not limited to powers of 2), so no resampling at native size</span><br>
+                                <span style="color: var(--text-secondary);">• 3-10x faster through native compiled code and SIMD optimizations (rustfft)</span><br>
                                 <span style="color: var(--text-secondary);">• Returns centered output directly (no post-shift needed)</span>
                             </p>
                             <p style="margin-left: 12px;">
-                                <strong>JavaScript – Fallback:</strong><br>
+                                <strong>JavaScript - Fallback:</strong><br>
                                 <span style="color: var(--text-secondary);">• Custom Cooley-Tukey implementation (requires power-of-2 dimensions)</span><br>
-                                <span style="color: var(--text-secondary);">• Upscales non-square images to next power-of-2 (e.g., 3151×4096 → 4096×4096)</span><br>
+                                <span style="color: var(--text-secondary);">• Resamples the image to a power-of-2 square (e.g., 3151×4096 to 4096×4096), which distorts aspect ratio and adds interpolation artifacts; prefer WASM for forensic fidelity</span><br>
                                 <span style="color: var(--text-secondary);">• Pure JS, works in any browser without WASM support</span><br>
                                 <span style="color: var(--text-secondary);">• Separable 2D FFT: rows then columns (O(n² log n) complexity)</span>
+                            </p>
+                            <p style="margin-left: 12px;">
+                                <span style="color: var(--text-secondary);">Both engines cap analysis at 4096px on the longest side to bound memory use; larger images are downscaled proportionally and the header notes the analyzed size.</span>
                             </p>
 
                             <h3>7. Grid Prominence Score</h3>
 
                             <p>
-                                The tool calculates a "Grid Prominence Score" by comparing peak power at cardinal angles (0°, 90°, 180°, 270°) against local averages. Higher ratios indicate stronger periodic artifacts characteristic of upsampling. The score is logged to the console but not displayed in the UI—it's used for internal analysis and future improvements.
+                                The tool calculates a "Grid Prominence Score" by comparing peak linear power in a ±2° window at cardinal angles (0°, 90°, 180°, 270°) against the surrounding ±15° baseline of the azimuthal profile, always on linear power regardless of the Visual Log Scale toggle. Higher ratios indicate stronger periodic artifacts. The score and a qualitative band are shown in the sidebar. On the bundled templates the real photo and the modern diffusion outputs all sit below 2x, while the flatbed scan scores around 23x: scanner halftone and demosaic patterns are genuinely periodic, so a high score means "periodic structure", not "AI". Treat it as one heuristic among many, never a verdict.
                             </p>
 
                             <h3>8. References & Further Reading</h3>
@@ -358,10 +391,54 @@ Last Updated: January 2025
             </div>
         </main>
 
+        <div class="modal-overlay" id="attributionsModal">
+            <div class="modal">
+                <div class="modal-header">
+                    <h2 class="modal-title">Attributions &amp; Licenses</h2>
+                    <button class="modal-close" id="closeAttributions">&times;</button>
+                </div>
+                <div class="modal-content">
+                    <h3>Compiled into the WASM FFT engine</h3>
+
+                    <div class="library-entry">
+                        <h4>RustFFT 6.1</h4>
+                        <p>SIMD-accelerated FFT library for Rust; performs the 2D spectrum computation for arbitrary image sizes.</p>
+                        <div class="library-license">
+                            <span>License:</span>
+                            <a href="https://github.com/ejmahler/RustFFT/blob/master/LICENSE-MIT" target="_blank" rel="noopener">
+                                MIT OR Apache-2.0
+                                <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                                    <polyline points="15 3 21 3 21 9"/>
+                                </svg>
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="library-entry">
+                        <h4>wasm-bindgen / js-sys / web-sys</h4>
+                        <p>Rust to JavaScript/WebAssembly binding layer used to expose the FFT to the browser.</p>
+                        <div class="library-license">
+                            <span>License:</span>
+                            <a href="https://github.com/rustwasm/wasm-bindgen/blob/main/LICENSE-MIT" target="_blank" rel="noopener">
+                                MIT OR Apache-2.0
+                                <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                                    <polyline points="15 3 21 3 21 9"/>
+                                </svg>
+                            </a>
+                        </div>
+                    </div>
+
+                    <p style="font-size: 0.8rem; color: var(--text-muted);">The JavaScript fallback FFT, all visualization code, and the UI are original to this project (GPL-3.0). Rust sources for the WASM module live in <code>rust/ai_image_detection_fft_wasm/</code>.</p>
+                </div>
+            </div>
+        </div>
+
         <footer data-footer></footer>
     </div>
 
-    <script type="module" src="../js/shared.js"></script>
+    <script src="../js/shared.js"></script>
     <script type="module" src="../js/footer.js"></script>
     <script type="module" src="../js/ai_image_detector/ai-image-detector.js"></script>
 </body>

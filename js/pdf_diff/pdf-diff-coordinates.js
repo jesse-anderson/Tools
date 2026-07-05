@@ -127,17 +127,19 @@ function getCanvasBoundingBox(textItem, pdfKey) {
 function bboxPdfToCanvas(bbox, pdfKey) {
     const scale = pdfKey === 'A' ? state.canvasScaleA : state.canvasScaleB;
     const pdfHeight = pdfKey === 'A' ? state.pdfHeightA : state.pdfHeightB;
+    return bboxToCanvasSpace(bbox, scale, pdfHeight);
+}
 
-    // Debug: Check for NaN sources
-    // if (!scale || !pdfHeight || !bbox) {
-    //     console.error('[bboxPdfToCanvas] Missing values:', {
-    //         pdfKey,
-    //         scale,
-    //         pdfHeight,
-    //         bbox
-    //     });
-    //     return { x: 0, y: 0, width: 0, height: 0 };
-    // }
+/**
+ * Pure core of the PDF-to-canvas bounding box conversion.
+ * Kept free of app state so it can be tested directly.
+ *
+ * @param {Object} bbox - Bounding box in PDF space {x, y, width, height, rotation}
+ * @param {number} scale - Canvas scale factor
+ * @param {number} pdfHeight - Page height in PDF units (at scale 1.0)
+ * @returns {Object} Bounding box in canvas space {x, y, width, height}
+ */
+function bboxToCanvasSpace(bbox, scale, pdfHeight) {
     if (!scale || !pdfHeight || !bbox) {
         return { x: 0, y: 0, width: 0, height: 0 };
     }
@@ -214,5 +216,6 @@ export {
     canvasToPdfCoord,
     pdfToCanvasCoords,
     getCanvasBoundingBox,
-    bboxPdfToCanvas
+    bboxPdfToCanvas,
+    bboxToCanvasSpace
 };

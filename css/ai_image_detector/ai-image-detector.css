@@ -193,6 +193,35 @@ body {
     gap: 6px;
 }
 
+.score-box {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 8px 10px;
+}
+
+.score-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--accent-engineering);
+}
+
+.score-band {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+}
+
+.score-note {
+    font-size: 0.68rem;
+    color: var(--text-muted);
+    line-height: 1.4;
+    margin: 6px 0 0 0;
+}
+
 .template-btn {
     background: var(--bg-secondary);
     border: 1px solid var(--border-color);
@@ -607,7 +636,135 @@ progress::-webkit-progress-value {
 }
 
 /* =========================================
-   8. RESPONSIVE DESIGN
+   8. LICENSES BUTTON & MODAL
+   ========================================= */
+.licenses-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin-top: 16px;
+    padding: 8px 12px;
+    width: 100%;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    color: var(--text-secondary);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.licenses-btn:hover {
+    border-color: var(--accent-engineering);
+    color: var(--text-primary);
+}
+
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal-overlay.active {
+    display: flex;
+}
+
+.modal {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    max-width: 600px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.modal-title {
+    margin: 0;
+    font-size: 1.1rem;
+    color: var(--text-primary);
+}
+
+.modal-close {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 1.5rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0 4px;
+}
+
+.modal-close:hover {
+    color: var(--text-primary);
+}
+
+.modal-content {
+    padding: 20px;
+}
+
+.modal-content h3 {
+    font-size: 0.9rem;
+    color: var(--text-primary);
+    margin: 0 0 12px 0;
+}
+
+.library-entry {
+    margin-bottom: 20px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.library-entry h4 {
+    margin: 0 0 6px 0;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+}
+
+.library-entry p {
+    margin: 0 0 8px 0;
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    line-height: 1.5;
+}
+
+.library-license {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.library-license a {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--accent-engineering);
+    text-decoration: none;
+}
+
+.library-license a:hover {
+    text-decoration: underline;
+}
+
+/* =========================================
+   9. RESPONSIVE DESIGN
    ========================================= */
 @media (max-width: 1024px) {
     .calculator-layout {

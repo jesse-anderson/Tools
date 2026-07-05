@@ -33,14 +33,21 @@ function generateDiffReport() {
     report += 'PDF B: ' + (state.fileBName || 'Unknown') + '\n';
     report += '\n';
 
-    // Summary Statistics
+    // Diff options used
+    const options = state.options || {};
+    report += 'Options: granularity=' + (options.granularity || 'char')
+        + ', ignoreCase=' + Boolean(options.ignoreCase)
+        + ', pageBreaksAsSpaces=' + Boolean(options.pageBreaksAsSpaces) + '\n';
+    report += '\n';
+
+    // Summary Statistics (region counts, with character magnitudes)
     report += '-'.repeat(60) + '\n';
     report += 'SUMMARY\n';
     report += '-'.repeat(60) + '\n';
-    report += 'Insertions:    ' + stats.insertions + '\n';
-    report += 'Deletions:     ' + stats.deletions + '\n';
-    report += 'Modifications: ' + Math.round(stats.modifications / 2) + '\n';
-    report += 'Unchanged:     ' + stats.unchanged + '\n';
+    report += 'Insertions:    ' + stats.insertions + ' (' + stats.insertedChars + ' chars)\n';
+    report += 'Deletions:     ' + stats.deletions + ' (' + stats.deletedChars + ' chars)\n';
+    report += 'Modifications: ' + stats.modifications + ' (' + stats.modifiedChars + ' chars)\n';
+    report += 'Unchanged:     ' + stats.unchanged + ' chars\n';
     report += '\n';
 
     // Detailed changes by page
@@ -126,7 +133,7 @@ function generateDiffReport() {
                     const oldText = (diff.originalText || diff.text).replace(/\n/g, '\\n').substring(0, 40);
                     const newText = (diff.modifiedText || diff.text).replace(/\n/g, '\\n').substring(0, 40);
                     report += '    ~ "' + oldText + (diff.originalText?.length > 40 || diff.text.length > 40 ? '...' : '') + '"\n';
-                    report += '      → "' + newText + (diff.modifiedText?.length > 40 || diff.text.length > 40 ? '...' : '') + '"\n';
+                    report += '      -> "' + newText + (diff.modifiedText?.length > 40 || diff.text.length > 40 ? '...' : '') + '"\n';
                 }
                 if (pageChanges.modifications.length > 10) {
                     report += '    ... and ' + (pageChanges.modifications.length - 10) + ' more\n';
@@ -156,13 +163,17 @@ function generateDiffReportJSON() {
             generated: new Date().toISOString(),
             pdfA: state.fileAName || 'Unknown',
             pdfB: state.fileBName || 'Unknown',
-            tool: 'PDF Diff Checker v1.0.0',
-            url: 'https://github.com/jesse-anderson/Tools'
+            tool: 'PDF Diff Checker',
+            url: 'https://github.com/jesse-anderson/Tools',
+            options: { ...(state.options || {}) }
         },
         summary: {
             insertions: stats.insertions,
             deletions: stats.deletions,
-            modifications: Math.round(stats.modifications / 2),
+            modifications: stats.modifications,
+            insertedChars: stats.insertedChars,
+            deletedChars: stats.deletedChars,
+            modifiedChars: stats.modifiedChars,
             unchanged: stats.unchanged
         },
         changes: {
@@ -245,30 +256,22 @@ function downloadFile(content, filename, mimeType) {
 // ============================================
 
 /**
- * Handle export button click - shows format selection dialog
+ * Handle export button click for a specific format (no prompt dialogs).
+ * @param {string} format - 'txt' or 'json'
  * @param {Function} showErrorFn - Error display function from UI module
  */
-function handleExportReport(showErrorFn) {
+function handleExportReport(format, showErrorFn) {
     if (!state.diffResults || state.diffResults.length === 0) {
         showErrorFn('No diff results to export. Please compare PDFs first.');
         return;
     }
 
-    // Ask user for format preference
-    const format = prompt('Select export format:\n1 - Text Report (.txt)\n2 - JSON Report (.json)\n\nEnter 1 or 2:', '1');
-
-    if (format === '1') {
-        // Text format
-        const report = generateDiffReport();
-        const filename = 'diff-report-' + Date.now() + '.txt';
-        downloadFile(report, filename, 'text/plain');
-    } else if (format === '2') {
-        // JSON format
+    if (format === 'json') {
         const report = generateDiffReportJSON();
-        const filename = 'diff-report-' + Date.now() + '.json';
-        downloadFile(report, filename, 'application/json');
+        downloadFile(report, 'diff-report-' + Date.now() + '.json', 'application/json');
     } else {
-        showErrorFn('Invalid format selection.');
+        const report = generateDiffReport();
+        downloadFile(report, 'diff-report-' + Date.now() + '.txt', 'text/plain');
     }
 }
 

@@ -13,6 +13,8 @@ import { computeDiff, getDiffStats, mapDiffsToCoordinates, buildPageDiffMapping 
 import { renderPage, updatePageIndicator, updateNavigationButtons, init as initRendering } from './pdf-diff-rendering.js';
 import { handleExportReport } from './pdf-diff-export.js';
 import { getDiffTexts } from './pdf-diff-layout.js';
+import { renderVisualDiff } from './pdf-diff-visual.js';
+import { bboxPdfToCanvas } from './pdf-diff-coordinates.js';
 
 // ============================================
 // DOM Elements
@@ -55,6 +57,24 @@ const elements = {
     deletionCount: null,
     modificationCount: null,
     exportReportBtn: null,
+    exportJsonBtn: null,
+
+    // Diff options
+    granularitySelect: null,
+    ignoreCaseChk: null,
+    pageBreaksChk: null,
+
+    // Change navigation
+    changeNav: null,
+    prevChangeBtn: null,
+    nextChangeBtn: null,
+    changeIndicator: null,
+
+    // Visual diff
+    visualDiffBtn: null,
+    visualDiffInfo: null,
+    visualDiffPanel: null,
+    visualDiffCanvas: null,
 
     // Modal
     licensesModal: null,
@@ -80,7 +100,10 @@ function init() {
         'prevPageA', 'nextPageA', 'prevPageB', 'nextPageB',
         'pageIndicatorA', 'pageIndicatorB',
         'summarySection', 'insertionCount', 'deletionCount', 'modificationCount',
-        'exportReportBtn', 'viewLicensesBtn', 'licensesModal', 'closeLicenses'
+        'exportReportBtn', 'exportJsonBtn', 'viewLicensesBtn', 'licensesModal', 'closeLicenses',
+        'granularitySelect', 'ignoreCaseChk', 'pageBreaksChk',
+        'changeNav', 'prevChangeBtn', 'nextChangeBtn', 'changeIndicator',
+        'visualDiffBtn', 'visualDiffInfo', 'visualDiffPanel', 'visualDiffCanvas'
     ];
 
     const missing = requiredIds.filter(id => !document.getElementById(id));
@@ -149,9 +172,21 @@ function cacheElements() {
     elements.deletionCount = document.getElementById('deletionCount');
     elements.modificationCount = document.getElementById('modificationCount');
     elements.exportReportBtn = document.getElementById('exportReportBtn');
+    elements.exportJsonBtn = document.getElementById('exportJsonBtn');
     elements.viewLicensesBtn = document.getElementById('viewLicensesBtn');
     elements.licensesModal = document.getElementById('licensesModal');
     elements.closeLicenses = document.getElementById('closeLicenses');
+    elements.granularitySelect = document.getElementById('granularitySelect');
+    elements.ignoreCaseChk = document.getElementById('ignoreCaseChk');
+    elements.pageBreaksChk = document.getElementById('pageBreaksChk');
+    elements.changeNav = document.getElementById('changeNav');
+    elements.prevChangeBtn = document.getElementById('prevChangeBtn');
+    elements.nextChangeBtn = document.getElementById('nextChangeBtn');
+    elements.changeIndicator = document.getElementById('changeIndicator');
+    elements.visualDiffBtn = document.getElementById('visualDiffBtn');
+    elements.visualDiffInfo = document.getElementById('visualDiffInfo');
+    elements.visualDiffPanel = document.getElementById('visualDiffPanel');
+    elements.visualDiffCanvas = document.getElementById('visualDiffCanvas');
 }
 
 // ============================================
@@ -166,7 +201,11 @@ function bindUploadHandlers() {
 function bindActionButtons() {
     elements.compareBtn.addEventListener('click', handleCompare);
     elements.clearBtn.addEventListener('click', handleClear);
-    elements.exportReportBtn.addEventListener('click', () => handleExportReport(showError));
+    elements.exportReportBtn.addEventListener('click', () => handleExportReport('txt', showError));
+    elements.exportJsonBtn.addEventListener('click', () => handleExportReport('json', showError));
+    elements.prevChangeBtn.addEventListener('click', () => jumpToChange(-1));
+    elements.nextChangeBtn.addEventListener('click', () => jumpToChange(1));
+    elements.visualDiffBtn.addEventListener('click', toggleVisualDiff);
 }
 
 function bindPageNavigation() {
@@ -391,7 +430,120 @@ function navigatePage(pdfKey, direction) {
         } else {
             state.currentPageB = newPage;
         }
-        renderPage(pdfKey);
+        renderPage(pdfKey).then(() => refreshVisualDiffIfVisible());
+    }
+}
+
+// ============================================
+// Change Navigation
+// ============================================
+
+function updateChangeIndicator() {
+    const total = state.changes.length;
+    if (!total) {
+        elements.changeIndicator.textContent = 'No changes';
+        elements.prevChangeBtn.disabled = true;
+        elements.nextChangeBtn.disabled = true;
+        return;
+    }
+    elements.prevChangeBtn.disabled = false;
+    elements.nextChangeBtn.disabled = false;
+    if (state.focusedChangeIndex < 0) {
+        elements.changeIndicator.textContent = `${total} change${total === 1 ? '' : 's'}`;
+    } else {
+        const change = state.changes[state.focusedChangeIndex];
+        elements.changeIndicator.textContent =
+            `Change ${state.focusedChangeIndex + 1} of ${total} (${change.type})`;
+    }
+}
+
+/**
+ * Jump to the previous/next change region: flips both panes to the pages
+ * that contain it, re-renders highlights with the focused change marked,
+ * and scrolls each pane so the change is visible.
+ * @param {number} direction - -1 previous, 1 next (wraps around)
+ */
+async function jumpToChange(direction) {
+    const total = state.changes.length;
+    if (!total) {
+        return;
+    }
+
+    let index = state.focusedChangeIndex + direction;
+    if (index < 0) index = total - 1;
+    if (index >= total) index = 0;
+    state.focusedChangeIndex = index;
+
+    const change = state.changes[index];
+    if (change.pageIndexA != null) {
+        state.currentPageA = change.pageIndexA;
+    }
+    if (change.pageIndexB != null) {
+        state.currentPageB = change.pageIndexB;
+    }
+
+    // renderPage sets the scale/height state that bboxPdfToCanvas needs
+    await renderPage('A');
+    await renderPage('B');
+    await refreshVisualDiffIfVisible();
+
+    scrollChangeIntoView('A', change.bboxA);
+    scrollChangeIntoView('B', change.bboxB);
+    updateChangeIndicator();
+}
+
+function scrollChangeIntoView(pdfKey, bbox) {
+    if (!bbox) {
+        return;
+    }
+    const container = pdfKey === 'A' ? elements.canvasContainerA : elements.canvasContainerB;
+    const coords = bboxPdfToCanvas(bbox, pdfKey);
+    // Center the change vertically in the pane
+    const targetTop = Math.max(0, coords.y - container.clientHeight / 2);
+    const targetLeft = Math.max(0, coords.x - container.clientWidth / 2);
+    container.scrollTo({ top: targetTop, left: targetLeft, behavior: 'smooth' });
+}
+
+// ============================================
+// Visual (Pixel) Diff
+// ============================================
+
+async function toggleVisualDiff() {
+    if (elements.visualDiffPanel.style.display !== 'none') {
+        elements.visualDiffPanel.style.display = 'none';
+        elements.visualDiffInfo.textContent = '';
+        return;
+    }
+    await runVisualDiff();
+}
+
+async function runVisualDiff() {
+    if (!state.pdfA || !state.pdfB) {
+        showError('Load both PDFs before running a visual diff.');
+        return;
+    }
+    try {
+        elements.visualDiffBtn.disabled = true;
+        elements.visualDiffInfo.textContent = 'Rendering visual diff...';
+        const result = await renderVisualDiff(elements.visualDiffCanvas);
+        elements.visualDiffPanel.style.display = 'block';
+        const pages = `page ${state.currentPageA + 1} (A) vs page ${state.currentPageB + 1} (B)`;
+        let text = `${result.changedPercent.toFixed(2)}% of pixels differ, ${pages}`;
+        if (result.sizeMismatch) {
+            text += ' - page sizes differ; compared shared top-left region';
+        }
+        elements.visualDiffInfo.textContent = text;
+    } catch (error) {
+        console.error('Visual diff failed:', error);
+        showError(`Visual diff failed: ${error.message}`);
+    } finally {
+        elements.visualDiffBtn.disabled = false;
+    }
+}
+
+async function refreshVisualDiffIfVisible() {
+    if (elements.visualDiffPanel && elements.visualDiffPanel.style.display !== 'none') {
+        await runVisualDiff();
     }
 }
 
@@ -419,10 +571,8 @@ async function handleCompare() {
         elements.progressSection.style.display = 'block';
         updateProgress(0, 'Extracting text from PDF A...');
 
-        // Extract text from both PDFs
+        // Extract text from both PDFs (extraction reports 0-50 for A, 50-100 for B)
         state.textItemsA = await extractTextFromPDF(state.pdfA, 'A', updateProgress);
-        updateProgress(25, 'Extracting text from PDF B...');
-
         state.textItemsB = await extractTextFromPDF(state.pdfB, 'B', updateProgress);
 
         // Check for scanned PDFs (no text content)
@@ -454,44 +604,53 @@ async function handleCompare() {
         }
 
         // Build document text sequences for diffing
-        updateProgress(50, 'Building document sequences...');
+        updateProgress(90, 'Building document sequences...');
         const { textA, textB, sequenceA, sequenceB } = getDiffTexts();
 
         // Store sequences for later use in highlight rendering
         state.sequenceA = sequenceA;
         state.sequenceB = sequenceB;
 
+        // Read diff options from the UI
+        state.options = {
+            granularity: elements.granularitySelect.value === 'word' ? 'word' : 'char',
+            ignoreCase: elements.ignoreCaseChk.checked,
+            pageBreaksAsSpaces: elements.pageBreaksChk.checked
+        };
+
         // Compute document-level diff
-        updateProgress(75, 'Computing differences...');
-        const diffs = computeDiff(textA, textB);
+        updateProgress(93, 'Computing differences...');
+        const diffs = computeDiff(textA, textB, state.options);
         state.diffResults = diffs;
 
         // Map diff results back to source coordinates
-        updateProgress(85, 'Mapping differences to coordinates...');
-        const { diffsA, diffsB } = mapDiffsToCoordinates(diffs, sequenceA, sequenceB);
+        updateProgress(96, 'Mapping differences to coordinates...');
+        const { diffsA, diffsB, changes } = mapDiffsToCoordinates(diffs, sequenceA, sequenceB);
 
         // Build page-to-diff mappings for efficient rendering
         state.pageDiffsA = buildPageDiffMapping(diffsA);
         state.pageDiffsB = buildPageDiffMapping(diffsB);
 
-        // Calculate and display statistics
+        // Change navigation state
+        state.changes = changes;
+        state.focusedChangeIndex = -1;
+        updateChangeIndicator();
+        elements.changeNav.style.display = changes.length ? 'flex' : 'none';
+
+        // Calculate and display statistics (region counts, not halved chars)
         const stats = getDiffStats(diffs);
         updateProgress(100, 'Comparison complete');
 
         // Update summary section
         elements.insertionCount.textContent = stats.insertions;
         elements.deletionCount.textContent = stats.deletions;
-        elements.modificationCount.textContent = Math.round(stats.modifications / 2); // Divide by 2 since we count both delete and insert
+        elements.modificationCount.textContent = stats.modifications;
         elements.summarySection.style.display = 'block';
-
-        console.log('Diff results:', diffs);
-        console.log('Stats:', stats);
-        console.log('Page diffs A:', state.pageDiffsA);
-        console.log('Page diffs B:', state.pageDiffsB);
 
         // Re-render current pages with highlights
         await renderPage('A');
         await renderPage('B');
+        await refreshVisualDiffIfVisible();
 
         // Hide progress after a brief delay
         setTimeout(() => {
@@ -543,6 +702,8 @@ async function handleClear() {
     state.sequenceA = [];
     state.sequenceB = [];
     state.diffResults = [];
+    state.changes = [];
+    state.focusedChangeIndex = -1;
     state.pageDiffsA = {};
     state.pageDiffsB = {};
     state.pdfWidthA = 0;
@@ -575,6 +736,10 @@ async function handleClear() {
     elements.comparisonSection.style.display = 'none';
     elements.summarySection.style.display = 'none';
     elements.progressSection.style.display = 'none';
+    elements.changeNav.style.display = 'none';
+    elements.visualDiffPanel.style.display = 'none';
+    elements.visualDiffInfo.textContent = '';
+    updateChangeIndicator();
 
     // Clear edge case messages
     document.querySelectorAll('.edge-case-message').forEach(el => el.remove());

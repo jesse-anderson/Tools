@@ -36,6 +36,17 @@ const state = {
     // Computed diff results
     diffResults: [],
 
+    // Diff options used for the last comparison
+    options: {
+        granularity: 'char',      // 'char' | 'word'
+        ignoreCase: false,
+        pageBreaksAsSpaces: false
+    },
+
+    // Ordered change regions for prev/next navigation
+    changes: [],
+    focusedChangeIndex: -1,
+
     // Page-to-diff mapping for rendering highlights
     pageDiffsA: {}, // pageIndex -> array of diffs
     pageDiffsB: {},
@@ -130,6 +141,8 @@ function resetState() {
     state.sequenceA = [];
     state.sequenceB = [];
     state.diffResults = [];
+    state.changes = [];
+    state.focusedChangeIndex = -1;
     state.pageDiffsA = {};
     state.pageDiffsB = {};
     state.pdfWidthA = 0;
