@@ -15,8 +15,28 @@
 // legitimately detects as periodic.
 
 const { test, expect } = require('@playwright/test');
+const { startServer } = require('./server.cjs');
 
 const TOOL_PATH = '/tools/ai-image-detector.html';
+let smokeServer;
+
+// Own the static server like every other page-navigating spec. Without this the
+// spec relied on a server already listening on 4173, which held locally but not
+// in CI, where this file runs first alphabetically with nothing started yet
+// (net::ERR_CONNECTION_REFUSED).
+test.beforeAll(async () => {
+  smokeServer = await startServer({
+    port: Number(process.env.PORT || 4173),
+    reuseExisting: !process.env.CI
+  });
+});
+
+test.afterAll(async () => {
+  if (smokeServer) {
+    await smokeServer.close();
+    smokeServer = null;
+  }
+});
 
 async function openTool(page) {
   const errors = [];
