@@ -24,7 +24,8 @@ module.exports = defineConfig({
     'lamport-timestamps.spec.cjs',
     'pdf-diff.spec.cjs',
     'ai-image-detector.spec.cjs',
-    'toxicology-body-burden.spec.cjs'
+    'toxicology-body-burden.spec.cjs',
+    'oral-multidose.spec.cjs'
   ],
   timeout: 60_000,
   fullyParallel: false,
