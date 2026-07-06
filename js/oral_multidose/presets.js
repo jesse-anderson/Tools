@@ -244,6 +244,55 @@ export const PRESETS = {
         isOral: true,
         analyteNote: "Parent drug only; active metabolite norfluoxetine (t1/2 7-15 days) not modeled"
     },
+    phenytoin: {
+        name: "Phenytoin (oral, saturable / Michaelis-Menten)",
+        halfLife: 22,
+        halfLifeRange: [7, 42],
+        tmax: 6,
+        tmaxRange: [4, 12],
+        bioavailability: 0.9,
+        tLag: 0,
+        doseForm: "IR",
+        paramMode: "C",
+        ka: 0.8,
+        dose: 300,
+        tau: 24,
+        numDoses: 14,
+        elimMode: "mm",
+        Vmax: 20,   // mg/h; adult ~6.9 mg/kg/day x 70 kg / 24
+        Km: 290,    // mg (amount); ~6.4 mg/L x Vd ~45 L
+        notes: "Classic saturable (Michaelis-Menten) elimination: below ~10 mg/L phenytoin clears first-order (t½≈22h), but the metabolizing enzymes saturate near the therapeutic window, so clearance turns zero-order. The consequence is dramatic nonlinearity: try raising the dose from 300 to 400 mg/day and watch the plateau jump far more than proportionally. Vmax≈20 mg/h and Km≈290 mg (amount) here follow adult population means (Vmax 6.9 mg/kg/day, Km 6.4 mg/L, Vd≈45 L). Set Vd≈45 L for mg/L output.",
+        refs: [
+            { label: "PHT1", url: "https://www.ncbi.nlm.nih.gov/books/NBK551520/", text: "StatPearls: Phenytoin (first-order below 10 mg/L, zero-order at saturation)" },
+            { label: "PHT2", url: "https://pubmed.ncbi.nlm.nih.gov/2714918/", text: "el-Sayed & Islam 1989, adult Vmax 6.91 mg/kg/day, Km 6.44 mg/L" }
+        ],
+        isOral: true,
+        analyteNote: "Saturable elimination; entered half-life is only the low-concentration first-order value, not used by the nonlinear model"
+    },
+    ethanol: {
+        name: "Ethanol (oral, zero-order elimination)",
+        halfLife: 4,
+        halfLifeRange: [2, 6],
+        tmax: 0.6,
+        tmaxRange: [0.5, 1.5],
+        bioavailability: 0.9,
+        tLag: 0,
+        doseForm: "IR",
+        paramMode: "C",
+        ka: 6,
+        dose: 14000,   // one US standard drink ~14 g ethanol, in mg
+        tau: 1,
+        numDoses: 4,
+        elimMode: "zero",
+        k0: 7000,      // mg/h constant clearance (~7 g/h for a 70 kg adult)
+        notes: "The textbook zero-order drug: once the first few grams saturate alcohol dehydrogenase, ethanol leaves at a near-constant ~7 g/h (≈0.15 g/L/h) regardless of how much is on board, so blood levels fall in a straight line, not an exponential. One \"dose\" here is one standard drink (~14 g). Drinking faster than the body clears (q1h) stacks the linear declines into a rising sawtooth. Set Vd≈42 L for a rough BAC in mg/L (divide by 1000 for g/L).",
+        refs: [
+            { label: "ETH1", url: "https://pubmed.ncbi.nlm.nih.gov/20304569/", text: "Jones 2010, zero-order blood ethanol, 10-35 mg/100mL/h" },
+            { label: "ETH2", url: "https://pmc.ncbi.nlm.nih.gov/articles/PMC3484320/", text: "Cederbaum 2012, ~7 g/h metabolic capacity (70 kg)" }
+        ],
+        isOral: true,
+        analyteNote: "Zero-order (constant-rate) elimination; entered half-life is not used by the model"
+    },
     tobacco: {
         name: "Tobacco (Smoke) - Nicotine Comparator",
         halfLife: 2,

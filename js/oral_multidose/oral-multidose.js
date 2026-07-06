@@ -4,7 +4,7 @@
 
 import { PRESETS } from './presets.js';
 import {
-    kaFromBucket, solveKaFromTmax, propagate, buildSchedule, buildBaselineSchedule,
+    kaFromBucket, solveKaFromTmax, propagate, propagateSaturable, buildSchedule, buildBaselineSchedule,
     simulate, computeIntervalAUC, findIntervalExtrema,
     computeMetrics, computePercentileBands, runMonteCarlo, mulberry32
 } from './oral-pk-engine.js';
@@ -16,6 +16,7 @@ function getTheme() { return document.documentElement.getAttribute('data-theme')
 // ============================================
 let currentDoseForm = "IR";
 let currentParamMode = "A";
+let currentElimMode = "firstorder";
 let scheduleEvents = [];
 let simulationData = null;
 
@@ -75,6 +76,13 @@ function setParamMode(mode) {
     document.getElementById('modeCInputs').style.display = (mode === 'C') ? 'block' : 'none';
 }
 
+function setElimMode(mode) {
+    currentElimMode = mode;
+    document.getElementById('elimMode').value = mode;
+    document.getElementById('mmInputs').style.display = (mode === 'mm') ? 'block' : 'none';
+    document.getElementById('zeroInputs').style.display = (mode === 'zero') ? 'block' : 'none';
+}
+
 function toggleCollapsible(id, header) {
     const content = document.getElementById(id);
     const isOpen = content.classList.toggle('open');
@@ -127,6 +135,16 @@ function loadPreset() {
 
     // Set param mode
     setParamMode(preset.paramMode);
+
+    // Set elimination kinetics (first-order unless the preset is saturable)
+    const elimMode = preset.elimMode || 'firstorder';
+    setElimMode(elimMode);
+    if (elimMode === 'mm') {
+        if (preset.Vmax) document.getElementById('vmaxInput').value = preset.Vmax;
+        if (preset.Km) document.getElementById('kmInput').value = preset.Km;
+    } else if (elimMode === 'zero') {
+        if (preset.k0) document.getElementById('k0Input').value = preset.k0;
+    }
 
     // Mode-specific values
     if (preset.paramMode === 'B' && preset.tmax) {
@@ -824,7 +842,18 @@ function runSimulation() {
         const tLag = parseFloat(document.getElementById('tLag').value) || 0;
         const tRel = parseFloat(document.getElementById('tRel').value) || 8;
         const extendElimination = document.getElementById('extendElimination').checked;
-        
+
+        // Elimination kinetics (first-order default; saturable modes use RK4)
+        const elimMode = currentElimMode;
+        let Vmax = 0, Km = 0;
+        if (elimMode === 'mm') {
+            Vmax = parseFloat(document.getElementById('vmaxInput').value);
+            Km = parseFloat(document.getElementById('kmInput').value);
+        } else if (elimMode === 'zero') {
+            Vmax = parseFloat(document.getElementById('k0Input').value); // zero-order = Km -> 0
+            Km = 0;
+        }
+
         // Validate
         clearError();
         if (!dose || dose <= 0) { showError('Dose must be > 0'); return; }
@@ -832,8 +861,10 @@ function runSimulation() {
         if (!numDoses || numDoses < 1) { showError('Number of doses must be >= 1'); return; }
         if (!halfLife || halfLife <= 0) { showError('Half-life must be > 0'); return; }
         if (F < 0 || F > 1) { showError('Bioavailability must be 0-1'); return; }
-        
-        // Compute ke
+        if (elimMode === 'mm' && (!(Vmax > 0) || !(Km > 0))) { showError('Michaelis-Menten needs Vmax > 0 and Km > 0.'); return; }
+        if (elimMode === 'zero' && !(Vmax > 0)) { showError('Zero-order needs k0 > 0.'); return; }
+
+        // Compute ke (elimination rate; only used by the first-order model)
         const ke = Math.LN2 / halfLife;
         
         // Compute ka based on mode
@@ -864,7 +895,11 @@ function runSimulation() {
             ka = parseFloat(document.getElementById('kaInput').value);
         }
 
-        if (!ka || ka <= ke) {
+        if (!ka || ka <= 0) {
+            showError('ka must be > 0.');
+            return;
+        }
+        if (elimMode === 'firstorder' && ka <= ke) {
             showError('ka must be > ke for valid 1-compartment extravascular model.');
             return;
         }
@@ -899,13 +934,15 @@ function runSimulation() {
             ka, ke, F,
             schedule,
             duration,
-            samplesPerHour: samplesPlot
+            samplesPerHour: samplesPlot,
+            elimMode, Vmax, Km
         };
 
         // new
         const simParamsMetrics = {
             ka, ke, F, schedule, duration,
-            samplesPerHour: samplesMetrics
+            samplesPerHour: samplesMetrics,
+            elimMode, Vmax, Km
         };
 
         // Run main simulation
@@ -970,14 +1007,32 @@ function runSimulation() {
             : '-';
         document.getElementById('metricSteady').innerHTML = metrics.steadyState ? 'Yes' : 'No';
         
-        // Update elimination time metrics
-        document.getElementById('metricT5hl').innerHTML = formatTime(t5hl);
-        document.getElementById('metricT7hl').innerHTML = formatTime(t7hl);
-        
+        // Update elimination time metrics. Half-life is only constant under
+        // first-order kinetics; saturable modes have no fixed half-life.
+        if (elimMode === 'firstorder') {
+            document.getElementById('metricT5hl').innerHTML = formatTime(t5hl);
+            document.getElementById('metricT7hl').innerHTML = formatTime(t7hl);
+        } else {
+            document.getElementById('metricT5hl').innerHTML = 'n/a';
+            document.getElementById('metricT7hl').innerHTML = 'n/a';
+        }
+
         // Update derived parameters
-        document.getElementById('derivedKe').textContent = ke.toFixed(4);
+        const keLine = document.getElementById('derivedKeLine');
+        const satLine = document.getElementById('derivedSatLine');
         document.getElementById('derivedKa').textContent = ka.toFixed(4);
         document.getElementById('derivedF').textContent = F.toFixed(2);
+        if (elimMode === 'firstorder') {
+            document.getElementById('derivedKe').textContent = ke.toFixed(4);
+            keLine.style.display = 'block';
+            satLine.style.display = 'none';
+        } else {
+            keLine.style.display = 'none';
+            satLine.style.display = 'block';
+            document.getElementById('derivedSat').innerHTML = (elimMode === 'mm')
+                ? `Vmax = ${Vmax} mg/h, Km = ${Km} mg (Michaelis-Menten)`
+                : `k0 = ${Vmax} mg/h (zero-order)`;
+        }
         
         if (Vd) {
             document.getElementById('derivedVdLine').style.display = 'block';
@@ -1031,6 +1086,7 @@ function wireEvents() {
     document.querySelectorAll('.mode-container .mode-card').forEach(card => {
         card.addEventListener('click', () => setParamMode(card.querySelector('input').value));
     });
+    document.getElementById('elimMode').addEventListener('change', (e) => setElimMode(e.target.value));
 
     const onActivate = (header, fn) => {
         header.addEventListener('click', fn);
@@ -1076,7 +1132,7 @@ function clearError() {
 // Expose the pure engine for tests and programmatic use.
 window.OralMultiDose = {
     PRESETS,
-    kaFromBucket, solveKaFromTmax, propagate, buildSchedule, buildBaselineSchedule,
+    kaFromBucket, solveKaFromTmax, propagate, propagateSaturable, buildSchedule, buildBaselineSchedule,
     simulate, computeIntervalAUC, findIntervalExtrema,
     computeMetrics, computePercentileBands, runMonteCarlo, mulberry32,
 };

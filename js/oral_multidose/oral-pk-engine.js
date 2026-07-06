@@ -79,11 +79,51 @@ function propagate(Ag, Ac, ka, ke, F, dt) {
     
     const expKa = Math.exp(-ka * dt);
     const expKe = Math.exp(-ke * dt);
-    
+
     const Ag_new = Ag * expKa;
     const Ac_new = Ac * expKe + (F * ka * Ag / (ke - ka)) * (expKa - expKe);
-    
+
     return [Ag_new, Ac_new];
+}
+
+/**
+ * Numerical propagation for saturable (nonlinear) elimination over a time step.
+ * Absorption stays first-order (dAg/dt = -ka*Ag); central-compartment
+ * elimination follows Michaelis-Menten:
+ *   dAc/dt = F*ka*Ag - Vmax*Ac/(Km + Ac)
+ * Amounts are in mg, Vmax in mg/h, Km in mg (amount). Zero-order elimination is
+ * the Km -> 0 limit: the rate is a constant Vmax while Ac > 0, then floors at 0.
+ * There is no closed form, so this integrates with RK4 over internal substeps.
+ * Returns [Ag_new, Ac_new].
+ */
+function propagateSaturable(Ag, Ac, ka, F, Vmax, Km, dt, maxSubStep = 0.01) {
+    if (dt <= 0) return [Ag, Ac];
+
+    const n = Math.max(1, Math.ceil(dt / maxSubStep));
+    const h = dt / n;
+
+    const elim = (ac) => (ac <= 0 ? 0 : (Vmax * ac) / (Km + ac));
+    const dAg = (ag) => -ka * ag;
+    const dAc = (ag, ac) => F * ka * ag - elim(ac);
+
+    let ag = Ag;
+    let ac = Ac;
+    for (let i = 0; i < n; i++) {
+        const k1g = dAg(ag);
+        const k1c = dAc(ag, ac);
+        const k2g = dAg(ag + 0.5 * h * k1g);
+        const k2c = dAc(ag + 0.5 * h * k1g, ac + 0.5 * h * k1c);
+        const k3g = dAg(ag + 0.5 * h * k2g);
+        const k3c = dAc(ag + 0.5 * h * k2g, ac + 0.5 * h * k2c);
+        const k4g = dAg(ag + h * k3g);
+        const k4c = dAc(ag + h * k3g, ac + h * k3c);
+
+        ag += (h / 6) * (k1g + 2 * k2g + 2 * k3g + k4g);
+        ac += (h / 6) * (k1c + 2 * k2c + 2 * k3c + k4c);
+        if (ag < 0) ag = 0;
+        if (ac < 0) ac = 0; // saturable elimination cannot drive the amount negative
+    }
+    return [ag, ac];
 }
 
 /**
@@ -163,8 +203,17 @@ function buildSchedule(numDoses, tau, events, doseAmount, doseForm, tLag, tRel) 
  * Run single simulation
  */
 function simulate(params) {
-    const { ka, ke, F, schedule, duration, samplesPerHour = 60 } = params;
-    
+    const {
+        ka, ke, F, schedule, duration, samplesPerHour = 60,
+        elimMode = 'firstorder', Vmax = 0, Km = 0,
+    } = params;
+
+    // First-order uses the exact analytic step; saturable modes integrate
+    // numerically. Zero-order is just Michaelis-Menten with Km = 0.
+    const step = (Ag, Ac, delta) => (elimMode === 'firstorder')
+        ? propagate(Ag, Ac, ka, ke, F, delta)
+        : propagateSaturable(Ag, Ac, ka, F, Vmax, Km, delta);
+
     // Build time points: regular grid + all event times
     const dt = 1 / samplesPerHour;
     let timePoints = new Set();
@@ -194,7 +243,7 @@ function simulate(params) {
             // Propagate to event time
             const dtToEvent = schedule[eventIdx].time - prevTime;
             if (dtToEvent > 0) {
-                [Ag, Ac] = propagate(Ag, Ac, ka, ke, F, dtToEvent);
+                [Ag, Ac] = step(Ag, Ac, dtToEvent);
                 prevTime = schedule[eventIdx].time;
             }
             // Add dose to gut
@@ -205,7 +254,7 @@ function simulate(params) {
         // Propagate to current time
         const dtRemaining = t - prevTime;
         if (dtRemaining > 0) {
-            [Ag, Ac] = propagate(Ag, Ac, ka, ke, F, dtRemaining);
+            [Ag, Ac] = step(Ag, Ac, dtRemaining);
             prevTime = t;
         }
         
@@ -412,7 +461,7 @@ function computePercentileBands(mcResults, percentiles = [10, 50, 90]) {
 }
 
 export {
-    kaFromBucket, solveKaFromTmax, propagate, buildSchedule,
+    kaFromBucket, solveKaFromTmax, propagate, propagateSaturable, buildSchedule,
     buildBaselineSchedule, simulate, computeIntervalAUC, findIntervalExtrema,
     computeMetrics, computePercentileBands, runMonteCarlo
 };

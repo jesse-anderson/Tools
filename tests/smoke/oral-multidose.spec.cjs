@@ -187,10 +187,11 @@ test.describe('presets', () => {
       });
       return { keys, malformed };
     });
-    // 5 original + 9 additions
-    expect(info.keys.length).toBe(14);
+    // 5 original + 9 first-order additions + 2 saturable (phenytoin, ethanol)
+    expect(info.keys.length).toBe(16);
     for (const k of ['ibuprofen', 'acetaminophen', 'theophylline', 'theophylline_er',
-      'amlodipine', 'digoxin', 'metformin', 'fluoxetine', 'iv_bolus']) {
+      'amlodipine', 'digoxin', 'metformin', 'fluoxetine', 'iv_bolus',
+      'phenytoin', 'ethanol']) {
       expect(info.keys).toContain(k);
     }
     expect(info.malformed).toEqual([]);
@@ -229,6 +230,72 @@ test.describe('presets', () => {
   });
 });
 
+test.describe('saturable elimination', () => {
+  test('zero-order elimination clears at a constant rate and floors at zero', async ({ page }) => {
+    await openTool(page);
+    const r = await page.evaluate(() => {
+      const O = window.OralMultiDose;
+      // No absorption input (Ag=0): Km=0 -> constant Vmax removal.
+      const decline = O.propagateSaturable(0, 1000, 1, 1, 100, 0, 1)[1]; // 1000 - 100*1
+      const floored = O.propagateSaturable(0, 50, 1, 1, 100, 0, 1)[1];   // cannot go below 0
+      return { decline, floored };
+    });
+    expect(r.decline).toBeCloseTo(900, 6);
+    expect(r.floored).toBeCloseTo(0, 6);
+  });
+
+  test('Michaelis-Menten step satisfies the implicit no-input solution', async ({ page }) => {
+    await openTool(page);
+    const r = await page.evaluate(() => {
+      const O = window.OralMultiDose;
+      // dAc/dt = -Vmax*Ac/(Km+Ac); implicit: Km*ln(Ac0/Ac) + (Ac0-Ac) = Vmax*dt
+      const Vmax = 50, Km = 100, Ac0 = 500, dt = 2;
+      const Ac = O.propagateSaturable(0, Ac0, 1, 1, Vmax, Km, dt)[1];
+      const invariant = Km * Math.log(Ac0 / Ac) + (Ac0 - Ac);
+      return { invariant, target: Vmax * dt, Ac };
+    });
+    expect(r.Ac).toBeLessThan(500);
+    expect(r.invariant).toBeCloseTo(r.target, 3); // RK4 matches the exact implicit relation
+  });
+
+  test('Michaelis-Menten reduces to first-order when Km >> amount', async ({ page }) => {
+    await openTool(page);
+    const r = await page.evaluate(() => {
+      // Km=1e6 >> Ac -> elim ~ (Vmax/Km)*Ac, keff = 1e-5 over dt=5
+      const Ac = window.OralMultiDose.propagateSaturable(0, 10, 1, 1, 10, 1e6, 5)[1];
+      return { Ac, firstOrder: 10 * Math.exp(-1e-5 * 5) };
+    });
+    expect(r.Ac).toBeCloseTo(r.firstOrder, 5);
+  });
+
+  test('zero-order simulate: near-instant dose then a straight-line decline', async ({ page }) => {
+    await openTool(page);
+    const r = await page.evaluate(() => {
+      const O = window.OralMultiDose;
+      const sched = O.buildSchedule(1, 24, [], 1000, 'IR', 0, 8);
+      const sim = O.simulate({
+        ka: 50, ke: 0, F: 1, schedule: sched, duration: 20,
+        samplesPerHour: 240, elimMode: 'zero', Vmax: 100, Km: 0,
+      });
+      const at = (t) => {
+        let bi = 0, bd = Infinity;
+        for (let i = 0; i < sim.times.length; i++) {
+          const d = Math.abs(sim.times[i] - t);
+          if (d < bd) { bd = d; bi = i; }
+        }
+        return sim.Ac_values[bi];
+      };
+      const amax = Math.max(...sim.Ac_values);
+      const slope = (at(7) - at(4)) / 3; // mg/h on the descending limb
+      return { amax, slope, last: sim.Ac_values[sim.Ac_values.length - 1] };
+    });
+    expect(r.amax).toBeGreaterThan(900); // ~full dose reaches the compartment
+    expect(r.amax).toBeLessThanOrEqual(1000);
+    expect(r.slope).toBeCloseTo(-100, 0); // constant clearance ~ -k0
+    expect(r.last).toBeLessThan(1);        // fully cleared within 20h
+  });
+});
+
 test.describe('end-to-end DOM', () => {
   test('default coffee preset renders the golden metrics', async ({ page }) => {
     await openTool(page);
@@ -242,6 +309,31 @@ test.describe('end-to-end DOM', () => {
     await expect(page.locator('#metricSteady')).toHaveText('No');
     await expect(page.locator('#derivedKe')).toHaveText('0.1386');
     await expect(page.locator('#derivedKa')).toHaveText('8.3303');
+  });
+
+  test('ethanol preset drives the zero-order UI path', async ({ page }) => {
+    await openTool(page);
+    await page.selectOption('#presetSelect', 'ethanol');
+    await page.click('#runBtn');
+    // Zero-order inputs revealed, elimination timeline marked n/a, derived shows k0.
+    await expect(page.locator('#zeroInputs')).toBeVisible();
+    await expect(page.locator('#metricT5hl')).toHaveText('n/a');
+    await expect(page.locator('#derivedSatLine')).toBeVisible();
+    await expect(page.locator('#derivedSat')).toContainText('zero-order');
+    await expect(page.locator('#derivedKeLine')).toBeHidden();
+    // A finite peak was produced (no NaN / error banner).
+    await expect(page.locator('#simError')).toBeHidden();
+    await expect(page.locator('#metricAmax')).not.toHaveText('-mg');
+  });
+
+  test('phenytoin preset drives the Michaelis-Menten UI path', async ({ page }) => {
+    await openTool(page);
+    await page.selectOption('#presetSelect', 'phenytoin');
+    await page.click('#runBtn');
+    await expect(page.locator('#mmInputs')).toBeVisible();
+    await expect(page.locator('#metricT7hl')).toHaveText('n/a');
+    await expect(page.locator('#derivedSat')).toContainText('Michaelis-Menten');
+    await expect(page.locator('#simError')).toBeHidden();
   });
 
   test('invalid input surfaces an inline error (not alert)', async ({ page }) => {
