@@ -1,24 +1,8 @@
 // Unit tests for the uncertainty-propagation math engine, run against the real
 // page via window.UncertaintyEngine.
 const { test, expect } = require('@playwright/test');
-const { startServer } = require('./server.cjs');
 
 const TOOL_PATH = '/tools/uncertainty-propagation.html';
-let smokeServer;
-
-test.beforeAll(async () => {
-  smokeServer = await startServer({
-    port: Number(process.env.PORT || 4173),
-    reuseExisting: !process.env.CI
-  });
-});
-
-test.afterAll(async () => {
-  if (smokeServer) {
-    await smokeServer.close();
-    smokeServer = null;
-  }
-});
 
 async function openTool(page) {
   await page.goto(TOOL_PATH);

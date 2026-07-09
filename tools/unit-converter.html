@@ -1,8 +1,37 @@
 <!DOCTYPE html>
+<!--
+============================================
+SIMPLE UNIT CONVERTER v1.1.0
+============================================
+Description: Engineering unit conversions across 23 categories
+(length, mass, volume, temperature, pressure, energy, power, flow,
+density, viscosity, force, area, velocity, time, torque, thermal
+conductivity, specific heat, concentration, angle, frequency, data
+storage) built from exact definition anchors.
+
+Dependencies: None (Vanilla JavaScript)
+Google Fonts (JetBrains Mono, Space Grotesk) loaded from CDN.
+
+Project: Tools Hub by Jesse Anderson
+Repository: https://github.com/jesse-anderson/Tools
+License: GPL-3.0 - https://github.com/jesse-anderson/Tools/blob/main/LICENSE
+
+Features:
+- Factor-table conversions derived from exact anchors (inch, pound,
+  standard gravity, US gallon, IT BTU) for full double precision
+- Affine temperature conversions (°C / °F / K / °R)
+- Calorie/BTU definition notes (thermochemical vs International Table)
+- Quick-reference chips, unit swap, copy-to-clipboard
+- Keyboard-navigable category list (roving tabindex)
+
+Last Updated: July 2026
+============================================
+-->
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; base-uri 'none'; form-action 'none'">
     <title>Simple Unit Converter | Tools Hub</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -46,7 +75,7 @@
                     </div>
                 </div>
             </div>
-            <div style="margin-top: 24px; display: flex; align-items: center; gap: 16px;">
+            <div class="tool-title-row">
                 <div class="tool-icon-header engineering">⇌</div>
                 <div>
                     <h1>Simple Unit Converter</h1>
@@ -60,27 +89,30 @@
                 <!-- Category Sidebar -->
                 <aside class="category-sidebar" aria-label="Unit categories">
                     <div class="sidebar-title">Categories</div>
-                    <ul class="category-list" id="uc-categoryList" role="listbox" aria-label="Select unit category" tabindex="0">
+                    <ul class="category-list" id="uc-categoryList" role="listbox" aria-label="Select unit category">
                         <li class="category-item active" data-category="length" role="option" aria-selected="true" tabindex="0"><span class="category-icon" aria-hidden="true">📏</span> Length</li>
-                        <li class="category-item" data-category="mass" role="option" aria-selected="false" tabindex="0"><span class="category-icon" aria-hidden="true">⚖️</span> Mass</li>
-                        <li class="category-item" data-category="volume" role="option" aria-selected="false" tabindex="0"><span class="category-icon" aria-hidden="true">🧪</span> Volume</li>
-                        <li class="category-item" data-category="temperature" role="option" aria-selected="false" tabindex="0"><span class="category-icon" aria-hidden="true">🌡️</span> Temperature</li>
-                        <li class="category-item" data-category="pressure" role="option" aria-selected="false" tabindex="0"><span class="category-icon" aria-hidden="true">💨</span> Pressure</li>
-                        <li class="category-item" data-category="energy" role="option" aria-selected="false" tabindex="0"><span class="category-icon" aria-hidden="true">⚡</span> Energy</li>
-                        <li class="category-item" data-category="power" role="option" aria-selected="false" tabindex="0"><span class="category-icon" aria-hidden="true">🔌</span> Power</li>
-                        <li class="category-item" data-category="flowVolumetric" role="option" aria-selected="false" tabindex="0"><span class="category-icon" aria-hidden="true">🌊</span> Flow (Vol.)</li>
-                        <li class="category-item" data-category="flowMass" role="option" aria-selected="false" tabindex="0"><span class="category-icon" aria-hidden="true">📊</span> Flow (Mass)</li>
-                        <li class="category-item" data-category="density" role="option" aria-selected="false" tabindex="0"><span class="category-icon" aria-hidden="true">🧊</span> Density</li>
-                        <li class="category-item" data-category="viscosityDynamic" role="option" aria-selected="false" tabindex="0"><span class="category-icon" aria-hidden="true">🍯</span> Viscosity (Dyn.)</li>
-                        <li class="category-item" data-category="viscosityKinematic" role="option" aria-selected="false" tabindex="0"><span class="category-icon" aria-hidden="true">💧</span> Viscosity (Kin.)</li>
-                        <li class="category-item" data-category="force" role="option" aria-selected="false" tabindex="0"><span class="category-icon" aria-hidden="true">💪</span> Force</li>
-                        <li class="category-item" data-category="area" role="option" aria-selected="false" tabindex="0"><span class="category-icon" aria-hidden="true">⬛</span> Area</li>
-                        <li class="category-item" data-category="velocity" role="option" aria-selected="false" tabindex="0"><span class="category-icon" aria-hidden="true">🚀</span> Velocity</li>
-                        <li class="category-item" data-category="time" role="option" aria-selected="false" tabindex="0"><span class="category-icon" aria-hidden="true">⏱️</span> Time</li>
-                        <li class="category-item" data-category="torque" role="option" aria-selected="false" tabindex="0"><span class="category-icon" aria-hidden="true">🔧</span> Torque</li>
-                        <li class="category-item" data-category="thermalConductivity" role="option" aria-selected="false" tabindex="0"><span class="category-icon" aria-hidden="true">🔥</span> Thermal Cond.</li>
-                        <li class="category-item" data-category="specificHeat" role="option" aria-selected="false" tabindex="0"><span class="category-icon" aria-hidden="true">♨️</span> Specific Heat</li>
-                        <li class="category-item" data-category="concentration" role="option" aria-selected="false" tabindex="0"><span class="category-icon" aria-hidden="true">🔬</span> Concentration</li>
+                        <li class="category-item" data-category="mass" role="option" aria-selected="false" tabindex="-1"><span class="category-icon" aria-hidden="true">⚖️</span> Mass</li>
+                        <li class="category-item" data-category="volume" role="option" aria-selected="false" tabindex="-1"><span class="category-icon" aria-hidden="true">🧪</span> Volume</li>
+                        <li class="category-item" data-category="temperature" role="option" aria-selected="false" tabindex="-1"><span class="category-icon" aria-hidden="true">🌡️</span> Temperature</li>
+                        <li class="category-item" data-category="pressure" role="option" aria-selected="false" tabindex="-1"><span class="category-icon" aria-hidden="true">💨</span> Pressure</li>
+                        <li class="category-item" data-category="energy" role="option" aria-selected="false" tabindex="-1"><span class="category-icon" aria-hidden="true">⚡</span> Energy</li>
+                        <li class="category-item" data-category="power" role="option" aria-selected="false" tabindex="-1"><span class="category-icon" aria-hidden="true">🔌</span> Power</li>
+                        <li class="category-item" data-category="flowVolumetric" role="option" aria-selected="false" tabindex="-1"><span class="category-icon" aria-hidden="true">🌊</span> Flow (Vol.)</li>
+                        <li class="category-item" data-category="flowMass" role="option" aria-selected="false" tabindex="-1"><span class="category-icon" aria-hidden="true">📊</span> Flow (Mass)</li>
+                        <li class="category-item" data-category="density" role="option" aria-selected="false" tabindex="-1"><span class="category-icon" aria-hidden="true">🧊</span> Density</li>
+                        <li class="category-item" data-category="viscosityDynamic" role="option" aria-selected="false" tabindex="-1"><span class="category-icon" aria-hidden="true">🍯</span> Viscosity (Dyn.)</li>
+                        <li class="category-item" data-category="viscosityKinematic" role="option" aria-selected="false" tabindex="-1"><span class="category-icon" aria-hidden="true">💧</span> Viscosity (Kin.)</li>
+                        <li class="category-item" data-category="force" role="option" aria-selected="false" tabindex="-1"><span class="category-icon" aria-hidden="true">💪</span> Force</li>
+                        <li class="category-item" data-category="area" role="option" aria-selected="false" tabindex="-1"><span class="category-icon" aria-hidden="true">⬛</span> Area</li>
+                        <li class="category-item" data-category="velocity" role="option" aria-selected="false" tabindex="-1"><span class="category-icon" aria-hidden="true">🚀</span> Velocity</li>
+                        <li class="category-item" data-category="time" role="option" aria-selected="false" tabindex="-1"><span class="category-icon" aria-hidden="true">⏱️</span> Time</li>
+                        <li class="category-item" data-category="torque" role="option" aria-selected="false" tabindex="-1"><span class="category-icon" aria-hidden="true">🔧</span> Torque</li>
+                        <li class="category-item" data-category="thermalConductivity" role="option" aria-selected="false" tabindex="-1"><span class="category-icon" aria-hidden="true">🔥</span> Thermal Cond.</li>
+                        <li class="category-item" data-category="specificHeat" role="option" aria-selected="false" tabindex="-1"><span class="category-icon" aria-hidden="true">♨️</span> Specific Heat</li>
+                        <li class="category-item" data-category="concentration" role="option" aria-selected="false" tabindex="-1"><span class="category-icon" aria-hidden="true">🔬</span> Concentration</li>
+                        <li class="category-item" data-category="angle" role="option" aria-selected="false" tabindex="-1"><span class="category-icon" aria-hidden="true">📐</span> Angle</li>
+                        <li class="category-item" data-category="frequency" role="option" aria-selected="false" tabindex="-1"><span class="category-icon" aria-hidden="true">📡</span> Frequency</li>
+                        <li class="category-item" data-category="data" role="option" aria-selected="false" tabindex="-1"><span class="category-icon" aria-hidden="true">💾</span> Data Storage</li>
                     </ul>
                 </aside>
 
@@ -122,7 +154,7 @@
                         </div>
                     </div>
 
-                    <div class="result-display" role="region" aria-live="polite" aria-atomic="true" aria-label="Conversion result">
+                    <div class="result-display" role="region" aria-label="Conversion result">
                         <div class="result-header">
                             <div class="result-label">Result</div>
                             <button class="copy-result-btn" id="uc-copyBtn" title="Copy result" aria-label="Copy result to clipboard">
@@ -133,10 +165,10 @@
                                 <span class="copy-text">Copy</span>
                             </button>
                         </div>
-                        <div class="result-value" id="uc-resultValue" aria-live="polite">1 m = 3.28084 ft</div>
-                        <div class="result-formula" id="uc-resultFormula">1 meter × 3.28084 = 3.28084 feet</div>
+                        <div class="result-value" id="uc-resultValue" aria-live="polite">1 m = 0.001 km</div>
+                        <div class="result-formula" id="uc-resultFormula">1 × 0.001 = 0.001</div>
 
-                        <div class="result-note" id="uc-resultNote" role="alert" aria-live="polite" style="display: none;"></div>
+                        <div class="result-note" id="uc-resultNote" role="status"></div>
                     </div>
 
                     <div class="quick-reference" role="region" aria-label="Quick reference conversions">

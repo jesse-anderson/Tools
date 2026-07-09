@@ -1,8 +1,35 @@
 <!DOCTYPE html>
+<!--
+============================================
+OHM'S LAW CALCULATOR v1.1.0
+============================================
+Description: Solve any two of voltage, current, resistance, and
+power for the other two, with SI unit auto-scaling, lockable values,
+open/short-circuit handling, and a power-wheel reference.
+
+Dependencies: None (Vanilla JavaScript)
+Google Fonts (JetBrains Mono, Space Grotesk) loaded from CDN.
+
+Project: Tools Hub by Jesse Anderson
+Repository: https://github.com/jesse-anderson/Tools
+License: GPL-3.0 - https://github.com/jesse-anderson/Tools/blob/main/LICENSE
+
+Features:
+- All six two-parameter combinations (V-I, V-R, V-P, I-R, I-P, P-R)
+- Open circuit (I=0) and short circuit (R=0) reported as ∞; 0/0 and
+  contradictory inputs reported as Invalid
+- Lock any value to hold it constant across edits
+- Per-unit SI scaling (μ to M) with conservative rescaling of typed values
+- Quick voltage presets and copy-to-clipboard per field
+
+Last Updated: July 2026
+============================================
+-->
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; base-uri 'none'; form-action 'none'">
     <title>Ohm's Law Calculator | Tools Hub</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -39,7 +66,7 @@
                     </div>
                 </div>
             </div>
-            <div style="margin-top: 24px; display: flex; align-items: center; gap: 16px;">
+            <div class="tool-title-row">
                 <div class="tool-icon-header engineering">Ω</div>
                 <div>
                     <h1>Ohm's Law Calculator</h1>
@@ -68,26 +95,26 @@
                                         <div class="input-unit-label">Potential Difference</div>
                                     </div>
                                 </div>
-                                <button class="lock-btn" data-lock="voltage" title="Lock this value">
+                                <button class="lock-btn" data-lock="voltage" title="Lock this value" aria-label="Lock voltage" aria-pressed="false">
                                     <svg class="unlocked" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
                                         <path d="M7 11V7a5 5 0 0 1 9.9-1"/>
                                     </svg>
-                                    <svg class="locked" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none;">
+                                    <svg class="locked" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
                                         <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
                                     </svg>
                                 </button>
                             </div>
                             <div class="input-field-wrapper">
-                                <input type="number" id="voltage" step="any" placeholder="0">
-                                <select id="voltageUnit">
+                                <input type="number" id="voltage" step="any" placeholder="0" aria-label="Voltage">
+                                <select id="voltageUnit" aria-label="Voltage unit">
                                     <option value="1e-6">μV</option>
                                     <option value="1e-3">mV</option>
                                     <option value="1" selected>V</option>
                                     <option value="1000">kV</option>
                                 </select>
-                                <button class="copy-btn" data-copy="voltage" title="Copy value">
+                                <button class="copy-btn" data-copy="voltage" title="Copy value" aria-label="Copy voltage">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
                                         <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
@@ -106,26 +133,26 @@
                                         <div class="input-unit-label">Amperage</div>
                                     </div>
                                 </div>
-                                <button class="lock-btn" data-lock="current" title="Lock this value">
+                                <button class="lock-btn" data-lock="current" title="Lock this value" aria-label="Lock current" aria-pressed="false">
                                     <svg class="unlocked" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
                                         <path d="M7 11V7a5 5 0 0 1 9.9-1"/>
                                     </svg>
-                                    <svg class="locked" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none;">
+                                    <svg class="locked" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
                                         <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
                                     </svg>
                                 </button>
                             </div>
                             <div class="input-field-wrapper">
-                                <input type="number" id="current" step="any" placeholder="0">
-                                <select id="currentUnit">
+                                <input type="number" id="current" step="any" placeholder="0" aria-label="Current">
+                                <select id="currentUnit" aria-label="Current unit">
                                     <option value="1e-9">nA</option>
                                     <option value="1e-6">μA</option>
                                     <option value="1e-3">mA</option>
                                     <option value="1" selected>A</option>
                                 </select>
-                                <button class="copy-btn" data-copy="current" title="Copy value">
+                                <button class="copy-btn" data-copy="current" title="Copy value" aria-label="Copy current">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
                                         <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
@@ -144,26 +171,26 @@
                                         <div class="input-unit-label">Ohms</div>
                                     </div>
                                 </div>
-                                <button class="lock-btn" data-lock="resistance" title="Lock this value">
+                                <button class="lock-btn" data-lock="resistance" title="Lock this value" aria-label="Lock resistance" aria-pressed="false">
                                     <svg class="unlocked" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
                                         <path d="M7 11V7a5 5 0 0 1 9.9-1"/>
                                     </svg>
-                                    <svg class="locked" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none;">
+                                    <svg class="locked" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
                                         <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
                                     </svg>
                                 </button>
                             </div>
                             <div class="input-field-wrapper">
-                                <input type="number" id="resistance" step="any" placeholder="0">
-                                <select id="resistanceUnit">
+                                <input type="number" id="resistance" step="any" placeholder="0" aria-label="Resistance">
+                                <select id="resistanceUnit" aria-label="Resistance unit">
                                     <option value="1e-3">mΩ</option>
                                     <option value="1" selected>Ω</option>
                                     <option value="1000">kΩ</option>
                                     <option value="1e6">MΩ</option>
                                 </select>
-                                <button class="copy-btn" data-copy="resistance" title="Copy value">
+                                <button class="copy-btn" data-copy="resistance" title="Copy value" aria-label="Copy resistance">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
                                         <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
@@ -182,27 +209,27 @@
                                         <div class="input-unit-label">Watts</div>
                                     </div>
                                 </div>
-                                <button class="lock-btn" data-lock="power" title="Lock this value">
+                                <button class="lock-btn" data-lock="power" title="Lock this value" aria-label="Lock power" aria-pressed="false">
                                     <svg class="unlocked" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
                                         <path d="M7 11V7a5 5 0 0 1 9.9-1"/>
                                     </svg>
-                                    <svg class="locked" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none;">
+                                    <svg class="locked" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
                                         <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
                                     </svg>
                                 </button>
                             </div>
                             <div class="input-field-wrapper">
-                                <input type="number" id="power" step="any" placeholder="0">
-                                <select id="powerUnit">
+                                <input type="number" id="power" step="any" placeholder="0" aria-label="Power">
+                                <select id="powerUnit" aria-label="Power unit">
                                     <option value="1e-6">μW</option>
                                     <option value="1e-3">mW</option>
                                     <option value="1" selected>W</option>
                                     <option value="1000">kW</option>
                                     <option value="1e6">MW</option>
                                 </select>
-                                <button class="copy-btn" data-copy="power" title="Copy value">
+                                <button class="copy-btn" data-copy="power" title="Copy value" aria-label="Copy power">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
                                         <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
@@ -220,7 +247,7 @@
                             </svg>
                             <h3>Calculated Relationships</h3>
                         </div>
-                        <div class="formula-display">
+                        <div class="formula-display" aria-live="polite">
                             <div class="formula-item" id="formula-vir">
                                 <span class="formula-left">V = I × R</span>
                                 <span class="formula-right" id="result-vir">—</span>
@@ -255,24 +282,24 @@
                         </h3>
                         <div class="power-wheel">
                             <div class="wheel-center">OHM</div>
-                            <div class="wheel-segment voltage" data-select="voltage">
+                            <div class="wheel-segment voltage" data-select="voltage" role="button" tabindex="0">
                                 <span class="symbol">V</span>
                                 <span class="name">Volts</span>
                             </div>
-                            <div class="wheel-segment current" data-select="current">
+                            <div class="wheel-segment current" data-select="current" role="button" tabindex="0">
                                 <span class="symbol">I</span>
                                 <span class="name">Amps</span>
                             </div>
-                            <div class="wheel-segment resistance" data-select="resistance">
+                            <div class="wheel-segment resistance" data-select="resistance" role="button" tabindex="0">
                                 <span class="symbol">R</span>
                                 <span class="name">Ohms</span>
                             </div>
-                            <div class="wheel-segment power" data-select="power">
+                            <div class="wheel-segment power" data-select="power" role="button" tabindex="0">
                                 <span class="symbol">P</span>
                                 <span class="name">Watts</span>
                             </div>
                         </div>
-                        <p style="font-size: 0.75rem; color: var(--text-muted); text-align: center;">Click a segment to focus that input</p>
+                        <p class="wheel-hint">Click a segment to focus that input</p>
                     </div>
 
                     <!-- Formula Reference -->
@@ -321,27 +348,27 @@
                             Quick Values
                         </h3>
                         <div class="quick-values">
-                            <div class="quick-value" data-voltage="5">
+                            <div class="quick-value" role="button" tabindex="0" data-voltage="5">
                                 <span class="val">5V</span>
                                 <span class="desc">USB</span>
                             </div>
-                            <div class="quick-value" data-voltage="3.3">
+                            <div class="quick-value" role="button" tabindex="0" data-voltage="3.3">
                                 <span class="val">3.3V</span>
                                 <span class="desc">Logic</span>
                             </div>
-                            <div class="quick-value" data-voltage="12">
+                            <div class="quick-value" role="button" tabindex="0" data-voltage="12">
                                 <span class="val">12V</span>
                                 <span class="desc">Auto</span>
                             </div>
-                            <div class="quick-value" data-voltage="120">
+                            <div class="quick-value" role="button" tabindex="0" data-voltage="120">
                                 <span class="val">120V</span>
                                 <span class="desc">US Mains</span>
                             </div>
-                            <div class="quick-value" data-voltage="240">
+                            <div class="quick-value" role="button" tabindex="0" data-voltage="240">
                                 <span class="val">240V</span>
                                 <span class="desc">EU Mains</span>
                             </div>
-                            <div class="quick-value" data-voltage="48">
+                            <div class="quick-value" role="button" tabindex="0" data-voltage="48">
                                 <span class="val">48V</span>
                                 <span class="desc">PoE</span>
                             </div>

@@ -6,24 +6,8 @@
 // Reference values are computed independently (by hand / basic PK identities), not
 // scraped from the tool, so this spec is an actual correctness check.
 const { test, expect } = require('@playwright/test');
-const { startServer } = require('./server.cjs');
 
 const TOOL_PATH = '/tools/toxicology-and-body-burden.html';
-let smokeServer;
-
-test.beforeAll(async () => {
-  smokeServer = await startServer({
-    port: Number(process.env.PORT || 4173),
-    reuseExisting: !process.env.CI
-  });
-});
-
-test.afterAll(async () => {
-  if (smokeServer) {
-    await smokeServer.close();
-    smokeServer = null;
-  }
-});
 
 async function openTool(page) {
   await page.goto(TOOL_PATH);

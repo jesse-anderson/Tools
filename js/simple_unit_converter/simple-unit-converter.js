@@ -3,7 +3,30 @@
 // ============================================
 
 (function() {
-    'use strict';
+'use strict';
+
+// ============================================
+// Exact primitive definitions
+// ============================================
+// Every derived factor below is written as an expression of these anchors
+// rather than a hand-typed decimal, so the full ~15 significant figures of a
+// double carry through instead of a value pre-rounded to 7-10 figures. A
+// pre-rounded literal (slug = 14.593903) injects ~1e-7 relative error that
+// shows up in the tool's 10 sig fig display. Only these anchors, pure metric
+// decade factors, and conventional reference constants (mmHg, inHg, Mach, c,
+// eV) stay as literals.
+const IN = 0.0254;               // metre, international inch (exact)
+const FT = 12 * IN;              // 0.3048 m, foot
+const YD = 3 * FT;               // 0.9144 m, yard
+const MI = 5280 * FT;            // 1609.344 m, statute mile
+const LB = 0.45359237;           // kilogram, avoirdupois pound (exact)
+const G0 = 9.80665;              // m/s^2, standard gravity (exact)
+const LBF = LB * G0;             // 4.4482216152605 N, pound-force
+const GAL = 3.785411784;         // litre, US gallon = 231 in^3 (exact)
+const FT3 = 1000 * FT * FT * FT; // 28.316846592 L, cubic foot
+const CAL_TH = 4.184;            // joule, thermochemical calorie (exact)
+const CAL_IT = 4.1868;           // joule, International Table calorie (exact)
+const BTU = 1055.05585262;       // joule, IT BTU (exact by definition)
 
     // ============================================
     // Unit Definitions
@@ -20,12 +43,12 @@
             'mm': { name: 'Millimeters', factor: 0.001 },
             'μm': { name: 'Micrometers', factor: 1e-6 },
             'nm': { name: 'Nanometers', factor: 1e-9 },
-            'in': { name: 'Inches', factor: 0.0254 },
-            'ft': { name: 'Feet', factor: 0.3048 },
-            'yd': { name: 'Yards', factor: 0.9144 },
-            'mi': { name: 'Miles', factor: 1609.344 },
+            'in': { name: 'Inches', factor: IN },
+            'ft': { name: 'Feet', factor: FT },
+            'yd': { name: 'Yards', factor: YD },
+            'mi': { name: 'Miles', factor: MI },
             'nmi': { name: 'Nautical Miles', factor: 1852 },
-            'mil': { name: 'Mils (thou)', factor: 0.0000254 },
+            'mil': { name: 'Mils (thou)', factor: IN / 1000 },
             'Å': { name: 'Angstroms', factor: 1e-10 }
         },
         quickRefs: [
@@ -45,13 +68,13 @@
             'mg': { name: 'Milligrams', factor: 1e-6 },
             'μg': { name: 'Micrograms', factor: 1e-9 },
             'tonne': { name: 'Metric Tons', factor: 1000 },
-            'lb': { name: 'Pounds', factor: 0.45359237 },
-            'oz': { name: 'Ounces', factor: 0.028349523125 },
-            'ton': { name: 'Short Tons (US)', factor: 907.18474 },
-            'ton_uk': { name: 'Long Tons (UK)', factor: 1016.0469088 },
-            'st': { name: 'Stones', factor: 6.35029318 },
-            'gr': { name: 'Grains', factor: 0.00006479891 },
-            'slug': { name: 'Slugs', factor: 14.593903 }
+            'lb': { name: 'Pounds', factor: LB },
+            'oz': { name: 'Ounces', factor: LB / 16 },
+            'ton': { name: 'Short Tons (US)', factor: 2000 * LB },
+            'ton_uk': { name: 'Long Tons (UK)', factor: 2240 * LB },
+            'st': { name: 'Stones', factor: 14 * LB },
+            'gr': { name: 'Grains', factor: LB / 7000 },
+            'slug': { name: 'Slugs', factor: LBF / FT }
         },
         quickRefs: [
             { from: '1 lb', to: '0.4536 kg' },
@@ -66,24 +89,26 @@
         baseUnit: 'L',
         units: {
             'L': { name: 'Liters', factor: 1 },
+            'dL': { name: 'Deciliters', factor: 0.1 },
             'mL': { name: 'Milliliters', factor: 0.001 },
             'μL': { name: 'Microliters', factor: 1e-6 },
             'm³': { name: 'Cubic Meters', factor: 1000 },
             'cm³': { name: 'Cubic Centimeters', factor: 0.001 },
             'mm³': { name: 'Cubic Millimeters', factor: 1e-6 },
-            'gal': { name: 'US Gallons', factor: 3.785411784 },
+            'gal': { name: 'US Gallons', factor: GAL },
             'gal_uk': { name: 'UK Gallons', factor: 4.54609 },
-            'qt': { name: 'US Quarts', factor: 0.946352946 },
-            'pt': { name: 'US Pints', factor: 0.473176473 },
-            'cup': { name: 'US Cups', factor: 0.2365882365 },
-            'fl_oz': { name: 'US Fluid Ounces', factor: 0.0295735295625 },
-            'tbsp': { name: 'Tablespoons', factor: 0.01478676478125 },
-            'tsp': { name: 'Teaspoons', factor: 0.00492892159375 },
-            'ft³': { name: 'Cubic Feet', factor: 28.316846592 },
-            'in³': { name: 'Cubic Inches', factor: 0.016387064 },
-            'yd³': { name: 'Cubic Yards', factor: 764.554857984 },
-            'bbl': { name: 'Oil Barrels (US)', factor: 158.987294928 },
-            'bbl_uk': { name: 'UK Barrels', factor: 163.65924 }
+            'qt': { name: 'US Quarts', factor: GAL / 4 },
+            'pt': { name: 'US Pints', factor: GAL / 8 },
+            'cup': { name: 'US Cups', factor: GAL / 16 },
+            'fl_oz': { name: 'US Fluid Ounces', factor: GAL / 128 },
+            'tbsp': { name: 'Tablespoons', factor: GAL / 256 },
+            'tsp': { name: 'Teaspoons', factor: GAL / 768 },
+            'ft³': { name: 'Cubic Feet', factor: FT3 },
+            'in³': { name: 'Cubic Inches', factor: 1000 * IN * IN * IN },
+            'yd³': { name: 'Cubic Yards', factor: 27 * FT3 },
+            'bbl': { name: 'Oil Barrels (US)', factor: 42 * GAL },
+            'bbl_uk': { name: 'UK Barrels', factor: 36 * 4.54609 },
+            'acre·ft': { name: 'Acre-feet', factor: 43560 * FT3 }
         },
         quickRefs: [
             { from: '1 gal', to: '3.785 L' },
@@ -116,21 +141,23 @@
         baseUnit: 'Pa',
         units: {
             'Pa': { name: 'Pascals', factor: 1 },
+            'hPa': { name: 'Hectopascals', factor: 100 },
             'kPa': { name: 'Kilopascals', factor: 1000 },
             'MPa': { name: 'Megapascals', factor: 1e6 },
             'GPa': { name: 'Gigapascals', factor: 1e9 },
             'bar': { name: 'Bar', factor: 100000 },
             'mbar': { name: 'Millibar', factor: 100 },
             'atm': { name: 'Atmospheres', factor: 101325 },
-            'psi': { name: 'PSI', factor: 6894.757293168 },
-            'ksi': { name: 'KSI', factor: 6894757.293168 },
-            'psf': { name: 'PSF', factor: 47.88025898 },
-            'mmHg': { name: 'mmHg (Torr)', factor: 133.322387415 },
+            'psi': { name: 'PSI', factor: LBF / (IN * IN) },
+            'ksi': { name: 'KSI', factor: 1000 * LBF / (IN * IN) },
+            'psf': { name: 'PSF', factor: LBF / (FT * FT) },
+            'mmHg': { name: 'mmHg (conventional)', factor: 133.322387415 },
+            'Torr': { name: 'Torr (atm/760)', factor: 101325 / 760 },
             'inHg': { name: 'Inches Hg', factor: 3386.389 },
-            'mmH₂O': { name: 'mm Water', factor: 9.80665 },
-            'inH₂O': { name: 'Inches Water', factor: 249.08891 },
-            'ftH₂O': { name: 'Feet Water', factor: 2989.06692 },
-            'kg/cm²': { name: 'kg/cm²', factor: 98066.5 },
+            'mmH₂O': { name: 'mm Water', factor: G0 },
+            'inH₂O': { name: 'Inches Water', factor: 1000 * IN * G0 },
+            'ftH₂O': { name: 'Feet Water', factor: 1000 * FT * G0 },
+            'kg/cm²': { name: 'kg/cm²', factor: 10000 * G0 },
             'N/mm²': { name: 'N/mm²', factor: 1e6 }
         },
         quickRefs: [
@@ -149,18 +176,18 @@
             'kJ': { name: 'Kilojoules', factor: 1000 },
             'MJ': { name: 'Megajoules', factor: 1e6 },
             'GJ': { name: 'Gigajoules', factor: 1e9 },
-            'cal': { name: 'Calories', factor: 4.184 },
-            'kcal': { name: 'Kilocalories', factor: 4184 },
-            'BTU': { name: 'BTU', factor: 1055.05585262 },
-            'MMBTU': { name: 'MMBTU', factor: 1055055852.62 },
-            'therm': { name: 'Therms', factor: 105505585.262 },
+            'cal': { name: 'Calories', factor: CAL_TH },
+            'kcal': { name: 'Kilocalories', factor: 1000 * CAL_TH },
+            'BTU': { name: 'BTU', factor: BTU },
+            'MMBTU': { name: 'MMBTU', factor: 1e6 * BTU },
+            'therm': { name: 'Therms', factor: 1e5 * BTU },
             'Wh': { name: 'Watt-hours', factor: 3600 },
             'kWh': { name: 'Kilowatt-hours', factor: 3600000 },
             'MWh': { name: 'Megawatt-hours', factor: 3.6e9 },
             'eV': { name: 'Electron Volts', factor: 1.602176634e-19 },
-            'ft·lbf': { name: 'Foot-pounds', factor: 1.3558179483 },
+            'ft·lbf': { name: 'Foot-pounds', factor: FT * LBF },
             'erg': { name: 'Ergs', factor: 1e-7 },
-            'hp·h': { name: 'Horsepower-hours', factor: 2684519.5377 }
+            'hp·h': { name: 'Horsepower-hours', factor: 550 * FT * LBF * 3600 }
         },
         quickRefs: [
             { from: '1 BTU', to: '1.055 kJ' },
@@ -179,16 +206,16 @@
             'MW': { name: 'Megawatts', factor: 1e6 },
             'GW': { name: 'Gigawatts', factor: 1e9 },
             'mW': { name: 'Milliwatts', factor: 0.001 },
-            'hp': { name: 'Horsepower (mech)', factor: 745.69987158 },
-            'hp_m': { name: 'Horsepower (metric)', factor: 735.49875 },
+            'hp': { name: 'Horsepower (mech)', factor: 550 * FT * LBF },
+            'hp_m': { name: 'Horsepower (metric)', factor: 75 * G0 },
             'hp_e': { name: 'Horsepower (elec)', factor: 746 },
-            'BTU/hr': { name: 'BTU/hour', factor: 0.29307107 },
-            'BTU/min': { name: 'BTU/minute', factor: 17.5842642 },
-            'BTU/s': { name: 'BTU/second', factor: 1055.05585 },
-            'ton_ref': { name: 'Tons Refrig.', factor: 3516.8528 },
-            'cal/s': { name: 'Calories/sec', factor: 4.184 },
-            'kcal/hr': { name: 'kcal/hour', factor: 1.163 },
-            'ft·lbf/s': { name: 'ft·lbf/sec', factor: 1.3558179483 },
+            'BTU/hr': { name: 'BTU/hour', factor: BTU / 3600 },
+            'BTU/min': { name: 'BTU/minute', factor: BTU / 60 },
+            'BTU/s': { name: 'BTU/second', factor: BTU },
+            'ton_ref': { name: 'Tons Refrig.', factor: 12000 * BTU / 3600 },
+            'cal/s': { name: 'Calories/sec', factor: CAL_IT },
+            'kcal/hr': { name: 'kcal/hour', factor: 1000 * CAL_IT / 3600 },
+            'ft·lbf/s': { name: 'ft·lbf/sec', factor: FT * LBF },
             'J/s': { name: 'Joules/sec', factor: 1 }
         },
         quickRefs: [
@@ -211,15 +238,15 @@
             'm³/min': { name: 'm³/min', factor: 1000/60 },
             'm³/hr': { name: 'm³/hour', factor: 1000/3600 },
             'm³/day': { name: 'm³/day', factor: 1000/86400 },
-            'gpm': { name: 'US gal/min', factor: 0.0630901964 },
-            'gph': { name: 'US gal/hour', factor: 0.00105150327 },
-            'gpd': { name: 'US gal/day', factor: 0.0000438126364 },
-            'cfm': { name: 'ft³/min (CFM)', factor: 0.471947443 },
-            'cfs': { name: 'ft³/sec (CFS)', factor: 28.316846592 },
-            'cfh': { name: 'ft³/hour', factor: 0.00786579072 },
-            'bbl/day': { name: 'Barrels/day', factor: 0.00184012912 },
-            'MGD': { name: 'Million gal/day', factor: 43.8126364 },
-            'SCFM': { name: 'Std ft³/min', factor: 0.471947443 }
+            'gpm': { name: 'US gal/min', factor: GAL / 60 },
+            'gph': { name: 'US gal/hour', factor: GAL / 3600 },
+            'gpd': { name: 'US gal/day', factor: GAL / 86400 },
+            'cfm': { name: 'ft³/min (CFM)', factor: FT3 / 60 },
+            'cfs': { name: 'ft³/sec (CFS)', factor: FT3 },
+            'cfh': { name: 'ft³/hour', factor: FT3 / 3600 },
+            'bbl/day': { name: 'Barrels/day', factor: 42 * GAL / 86400 },
+            'MGD': { name: 'Million gal/day', factor: 1e6 * GAL / 86400 },
+            'SCFM': { name: 'Std ft³/min', factor: FT3 / 60 }
         },
         quickRefs: [
             { from: '1 gpm', to: '3.785 L/min' },
@@ -241,11 +268,11 @@
             'g/min': { name: 'g/min', factor: 0.001/60 },
             'tonne/hr': { name: 'tonne/hour', factor: 1000/3600 },
             'tonne/day': { name: 'tonne/day', factor: 1000/86400 },
-            'lb/s': { name: 'lb/sec', factor: 0.45359237 },
-            'lb/min': { name: 'lb/min', factor: 0.45359237/60 },
-            'lb/hr': { name: 'lb/hour', factor: 0.45359237/3600 },
-            'ton/hr': { name: 'Short ton/hr', factor: 907.18474/3600 },
-            'ton/day': { name: 'Short ton/day', factor: 907.18474/86400 }
+            'lb/s': { name: 'lb/sec', factor: LB },
+            'lb/min': { name: 'lb/min', factor: LB / 60 },
+            'lb/hr': { name: 'lb/hour', factor: LB / 3600 },
+            'ton/hr': { name: 'Short ton/hr', factor: 2000 * LB / 3600 },
+            'ton/day': { name: 'Short ton/day', factor: 2000 * LB / 86400 }
         },
         quickRefs: [
             { from: '1 lb/hr', to: '0.4536 kg/hr' },
@@ -265,12 +292,12 @@
             'kg/L': { name: 'kg/L', factor: 1000 },
             'g/L': { name: 'g/L', factor: 1 },
             'mg/mL': { name: 'mg/mL', factor: 1 },
-            'lb/ft³': { name: 'lb/ft³', factor: 16.01846337 },
-            'lb/in³': { name: 'lb/in³', factor: 27679.9047 },
-            'lb/gal': { name: 'lb/US gal', factor: 119.826427 },
-            'lb/gal_uk': { name: 'lb/UK gal', factor: 99.776373 },
-            'slug/ft³': { name: 'slug/ft³', factor: 515.378819 },
-            'oz/in³': { name: 'oz/in³', factor: 1729.99405 },
+            'lb/ft³': { name: 'lb/ft³', factor: LB / (FT * FT * FT) },
+            'lb/in³': { name: 'lb/in³', factor: LB / (IN * IN * IN) },
+            'lb/gal': { name: 'lb/US gal', factor: 1000 * LB / GAL },
+            'lb/gal_uk': { name: 'lb/UK gal', factor: 1000 * LB / 4.54609 },
+            'slug/ft³': { name: 'slug/ft³', factor: (LBF / FT) / (FT * FT * FT) },
+            'oz/in³': { name: 'oz/in³', factor: (LB / 16) / (IN * IN * IN) },
             'tonne/m³': { name: 'tonne/m³', factor: 1000 },
             'SG': { name: 'Specific Gravity', factor: 1000 }
         },
@@ -292,11 +319,11 @@
             'cP': { name: 'Centipoise', factor: 0.001 },
             'kg/(m·s)': { name: 'kg/(m·s)', factor: 1 },
             'N·s/m²': { name: 'N·s/m²', factor: 1 },
-            'lb/(ft·s)': { name: 'lb/(ft·s)', factor: 1.48816394 },
-            'lb/(ft·hr)': { name: 'lb/(ft·hr)', factor: 0.000413378872 },
-            'lbf·s/ft²': { name: 'lbf·s/ft²', factor: 47.8802589 },
-            'lbf·s/in²': { name: 'Reyn', factor: 6894.75729 },
-            'slug/(ft·s)': { name: 'slug/(ft·s)', factor: 47.8802589 }
+            'lb/(ft·s)': { name: 'lb/(ft·s)', factor: LB / FT },
+            'lb/(ft·hr)': { name: 'lb/(ft·hr)', factor: LB / FT / 3600 },
+            'lbf·s/ft²': { name: 'lbf·s/ft²', factor: LBF / (FT * FT) },
+            'lbf·s/in²': { name: 'Reyn', factor: LBF / (IN * IN) },
+            'slug/(ft·s)': { name: 'slug/(ft·s)', factor: LBF / (FT * FT) }
         },
         quickRefs: [
             { from: '1 cP', to: '0.001 Pa·s' },
@@ -315,9 +342,9 @@
             'cm²/s': { name: 'cm²/s (Stokes)', factor: 1e-4 },
             'St': { name: 'Stokes', factor: 1e-4 },
             'cSt': { name: 'Centistokes', factor: 1e-6 },
-            'ft²/s': { name: 'ft²/s', factor: 0.09290304 },
-            'ft²/hr': { name: 'ft²/hr', factor: 0.09290304/3600 },
-            'in²/s': { name: 'in²/s', factor: 0.00064516 }
+            'ft²/s': { name: 'ft²/s', factor: FT * FT },
+            'ft²/hr': { name: 'ft²/hr', factor: FT * FT / 3600 },
+            'in²/s': { name: 'in²/s', factor: IN * IN }
         },
         quickRefs: [
             { from: '1 cSt', to: '1 mm²/s' },
@@ -336,14 +363,14 @@
             'MN': { name: 'Meganewtons', factor: 1e6 },
             'mN': { name: 'Millinewtons', factor: 0.001 },
             'dyn': { name: 'Dynes', factor: 1e-5 },
-            'kgf': { name: 'Kilogram-force', factor: 9.80665 },
-            'gf': { name: 'Gram-force', factor: 0.00980665 },
-            'lbf': { name: 'Pound-force', factor: 4.4482216152605 },
-            'kip': { name: 'Kips', factor: 4448.2216152605 },
-            'ozf': { name: 'Ounce-force', factor: 0.2780138509 },
-            'tonf': { name: 'Short ton-force', factor: 8896.443230521 },
-            'tonf_uk': { name: 'Long ton-force', factor: 9964.01641818 },
-            'pdl': { name: 'Poundals', factor: 0.138254954376 }
+            'kgf': { name: 'Kilogram-force', factor: G0 },
+            'gf': { name: 'Gram-force', factor: G0 / 1000 },
+            'lbf': { name: 'Pound-force', factor: LBF },
+            'kip': { name: 'Kips', factor: 1000 * LBF },
+            'ozf': { name: 'Ounce-force', factor: LBF / 16 },
+            'tonf': { name: 'Short ton-force', factor: 2000 * LBF },
+            'tonf_uk': { name: 'Long ton-force', factor: 2240 * LBF },
+            'pdl': { name: 'Poundals', factor: LB * FT }
         },
         quickRefs: [
             { from: '1 lbf', to: '4.448 N' },
@@ -363,12 +390,12 @@
             'mm²': { name: 'Square Millimeters', factor: 1e-6 },
             'ha': { name: 'Hectares', factor: 10000 },
             'are': { name: 'Ares', factor: 100 },
-            'ft²': { name: 'Square Feet', factor: 0.09290304 },
-            'in²': { name: 'Square Inches', factor: 0.00064516 },
-            'yd²': { name: 'Square Yards', factor: 0.83612736 },
-            'mi²': { name: 'Square Miles', factor: 2589988.110336 },
-            'acre': { name: 'Acres', factor: 4046.8564224 },
-            'circ_mil': { name: 'Circular Mils', factor: 5.067074790975e-10 }
+            'ft²': { name: 'Square Feet', factor: FT * FT },
+            'in²': { name: 'Square Inches', factor: IN * IN },
+            'yd²': { name: 'Square Yards', factor: YD * YD },
+            'mi²': { name: 'Square Miles', factor: MI * MI },
+            'acre': { name: 'Acres', factor: 43560 * FT * FT },
+            'circ_mil': { name: 'Circular Mils', factor: Math.PI / 4 * (IN / 1000) * (IN / 1000) }
         },
         quickRefs: [
             { from: '1 ft²', to: '0.0929 m²' },
@@ -387,12 +414,12 @@
             'km/s': { name: 'km/sec', factor: 1000 },
             'cm/s': { name: 'cm/sec', factor: 0.01 },
             'mm/s': { name: 'mm/sec', factor: 0.001 },
-            'mph': { name: 'Miles/hour', factor: 0.44704 },
-            'fps': { name: 'Feet/sec', factor: 0.3048 },
-            'fpm': { name: 'Feet/min', factor: 0.00508 },
-            'fph': { name: 'Feet/hour', factor: 0.3048/3600 },
-            'ips': { name: 'Inches/sec', factor: 0.0254 },
-            'kn': { name: 'Knots', factor: 0.514444444 },
+            'mph': { name: 'Miles/hour', factor: MI / 3600 },
+            'fps': { name: 'Feet/sec', factor: FT },
+            'fpm': { name: 'Feet/min', factor: FT / 60 },
+            'fph': { name: 'Feet/hour', factor: FT / 3600 },
+            'ips': { name: 'Inches/sec', factor: IN },
+            'kn': { name: 'Knots', factor: 1852 / 3600 },
             'mach': { name: 'Mach (@sea level)', factor: 340.29 },
             'c': { name: 'Speed of Light', factor: 299792458 }
         },
@@ -435,12 +462,12 @@
             'kN·m': { name: 'Kilonewton-meters', factor: 1000 },
             'N·cm': { name: 'Newton-cm', factor: 0.01 },
             'N·mm': { name: 'Newton-mm', factor: 0.001 },
-            'kgf·m': { name: 'kgf-meters', factor: 9.80665 },
-            'kgf·cm': { name: 'kgf-cm', factor: 0.0980665 },
-            'gf·cm': { name: 'gf-cm', factor: 0.0000980665 },
-            'lbf·ft': { name: 'Pound-feet', factor: 1.3558179483 },
-            'lbf·in': { name: 'Pound-inches', factor: 0.1129848290 },
-            'ozf·in': { name: 'Ounce-inches', factor: 0.00706155181 },
+            'kgf·m': { name: 'kgf-meters', factor: G0 },
+            'kgf·cm': { name: 'kgf-cm', factor: G0 / 100 },
+            'gf·cm': { name: 'gf-cm', factor: G0 / 100000 },
+            'lbf·ft': { name: 'Pound-feet', factor: FT * LBF },
+            'lbf·in': { name: 'Pound-inches', factor: IN * LBF },
+            'ozf·in': { name: 'Ounce-inches', factor: IN * LBF / 16 },
             'dyn·cm': { name: 'Dyne-cm', factor: 1e-7 }
         },
         quickRefs: [
@@ -460,10 +487,10 @@
             'kW/(m·K)': { name: 'kW/(m·K)', factor: 1000 },
             'W/(cm·K)': { name: 'W/(cm·K)', factor: 100 },
             'mW/(m·K)': { name: 'mW/(m·K)', factor: 0.001 },
-            'BTU/(hr·ft·°F)': { name: 'BTU/(hr·ft·°F)', factor: 1.730734666 },
-            'BTU·in/(hr·ft²·°F)': { name: 'BTU·in/(hr·ft²·°F)', factor: 0.144227889 },
-            'cal/(s·cm·°C)': { name: 'cal/(s·cm·°C)', factor: 418.4 },
-            'kcal/(hr·m·°C)': { name: 'kcal/(hr·m·°C)', factor: 1.163 }
+            'BTU/(hr·ft·°F)': { name: 'BTU/(hr·ft·°F)', factor: BTU / (3600 * FT * (5 / 9)) },
+            'BTU·in/(hr·ft²·°F)': { name: 'BTU·in/(hr·ft²·°F)', factor: BTU / (3600 * FT * (5 / 9)) / 12 },
+            'cal/(s·cm·°C)': { name: 'cal/(s·cm·°C)', factor: CAL_TH / 0.01 },
+            'kcal/(hr·m·°C)': { name: 'kcal/(hr·m·°C)', factor: 1000 * CAL_IT / 3600 }
         },
         quickRefs: [
             { from: '1 BTU/(hr·ft·°F)', to: '1.731 W/(m·K)' },
@@ -481,10 +508,10 @@
             'J/(kg·°C)': { name: 'J/(kg·°C)', factor: 1 },
             'kJ/(kg·K)': { name: 'kJ/(kg·K)', factor: 1000 },
             'J/(g·K)': { name: 'J/(g·K)', factor: 1000 },
-            'cal/(g·°C)': { name: 'cal/(g·°C)', factor: 4184 },
-            'kcal/(kg·°C)': { name: 'kcal/(kg·°C)', factor: 4184 },
-            'BTU/(lb·°F)': { name: 'BTU/(lb·°F)', factor: 4186.8 },
-            'BTU/(lb·°R)': { name: 'BTU/(lb·°R)', factor: 4186.8 }
+            'cal/(g·°C)': { name: 'cal/(g·°C)', factor: 1000 * CAL_TH },
+            'kcal/(kg·°C)': { name: 'kcal/(kg·°C)', factor: 1000 * CAL_TH },
+            'BTU/(lb·°F)': { name: 'BTU/(lb·°F)', factor: BTU / (LB * (5 / 9)) },
+            'BTU/(lb·°R)': { name: 'BTU/(lb·°R)', factor: BTU / (LB * (5 / 9)) }
         },
         quickRefs: [
             { from: '1 BTU/(lb·°F)', to: '4.187 kJ/(kg·K)' },
@@ -514,6 +541,73 @@
             { from: '1 meq/L', to: '1 mmol/L (mono)' },
             { from: '1 N', to: '1 M (mono)' }
         ]
+    },
+    angle: {
+        name: 'Angle',
+        icon: '📐',
+        baseUnit: 'rad',
+        units: {
+            'rad': { name: 'Radians', factor: 1 },
+            'mrad': { name: 'Milliradians', factor: 0.001 },
+            'deg': { name: 'Degrees', factor: Math.PI / 180 },
+            'grad': { name: 'Gradians (gon)', factor: Math.PI / 200 },
+            'arcmin': { name: 'Arcminutes', factor: Math.PI / 10800 },
+            'arcsec': { name: 'Arcseconds', factor: Math.PI / 648000 },
+            'rev': { name: 'Revolutions', factor: 2 * Math.PI }
+        },
+        quickRefs: [
+            { from: '180 deg', to: '3.14159 rad' },
+            { from: '1 rev', to: '360 deg' },
+            { from: '1 rev', to: '400 grad' },
+            { from: '1 deg', to: '60 arcmin' }
+        ]
+    },
+    frequency: {
+        name: 'Frequency',
+        icon: '📡',
+        baseUnit: 'Hz',
+        units: {
+            'Hz': { name: 'Hertz', factor: 1 },
+            'mHz': { name: 'Millihertz', factor: 0.001 },
+            'kHz': { name: 'Kilohertz', factor: 1000 },
+            'MHz': { name: 'Megahertz', factor: 1e6 },
+            'GHz': { name: 'Gigahertz', factor: 1e9 },
+            'rpm': { name: 'Rev/minute (RPM)', factor: 1 / 60 },
+            'rps': { name: 'Rev/second', factor: 1 },
+            'rad/s': { name: 'Radians/sec', factor: 1 / (2 * Math.PI) },
+            'deg/s': { name: 'Degrees/sec', factor: 1 / 360 }
+        },
+        quickRefs: [
+            { from: '60 rpm', to: '1 Hz' },
+            { from: '1 Hz', to: '6.28319 rad/s' },
+            { from: '1 kHz', to: '1000 Hz' },
+            { from: '3600 rpm', to: '60 Hz' }
+        ]
+    },
+    data: {
+        name: 'Data Storage',
+        icon: '💾',
+        baseUnit: 'B',
+        units: {
+            'bit': { name: 'Bits', factor: 0.125 },
+            'B': { name: 'Bytes', factor: 1 },
+            'KB': { name: 'Kilobytes (10³)', factor: 1e3 },
+            'MB': { name: 'Megabytes (10⁶)', factor: 1e6 },
+            'GB': { name: 'Gigabytes (10⁹)', factor: 1e9 },
+            'TB': { name: 'Terabytes (10¹²)', factor: 1e12 },
+            'PB': { name: 'Petabytes (10¹⁵)', factor: 1e15 },
+            'KiB': { name: 'Kibibytes (2¹⁰)', factor: 1024 },
+            'MiB': { name: 'Mebibytes (2²⁰)', factor: 1048576 },
+            'GiB': { name: 'Gibibytes (2³⁰)', factor: 1073741824 },
+            'TiB': { name: 'Tebibytes (2⁴⁰)', factor: 1099511627776 },
+            'PiB': { name: 'Pebibytes (2⁵⁰)', factor: 1125899906842624 }
+        },
+        quickRefs: [
+            { from: '1 KiB', to: '1024 B' },
+            { from: '1 MB', to: '1000 KB' },
+            { from: '8 bit', to: '1 B' },
+            { from: '1 GiB', to: '1073741824 B' }
+        ]
     }
 };
 
@@ -521,24 +615,33 @@
 // Converter Logic
 // ============================================
 let currentCategory = 'length';
+let elements = null;
 
-const elements = {
-    categoryList: document.getElementById('uc-categoryList'),
-    panelIcon: document.getElementById('uc-panelIcon'),
-    panelTitle: document.getElementById('uc-panelTitle'),
-    fromValue: document.getElementById('uc-fromValue'),
-    fromUnit: document.getElementById('uc-fromUnit'),
-    toValue: document.getElementById('uc-toValue'),
-    toUnit: document.getElementById('uc-toUnit'),
-    resultValue: document.getElementById('uc-resultValue'),
-    resultFormula: document.getElementById('uc-resultFormula'),
-    referenceGrid: document.getElementById('uc-referenceGrid'),
-    swapBtn: document.getElementById('uc-swapBtn'),
-    copyBtn: document.getElementById('uc-copyBtn')
-};
+// Raw (unrounded) result of the last successful conversion; swapUnits feeds
+// this back as the new input so repeated swaps don't accumulate rounding
+// drift from the 10-significant-figure display.
+let lastRawResult = null;
 
 // Initialize
 function init() {
+    // Looked up at init rather than at script parse time so the tool does
+    // not depend on where the script tag sits relative to the markup.
+    elements = {
+        categoryList: document.getElementById('uc-categoryList'),
+        panelIcon: document.getElementById('uc-panelIcon'),
+        panelTitle: document.getElementById('uc-panelTitle'),
+        fromValue: document.getElementById('uc-fromValue'),
+        fromUnit: document.getElementById('uc-fromUnit'),
+        toValue: document.getElementById('uc-toValue'),
+        toUnit: document.getElementById('uc-toUnit'),
+        resultValue: document.getElementById('uc-resultValue'),
+        resultFormula: document.getElementById('uc-resultFormula'),
+        resultNote: document.getElementById('uc-resultNote'),
+        referenceGrid: document.getElementById('uc-referenceGrid'),
+        swapBtn: document.getElementById('uc-swapBtn'),
+        copyBtn: document.getElementById('uc-copyBtn')
+    };
+
     bindCategoryEvents();
     bindInputEvents();
     loadCategory(currentCategory);
@@ -546,6 +649,15 @@ function init() {
 
 function bindCategoryEvents() {
     const categoryItems = elements.categoryList.querySelectorAll('.category-item');
+
+    // Roving tabindex: exactly one category is tabbable at a time, so the
+    // list is a single Tab stop and arrow keys move within it.
+    function setRovingFocus(item) {
+        categoryItems.forEach(el => {
+            el.setAttribute('tabindex', el === item ? '0' : '-1');
+        });
+        item.focus();
+    }
 
     // Handle category selection (both click and keyboard activation)
     function selectCategory(item) {
@@ -556,7 +668,7 @@ function bindCategoryEvents() {
         }
         item.classList.add('active');
         item.setAttribute('aria-selected', 'true');
-        item.focus();
+        setRovingFocus(item);
         loadCategory(item.dataset.category);
     }
 
@@ -580,17 +692,17 @@ function bindCategoryEvents() {
             if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
                 e.preventDefault();
                 const nextIndex = (currentIndex + 1) % items.length;
-                items[nextIndex].focus();
+                setRovingFocus(items[nextIndex]);
             } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
                 e.preventDefault();
                 const prevIndex = (currentIndex - 1 + items.length) % items.length;
-                items[prevIndex].focus();
+                setRovingFocus(items[prevIndex]);
             } else if (e.key === 'Home') {
                 e.preventDefault();
-                items[0].focus();
+                setRovingFocus(items[0]);
             } else if (e.key === 'End') {
                 e.preventDefault();
-                items[items.length - 1].focus();
+                setRovingFocus(items[items.length - 1]);
             }
         });
     });
@@ -677,12 +789,57 @@ function loadQuickReferences(refs) {
 
 function findUnitKey(unitStr) {
     const data = unitData[currentCategory];
-    for (const key of Object.keys(data.units)) {
-        if (key === unitStr || data.units[key].name.toLowerCase().includes(unitStr.toLowerCase())) {
-            return key;
-        }
+    const keys = Object.keys(data.units);
+
+    // An exact key match must win before any name matching: several unit
+    // names contain other units' keys as substrings ("Metric Tons" contains
+    // "ton", "Pascal-seconds" contains "P").
+    const exact = keys.find(key => key === unitStr);
+    if (exact) {
+        return exact;
     }
-    return null;
+
+    const lower = unitStr.toLowerCase();
+
+    // Next prefer a parenthesized abbreviation in the display name, e.g.
+    // "eq/L (N)" for "N"; a bare substring pass would hit "nmol/L" first.
+    const abbrev = keys.find(key => data.units[key].name.toLowerCase().includes(`(${lower})`));
+    if (abbrev) {
+        return abbrev;
+    }
+
+    return keys.find(key => data.units[key].name.toLowerCase().includes(lower)) || null;
+}
+
+// Pure conversion core (no DOM). Returns a Number; throws on an unknown
+// category/unit or a missing conversion factor. Exposed on window.UnitConverter
+// for automated tests (tests/smoke/simple-unit-converter.spec.cjs).
+function convertValue(category, value, fromUnit, toUnit) {
+    const data = unitData[category];
+    if (!data) {
+        throw new Error(`Unknown category: ${category}`);
+    }
+    if (!data.units[fromUnit]) {
+        throw new Error(`Unknown unit: ${fromUnit}`);
+    }
+    if (!data.units[toUnit]) {
+        throw new Error(`Unknown unit: ${toUnit}`);
+    }
+    if (typeof value !== 'number' || isNaN(value)) {
+        throw new Error('Invalid input value');
+    }
+
+    if (data.special && category === 'temperature') {
+        return convertTemperature(value, fromUnit, toUnit);
+    }
+
+    const fromFactor = data.units[fromUnit].factor;
+    const toFactor = data.units[toUnit].factor;
+    if (typeof fromFactor !== 'number' || typeof toFactor !== 'number') {
+        throw new Error(`Invalid conversion factor for ${fromUnit} or ${toUnit}`);
+    }
+
+    return (value * fromFactor) / toFactor;
 }
 
 function convert() {
@@ -721,28 +878,7 @@ function convert() {
     let result;
 
     try {
-        if (data.special && currentCategory === 'temperature') {
-            result = convertTemperature(inputValue, fromUnit, toUnit);
-        } else {
-            // Standard conversion via base unit
-            const fromFactor = data.units[fromUnit].factor;
-            const toFactor = data.units[toUnit].factor;
-
-            if (typeof fromFactor !== 'number' || typeof toFactor !== 'number') {
-                showError(`Invalid conversion factor for ${fromUnit} or ${toUnit}`);
-                return;
-            }
-
-            const baseValue = inputValue * fromFactor;
-
-            // Check for overflow
-            if (!isFinite(baseValue)) {
-                showError('Value overflow: number too large');
-                return;
-            }
-
-            result = baseValue / toFactor;
-        }
+        result = convertValue(currentCategory, inputValue, fromUnit, toUnit);
 
         // Check result validity
         if (isNaN(result)) {
@@ -754,6 +890,8 @@ function convert() {
             showError('Conversion resulted in infinite value');
             return;
         }
+
+        lastRawResult = result;
 
         // Format result
         const formattedResult = formatNumber(result);
@@ -771,48 +909,76 @@ function convert() {
             elements.resultFormula.textContent = `${fromFormatted} × ${formatNumber(conversionFactor)} = ${formattedResult}`;
         }
 
-        // Handle Definitions/Ambiguity
-        const noteElement = document.getElementById('uc-resultNote');
-        const ambiguousUnits = ['cal', 'kcal', 'BTU', 'MMBTU', 'therm'];
-
-        // Check if either unit is in our "ambiguous" list
-        const isAmbiguous = ambiguousUnits.some(u => fromUnit.includes(u) || toUnit.includes(u));
-
-        if (isAmbiguous) {
-            // Customize this logic based on which specific definition you are using per category
-            let msg = "";
-            if (currentCategory === 'energy' || currentCategory === 'specificHeat') {
-                // code: Energy uses 4.184 (Thermochemical), but Power uses IT.
-                // This detects if we are in the category using Thermochemical.
-                msg = "Using Thermochemical definition (1 cal = 4.184 J).";
-            } else if (currentCategory === 'power') {
-                msg = "Using International Table definition (1 cal = 4.1868 J).";
-            }
-
-            if (msg) {
-                noteElement.textContent = "Note: " + msg;
-                noteElement.style.display = 'block';
-            } else {
-                noteElement.style.display = 'none';
-            }
-        } else if (currentCategory === 'pressure' && (fromUnit === 'mmHg' || toUnit === 'mmHg')) {
-            //Add note for mmHg vs Torr want to be super precise
-            noteElement.textContent = "Note: Using conventional mmHg (13595.1 kg/m³), not Torr.";
-            noteElement.style.display = 'block';
-        } else {
-            noteElement.style.display = 'none';
-        }
+        updateDefinitionNote(fromUnit, toUnit, inputValue);
 
     } catch (e) {
         showError(`Conversion error: ${e.message}`);
     }
 }
 
+// Which calorie/BTU definition a unit's factor is built on. The factors
+// deliberately follow the established convention for each unit, and those
+// differ across (and within) categories: energy and specific-heat calories
+// are thermochemical, power calories and kcal/(hr·m·°C) are International
+// Table, and every BTU-derived unit (including therms and tons of
+// refrigeration) is IT.
+function definitionNoteForUnit(category, unit) {
+    if (unit.includes('BTU') || unit.includes('therm') || unit === 'ton_ref') {
+        return 'BTU is International Table (1 BTU = 1055.05585262 J).';
+    }
+    if (unit.includes('cal')) {
+        const isIT = category === 'power' ||
+            (category === 'thermalConductivity' && unit.startsWith('kcal'));
+        return isIT
+            ? 'cal is International Table (1 cal = 4.1868 J).'
+            : 'cal is thermochemical (1 cal = 4.184 J).';
+    }
+    return '';
+}
+
+function updateDefinitionNote(fromUnit, toUnit, inputValue) {
+    if (!elements.resultNote) {
+        return;
+    }
+
+    const notes = [];
+    const fromNote = definitionNoteForUnit(currentCategory, fromUnit);
+    const toNote = definitionNoteForUnit(currentCategory, toUnit);
+    if (fromNote) {
+        notes.push(fromNote);
+    }
+    if (toNote && toNote !== fromNote) {
+        notes.push(toNote);
+    }
+
+    if (currentCategory === 'pressure' && (fromUnit === 'mmHg' || toUnit === 'mmHg')) {
+        notes.push('Using conventional mmHg (13595.1 kg/m³), not Torr.');
+    }
+
+    if (currentCategory === 'temperature') {
+        const kelvin = convertTemperature(inputValue, fromUnit, 'K');
+        if (isFinite(kelvin) && kelvin < 0) {
+            notes.push('Below absolute zero (0 K); not physically reachable.');
+        }
+    }
+
+    if (notes.length > 0) {
+        elements.resultNote.textContent = 'Note: ' + notes.join(' ');
+        elements.resultNote.style.display = 'block';
+    } else {
+        elements.resultNote.style.display = 'none';
+    }
+}
+
 function showError(message) {
+    lastRawResult = null;
     elements.toValue.value = '';
     elements.resultValue.textContent = 'Error';
     elements.resultFormula.textContent = message;
     elements.resultValue.style.color = 'var(--accent-error)';
+    if (elements.resultNote) {
+        elements.resultNote.style.display = 'none';
+    }
 }
 
 function clearError() {
@@ -820,12 +986,12 @@ function clearError() {
 }
 
 function clearResults() {
+    lastRawResult = null;
     elements.toValue.value = '';
     elements.resultValue.textContent = '';
     elements.resultFormula.textContent = '';
-    const noteElement = document.getElementById('uc-resultNote');
-    if (noteElement) {
-        noteElement.style.display = 'none';
+    if (elements.resultNote) {
+        elements.resultNote.style.display = 'none';
     }
 }
 
@@ -906,15 +1072,16 @@ function getTemperatureFormula(from, to) {
 }
 
 function swapUnits() {
-    // Swap the units
     const tempUnit = elements.fromUnit.value;
     elements.fromUnit.value = elements.toUnit.value;
     elements.toUnit.value = tempUnit;
 
-    // Swap the values - use the calculated result as the new input
-    const result = elements.toValue.value;
-    if (result) {
-        elements.fromValue.value = result;
+    // Feed the result back as the new input at 15 significant digits: enough
+    // that drift can never reach the 10-digit display even across repeated
+    // swaps, while exact decimals stay clean ("0.3048", not the raw double
+    // "0.30479999999999996" that 12*0.0254 produces).
+    if (lastRawResult !== null && isFinite(lastRawResult)) {
+        elements.fromValue.value = String(parseFloat(lastRawResult.toPrecision(15)));
     }
 
     convert();
@@ -948,11 +1115,20 @@ function debounce(func, wait) {
     };
 }
 
-    // Initialize on DOM ready
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init);
-    } else {
-        // DOM is already ready
-        init();
-    }
+// Pure conversion surface exposed for automated tests
+// (tests/smoke/simple-unit-converter.spec.cjs).
+window.UnitConverter = {
+    unitData,
+    convert: convertValue,
+    convertTemperature,
+    formatNumber
+};
+
+// Initialize on DOM ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+} else {
+    // DOM is already ready
+    init();
+}
 })();

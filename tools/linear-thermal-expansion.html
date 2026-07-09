@@ -1,8 +1,37 @@
 <!DOCTYPE html>
+<!--
+============================================
+LINEAR THERMAL EXPANSION v1.1.0
+============================================
+Description: Calculate length change, final length, and strain from
+the linear expansion formula ΔL = α · L₀ · ΔT, with a 51-material
+CTE database (metals, plastics, wood, ceramics/glass) sourced from
+published datasheets.
+
+Dependencies: None (Vanilla JavaScript)
+Google Fonts (JetBrains Mono, Space Grotesk) loaded from CDN.
+
+Project: Tools Hub by Jesse Anderson
+Repository: https://github.com/jesse-anderson/Tools
+License: GPL-3.0 - https://github.com/jesse-anderson/Tools/blob/main/LICENSE
+
+Features:
+- ΔL / final length / percent strain in °C, °F, or K with metric and
+  imperial length units
+- Sourced CTE reference table (per-material datasheet links) with
+  click-to-load rows and range indicators
+- True-to-scale expansion/contraction visualization
+- Absolute-zero input validation in every temperature unit
+- Comprehensive engineering disclaimer and reference sections
+
+Last Updated: July 2026
+============================================
+-->
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; base-uri 'none'; form-action 'none'">
     <title>Linear Thermal Expansion | Tools Hub</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -46,7 +75,7 @@
                     </div>
                 </div>
             </div>
-            <div style="margin-top: 24px; display: flex; align-items: center; gap: 16px;">
+            <div class="tool-title-row">
                 <div class="tool-icon-header engineering">🌡️</div>
                 <div>
                     <h1>Linear Thermal Expansion</h1>
@@ -67,18 +96,18 @@
                         </div>
                         <div class="material-select-group">
                             <div class="input-wrapper">
-                                <label>Material</label>
+                                <label for="materialSelect">Material</label>
                                 <select id="materialSelect">
                                     <option value="custom">Custom CTE...</option>
                                     </select>
                             </div>
                             <div class="input-wrapper">
-                                <label>CTE (α)</label>
-                                <div style="position: relative;">
+                                <label for="cteInput">CTE (α)</label>
+                                <div class="cte-input-shell">
                                     <input type="number" id="cteInput" step="0.1">
-                                    <span style="position: absolute; right: 10px; top: 12px; font-size: 0.75rem; color: var(--text-muted);">µm/m·°C</span>
+                                    <span class="input-suffix">µm/m·°C</span>
                                 </div>
-                                <div id="cteRangeInfo" class="cte-range-info" style="display: none;"></div>
+                                <div id="cteRangeInfo" class="cte-range-info"></div>
                             </div>
                         </div>
                     </div>
@@ -92,11 +121,11 @@
                         </div>
                         <div class="input-row">
                             <div class="input-wrapper">
-                                <label>Initial Length (L₀)</label>
+                                <label for="lengthInput">Initial Length (L₀)</label>
                                 <input type="number" id="lengthInput" value="100" placeholder="e.g. 100">
                             </div>
-                            <div class="input-wrapper" style="width: 100px;">
-                                <label>Unit</label>
+                            <div class="input-wrapper narrow">
+                                <label for="lengthUnit">Unit</label>
                                 <select id="lengthUnit">
                                     <option value="m">m</option>
                                     <option value="cm">cm</option>
@@ -117,15 +146,15 @@
                         </div>
                         <div class="input-row">
                             <div class="input-wrapper">
-                                <label>Initial Temp (T₁)</label>
+                                <label for="tempInitial">Initial Temp (T₁)</label>
                                 <input type="number" id="tempInitial" value="20">
                             </div>
                             <div class="input-wrapper">
-                                <label>Final Temp (T₂)</label>
+                                <label for="tempFinal">Final Temp (T₂)</label>
                                 <input type="number" id="tempFinal" value="120">
                             </div>
-                            <div class="input-wrapper" style="width: 80px;">
-                                <label>Unit</label>
+                            <div class="input-wrapper narrow-sm">
+                                <label for="tempUnit">Unit</label>
                                 <select id="tempUnit">
                                     <option value="C">°C</option>
                                     <option value="F">°F</option>
@@ -135,7 +164,7 @@
                         </div>
                     </div>
 
-                    <div class="results-panel">
+                    <div class="results-panel" aria-live="polite">
                         <div class="result-item">
                             <div class="result-label">Temperature Change (ΔT)</div>
                             <div class="result-value" id="resDeltaT">100 °C</div>
@@ -143,16 +172,16 @@
                         <div class="result-item">
                             <div class="result-label">Change in Length (ΔL)</div>
                             <div class="result-value">
-                                <span id="resDeltaL">0.117</span> <span class="result-sub" id="resDeltaLUnit">m</span>
+                                <span id="resDeltaL">+0.1175</span> <span class="result-sub" id="resDeltaLUnit">m</span>
                             </div>
                         </div>
                         <div class="result-item">
                             <div class="result-label">Final Length (L)</div>
-                            <div class="result-value" id="resFinalL">100.117 m</div>
+                            <div class="result-value" id="resFinalL">100.1175 m</div>
                         </div>
                         <div class="result-item">
-                            <div class="result-label">Percentage Increase</div>
-                            <div class="result-value percent" id="resPercent">0.117%</div>
+                            <div class="result-label">Percentage Change</div>
+                            <div class="result-value percent" id="resPercent">+0.1175%</div>
                         </div>
                     </div>
 
@@ -174,8 +203,8 @@
 
                 <aside class="sidebar">
                     <div class="sidebar-card table-card">
-                        <h3 style="margin-bottom: 8px; font-size: 0.875rem; color: var(--text-primary);">CTE Reference Table</h3>
-                        <p style="font-size: 0.7rem; color: var(--text-muted); margin-bottom: 12px;">
+                        <h3>CTE Reference Table</h3>
+                        <p class="table-note">
                             Click row to load. Values are nominal/average.<br>
                             (Metric: 10⁻⁶/°C, Imp: 10⁻⁶/°F)
                         </p>
@@ -183,9 +212,9 @@
                             <table class="cte-table">
                                 <thead>
                                     <tr>
-                                        <th style="width: 45%">Material</th>
-                                        <th style="width: 25%">µm/m°C</th>
-                                        <th style="width: 30%">µin/in°F</th>
+                                        <th>Material</th>
+                                        <th>µm/m°C</th>
+                                        <th>µin/in°F</th>
                                     </tr>
                                 </thead>
                                 <tbody id="cteTableBody">
@@ -195,7 +224,7 @@
                     </div>
                     
                     <div class="disclaimer-card">
-                        <div class="disclaimer-header" id="disclaimerHeader">
+                        <div class="disclaimer-header" id="disclaimerHeader" role="button" tabindex="0" aria-expanded="false" aria-controls="disclaimerContent">
                             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5">
                                 <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
                                 <line x1="12" y1="9" x2="12" y2="13"/>
@@ -268,7 +297,7 @@
 
             <!-- CTE References Section -->
             <section class="references-section">
-                <div class="references-header" id="referencesHeader">
+                <div class="references-header" id="referencesHeader" role="button" tabindex="0" aria-expanded="false" aria-controls="referencesContent">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
                         <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
@@ -293,7 +322,7 @@
 
                     <div class="ref-category">
                         <h4>Comprehensive Material Reference Table</h4>
-                        <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 12px;">All materials in the calculator database with verified CTE sources.</p>
+                        <p class="ref-note">All materials in the calculator database with verified CTE sources.</p>
                         <table class="ref-table">
                             <thead>
                                 <tr>
@@ -304,7 +333,7 @@
                             </thead>
                             <tbody>
                                 <!-- METALS -->
-                                <tr><td colspan="3" style="background: var(--bg-secondary); font-weight: 700;">METALS</td></tr>
+                                <tr><td colspan="3" class="ref-section-td">METALS</td></tr>
                                 <tr><td>Aluminum 3003</td><td>22.5-23.6</td><td><a href="https://www.engineeringtoolbox.com/linear-expansion-coefficients-d_95.html" target="_blank" rel="noopener">Engineering Toolbox</a></td></tr>
                                 <tr><td>Aluminum 6061</td><td>23.2-23.6</td><td><a href="https://asm.matweb.com/search/specificmaterial.asp?bassnum=ma6061t6" target="_blank" rel="noopener">MatWeb</a></td></tr>
                                 <tr><td>Brass (Yellow)</td><td>19.0-20.5</td><td><a href="https://www.engineeringtoolbox.com/linear-expansion-coefficients-d_95.html" target="_blank" rel="noopener">Engineering Toolbox</a></td></tr>
@@ -328,7 +357,7 @@
                                 <tr><td>Titanium Grade 2</td><td>8.4-8.8</td><td><a href="https://www.engineeringtoolbox.com/linear-expansion-coefficients-d_95.html" target="_blank" rel="noopener">Engineering Toolbox</a></td></tr>
                                 <tr><td>Zinc</td><td>29.0-31.0</td><td><a href="https://www.matweb.com/reference/elements.aspx" target="_blank" rel="noopener">MatWeb: Elements</a></td></tr>
                                 <!-- PLASTICS -->
-                                <tr><td colspan="3" style="background: var(--bg-secondary); font-weight: 700;">PLASTICS</td></tr>
+                                <tr><td colspan="3" class="ref-section-td">PLASTICS</td></tr>
                                 <tr><td>ABS (Generic)</td><td>75-95</td><td><a href="https://www.professionalplastics.com/professionalplastics/ThermalPropertiesofPlasticMaterials.pdf" target="_blank" rel="noopener">Professional Plastics</a></td></tr>
                                 <tr><td>Acetal (POM)</td><td>80-85</td><td><a href="https://www.professionalplastics.com/professionalplastics/ThermalPropertiesofPlasticMaterials.pdf" target="_blank" rel="noopener">Professional Plastics</a></td></tr>
                                 <tr><td>Acrylic (PMMA)</td><td>70-75</td><td><a href="https://www.professionalplastics.com/professionalplastics/ThermalPropertiesofPlasticMaterials.pdf" target="_blank" rel="noopener">Professional Plastics</a></td></tr>
@@ -348,7 +377,7 @@
                                 <tr><td>PVC (Rigid)</td><td>75-85</td><td><a href="https://www.matweb.com/search/datasheet_print.aspx?matguid=3dbf1ac9082d4de7b247e4bedfd28601" target="_blank" rel="noopener">MatWeb (Piping)</a></td></tr>
                                 <tr><td>PVDF</td><td>100-200</td><td><a href="https://www.theplasticshop.co.uk/plastic_technical_data_sheets/pvdf_technical_data_sheet.pdf" target="_blank" rel="noopener">Technical Datasheet</a></td></tr>
                                 <!-- WOOD -->
-                                <tr><td colspan="3" style="background: var(--bg-secondary); font-weight: 700;">WOOD (Anisotropic)</td></tr>
+                                <tr><td colspan="3" class="ref-section-td">WOOD (Anisotropic)</td></tr>
                                 <tr><td>Fir (Parallel)</td><td>3.5-4.2</td><td><a href="https://web.mst.edu/jthomas/classes/2211/lessons/thermal/thermal_expansion/wood/index.html" target="_blank" rel="noopener">MST: Wood CTE</a></td></tr>
                                 <tr><td>Fir (Perpendicular)</td><td>28-38</td><td><a href="https://web.mst.edu/jthomas/classes/2211/lessons/thermal/thermal_expansion/wood/index.html" target="_blank" rel="noopener">MST: Wood CTE</a></td></tr>
                                 <tr><td>Oak (Parallel)</td><td>4.5-5.5</td><td><a href="https://www.fpl.fs.usda.gov/documnts/fplgtr/fplgtr282/chapter_04_fplgtr282.pdf" target="_blank" rel="noopener">USDA Wood Handbook</a></td></tr>
@@ -356,7 +385,7 @@
                                 <tr><td>Pine (Parallel)</td><td>4.5-5.5</td><td><a href="https://www.engineeringtoolbox.com/linear-expansion-coefficients-d_95.html" target="_blank" rel="noopener">Engineering Toolbox</a></td></tr>
                                 <tr><td>Pine (Perpendicular)</td><td>30-40</td><td><a href="https://link.springer.com/article/10.1186/s10086-019-1781-9" target="_blank" rel="noopener">Springer: J Wood Sci</a></td></tr>
                                 <!-- OTHERS -->
-                                <tr><td colspan="3" style="background: var(--bg-secondary); font-weight: 700;">CERAMICS & OTHERS</td></tr>
+                                <tr><td colspan="3" class="ref-section-td">CERAMICS & OTHERS</td></tr>
                                 <tr><td>Alumina (99%)</td><td>7.5-8.7</td><td><a href="https://www.engineeringtoolbox.com/linear-expansion-coefficients-d_95.html" target="_blank" rel="noopener">Engineering Toolbox</a></td></tr>
                                 <tr><td>Concrete</td><td>10-14</td><td><a href="https://www.fhwa.dot.gov/publications/research/infrastructure/pavements/pccp/thermal.cfm" target="_blank" rel="noopener">FHWA Research</a></td></tr>
                                 <tr><td>Glass, Borosilicate</td><td>3.25-3.3</td><td><a href="https://www.schott.com/-/media/project/onex/shared/downloads/melting-and-hot-forming/390768-row-schott-technical-glasses-view-2020-04-14.pdf" target="_blank" rel="noopener">SCHOTT</a></td></tr>
@@ -410,7 +439,7 @@
                                     <div class="atom"></div><div class="atom"></div><div class="atom"></div><div class="atom"></div>
                                     <div class="atom"></div><div class="atom"></div><div class="atom"></div><div class="atom"></div>
                                 </div>
-                                <div style="font-size: 0.65rem; color: var(--text-muted); margin-top: 8px;">Low Kinetic Energy</div>
+                                <div class="lattice-caption">Low Kinetic Energy</div>
                             </div>
                             <div class="atomic-state">
                                 <div class="temp-label hot">
@@ -423,7 +452,7 @@
                                     <div class="atom"></div><div class="atom"></div><div class="atom"></div><div class="atom"></div>
                                     <div class="atom"></div><div class="atom"></div><div class="atom"></div><div class="atom"></div>
                                 </div>
-                                <div style="font-size: 0.65rem; color: var(--text-muted); margin-top: 8px;">High Kinetic Energy</div>
+                                <div class="lattice-caption">High Kinetic Energy</div>
                             </div>
                         </div>
 
@@ -454,11 +483,11 @@
                         <div class="highlight-box">
                             <code>ΔL = α · L₀ · ΔT</code>
                         </div>
-                        <ul style="list-style: none; padding-left: 0; color: var(--text-secondary); font-size: 0.9rem;">
-                            <li style="margin-bottom: 8px;"><strong>ΔL (Delta L):</strong> The change in length (how much it grew).</li>
-                            <li style="margin-bottom: 8px;"><strong>α (Alpha):</strong> The Coefficient of Thermal Expansion. This is a material property that says "how sensitive is this stuff to heat?"</li>
-                            <li style="margin-bottom: 8px;"><strong>L₀:</strong> The original starting length.</li>
-                            <li style="margin-bottom: 8px;"><strong>ΔT (Delta T):</strong> The change in temperature (Final - Initial).</li>
+                        <ul class="formula-legend">
+                            <li><strong>ΔL (Delta L):</strong> The change in length (how much it grew).</li>
+                            <li><strong>α (Alpha):</strong> The Coefficient of Thermal Expansion. This is a material property that says "how sensitive is this stuff to heat?"</li>
+                            <li><strong>L₀:</strong> The original starting length.</li>
+                            <li><strong>ΔT (Delta T):</strong> The change in temperature (Final - Initial).</li>
                         </ul>
                     </div>
                 </div>

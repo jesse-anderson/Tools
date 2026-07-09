@@ -6,24 +6,8 @@
 // granularity, ignore-case and page-break options, change navigation,
 // visual pixel diff, and TXT/JSON export.
 const { test, expect } = require('@playwright/test');
-const { startServer } = require('./server.cjs');
 
 const TOOL_PATH = '/tools/pdf-diff.html';
-let smokeServer;
-
-test.beforeAll(async () => {
-  smokeServer = await startServer({
-    port: Number(process.env.PORT || 4173),
-    reuseExisting: !process.env.CI
-  });
-});
-
-test.afterAll(async () => {
-  if (smokeServer) {
-    await smokeServer.close();
-    smokeServer = null;
-  }
-});
 
 // ============================================
 // Minimal PDF fixture builder (Helvetica text, correct xref)

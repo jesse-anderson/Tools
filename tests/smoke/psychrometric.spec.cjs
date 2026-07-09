@@ -2,25 +2,11 @@
 // (window.REFERENCE_DATA) through the real solvers in the browser. Replaces the
 // one-off validation scripts that lived at the repo root during the engine
 // migration (check_psychrolib.py, reproduce_psychro.js, debug_values.*).
+const fs = require('fs');
 const { test, expect } = require('@playwright/test');
-const { startServer } = require('./server.cjs');
+const { expectPageToLoadCleanly } = require('./helpers.cjs');
 
 const TOOL_PATH = '/tools/psychrometric-calculator.html';
-let smokeServer;
-
-test.beforeAll(async () => {
-  smokeServer = await startServer({
-    port: Number(process.env.PORT || 4173),
-    reuseExisting: !process.env.CI
-  });
-});
-
-test.afterAll(async () => {
-  if (smokeServer) {
-    await smokeServer.close();
-    smokeServer = null;
-  }
-});
 
 async function openTool(page) {
   await page.goto(TOOL_PATH);
@@ -92,4 +78,113 @@ test('saturation edge: at RH 100 the three temperatures coincide', async ({ page
   expect(Math.abs(r.Tdp - 25)).toBeLessThan(0.05);
   expect(r.W).toBeGreaterThan(0);
   expect(Number.isFinite(r.h)).toBe(true);
+});
+
+test('psychrometric calculator keeps unit paths and Tdb plus W wet bulb consistent', async ({ page, baseURL }) => {
+  await expectPageToLoadCleanly(page, baseURL, '/tools/psychrometric-calculator.html');
+  await expect(page.locator('#devModal')).toHaveCount(0);
+  await expect(page.locator('body')).not.toContainText('Â');
+  await expect(page.locator('body')).not.toContainText('Ã');
+  await expect(page.locator('body')).not.toContainText('â');
+  await expect(page.locator('body')).not.toContainText('deg C');
+  await expect(page.locator('#labelUnitTdb')).toContainText('°C');
+
+  await expect(page.locator('#valTwb')).toContainText('17.89');
+  await expect(page.locator('#calcW')).toContainText('0.009881');
+  await expect(page.locator('#calcW')).toContainText('kg/kg');
+
+  await page.locator('.unit-toggle button[data-unit="ip"]').click();
+  await expect(page.locator('#labelUnitTdb')).toContainText('°F');
+  await expect(page.locator('body')).not.toContainText('deg F');
+  await expect(page.locator('#calcPressure')).toContainText('14.696');
+  await expect(page.locator('#calcPressure')).toContainText('psi');
+  await expect(page.locator('#valH')).toContainText('21.63');
+
+  const pressureKPa = await page.evaluate(() => getInputPressureKPa());
+  expect(pressureKPa).toBeCloseTo(101.325, 2);
+
+  await page.locator('.mode-toggle button[data-mode="tdb_w"]').click();
+  await expect(page.locator('#valTwb')).toContainText('64.37');
+  await expect(page.locator('#calcW')).toContainText('0.010000');
+  await expect(page.locator('#calcW')).toContainText('lb/lb');
+
+  await page.fill('#inputAltitude', '5280');
+  await expect(page.locator('#altitudePressureHint')).toContainText('12.');
+  await page.click('#applyAltitudeBtn');
+  const altitudePressureKPa = await page.evaluate(() => getInputPressureKPa());
+  expect(altitudePressureKPa).toBeCloseTo(83.4, 0);
+  await expect(page.locator('#calcPressure')).toContainText('12.');
+
+  await page.locator('.unit-toggle button[data-unit="si"]').click();
+  await page.click('#resetInputBtn');
+  await page.click('#saveStateABtn');
+  await page.click('#applyProcessSaveBBtn');
+  await expect(page.locator('#valTdb')).toContainText('30.00');
+  await expect(page.locator('#processStateASummary')).toContainText('Tdb 25.0 C');
+  await expect(page.locator('#processStateBSummary')).toContainText('Tdb 30.0 C');
+  await expect(page.locator('#processDeltaSummary')).toContainText('Delta Tdb +5.0 C');
+  await expect(page.locator('#processDeltaSummary')).toContainText('Delta h');
+
+  await page.selectOption('#processType', 'cool_dehum');
+  await page.fill('#processInput1', '18');
+  await page.fill('#processInput2', '90');
+  await page.click('#applyProcessBtn');
+  await expect(page.locator('#processOutput')).toContainText('Cooling/dehumidification target');
+  await expect(page.locator('#valRH')).toContainText('90.0 %');
+
+  await page.selectOption('#processType', 'humidify');
+  await page.fill('#processInput1', '2');
+  await page.click('#applyProcessBtn');
+  await expect(page.locator('#processOutput')).toContainText('Humidification');
+
+  await page.selectOption('#processType', 'mix');
+  await page.fill('#processInput1', '50');
+  await page.click('#applyProcessBtn');
+  await expect(page.locator('#processOutput')).toContainText('Mixed air from State A/B');
+
+  await page.selectOption('#processType', 'coil');
+  await page.fill('#processInput1', '10');
+  await page.fill('#processInput2', '0.10');
+  await page.click('#applyProcessBtn');
+  await expect(page.locator('#processOutput')).toContainText('Coil leaving estimate');
+
+  const chartPoint = await page.evaluate(() => ({
+    x: CHART.TdbToX(32),
+    y: CHART.WToY(12)
+  }));
+  await page.locator('#psychoCanvas').click({ position: chartPoint });
+  await expect(page.locator('#labelInput2')).toContainText('Humidity Ratio');
+  const chartState = await page.evaluate(() => ({
+    mode: inputMode,
+    Tdb: currentState.Tdb,
+    W: currentState.W
+  }));
+  expect(chartState.mode).toBe('tdb_w');
+  expect(chartState.Tdb).toBeCloseTo(32, 1);
+  expect(chartState.W).toBeCloseTo(0.012, 3);
+
+  const resultsDownloadPromise = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Export Data' }).click();
+  const resultsDownload = await resultsDownloadPromise;
+  const resultsCsv = fs.readFileSync(await resultsDownload.path(), 'utf8');
+  expect(resultsCsv).toContain('Altitude Helper Input,0.00 m');
+  expect(resultsCsv).toContain('Standard Pressure From Altitude,101.325 kPa');
+  expect(resultsCsv).toContain('Pressure Source,Calculation uses the atmospheric pressure field');
+  expect(resultsCsv).toContain('=== PROCESS STATES ===');
+  expect(resultsCsv).toContain('=== PROCESS DELTAS ===');
+
+  await page.getByRole('button', { name: 'Verify' }).click();
+  await expect(page.locator('#validationModal')).toContainText('Validation Passed');
+  await expect(page.locator('#validationModal')).toContainText('Reference cases are PsychroLib v2.5.0');
+  await expect(page.locator('#validationModal')).toContainText('Tdb + Twb');
+  await expect(page.locator('#validationModal')).toContainText('Tdb + Tdp');
+  await expect(page.locator('#validationModal')).toContainText('Tdb + W');
+
+  const reportDownloadPromise = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Export Report' }).click();
+  const reportDownload = await reportDownloadPromise;
+  const reportCsv = fs.readFileSync(await reportDownload.path(), 'utf8');
+  expect(reportCsv).toContain('Psychrometric Calculator Validation Report');
+  expect(reportCsv).toContain('Reference Source: PsychroLib v2.5.0');
+  expect(reportCsv).toContain('Tdb + W: Comfort Room Conditions');
 });

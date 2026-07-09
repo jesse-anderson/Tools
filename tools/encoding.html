@@ -377,13 +377,7 @@
                 
                 switch(currentMode) {
                     case 'base64':
-                        if(action === 'encode') {
-                            // UTF-8 Safe Encode
-                            result = btoa(unescape(encodeURIComponent(source)));
-                        } else {
-                            // UTF-8 Safe Decode
-                            result = decodeURIComponent(escape(atob(source)));
-                        }
+                        result = (action === 'encode') ? base64Encode(source) : base64Decode(source);
                         break;
                     case 'url':
                         result = (action === 'encode') ? encodeURIComponent(source) : decodeURIComponent(source);
@@ -408,6 +402,33 @@
         }
 
         // --- Algorithms ---
+
+        function base64Encode(str) {
+            // Encode text as UTF-8 bytes, then Base64. Avoids the deprecated
+            // escape/unescape idiom while still handling all Unicode.
+            const bytes = new TextEncoder().encode(str);
+            let binary = '';
+            for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+            return btoa(binary);
+        }
+
+        function base64Decode(str) {
+            // Forgiving decode. Tolerates surrounding whitespace/newlines, a
+            // data-URI prefix, URL-safe Base64 (- and _ as in JWTs/tokens), and
+            // missing padding. Bytes are decoded as UTF-8 without throwing on
+            // non-UTF-8 content (TextDecoder substitutes U+FFFD instead of the
+            // old decodeURIComponent(escape(...)) which errored on valid Base64).
+            let s = str.replace(/^data:[^,]*;base64,/i, '')
+                       .replace(/\s+/g, '')
+                       .replace(/-/g, '+')
+                       .replace(/_/g, '/')
+                       .replace(/=+$/, '');
+            if (s.length % 4 === 1) throw new Error('Invalid Base64 length');
+            while (s.length % 4) s += '=';
+            const binary = atob(s); // still throws on genuinely invalid characters
+            const bytes = Uint8Array.from(binary, c => c.charCodeAt(0));
+            return new TextDecoder().decode(bytes);
+        }
 
         function htmlEncode(str) {
             return str.replace(/[&<>"']/g, function(m) {
@@ -517,6 +538,14 @@
             const i = Math.floor(Math.log(bytes) / Math.log(k));
             return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
         }
+
+        // Pure conversion surface exposed for automated tests
+        // (tests/smoke/encoding.spec.cjs).
+        window.EncodingEngine = {
+            base64Encode, base64Decode,
+            toHex, fromHex, toBinary, fromBinary,
+            htmlEncode, htmlDecode
+        };
     </script>
 </body>
 </html>

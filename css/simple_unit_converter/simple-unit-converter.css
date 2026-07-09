@@ -2,6 +2,14 @@
    Unit Converter - Specific Styles
    ============================================ */
 
+/* Header */
+.tool-title-row {
+    margin-top: 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
 .converter-layout {
     display: grid;
     grid-template-columns: 280px 1fr;
@@ -240,6 +248,7 @@
 }
 
 .result-note {
+    display: none;
     font-family: 'JetBrains Mono', monospace;
     font-size: 0.75rem;
     color: var(--accent-warning);
@@ -285,6 +294,12 @@
     background: var(--accent-engineering-dim);
 }
 
+.category-item:focus-visible,
+.reference-item:focus-visible {
+    outline: 2px solid var(--accent-engineering);
+    outline-offset: 2px;
+}
+
 .reference-item .from {
     color: var(--text-secondary);
 }
@@ -313,6 +328,12 @@
     .category-item {
         padding: 8px 12px;
         font-size: 0.75rem;
+        min-height: 44px;
+    }
+
+    .reference-item {
+        min-height: 44px;
+        align-items: center;
     }
 
     .conversion-area {

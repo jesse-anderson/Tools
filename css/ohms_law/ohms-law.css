@@ -2,6 +2,14 @@
    Ohm's Law Calculator - Specific Styles
    ============================================ */
 
+/* Header */
+.tool-title-row {
+    margin-top: 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
 .calculator-layout {
     display: grid;
     grid-template-columns: 1fr 320px;
@@ -54,11 +62,6 @@
     border-color: var(--border-hover);
 }
 
-.input-card.active {
-    border-color: var(--accent-engineering);
-    box-shadow: 0 0 0 3px var(--accent-engineering-dim);
-}
-
 .input-card.calculated {
     background: var(--accent-engineering-dim);
     border-color: var(--accent-engineering);
@@ -67,7 +70,7 @@
 /* Error state for infinite/invalid values */
 .input-card.error {
     border-color: var(--accent-error);
-    background: rgba(239, 68, 68, 0.1);
+    background: var(--accent-error-dim);
 }
 
 .input-card.error .input-symbol {
@@ -157,6 +160,19 @@
 .lock-btn svg {
     width: 16px;
     height: 16px;
+}
+
+/* Icon swap is driven by the .locked class, not inline styles (CSP) */
+.lock-btn .locked {
+    display: none;
+}
+
+.lock-btn.locked .locked {
+    display: block;
+}
+
+.lock-btn.locked .unlocked {
+    display: none;
 }
 
 .input-field-wrapper {
@@ -431,6 +447,20 @@
     color: var(--text-muted);
 }
 
+.wheel-hint {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-align: center;
+}
+
+.lock-btn:focus-visible,
+.copy-btn:focus-visible,
+.wheel-segment:focus-visible,
+.quick-value:focus-visible {
+    outline: 2px solid var(--accent-engineering);
+    outline-offset: 2px;
+}
+
 /* Mobile Responsive */
 @media (max-width: 1024px) {
     .calculator-layout {
@@ -463,5 +493,15 @@
 
     .input-field-wrapper input {
         font-size: 1.25rem;
+    }
+
+    .lock-btn,
+    .copy-btn {
+        width: 44px;
+        height: 44px;
+    }
+
+    .quick-value {
+        min-height: 44px;
     }
 }

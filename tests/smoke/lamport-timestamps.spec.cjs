@@ -6,24 +6,9 @@
 // replay idempotence. Also drives the page UI once to confirm the visualizer
 // agrees with a pure replay of the same sequence.
 const { test, expect } = require('@playwright/test');
-const { startServer } = require('./server.cjs');
+const { expectPageToLoadCleanly } = require('./helpers.cjs');
 
 const TOOL_PATH = '/tools/lamport-timestamps.html';
-let smokeServer;
-
-test.beforeAll(async () => {
-  smokeServer = await startServer({
-    port: Number(process.env.PORT || 4173),
-    reuseExisting: !process.env.CI
-  });
-});
-
-test.afterAll(async () => {
-  if (smokeServer) {
-    await smokeServer.close();
-    smokeServer = null;
-  }
-});
 
 async function openTool(page) {
   await page.goto(TOOL_PATH);
@@ -304,4 +289,91 @@ test.describe('Page integration', () => {
     expect(state.timelineVisible).toBe(true);
     expect(state.timelineHasContent).toBe(true);
   });
+});
+
+async function createLamportEvent(page, { processId, type, counterpartyId = null, messageId = '' }) {
+  await page.selectOption('#eventProcessSelect', String(processId));
+  await page.locator(`.event-type-btn[data-type="${type}"]`).click();
+
+  if (counterpartyId !== null) {
+    await page.selectOption('#counterpartySelect', String(counterpartyId));
+  }
+
+  await page.fill('#messageIdInput', messageId);
+  await page.click('#addEventBtn');
+}
+
+async function getLamportProcessStateText(page, processName) {
+  return page.evaluate((wantedProcess) => {
+    const cards = Array.from(document.querySelectorAll('#currentState .state-card'));
+    const match = cards.find((card) => card.querySelector('.state-process-name')?.textContent?.trim() === wantedProcess);
+    return match ? match.textContent.replace(/\s+/g, ' ').trim() : null;
+  }, processName);
+}
+
+test('lamport vector mode keeps the local vector component distinct from the Lamport scalar clock', async ({ page, baseURL }) => {
+  await page.addInitScript(() => window.localStorage.clear());
+  await expectPageToLoadCleanly(page, baseURL, '/tools/lamport-timestamps.html');
+
+  await page.click('#clearLogBtn');
+
+  const initialProcessCount = await page.locator('.process-remove').count();
+  for (let index = 0; index < initialProcessCount; index += 1) {
+    await page.locator('.process-remove').first().click();
+  }
+
+  await page.click('#addProcessBtn');
+  await page.click('#addProcessBtn');
+  await page.locator('.mode-btn[data-mode="vector"]').click();
+
+  for (let index = 0; index < 9; index += 1) {
+    await createLamportEvent(page, { processId: 1, type: 'local' });
+  }
+
+  await createLamportEvent(page, { processId: 1, type: 'send', counterpartyId: 2 });
+  await createLamportEvent(page, { processId: 2, type: 'local' });
+  await createLamportEvent(page, { processId: 2, type: 'receive', counterpartyId: 1 });
+
+  await expect.poll(
+    () => getLamportProcessStateText(page, 'P2'),
+    { message: 'Expected the receive path to increment the vector clock by one, not overwrite it with the Lamport scalar timestamp.' }
+  ).toContain('v = [10, 2]');
+});
+
+test('lamport event creation controls become usable when processes exist', async ({ page, baseURL }) => {
+  await page.addInitScript(() => window.localStorage.clear());
+  await expectPageToLoadCleanly(page, baseURL, '/tools/lamport-timestamps.html');
+
+  await expect(page.locator('#eventProcessSelect')).toBeEnabled();
+  await expect(page.locator('#addEventBtn')).toBeDisabled();
+});
+
+test('lamport clear resets internal process clocks before the next event is created', async ({ page, baseURL }) => {
+  await page.addInitScript(() => window.localStorage.clear());
+  await expectPageToLoadCleanly(page, baseURL, '/tools/lamport-timestamps.html');
+
+  await page.click('#clearLogBtn');
+  await createLamportEvent(page, { processId: 1, type: 'local' });
+
+  await expect.poll(
+    () => getLamportProcessStateText(page, 'P1'),
+    { message: 'Expected the first event after Clear to restart the process clock at t = 1.' }
+  ).toContain('t = 1');
+});
+
+test('lamport remove process recomputes surviving clocks before future events', async ({ page, baseURL }) => {
+  await page.addInitScript(() => window.localStorage.clear());
+  await expectPageToLoadCleanly(page, baseURL, '/tools/lamport-timestamps.html');
+
+  await page.click('#clearLogBtn');
+  await page.locator('.process-remove[data-process-id="3"]').click();
+
+  await createLamportEvent(page, { processId: 2, type: 'send', counterpartyId: 1 });
+  await page.locator('.process-remove[data-process-id="1"]').click();
+  await createLamportEvent(page, { processId: 1, type: 'local' });
+
+  await expect.poll(
+    () => getLamportProcessStateText(page, 'P1'),
+    { message: 'Expected the first surviving event after deleting the message counterparty to restart from the recomputed clock state.' }
+  ).toContain('t = 1');
 });

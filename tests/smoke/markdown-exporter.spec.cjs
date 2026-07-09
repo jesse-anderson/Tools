@@ -5,24 +5,8 @@
 // here is shared with the DOCX path, so covering it locks the bulk of the
 // conversion logic. This tool previously had no automated coverage.
 const { test, expect } = require('@playwright/test');
-const { startServer } = require('./server.cjs');
 
 const TOOL_PATH = '/tools/markdown-exporter.html';
-let smokeServer;
-
-test.beforeAll(async () => {
-  smokeServer = await startServer({
-    port: Number(process.env.PORT || 4173),
-    reuseExisting: !process.env.CI
-  });
-});
-
-test.afterAll(async () => {
-  if (smokeServer) {
-    await smokeServer.close();
-    smokeServer = null;
-  }
-});
 
 async function openTool(page) {
   await page.goto(TOOL_PATH);

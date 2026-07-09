@@ -2,24 +2,11 @@
 // integrity of the vendored SPECIES_DATA and the pure doubling/normalized-share
 // math used by the comparison plot.
 const { test, expect } = require('@playwright/test');
-const { startServer } = require('./server.cjs');
+const fs = require('fs');
+const path = require('path');
+const { repoRoot, expectPageToLoadCleanly } = require('./helpers.cjs');
 
 const TOOL_PATH = '/tools/species-doubling-reference.html';
-let smokeServer;
-
-test.beforeAll(async () => {
-  smokeServer = await startServer({
-    port: Number(process.env.PORT || 4173),
-    reuseExisting: !process.env.CI
-  });
-});
-
-test.afterAll(async () => {
-  if (smokeServer) {
-    await smokeServer.close();
-    smokeServer = null;
-  }
-});
 
 async function openTool(page) {
   await page.goto(TOOL_PATH);
@@ -129,4 +116,34 @@ test.describe('doubling and normalized-share math', () => {
     expect(r.total).toBeCloseTo(100, 6);
     expect(r.dominantShare).toBeCloseTo(100, 6);
   });
+});
+
+test('species doubling reference includes B. coagulans in cards and comparison data', () => {
+  const speciesReferenceMarkup = fs.readFileSync(path.join(repoRoot, 'tools', 'species-doubling-reference.html'), 'utf8');
+  const speciesReferenceScript = fs.readFileSync(path.join(repoRoot, 'js', 'species_doubling_reference', 'species-doubling-reference.js'), 'utf8');
+
+  expect(speciesReferenceMarkup).toContain('<strong>12 species</strong>');
+  expect(speciesReferenceMarkup).toContain('<h3 class="species-name">B. coagulans</h3>');
+  expect(speciesReferenceMarkup).toContain('Ahmad Sanadi et al. 2017');
+  expect(speciesReferenceMarkup).toContain('<h3 class="species-name">L. gasseri</h3>');
+  expect(speciesReferenceMarkup).toContain('Lima et al. 2022');
+  expect(speciesReferenceMarkup).toContain('derived t<sub>d</sub> ~14.5-15.2 min');
+  expect(speciesReferenceMarkup).toContain('doubling time 43.55-48.61 min');
+  expect(speciesReferenceScript).toContain('id: "b-coagulans"');
+  expect(speciesReferenceScript).toContain('id: "bc-mrs"');
+  expect(speciesReferenceScript).toContain('id: "l-gasseri"');
+  expect(speciesReferenceScript).toContain('id: "lg-pfj"');
+  expect(speciesReferenceScript).toContain('tdLabel: "14.5-15.2 min"');
+  expect(speciesReferenceScript).toContain('tdLabel: "43.55-48.61 min"');
+});
+
+test('species doubling reference renders B. coagulans search and compare option', async ({ page, baseURL }) => {
+  await expectPageToLoadCleanly(page, baseURL, '/tools/species-doubling-reference.html');
+
+  await expect(page.locator('[data-results-count]')).toHaveText('Showing 12 of 12 species');
+  await expect(page.locator('[data-row-species]').first()).toContainText('B. coagulans');
+
+  await page.locator('[data-species-search]').fill('coagulans');
+  await expect(page.locator('[data-results-count]')).toHaveText('Showing 1 of 12 species');
+  await expect(page.locator('[data-species-card]:not([hidden]) .species-name')).toHaveText('B. coagulans');
 });
