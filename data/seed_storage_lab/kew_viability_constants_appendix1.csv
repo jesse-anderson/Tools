@@ -1,0 +1,71 @@
+family,species,KE,CW,CH,CQ,reference,notes,years_minus20c_5pct,years_15c_15rh
+Aceraceae,Acer platanoides,7.22,4.23,0.0329,0.000478,"(Dickie et al., 1991) only 1 temp.",Storage expt. at,147,
+Alliaceae,Allium cepa,6.975,3.47,0.04,0.000428,"(Ellis & Roberts, 1981)",,413,465
+Alliaceae,Allium cepa,9.083,5.81,0.0329,0.000478,"(Ellis et al., 1990d) only 1 temp.",Storage expt. at,843,1031
+Araucariaceae,Araucaria columnaris,5.66,2.68,0.033,0.000478,"(Tompsett, 1984a), (Tompsett, 1992)",,49,
+Araucariaceae,Araucaria cunninghamii,7.49,3.73,0.033,0.000478,"(Tompsett, 1992) limited data",Derived from,615,
+Caryophyllaceae,Gypsophila elegans,9.6,5.36,0.04,0.0004,"RBG Kew, unpublished limited data",Derived from,8526,
+Chenopodiaceae,Beta vulgaris,8.943,4.723,0.0329,0.000478,"(Ellis et al., 1990d) only 1 temp.",Storage expt. at,3514,
+Chenopodiaceae,Chenopodium quinoa,8.58,5.02,0.0329,0.000478,"(Ellis et al., 1988) only 1 temp.",Storage expt. at,945,
+Combretaceae,Terminalia brassii,5.016,2.161,0.0329,0.000478,"(Tompsett, 1986b), (Dickie et al., 1990)",,26,208
+Compositae,Guizotia abyssinica,7.578,4.78,0.0329,0.000478,"(Ellis et al., 1989) only 1 temp.",Storage expt. at,138,
+Compositae,Guizotia abyssinica,7.494,4.257,0.0372,0.00048,"(Zewdie & Ellis, 1991d)",,322,
+Compositae,Helianthus annuus,6.74,4.16,0.0329,0.000478,"(Ellis et al., 1988) only 1 temp.",Storage expt. at,55,101
+Compositae,Lactuca sativa,6.895,4.2,0.0329,0.000478,"(Kraak & Vos, 1987), (Dickie et al., 1990",,73,158
+Compositae,Lactuca sativa,7.938,5.25,0.0329,0.000478,"(Ellis et al., 1989) only 1 temp.",Storage expt. at,149,391
+Cruciferae,Brassica juncea,7.768,4.56,0.0329,0.000478,"(Ellis et al., 1989) only 1 temp.",Storage expt. at,305,1493
+Cruciferae,Brassica napus,7.718,4.54,0.0329,0.000478,"(Ellis et al., 1989) only 1 temp.",Storage expt. at,281,
+Cucurbitaceae,Cucumis melo,7.299,3.707,0.0367,0.000473,"(Kuo, 1991)",,490,
+Cucurbitaceae,Cucurbita pepo,6.913,3.604,0.04,0.0004,"RBG Kew, unpublished limited data",Derived from,296,
+Dipterocarpaceae,Dipterocarpus alatus,5.92,2.69,0.033,0.000478,"(Tompsett, 1992) limited data",Derived from,88,
+Dipterocarpaceae,Dipterocarpus intricatus,6.18,2.77,0.033,0.000478,"(Tompsett, 1992) limited data",Derived from,141,
+Euphorbiaceae,Manihot esculenta,5.8,,,,"(Ellis et al., 1981)",,,
+Gramineae,Eleusine coracana,9.508,5.08,0.0329,0.000478,"(Ellis et al., 1989) only 1 temp.",Storage expt. at,7266,
+Gramineae,Eragrostis tef,10.098,6.01,0.0329,0.000478,"(Ellis et al., 1989) only 1 temp.",Storage expt. at,6327,
+Gramineae,Eragrostis tef cv.,9.727,5.185,0.0329,0.00054,"(Zewdie & Ellis, 1991d) Muri",,9596,
+Gramineae,Eragrostis tef cvs.,9.927,5.185,0.0329,0.00054,"(Zewdie & Ellis, 1991d)",,15208,
+Gramineae,Hordeum vulgare,9.144,5.342,0.0329,0.000478,"(Ellis & Roberts, 1980b), (Dickie et al., 1990)",,2061,688
+Gramineae,Oryza sativa,8.668,5.03,0.0329,0.000478,"(Ellis et al., 1989) only 1 temp.",Storage expt. at,1138,402
+Gramineae,Oryza sativa ssp.,8.81,4.904,0.0329,0.000478,"(Ellis et al., 1992) indica only 1 temp.",Storage expt. at,1933,706
+Gramineae,Oryza sativa ssp.,8.416,4.904,0.0329,0.000478,"(Ellis et al., 1992) japonica only 1 temp.",Storage expt. at,780,285
+Gramineae,Oryza sativa ssp.,8.736,4.904,0.0329,0.000478,"(Ellis et al., 1992) javanica only 1 temp.",Storage expt. at,1630,596
+Gramineae,Pennisetum glaucum,8.728,4.86,0.0329,0.000478,"(Ellis et al., 1989) as P. americanum) only 1 temp.",Storage expt. at,1718,691
+Gramineae,Phleum pratense,9.571,5.262,0.04,0.0004,"RBG Kew, unpublished limited data",Derived from,9338,
+Gramineae,Phleum pratense cv.,8.678,4.75,0.0329,0.000478,"(Ellis et al., 1989) Erecta only 1 temp.",Storage expt. at,1828,
+Gramineae,Phleum pratense cv.,8.138,4.75,0.0329,0.000478,"(Ellis et al., 1989) S325 only 1 temp.",Storage expt. at,527,
+Gramineae,Setaria italica,8.678,4.95,0.0329,0.000478,"(Ellis et al., 1989) only 1 temp.",Storage expt. at,1325,
+Gramineae,Sorghum bicolor,10.588,6.305,0.041,0.000349,"(Kuo et al., 1990)",,19890,6106
+Gramineae,Triticum aestivum,9.42,5.859,0.0329,0.000478,"(Ellis et al., 1990d) only 1 temp.",Storage expt. at,1693,508
+Gramineae,Zea mays,8.579,4.91,0.0329,0.000478,"SSLR, unpublished only 1 temp.",Storage expt. at,1125,460
+Hamamelidaceae,Liquidambar styraciflua,6.55309,3.033052,0.0081,0.00151,"(Bonner, 1994) years storage",Data based on 5,27,
+Hamamelidaceae,Liquidambar styraciflua,6.384753,2.70571,0.0306,0.000967,"(Bonner, 1994) 10 years storage",Data based on,143,
+Leguminosae,Arachis hypogaea,6.718,4.089,0.0329,0.000478,"(Ellis et al., 1990d) only 1 temp.",Storage expt. at,58,236
+Leguminosae,Cicer arietinum,8.901,4.847,0.0329,0.000478,"(Ellis et al., 1982), (Dickie et al., 1990)",,2613,1115
+Leguminosae,Cicer arietinum,8.502,4.602,0.0295,0.000491,"(Ellis, 1988)",,1307,
+Leguminosae,Glycine max,7.525,4.086,0.0329,0.000478,"(Ellis et al., 1982), (Dickie et al., 1990)",,374,321
+Leguminosae,Glycine max,7.292,3.996,0.0295,0.000491,"(Ellis, 1988)",,214,184
+Leguminosae,Lupinus polyphyllus,6.217,2.761,0.04,0.0004,"(Dickie & Bowyer, 1985)",,231,
+Leguminosae,Phaseolus vulgaris,9.09,4.761,0.0329,0.000478,"(Ellis et al., 1990d) only 1 temp.",Storage expt. at,4637,
+Leguminosae,Pisum sativum,9.858,5.39,0.0329,0.000478,"(Ellis et al., 1989) only 1 temp.",Storage expt. at,9876,3180
+Leguminosae,Psophocarpus tetragonolobus,3.9,,,,"(Ellis et al., 1985c)",,,
+Leguminosae,Trifolium subterraneum,7.21,3.51,0.04,0.0004,"RBG Kew, unpublished limited data",Derived from,682,
+Leguminosae,Vigna radiata,10.858,6.27,0.0329,0.000478,"(Ellis et al., 1989) only 1 temp.",Storage expt. at,23960,
+Leguminosae,Vigna unguiculata,9.401,5.118,0.0329,0.000478,"(Ellis et al., 1982), (Dickie et al., 1990)",,5342,1687
+Leguminosae,Vigna unguiculata,9.102,4.967,0.0295,0.000491,"(Ellis, 1988)",,2891,1042
+Linaceae,Linum usitatissimum,7.76,4.86,0.0329,0.000478,"(Ellis et al., 1988) only 1 temp.",Storage expt. at,185,509
+Meliaceae,Entandophragma angolense,4.6,2.21,0.033,0.000478,"(Tompsett, 1992) limited data",Derived from,9,
+Meliaceae,Khaya senegalensis,4.76,2.15,0.033,0.000478,"(Tompsett, 1992) limited data",Derived from,15,
+Meliaceae,Swietinia humilis,5.393,2.391,0.0329,0.000478,"(P.B. Tompsett, unpubl.), (Dickie et al., 1990)",,42,314
+Papaveraceae,Papaver nudicaule,6.838,4.101,0.027,0.000313,"(Belletti et al., 1991)",,67,
+Pedaliaceae,Sesamum indicum,7.19,4.02,0.04,0.000428,"(Ellis et al., 1986) only 1 temp.",Storage expt. at,279,1332
+Pinaceae,Pinus elliottii,5.587688,1.449494,0.0326,0.00101,"(Bonner, 1994) years storage",Data based on 5,182,
+Pinaceae,Pinus elliottii,5.246319,0.983174,0.0508,0.000571,"(Bonner, 1994) 10 years storage",Data based on,608,
+Pinaceae,Pinus occidentalis,5.047441,1.677614,0.0206,0.00126,"(Bonner, 1994) years storage",Data based on 5,17,
+Pinaceae,Pinus occidentalis,5.101286,1.674234,0.0354,0.000838,"(Bonner, 1994) 10 years storage",Data based on,55,
+Pinaceae,Pinus taeda,3.618404,,,,-0.256684 years storage,"(Bonner, 1994) (4) Data based on 5",0.00064,0.00122
+Pinaceae,Pinus taeda,3.278271,,,,-0.729973 10 years storage,"(Bonner, 1994) (4) Data based on",0.0348,0.00032
+Ranunculaceae,Delphinium ambiguum,7.67,3.12,0.04,0.0004,"RBG Kew, unpublished limited data",Derived from,3685,
+Ranunculaceae,Ranunculus sceleratus,6.98,5.01,0.0329,0.000428,"R.J. Probert, RBG Kew, unpublished only 1 temp.",Storage expt. at 41(3),24,
+Rosaceae,Malus domestica,7.316,4.119,0.04,0.000428,"(Dickie, 1988) Hordeum",CW and CQ from,318,
+Scrophulariaceae,Digitalis purpurea,7.49,5.61,0.0329,0.000478,"F.R. Hay, RBG Kew, unpublished only 1 temp.",Storage expt. at 258(3),30,
+Ulmaceae,Ulmus carpinifolia,5.83,3.035,0.0329,0.000478,"(Tompsett, 1986b), (Dickie et al., 1990)",,41,32

@@ -1,0 +1,104 @@
+common_name,scientific_name,also_known_as,group,provenance,notes
+Artichoke,Cynara cardunculus,globe artichoke; cardoon,vegetable,curated,
+Arugula,Eruca vesicaria,rocket; roquette,vegetable,curated,
+Asparagus,Asparagus officinalis,,vegetable,curated,
+Basil,Ocimum basilicum,sweet basil,herb,curated,
+Bean snap,Phaseolus vulgaris,green bean; string bean; common bean; dry bean,vegetable,curated,Kew constants present for Phaseolus vulgaris
+Bean lima,Phaseolus lunatus,butter bean,vegetable,curated,
+Beet,Beta vulgaris,beetroot; garden beet,vegetable,curated,Kew constants present. Same species as Swiss chard
+Broccoli,Brassica oleracea,,vegetable,curated,Brassica oleracea var. italica
+Brussels sprouts,Brassica oleracea,,vegetable,curated,Brassica oleracea var. gemmifera
+Cabbage,Brassica oleracea,,vegetable,curated,Brassica oleracea var. capitata
+Cabbage Chinese,Brassica rapa,napa cabbage; pe-tsai; bok choy,vegetable,curated,
+Carrot,Daucus carota,,vegetable,curated,
+Cauliflower,Brassica oleracea,,vegetable,curated,Brassica oleracea var. botrytis
+Celeriac,Apium graveolens,celery root; knob celery,vegetable,curated,Same species as celery
+Celery,Apium graveolens,,vegetable,curated,The species used in the Groot anoxia and oxygen-model experiments
+Chard Swiss,Beta vulgaris,silverbeet,vegetable,curated,Same species as beet
+Chicory,Cichorium intybus,radicchio; witloof,vegetable,curated,
+Chives,Allium schoenoprasum,,herb,curated,
+Cilantro,Coriandrum sativum,coriander,herb,curated,
+Collards,Brassica oleracea,,vegetable,curated,
+Corn sweet,Zea mays,maize,vegetable,curated,Kew constants present
+Cress,Lepidium sativum,garden cress,vegetable,curated,
+Cucumber,Cucumis sativus,,vegetable,curated,No viability constants - see ACQUISITION_QUEUE item 1
+Dill,Anethum graveolens,,herb,curated,
+Eggplant,Solanum melongena,aubergine; brinjal,vegetable,curated,
+Endive,Cichorium endivia,escarole; frisee,vegetable,curated,
+Fennel,Foeniculum vulgare,,vegetable,curated,
+Kale,Brassica oleracea,,vegetable,curated,
+Kohlrabi,Brassica oleracea,,vegetable,curated,
+Leek,Allium ampeloprasum,,vegetable,curated,
+Lettuce,Lactuca sativa,,vegetable,curated,Kew constants present with TWO independent determinations. Also the Hay worked example
+Melon,Cucumis melo,muskmelon; cantaloupe; honeydew,vegetable,curated,Kew constants present
+Mustard,Brassica juncea,brown mustard; indian mustard,vegetable,curated,Kew constants present
+New Zealand spinach,Tetragonia tetragonioides,,vegetable,curated,
+Okra,Abelmoschus esculentus,ladies fingers; gumbo,vegetable,curated,Species of the PLoS ONE hermetic storage trial
+Onion,Allium cepa,bulb onion; globe onion,vegetable,curated,Kew constants present with TWO independent determinations differing 2x
+Onion bunching,Allium fistulosum,scallion; green onion; welsh onion,vegetable,curated,
+Parsley,Petroselinum crispum,,herb,curated,
+Parsnip,Pastinaca sativa,,vegetable,curated,
+Pea,Pisum sativum,garden pea; english pea,vegetable,curated,Kew constants present
+Pepper,Capsicum annuum,chili; sweet pepper; bell pepper,vegetable,curated,Constants unverified - see supplementary_viability_constants.csv
+Pumpkin,Cucurbita pepo,,vegetable,curated,Kew constants present for Cucurbita pepo
+Radish,Raphanus sativus,,vegetable,curated,
+Rutabaga,Brassica napus,swede,vegetable,curated,Kew constants present for Brassica napus
+Salsify,Tragopogon porrifolius,oyster plant,vegetable,curated,
+Spinach,Spinacia oleracea,,vegetable,curated,
+Squash summer,Cucurbita pepo,zucchini; courgette; crookneck,vegetable,curated,
+Squash winter,Cucurbita maxima,hubbard; buttercup,vegetable,curated,Also Cucurbita moschata for butternut
+Tomato,Solanum lycopersicum,,vegetable,curated,Formerly Lycopersicon esculentum. G2090 seeds/oz is a typo - see numeric_audit
+Turnip,Brassica rapa,,vegetable,curated,G2090 seeds/oz is a typo - see numeric_audit
+Watermelon,Citrullus lanatus,,vegetable,curated,No viability constants - see ACQUISITION_QUEUE item 1
+Alfalfa,Medicago sativa,lucerne,farm_seed,curated,
+Barley,Hordeum vulgare,,farm_seed,curated,Kew constants present. Two incompatible parameterisations exist - see numeric_audit
+Buckwheat,Fagopyrum esculentum,,farm_seed,curated,
+Chickpea,Cicer arietinum,garbanzo; gram,farm_seed,curated,Kew constants present
+Clover crimson,Trifolium incarnatum,,farm_seed,curated,
+Clover subterranean,Trifolium subterraneum,,farm_seed,curated,Kew constants present
+Clover white,Trifolium repens,dutch clover,farm_seed,curated,
+Cowpea,Vigna unguiculata,black-eyed pea; southern pea,farm_seed,curated,Kew constants present
+Flax,Linum usitatissimum,linseed,farm_seed,curated,Kew constants present
+Lentil,Lens culinaris,,farm_seed,curated,No constants in the compendium - see ACQUISITION_QUEUE item 3
+Millet finger,Eleusine coracana,ragi,farm_seed,curated,Kew constants present
+Millet pearl,Pennisetum glaucum,bajra,farm_seed,curated,Kew constants present
+Mung bean,Vigna radiata,green gram,farm_seed,curated,Kew constants present
+Oats,Avena sativa,,farm_seed,curated,
+Peanut,Arachis hypogaea,groundnut,farm_seed,curated,Kew constants present
+Quinoa,Chenopodium quinoa,,farm_seed,curated,Kew constants present
+Rapeseed,Brassica napus,canola; oilseed rape,farm_seed,curated,Kew constants present
+Rice,Oryza sativa,,farm_seed,curated,Kew constants present for the species and for indica/japonica/javanica
+Rye,Secale cereale,,farm_seed,curated,
+Sesame,Sesamum indicum,benne,farm_seed,curated,Kew constants present
+Sorghum,Sorghum bicolor,milo; sudan grass,farm_seed,curated,Kew constants present
+Soybean,Glycine max,soya bean,farm_seed,curated,Kew constants present
+Sunflower,Helianthus annuus,,farm_seed,curated,Kew constants present
+Teff,Eragrostis tef,,farm_seed,curated,Kew constants present including two cultivar rows
+Timothy,Phleum pratense,,farm_seed,curated,Kew constants present including two cultivar rows
+Vetch common,Vicia sativa,,farm_seed,curated,
+Vetch hairy,Vicia villosa,,farm_seed,curated,
+Wheat,Triticum aestivum,common wheat; bread wheat,farm_seed,curated,Kew constants present
+Winged bean,Psophocarpus tetragonolobus,goa bean,farm_seed,curated,Kew constants present (CW only)
+Cassava,Manihot esculenta,manioc; tapioca,farm_seed,curated,Kew constants present (CW only)
+Niger seed,Guizotia abyssinica,ramtil,farm_seed,curated,Kew constants present with two determinations
+Apple,Malus domestica,,fruit,curated,Kew constants present
+Strawberry,Fragaria x ananassa,,fruit,curated,
+Rhubarb,Rheum rhabarbarum,,fruit,curated,
+Baby's breath,Gypsophila elegans,,flower,curated,Kew constants present
+Delphinium,Delphinium ambiguum,larkspur,flower,curated,Kew constants present
+Foxglove,Digitalis purpurea,,flower,curated,Kew constants present
+Poppy Iceland,Papaver nudicaule,,flower,curated,Kew constants present
+Lupine,Lupinus polyphyllus,,flower,curated,Kew constants present
+Asian greens,Brassica rapa,mizuna; tatsoi; komatsuna,vegetable,curated,
+Bells of Ireland,Moluccella laevis,,flower,curated,
+Brussel sprouts,Brassica oleracea,,vegetable,curated,Misspelling as printed by Johnny's; same taxon as Brussels sprouts
+Dusty miller,Jacobaea maritima,,flower,curated,Formerly Senecio cineraria
+Hyacinth bean,Lablab purpureus,,flower,curated,
+Lemon balm,Melissa officinalis,,herb,curated,
+Lemon grass,Cymbopogon citratus,lemongrass,herb,curated,
+Mexican mint marigold,Tagetes lucida,,herb,curated,
+Mountain mint,Pycnanthemum pilosum,,herb,curated,
+Squash and gourds,Cucurbita pepo,gourd,vegetable,curated,Johnny's lists these together
+Sudan grass,Sorghum bicolor,sudangrass,farm_seed,curated,Same species as sorghum
+Sweet pea,Lathyrus odoratus,,flower,curated,Not edible - distinct from Pisum sativum
+Squash & Gourds,Cucurbita pepo,gourd,vegetable,curated,Johnny's prints this with an ampersand

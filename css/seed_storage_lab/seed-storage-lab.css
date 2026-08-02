@@ -1,0 +1,762 @@
+/* ============================================
+   SEED STORAGE LAB
+   Uses the shared theme variables from css/shared.css.
+   ============================================ */
+
+.tool-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+
+.tool-header h1 {
+    margin: 0;
+}
+
+.tool-header .tagline {
+    margin: 0.25rem 0 0;
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+}
+
+.seed-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+    gap: 1.25rem;
+    align-items: start;
+    margin: 1.5rem 0 3rem;
+}
+
+@media (max-width: 1080px) {
+    .seed-layout {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+.panel {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 1.25rem;
+}
+
+.panel-header {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 0.75rem;
+}
+
+.panel-header h2 {
+    margin: 0;
+    font-size: 1.15rem;
+}
+
+.panel-header p {
+    margin: 0.25rem 0 0;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    max-width: 46ch;
+}
+
+.settings-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.tool-btn {
+    background: var(--accent-biochemical);
+    color: #fff;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    padding: 0.45rem 0.8rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: filter 0.15s ease, background 0.15s ease;
+}
+
+.tool-btn:hover {
+    filter: brightness(1.1);
+}
+
+.tool-btn.secondary {
+    background: var(--bg-input);
+    color: var(--text-primary);
+    border-color: var(--border-color);
+}
+
+.tool-btn.secondary:hover {
+    border-color: var(--border-hover);
+    background: var(--bg-card-hover);
+    filter: none;
+}
+
+.settings-line,
+.status-line {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin: 0 0 0.6rem;
+}
+
+.status-line {
+    padding: 0.5rem 0.7rem;
+    background: var(--bg-input);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-secondary);
+}
+
+/* ---- Disclosure blocks ---------------------------------------------- */
+
+.scope-warning-block,
+.tutorial-card,
+.checks-card,
+.sources-card {
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    background: var(--bg-input);
+    padding: 0.6rem 0.85rem;
+    margin-bottom: 0.85rem;
+}
+
+.scope-warning-block {
+    border-color: var(--accent-warning);
+    background: var(--accent-warning-dim);
+}
+
+.scope-warning-block summary,
+.tutorial-card summary,
+.checks-card summary,
+.sources-card summary {
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.88rem;
+    color: var(--text-primary);
+}
+
+.scope-warning-block p,
+.tutorial-card p,
+.tutorial-card li {
+    font-size: 0.83rem;
+    line-height: 1.55;
+    color: var(--text-secondary);
+}
+
+.tutorial-card ul {
+    margin: 0.5rem 0 0;
+    padding-left: 1.1rem;
+}
+
+.tutorial-card li {
+    margin-bottom: 0.4rem;
+}
+
+/* ---- Tabs ------------------------------------------------------------ */
+
+.tab-row {
+    display: flex;
+    gap: 0.35rem;
+    margin-bottom: 0.9rem;
+    flex-wrap: wrap;
+}
+
+.tab-btn {
+    background: var(--bg-input);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    border-radius: 8px;
+    padding: 0.4rem 0.85rem;
+    font-size: 0.85rem;
+    font-family: inherit;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.tab-btn.active {
+    background: var(--accent-biochemical-dim);
+    border-color: var(--accent-biochemical);
+    color: var(--text-primary);
+}
+
+/* ---- Inputs ---------------------------------------------------------- */
+
+.section-block {
+    margin-bottom: 1.1rem;
+}
+
+.section-block h3 {
+    margin: 0 0 0.6rem;
+    font-size: 0.95rem;
+}
+
+.input-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 0.7rem;
+}
+
+.input-line {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+}
+
+.input-line.wide,
+.result-card--wide {
+    grid-column: 1 / -1;
+}
+
+.input-line > span {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.input-line input,
+.input-line select,
+.search-field input {
+    background: var(--bg-input);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-primary);
+    padding: 0.45rem 0.6rem;
+    font-family: inherit;
+    font-size: 0.88rem;
+    width: 100%;
+}
+
+.input-line input:focus,
+.input-line select:focus,
+.search-field input:focus {
+    outline: none;
+    border-color: var(--accent-biochemical);
+}
+
+.inline-pair {
+    display: flex;
+    gap: 0.4rem;
+}
+
+.inline-pair input {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.inline-pair select {
+    flex: 0 0 auto;
+    width: auto;
+}
+
+.unit-field {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.unit-suffix {
+    position: absolute;
+    right: 0.6rem;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    pointer-events: none;
+}
+
+.preset-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-bottom: 0.9rem;
+}
+
+.preset-btn {
+    background: var(--bg-input);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    border-radius: 999px;
+    padding: 0.32rem 0.75rem;
+    font-size: 0.78rem;
+    font-family: inherit;
+    cursor: pointer;
+}
+
+.preset-btn:hover {
+    border-color: var(--accent-biochemical);
+    color: var(--text-primary);
+}
+
+/* ---- Species search -------------------------------------------------- */
+
+.search-field {
+    position: relative;
+}
+
+.species-results {
+    list-style: none;
+    margin: 0.45rem 0 0;
+    padding: 0;
+    max-height: 260px;
+    overflow-y: auto;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--bg-input);
+}
+
+.species-results:empty {
+    display: none;
+}
+
+.species-results li {
+    border-bottom: 1px solid var(--border-color);
+}
+
+.species-results li:last-child {
+    border-bottom: none;
+}
+
+.species-results button {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: none;
+    border: none;
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 0.85rem;
+    padding: 0.5rem 0.7rem;
+    cursor: pointer;
+}
+
+.species-results button:hover,
+.species-results button:focus-visible {
+    background: var(--bg-card-hover);
+}
+
+.species-results .sci {
+    display: block;
+    font-size: 0.76rem;
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+.species-results .badges {
+    display: inline-flex;
+    gap: 0.25rem;
+    margin-left: 0.35rem;
+}
+
+.badge {
+    font-size: 0.62rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 0.08rem 0.35rem;
+    border-radius: 4px;
+    background: var(--bg-card-hover);
+    border: 1px solid var(--border-color);
+    color: var(--text-muted);
+}
+
+.badge.on {
+    color: var(--accent-biochemical);
+    border-color: var(--accent-biochemical);
+    background: var(--accent-biochemical-dim);
+}
+
+/* ---- Gate banner ----------------------------------------------------- */
+
+.gate-banner {
+    border: 1px solid var(--border-color);
+    border-left-width: 4px;
+    border-radius: 8px;
+    padding: 0.65rem 0.8rem;
+    margin-bottom: 0.9rem;
+    background: var(--bg-input);
+}
+
+.gate-banner h4 {
+    margin: 0 0 0.25rem;
+    font-size: 0.88rem;
+}
+
+.gate-banner p {
+    margin: 0;
+    font-size: 0.8rem;
+    line-height: 1.5;
+    color: var(--text-secondary);
+}
+
+.gate-banner[data-status="ok"] {
+    border-left-color: var(--accent-success);
+}
+
+.gate-banner[data-status="assumed"] {
+    border-left-color: var(--accent-it);
+}
+
+.gate-banner[data-status="caution"] {
+    border-left-color: var(--accent-warning);
+    background: var(--accent-warning-dim);
+}
+
+.gate-banner[data-status="blocked"],
+.gate-banner[data-status="not_applicable"] {
+    border-left-color: var(--accent-error);
+    background: var(--accent-error-dim);
+}
+
+/* ---- Results --------------------------------------------------------- */
+
+.result-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 0.7rem;
+}
+
+.result-card {
+    background: var(--bg-input);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 0.7rem 0.8rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    min-width: 0;
+}
+
+.result-label {
+    font-size: 0.74rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+}
+
+.result-card strong {
+    font-size: 1.15rem;
+    color: var(--text-primary);
+    font-family: "JetBrains Mono", monospace;
+    overflow-wrap: anywhere;
+}
+
+.result-card span:last-child {
+    font-size: 0.76rem;
+    color: var(--text-secondary);
+    line-height: 1.45;
+}
+
+.result-card.is-blocked strong {
+    color: var(--accent-error);
+    font-size: 0.95rem;
+}
+
+/* ---- Source and evidence tables -------------------------------------- */
+
+.data-table-wrap {
+    overflow-x: auto;
+    margin-top: 0.5rem;
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.78rem;
+}
+
+.data-table th,
+.data-table td {
+    text-align: left;
+    padding: 0.35rem 0.5rem;
+    border-bottom: 1px solid var(--border-color);
+    white-space: nowrap;
+}
+
+.data-table th {
+    color: var(--text-muted);
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.68rem;
+    letter-spacing: 0.04em;
+}
+
+.data-table td.wrap {
+    white-space: normal;
+    min-width: 16ch;
+}
+
+.data-table a {
+    color: var(--link-hover);
+}
+
+.row-note {
+    display: block;
+    font-size: 0.72rem;
+    color: var(--accent-warning);
+    white-space: normal;
+    max-width: 42ch;
+}
+
+/* ---- Checks panel ---------------------------------------------------- */
+
+.check-item {
+    border-top: 1px solid var(--border-color);
+    padding: 0.55rem 0;
+}
+
+.check-item:first-of-type {
+    border-top: none;
+}
+
+.check-head {
+    display: flex;
+    gap: 0.45rem;
+    align-items: baseline;
+    font-size: 0.83rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.check-status {
+    font-size: 0.64rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.1rem 0.4rem;
+    border-radius: 4px;
+    flex: 0 0 auto;
+}
+
+.check-status.pass {
+    background: var(--accent-success-dim);
+    color: var(--accent-success);
+}
+
+.check-status.fail {
+    background: var(--accent-error-dim);
+    color: var(--accent-error);
+}
+
+.check-item p {
+    margin: 0.25rem 0 0;
+    font-size: 0.76rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+.check-item .fixture {
+    color: var(--text-muted);
+    font-size: 0.72rem;
+}
+
+/* ---- Warnings -------------------------------------------------------- */
+
+.warning-list {
+    list-style: none;
+    margin: 0.6rem 0 0;
+    padding: 0;
+}
+
+.warning-list li {
+    font-size: 0.78rem;
+    line-height: 1.5;
+    color: var(--text-secondary);
+    border-left: 3px solid var(--accent-warning);
+    background: var(--accent-warning-dim);
+    border-radius: 0 6px 6px 0;
+    padding: 0.4rem 0.6rem;
+    margin-bottom: 0.4rem;
+}
+
+.warning-list li.clamp {
+    border-left-color: var(--accent-it);
+    background: var(--accent-it-dim);
+}
+
+/* ---- Help chips ------------------------------------------------------ */
+
+.label-with-help,
+.result-label-with-help {
+    position: relative;
+}
+
+.help-chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.05em;
+    height: 1.05em;
+    border-radius: 50%;
+    border: 1px solid var(--border-hover);
+    background: var(--bg-card-hover);
+    color: var(--text-muted);
+    font-size: 0.62rem;
+    font-family: inherit;
+    font-weight: 700;
+    line-height: 1;
+    cursor: help;
+    padding: 0;
+    vertical-align: middle;
+}
+
+.help-chip:hover {
+    color: var(--accent-biochemical);
+    border-color: var(--accent-biochemical);
+}
+
+.help-tooltip {
+    display: none;
+    position: absolute;
+    z-index: 30;
+    left: 0;
+    top: calc(100% + 0.35rem);
+    width: max-content;
+    max-width: 30ch;
+    background: var(--bg-card);
+    border: 1px solid var(--border-hover);
+    border-radius: 8px;
+    box-shadow: var(--shadow-md);
+    padding: 0.45rem 0.6rem;
+    font-size: 0.74rem;
+    font-weight: 400;
+    line-height: 1.45;
+    color: var(--text-secondary);
+    text-transform: none;
+    letter-spacing: normal;
+    white-space: normal;
+}
+
+.help-chip[aria-expanded="true"] + .help-tooltip {
+    display: block;
+}
+
+/* ---- Math modal ------------------------------------------------------ */
+
+.math-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+}
+
+.math-modal[hidden] {
+    display: none;
+}
+
+.chart-overlay-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.65);
+}
+
+.math-modal-panel {
+    position: relative;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    max-width: 900px;
+    width: 100%;
+    max-height: 86vh;
+    display: flex;
+    flex-direction: column;
+    padding: 1.1rem 1.25rem;
+}
+
+.chart-overlay-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.chart-overlay-header h2 {
+    margin: 0;
+    font-size: 1.1rem;
+}
+
+.chart-overlay-header p {
+    margin: 0.25rem 0 0;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    max-width: 60ch;
+}
+
+.math-modal-actions {
+    display: flex;
+    gap: 0.4rem;
+}
+
+.math-modal-status {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    margin: 0.6rem 0;
+}
+
+.math-modal-body {
+    overflow-y: auto;
+    padding-right: 0.35rem;
+}
+
+.equation-block {
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 0.75rem 0.9rem;
+    margin-bottom: 0.7rem;
+    background: var(--bg-input);
+}
+
+.equation-block h3 {
+    margin: 0 0 0.4rem;
+    font-size: 0.92rem;
+}
+
+.equation-block pre {
+    margin: 0 0 0.5rem;
+    padding: 0.5rem 0.6rem;
+    background: var(--bg-primary);
+    border-radius: 6px;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 0.78rem;
+    color: var(--accent-biochemical);
+    overflow-x: auto;
+    white-space: pre-wrap;
+}
+
+.equation-block p {
+    margin: 0 0 0.45rem;
+    font-size: 0.79rem;
+    line-height: 1.55;
+    color: var(--text-secondary);
+}
+
+.equation-meta {
+    font-size: 0.74rem;
+    color: var(--text-muted);
+}
+
+.equation-result {
+    margin-top: 0.5rem;
+    font-size: 0.78rem;
+    padding: 0.4rem 0.6rem;
+    border-radius: 6px;
+}
+
+.equation-result.pass {
+    background: var(--accent-success-dim);
+    color: var(--accent-success);
+}
+
+.equation-result.fail {
+    background: var(--accent-error-dim);
+    color: var(--accent-error);
+}
+
+footer[data-footer] {
+    margin-top: 2rem;
+}

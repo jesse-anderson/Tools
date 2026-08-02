@@ -1,0 +1,40 @@
+crop,min_percent_germination,temp_min_f,temp_min_c,temp_opt_f,temp_opt_c,temp_max_f,temp_max_c,days_to_germinate
+Asparagus,60,50,10,75,24,95,35,10
+"Bean, Lima",70,60,16,85,30,85,30,7
+"Bean, Snap",70,60,16,80,27,95,35,6
+Beets,65,40,4,85,30,95,35,5
+Broccoli,75,40,4,85,30,95,35,5
+Brussels Sprouts,70,,,80,27,,,5
+Cabbage,75,40,4,85,30,95,35,4
+Carrot,55,40,4,80,27,95,35,5
+Cauliflower,75,40,4,80,27,95,35,5
+Celeriac,55,,,70,21,,,11
+Celery,55,40,4,70,21,85,30,7
+Chicory,65,,,80,27,,,6
+Chinese Cabbage,75,,,80,27,,,4
+Cucumber,80,60,16,95,35,105,41,2-5
+Eggplant,60,60,16,85,30,95,35,6-8
+Endive,70,32,0,75,24,75,24,6
+Kale,75,,,80,27,,,4
+Kohlrabi,75,,,80,27,,,4
+Leek,60,,,70,21,,,7
+Lettuce,80,35,2,75,24,75,24,2-3
+Muskmelon,75,65,18,95,35,105,41,3-4
+New Zealand Spinach,40,,,70,21,,,6
+Okra,50,60,16,95,35,105,41,6
+Onion,70,32,0,80,27,95,35,4-5
+Parsley,60,40,4,75,24,90,32,13
+Parsnip,60,35,2,65,18,85,30,14
+Pea,80,40,4,75,24,85,30,6
+Pepper,55,60,16,85,30,95,35,8
+Pumpkin,75,65,18,90,32,105,41,4
+Radish,75,40,4,80,27,95,35,4
+Rutabaga,75,,,80,27,,,4
+Salsify,75,,,70,21,,,6
+Spinach,60,32,0,70,21,75,24,5
+Squash,75,65,18,95,35,105,41,4
+Sweet Corn,75,50,10,85,30,105,41,3
+Swiss Chard,65,40,4,85,30,95,35,4
+Tomato,75,50,10,80,27,95,35,6
+Turnip,80,40,4,80,27,105,41,3
+Watermelon Seeded Seedless,70,70 85,21 30,95 95,35 35,105 105,41 41,4-5 5-6

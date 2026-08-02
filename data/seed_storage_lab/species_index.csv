@@ -1,0 +1,1022 @@
+scientific_name,rank,common_names,has_seed_count,has_longevity,has_viability_constants,has_germination_conditions,dataset_count,datasets
+Abelmoschus esculentus,species,gumbo; ladies fingers; okra,yes,yes,,yes,4,johnnys_longevity; osborne_viability; unl_g2090_counts; unl_g2090_germination
+Abies alba,species,fir,yes,,,,1,wpsm_woody_counts
+Abies amabilis,species,fir,yes,,,,1,wpsm_woody_counts
+Abies balsamea,species,fir,yes,,,,1,wpsm_woody_counts
+Abies concolor,species,fir,yes,,,,1,wpsm_woody_counts
+Abies firma,species,fir,yes,,,,1,wpsm_woody_counts
+Abies fraseri,species,fir,yes,,,,1,wpsm_woody_counts
+Abies grandis,species,fir,yes,,,,1,wpsm_woody_counts
+Abies guatemalensis,species,fir,yes,,,,1,wpsm_woody_counts
+Abies homolepis,species,fir,yes,,,,1,wpsm_woody_counts
+Abies lasiocarpa,species,fir,yes,,,,1,wpsm_woody_counts
+Abies magnifica,species,fir,yes,,,,1,wpsm_woody_counts
+Abies mariesii,species,fir,yes,,,,1,wpsm_woody_counts
+Abies nordmanniana,species,fir,yes,,,,1,wpsm_woody_counts
+Abies procera,species,fir,yes,,,,1,wpsm_woody_counts
+Abies sachalinensis,species,fir,yes,,,,1,wpsm_woody_counts
+Abies veitchii,species,fir,yes,,,,1,wpsm_woody_counts
+Acacia angustissima,species,"acacia, prairie - plains germplasm",yes,,,,1,nrcs_conservation_counts
+Acacia mangium,species,accacia,yes,,,,1,wpsm_woody_counts
+Acacia mearnsii,species,accacia,yes,,,,1,wpsm_woody_counts
+Acacia melanoxylon,species,accacia,yes,,,,1,wpsm_woody_counts
+Acer circinatum,species,maple,yes,,,,1,wpsm_woody_counts
+Acer ginnala,species,maple,yes,,,,1,wpsm_woody_counts
+Acer glabrum,species,maple,yes,,,,1,wpsm_woody_counts
+Acer macrophyllum,species,maple,yes,,,,1,wpsm_woody_counts
+Acer negundo,species,maple,yes,,,,1,wpsm_woody_counts
+Acer pensylvanicum,species,maple,yes,,,,1,wpsm_woody_counts
+Acer platanoides,species,maple,yes,,yes,,2,kew_viability_constants; wpsm_woody_counts
+Acer pseudoplatanus,species,maple,yes,,,,1,wpsm_woody_counts
+Acer rubrum,species,maple,yes,,,,1,wpsm_woody_counts
+Acer saccharinum,species,maple,yes,,,,2,figshare_tsw_counts; wpsm_woody_counts
+Acer saccharum,species,maple,yes,,,,1,wpsm_woody_counts
+Acer spicatum,species,maple,yes,,,,1,wpsm_woody_counts
+Adenophora liliifolia,species,,yes,,,,1,figshare_tsw_counts
+Aethionema saxatile,species,,yes,,,,1,figshare_tsw_counts
+Ageratum,genus,ageratum,,yes,,,1,johnnys_longevity
+Agropyron smithii,species,"wheatgrass, western",yes,,,,1,nrcs_conservation_counts
+Agrostemma,genus,agrostemma (corn cockle),,yes,,,1,johnnys_longevity
+Agrostis alba,species,redtop,yes,,,,1,nrcs_conservation_counts
+Allium ampeloprasum,species,leek; leeks,yes,yes,,yes,5,johnnys_longevity; osborne_counts; osborne_viability; unl_g2090_counts; unl_g2090_germination
+Allium atropurpureum,species,,yes,,,,1,figshare_tsw_counts
+Allium cepa,species,"bulb onion; globe onion; onion; onions; onions, globe",yes,yes,yes,yes,6,johnnys_longevity; kew_viability_constants; osborne_counts; osborne_viability; unl_g2090_counts; unl_g2090_germination
+Allium fistulosum,species,"green onion; onion bunching; onions, bunching; scallion; welsh onion",yes,,,,1,osborne_counts
+Allium obliquum,species,,yes,,,,1,figshare_tsw_counts
+Allium schoenoprasum,species,chives,,yes,,,1,johnnys_longevity
+Alnus rubra,species,alder,yes,,,,1,wpsm_woody_counts
+Alyssum,genus,alyssum,,yes,,,1,johnnys_longevity
+Amaranthus,genus,amaranthus,,yes,,,1,johnnys_longevity
+Amaranthus caudatus,species,,yes,,,,1,figshare_tsw_counts
+Amaranthus crispus,species,,yes,,,,1,figshare_tsw_counts
+Amaranthus graecizans,species,,yes,,,,1,figshare_tsw_counts
+Amaranthus hybridus,species,,yes,,,,1,figshare_tsw_counts
+Amaranthus powellii,species,,yes,,,,1,figshare_tsw_counts
+Amaranthus viridis,species,,yes,,,,1,figshare_tsw_counts
+Amelanchier alnifolia,species,serviceberry,yes,,,,1,wpsm_woody_counts
+Amelanchier arborea,species,serviceberry,yes,,,,1,wpsm_woody_counts
+Amelanchier sanguinea,species,serviceberry,yes,,,,1,wpsm_woody_counts
+Ammi,genus,ammi (false queen anne's lace),,yes,,,1,johnnys_longevity
+Amorpha californica,species,amorpha or indigobush,yes,,,,1,wpsm_woody_counts
+Amorpha canescens,species,amorpha or indigobush,yes,,,,1,wpsm_woody_counts
+Amorpha fruticosa,species,amorpha or indigobush,yes,,,,1,wpsm_woody_counts
+Amorpha nana,species,amorpha or indigobush,yes,,,,1,wpsm_woody_counts
+Andropogon barbinodis,species,"bluestem, cane",yes,,,,1,nrcs_conservation_counts
+Andropogon gerardi,species,"bluestem, big; bluestem, big - 'earl'",yes,,,,1,nrcs_conservation_counts
+Andropogon hallii,species,"bluestem, sand",yes,,,,1,nrcs_conservation_counts
+Andropogon ischaemun,species,"bluestem, king ranch",yes,,,,1,nrcs_conservation_counts
+Andropogon littoralis,species,"bluestem, seacoast",yes,,,,1,nrcs_conservation_counts
+Andropogon saccharoides,species,"bluestem, silver",yes,,,,1,nrcs_conservation_counts
+Andropogon scoparius,species,"bluestem, little",yes,,,,1,nrcs_conservation_counts
+Anethum graveolens,species,dill,,yes,,,1,johnnys_longevity
+Angelica,genus,angelica,,yes,,,1,johnnys_longevity
+Anise,genus,anise,,yes,,,1,johnnys_longevity
+Antirrhinum majus,species,,yes,,,,1,figshare_tsw_counts
+Apium graveolens,species,celeriac; celery; celery & celeriac; celery root; celery/celeriac; knob celery,yes,yes,,yes,6,figshare_tsw_counts; johnnys_longevity; osborne_counts; osborne_viability; unl_g2090_counts; unl_g2090_germination
+Arabidopsis halleri,species,,yes,,,,1,figshare_tsw_counts
+Arabis alpina,species,,yes,,,,1,figshare_tsw_counts
+Arachis hypogaea,species,groundnut; peanut,,,yes,,1,kew_viability_constants
+Aralia hispida,species,,yes,,,,1,wpsm_woody_counts
+Aralia nudicaulis,species,,yes,,,,1,wpsm_woody_counts
+Aralia spinosa,species,,yes,,,,1,wpsm_woody_counts
+Araucaria columnaris,species,,yes,,yes,,2,kew_viability_constants; wpsm_woody_counts
+Araucaria cunninghamii,species,,yes,,yes,,2,kew_viability_constants; wpsm_woody_counts
+Araucaria heterophylla,species,,yes,,,,1,wpsm_woody_counts
+Arctium nemorosum,species,,yes,,,,1,figshare_tsw_counts
+Arctostaphylos glandulosa,species,manzanita,yes,,,,1,wpsm_woody_counts
+Arctostaphylos glauca,species,manzanita,yes,,,,1,wpsm_woody_counts
+Arctostaphylos patula,species,manzanita,yes,,,,1,wpsm_woody_counts
+Arctostaphylos uva-ursi,species,manzanita,yes,,,,1,wpsm_woody_counts
+Arenaria leptoclados,species,,yes,,,,1,figshare_tsw_counts
+Arnica montana,species,,yes,,,,1,figshare_tsw_counts
+Artemisia,genus,artemisia,,yes,,,1,johnnys_longevity
+Artemisia alba,species,,yes,,,,1,figshare_tsw_counts
+Asclepias,genus,asclepias (butterfly weed),,yes,,,1,johnnys_longevity
+Asparagus officinalis,species,asparagus,yes,yes,,yes,5,johnnys_longevity; osborne_counts; osborne_viability; unl_g2090_counts; unl_g2090_germination
+Aster,genus,aster,,yes,,,1,johnnys_longevity
+Astrantia major,species,,yes,,,,1,figshare_tsw_counts
+Atriplex canescens,species,saltbush,yes,,,,1,wpsm_woody_counts
+Atriplex confertifolia,species,saltbush,yes,,,,1,wpsm_woody_counts
+Atriplex corrugata,species,saltbush,yes,,,,1,wpsm_woody_counts
+Atriplex cuneata,species,saltbush,yes,,,,1,wpsm_woody_counts
+Atriplex falcata,species,saltbush,yes,,,,1,wpsm_woody_counts
+Atriplex gardneri,species,saltbush,yes,,,,1,wpsm_woody_counts
+Atriplex hortensis,species,,yes,,,,1,figshare_tsw_counts
+Atriplex hymenelytra,species,saltbush,yes,,,,1,wpsm_woody_counts
+Atriplex lentiformis,species,saltbush,yes,,,,1,wpsm_woody_counts
+Atriplex micrantha,species,,yes,,,,1,figshare_tsw_counts
+Atriplex obovata,species,saltbush,yes,,,,1,wpsm_woody_counts
+Atriplex patula,species,,yes,,,,1,figshare_tsw_counts
+Atriplex polycarpa,species,saltbush,yes,,,,1,wpsm_woody_counts
+Atriplex rosea,species,,yes,,,,1,figshare_tsw_counts
+Atriplex semibaccata,species,saltbush,yes,,,,1,wpsm_woody_counts
+Atriplex tridentata,species,saltbush,yes,,,,1,wpsm_woody_counts
+Avena sativa,species,oats,,yes,,,1,johnnys_longevity
+Barbarea verna,species,,yes,,,,1,figshare_tsw_counts
+Bauhinia monandra,species,,yes,,,,1,wpsm_woody_counts
+Bauhinia purpurea,species,,yes,,,,1,wpsm_woody_counts
+Bauhinia variegata,species,,yes,,,,1,wpsm_woody_counts
+Berberis koreana,species,barberry,yes,,,,1,wpsm_woody_counts
+Berberis thunbergii,species,barberry,yes,,,,1,wpsm_woody_counts
+Berberis vulgaris,species,barberry,yes,,,,1,wpsm_woody_counts
+Beta vulgaris,species,beet; beetroot; beets; chard swiss; garden beet; silverbeet; swiss chard,yes,yes,yes,yes,6,johnnys_longevity; kew_viability_constants; osborne_counts; osborne_viability; unl_g2090_counts; unl_g2090_germination
+Betula alleghaniensis,species,birch,yes,,,,1,wpsm_woody_counts
+Betula davurica,species,birch,yes,,,,1,wpsm_woody_counts
+Betula lenta,species,birch,yes,,,,1,wpsm_woody_counts
+Betula nana,species,birch,yes,,,,1,wpsm_woody_counts
+Betula nigra,species,birch,yes,,,,1,wpsm_woody_counts
+Betula papyrifera,species,birch,yes,,,,1,wpsm_woody_counts
+Betula pendula,species,birch,yes,,,,1,wpsm_woody_counts
+Betula populifolia,species,birch,yes,,,,1,wpsm_woody_counts
+Betula pubescens,species,birch,yes,,,,1,wpsm_woody_counts
+Betula pumila,species,birch,yes,,,,1,wpsm_woody_counts
+Bidens frondosa,species,,yes,,,,1,figshare_tsw_counts
+Bifora radians,species,,yes,,,,1,figshare_tsw_counts
+Blitum bonus-henricus,species,,yes,,,,1,figshare_tsw_counts
+Blitum virgatum,species,,yes,,,,1,figshare_tsw_counts
+Bolboschoenus laticarpus,species,,yes,,,,1,figshare_tsw_counts
+Borage,genus,borage,,yes,,,1,johnnys_longevity
+Bouteloua curtipendula,species,"grama, sideoats; grama, sideoats - 'haskell'",yes,,,,1,nrcs_conservation_counts
+Bouteloua eriopoda,species,"grama, black",yes,,,,1,nrcs_conservation_counts
+Bouteloua filiformis,species,"grama, slender",yes,,,,1,nrcs_conservation_counts
+Bouteloua gracilis,species,"grama, blue",yes,,,,1,nrcs_conservation_counts
+Bouteloua hirsuta,species,"grama, hairy",yes,,,,1,nrcs_conservation_counts
+Bouteloua rigidiseta,species,"grama, texas",yes,,,,1,nrcs_conservation_counts
+Bouteloua trifida,species,"grama, red",yes,,,,1,nrcs_conservation_counts
+Brassica juncea,species,brown mustard; indian mustard; mustard,yes,yes,yes,,5,figshare_tsw_counts; johnnys_longevity; kew_viability_constants; osborne_counts; osborne_viability
+Brassica napus,species,canola; oilseed rape; rapeseed; rutabaga; swede,yes,yes,yes,yes,5,johnnys_longevity; kew_viability_constants; osborne_counts; unl_g2090_counts; unl_g2090_germination
+Brassica nigra,species,,yes,,,,1,figshare_tsw_counts
+Brassica oleracea,species,"broccoli; brussel sprouts; brussels sprouts; cabbage; cabbage, napa; cauliflower; collards; kale; kohlrabi",yes,yes,,yes,6,figshare_tsw_counts; johnnys_longevity; osborne_counts; osborne_viability; unl_g2090_counts; unl_g2090_germination
+Brassica rapa,species,"asian greens; bok choy; cabbage chinese; cabbage, chinese; chinese cabbage; komatsuna; mizuna; napa cabbage; pe-tsai; tatsoi; turnip",yes,yes,,yes,5,johnnys_longevity; osborne_counts; osborne_viability; unl_g2090_counts; unl_g2090_germination
+Bromus catharticus,species,rescuegrass,yes,,,,1,nrcs_conservation_counts
+Buchloe dactyloides,species,buffalograss,yes,,,,1,nrcs_conservation_counts
+Buphthalmum salicifolium,species,,yes,,,,1,figshare_tsw_counts
+Bupleurum rotundifolium,species,,yes,,,,1,figshare_tsw_counts
+Calendula,genus,calendula,,yes,,,1,johnnys_longevity
+Callistephus chinensis,species,,yes,,,,1,figshare_tsw_counts
+Callitriche palustris,species,,yes,,,,1,figshare_tsw_counts
+Camelina rumelica,species,,yes,,,,1,figshare_tsw_counts
+Capsella rubella,species,,yes,,,,1,figshare_tsw_counts
+Capsicum annuum,species,bell pepper; chili; pepper; peppers; sweet pepper,yes,yes,yes,yes,6,johnnys_longevity; osborne_counts; osborne_viability; supplementary_constants_unverified; unl_g2090_counts; unl_g2090_germination
+Caragana arborescens,species,,yes,,,,1,figshare_tsw_counts
+Caragana frutex,species,,yes,,,,1,figshare_tsw_counts
+Caraway,genus,caraway,,yes,,,1,johnnys_longevity
+Cardamine amara,species,,yes,,,,1,figshare_tsw_counts
+Cardamine occulta,species,,yes,,,,1,figshare_tsw_counts
+Cardamine pratensis,species,,yes,,,,1,figshare_tsw_counts
+Carduus defloratus,species,,yes,,,,1,figshare_tsw_counts
+Carex acuta,species,,yes,,,,1,figshare_tsw_counts
+Carex davalliana,species,,yes,,,,1,figshare_tsw_counts
+Carex extensa,species,,yes,,,,1,figshare_tsw_counts
+Carex hordeistichos,species,,yes,,,,1,figshare_tsw_counts
+Carex lepidocarpa,species,,yes,,,,1,figshare_tsw_counts
+Carex muricata,species,,yes,,,,1,figshare_tsw_counts
+Carnation,genus,carnation,,yes,,,1,johnnys_longevity
+Carpinus betulus,species,hornbeam,yes,,,,1,wpsm_woody_counts
+Carpinus caroliniana,species,hornbeam,yes,,,,1,wpsm_woody_counts
+Carthamus tinctorius,species,,yes,,,,1,figshare_tsw_counts
+Carya aquatica,species,hickory,yes,,,,1,wpsm_woody_counts
+Carya cordiformis,species,hickory,yes,,,,1,wpsm_woody_counts
+Carya glabra,species,hickory,yes,,,,1,wpsm_woody_counts
+Carya illinoensis,species,hickory,yes,,,,1,wpsm_woody_counts
+Carya laciniosa,species,hickory,yes,,,,1,wpsm_woody_counts
+Carya myristiciformis,species,hickory,yes,,,,1,wpsm_woody_counts
+Carya ovata,species,hickory,yes,,,,1,wpsm_woody_counts
+Castanea dentata,species,chestnut,yes,,,,1,wpsm_woody_counts
+Castanea pumilla,species,chestnut,yes,,,,1,wpsm_woody_counts
+Castanea sativa,species,chestnut,yes,,,,1,wpsm_woody_counts
+Catalpa bignonioides,species,,yes,,,,1,wpsm_woody_counts
+Catalpa longissima,species,,yes,,,,1,wpsm_woody_counts
+Catalpa speciosa,species,,yes,,,,1,wpsm_woody_counts
+Catnip,genus,catnip,,yes,,,1,johnnys_longevity
+Ceanothus americanus,species,,yes,,,,1,wpsm_woody_counts
+Ceanothus cordulatus,species,,yes,,,,1,wpsm_woody_counts
+Ceanothus impressus,species,,yes,,,,1,wpsm_woody_counts
+Ceanothus sanguineus,species,,yes,,,,1,wpsm_woody_counts
+Ceanothus sorediatus,species,,yes,,,,1,wpsm_woody_counts
+Ceanothus velutinus,species,,yes,,,,1,wpsm_woody_counts
+Cedrus atlantica,species,cedar,yes,,,,1,wpsm_woody_counts
+Cedrus brevifolia,species,cedar,yes,,,,1,wpsm_woody_counts
+Cedrus deodara,species,cedar,yes,,,,1,wpsm_woody_counts
+Cedrus libani,species,cedar,yes,,,,1,wpsm_woody_counts
+Celosia,genus,celosia,,yes,,,1,johnnys_longevity
+Celtis laevigata,species,hackberry,yes,,,,1,wpsm_woody_counts
+Celtis occidentalis,species,hackberry,yes,,,,1,wpsm_woody_counts
+Centaurea,genus,centaurea (bachelor’s buttons),,yes,,,1,johnnys_longevity
+Centaurea calcitrapa,species,,yes,,,,1,figshare_tsw_counts
+Cerastium arvense,species,,yes,,,,1,figshare_tsw_counts
+Cerastium tomentosum,species,,yes,,,,1,figshare_tsw_counts
+Ceratophyllum tanaiticum,species,,yes,,,,1,figshare_tsw_counts
+Cercis canadensis,species,redbud,yes,,,,1,wpsm_woody_counts
+Cercis orbiculata,species,redbud,yes,,,,1,wpsm_woody_counts
+Chaerophyllum aureum,species,,yes,,,,1,figshare_tsw_counts
+Chamaecrista fasciculata,species,partridgepea - 'comanche',yes,,,,1,nrcs_conservation_counts
+Chamaecyparis lawsoniana,species,white-cedar,yes,,,,1,wpsm_woody_counts
+Chamaecyparis nootkatensis,species,white-cedar,yes,,,,1,wpsm_woody_counts
+Chamaecyparis thyoides,species,white-cedar,yes,,,,1,wpsm_woody_counts
+Chamomile,genus,chamomile,,yes,,,1,johnnys_longevity
+Chenopodiastrum murale,species,,yes,,,,1,figshare_tsw_counts
+Chenopodium opulifolium,species,,yes,,,,1,figshare_tsw_counts
+Chenopodium quinoa,species,quinoa,,,yes,,1,kew_viability_constants
+Chenopodium suecicum,species,,yes,,,,1,figshare_tsw_counts
+Chervil,genus,chervil,,yes,,,1,johnnys_longevity
+Chloris cucullata,species,"windmillgrass, hooded",yes,,,,1,nrcs_conservation_counts
+Chloris gayana,species,rhodesgrass,yes,,,,1,nrcs_conservation_counts
+Chloris subdolichostachya,species,"windmillgrass, shortspike",yes,,,,1,nrcs_conservation_counts
+Chloris verticillata,species,"windmillgrass, tumble",yes,,,,1,nrcs_conservation_counts
+Chrysothamnus teretifolius,species,rabbitbrush,yes,,,,1,wpsm_woody_counts
+Cicer arietinum,species,chickpea; garbanzo; gram,,,yes,,2,dickie_ellis_constants_with_se; kew_viability_constants
+Cichorium endivia,species,endive; endive/escarole; escarole; frisee,yes,yes,,yes,5,johnnys_longevity; osborne_counts; osborne_viability; unl_g2090_counts; unl_g2090_germination
+Cichorium intybus,species,chicory; radicchio; witloof,yes,yes,,yes,4,johnnys_longevity; osborne_viability; unl_g2090_counts; unl_g2090_germination
+Circaea alpina,species,,yes,,,,1,figshare_tsw_counts
+Cirsium rivulare,species,,yes,,,,1,figshare_tsw_counts
+Citrullus lanatus,species,watermelon; watermelon (triploid); watermelon seeded seedless,yes,yes,,yes,6,figshare_tsw_counts; johnnys_longevity; osborne_counts; osborne_viability; unl_g2090_counts; unl_g2090_germination
+Clematis columbiana,species,,yes,,,,1,wpsm_woody_counts
+Clematis flammula,species,,yes,,,,1,wpsm_woody_counts
+Clematis ligusticifolia,species,,yes,,,,1,wpsm_woody_counts
+Clematis pauciflora,species,,yes,,,,1,wpsm_woody_counts
+Clematis virginiana,species,,yes,,,,1,wpsm_woody_counts
+Clematis vitalba,species,,yes,,,,1,wpsm_woody_counts
+Clematis viticella,species,,yes,,,,1,wpsm_woody_counts
+Clinopodium menthifolium,species,,yes,,,,1,figshare_tsw_counts
+Columbine,genus,columbine (aquilegia),,yes,,,1,johnnys_longevity
+Coriander,genus,coriander,yes,,,,1,osborne_counts
+Coriandrum sativum,species,cilantro; cilantro/coriander; coriander,yes,yes,,,2,figshare_tsw_counts; johnnys_longevity
+Corispermum canescens,species,,yes,,,,1,figshare_tsw_counts
+Corispermum intermedium,species,,yes,,,,1,figshare_tsw_counts
+Corn,genus,"corn; corn, supersweet",yes,yes,,,2,osborne_counts; osborne_viability
+Cornus alba,species,dogwood,yes,,,,1,wpsm_woody_counts
+Cornus alternifolia,species,dogwood,yes,,,,1,wpsm_woody_counts
+Cornus amomum,species,dogwood,yes,,,,1,wpsm_woody_counts
+Cornus canadensis,species,dogwood,yes,,,,1,wpsm_woody_counts
+Cornus drummondii,species,dogwood,yes,,,,1,wpsm_woody_counts
+Cornus florida,species,dogwood,yes,,,,1,wpsm_woody_counts
+Cornus kousa,species,dogwood,yes,,,,1,wpsm_woody_counts
+Cornus mas,species,dogwood,yes,,,,1,wpsm_woody_counts
+Cornus nuttallii,species,dogwood,yes,,,,1,wpsm_woody_counts
+Cornus racemosa,species,dogwood,yes,,,,1,wpsm_woody_counts
+Cornus rugosa,species,dogwood,yes,,,,1,wpsm_woody_counts
+Cornus sanguinea,species,dogwood,yes,,,,1,wpsm_woody_counts
+Cornus sericea,species,dogwood,yes,,,,1,wpsm_woody_counts
+Corydalis pumila,species,,yes,,,,1,figshare_tsw_counts
+Corylus americana,species,hazel,yes,,,,1,wpsm_woody_counts
+Corylus avellana,species,hazel,yes,,,,1,wpsm_woody_counts
+Corylus cornuta,species,hazel,yes,,,,1,wpsm_woody_counts
+Cosmos,genus,cosmos,,yes,,,1,johnnys_longevity
+Cosmos bipinnatus,species,,yes,,,,1,figshare_tsw_counts
+Cota austriaca,species,,yes,,,,1,figshare_tsw_counts
+Cotinus coggygria,species,,yes,,,,1,figshare_tsw_counts
+Cotoneaster acutifolus,species,,yes,,,,1,wpsm_woody_counts
+Cotoneaster horizontalis,species,,yes,,,,1,wpsm_woody_counts
+Cotoneaster integerrimus,species,,yes,,,,1,wpsm_woody_counts
+Cotoneaster lucidus,species,,yes,,,,1,wpsm_woody_counts
+Crepis mollis,species,,yes,,,,1,figshare_tsw_counts
+Crepis pulchra,species,,yes,,,,1,figshare_tsw_counts
+Crepis vesicaria,species,,yes,,,,1,figshare_tsw_counts
+Crotalaria juncea,species,"crotalaria, sunn",yes,,,,1,nrcs_conservation_counts
+Cucumis melo,species,cantaloupe; honeydew; melon; melons; muskmelon,yes,yes,yes,,5,figshare_tsw_counts; johnnys_longevity; kew_viability_constants; osborne_counts; osborne_viability
+Cucumis sativus,species,cucumber; cucumbers,yes,yes,,yes,6,figshare_tsw_counts; johnnys_longevity; osborne_counts; osborne_viability; unl_g2090_counts; unl_g2090_germination
+Cucurbita maxima,species,"buttercup; hubbard; squash winter; squash, winter",yes,yes,,,3,figshare_tsw_counts; osborne_counts; osborne_viability
+Cucurbita pepo,species,"courgette; crookneck; gourd; pumpkin; squash & gourds; squash and gourds; squash summer; squash, summer; summer squash; zucchini",yes,yes,yes,yes,7,figshare_tsw_counts; johnnys_longevity; kew_viability_constants; osborne_counts; osborne_viability; unl_g2090_counts; unl_g2090_germination
+Cumin,genus,cumin,,yes,,,1,johnnys_longevity
+Cupressus arizonica,species,cypress,yes,,,,1,wpsm_woody_counts
+Cupressus bakeri,species,cypress,yes,,,,1,wpsm_woody_counts
+Cupressus forbesii,species,cypress,yes,,,,1,wpsm_woody_counts
+Cupressus goveniana,species,cypress,yes,,,,1,wpsm_woody_counts
+Cupressus guadalupensis,species,cypress,yes,,,,1,wpsm_woody_counts
+Cupressus lusitanica,species,cypress,yes,,,,1,wpsm_woody_counts
+Cupressus macnabiana,species,cypress,yes,,,,1,wpsm_woody_counts
+Cupressus macrocarpa,species,cypress,yes,,,,1,wpsm_woody_counts
+Cupressus sargentii,species,cypress,yes,,,,1,wpsm_woody_counts
+Cupressus sempervirens,species,cypress,yes,,,,1,wpsm_woody_counts
+Cupressus torulosa,species,cypress,yes,,,,1,wpsm_woody_counts
+Cyanus mollis,species,,yes,,,,1,figshare_tsw_counts
+Cymbopogon citratus,species,lemon grass; lemongrass,,yes,,,1,johnnys_longevity
+Cynara cardunculus,species,artichoke; artichoke & cardoon; cardoon; globe artichoke,yes,yes,,,3,johnnys_longevity; osborne_counts; osborne_viability
+Cynodon dactylon,species,bermudagrass,yes,,,,1,nrcs_conservation_counts
+Cynoglossum,genus,cynoglossum (forget-me-not),,yes,,,1,johnnys_longevity
+Dahlia,genus,dahlia,,yes,,,1,johnnys_longevity
+Daisy,genus,daisy,,yes,,,1,johnnys_longevity
+Dandelion,genus,dandelion,,yes,,,1,johnnys_longevity
+Datura innoxia,species,,yes,,,,1,figshare_tsw_counts
+Daubentonia drummondi,species,"rattlebox, drummond",yes,,,,1,nrcs_conservation_counts
+Daucus carota,species,carrot; carrots,yes,yes,,yes,5,johnnys_longevity; osborne_counts; osborne_viability; unl_g2090_counts; unl_g2090_germination
+Delphinium ambiguum,species,delphinium; larkspur,,yes,yes,,2,johnnys_longevity; kew_viability_constants
+Desmanthus illinoensis,species,"bundleflower, illinois; bundleflower, illinois - 'sabine'; bundleflower, velvet - hondo germplasm",yes,,,,1,nrcs_conservation_counts
+Dianthus,genus,dianthus (sweet william),,yes,,,1,johnnys_longevity
+Dianthus barbatus,species,,yes,,,,1,figshare_tsw_counts
+Dianthus plumarius,species,,yes,,,,1,figshare_tsw_counts
+Didiscus,genus,didiscus,,yes,,,1,johnnys_longevity
+Digitalis,genus,digitalis,,yes,,,1,johnnys_longevity
+Digitalis purpurea,species,foxglove,yes,,yes,,2,figshare_tsw_counts; kew_viability_constants
+Digitaria californica,species,"cottontop, arizona; cottontop, arizona � lasalle germplasm",yes,,,,1,nrcs_conservation_counts
+Digitaria patens,species,"cottontop, texas",yes,,,,1,nrcs_conservation_counts
+Diospyros kaki,species,persimmon,yes,,,,1,wpsm_woody_counts
+Diospyros lotus,species,persimmon,yes,,,,1,wpsm_woody_counts
+Diospyros virginiana,species,persimmon,yes,,,,1,wpsm_woody_counts
+Diplachne fascicularis,species,,yes,,,,1,figshare_tsw_counts
+Dipterocarpus alatus,species,,,,yes,,1,kew_viability_constants
+Dipterocarpus intricatus,species,,,,yes,,1,kew_viability_constants
+Distichlis stricta,species,"saltgrass, inland",yes,,,,1,nrcs_conservation_counts
+Doronicum austriacum,species,,yes,,,,1,figshare_tsw_counts
+Dracocephalum ruyschiana,species,,yes,,,,1,figshare_tsw_counts
+Dysphania ambrosioides,species,,yes,,,,1,figshare_tsw_counts
+Dysphania botrys,species,,yes,,,,1,figshare_tsw_counts
+Dysphania pumilio,species,,yes,,,,1,figshare_tsw_counts
+Dysphania schraderiana,species,,yes,,,,1,figshare_tsw_counts
+Ecballium elaterium,species,,yes,,,,1,figshare_tsw_counts
+Echinacea,genus,echinacea (coneflower),,yes,,,1,johnnys_longevity
+Echium plantagineum,species,,yes,,,,1,figshare_tsw_counts
+Eclipta prostrata,species,,yes,,,,1,figshare_tsw_counts
+Elaeagnus angustifolia,species,,yes,,,,1,wpsm_woody_counts
+Elaeagnus commutata,species,,yes,,,,1,wpsm_woody_counts
+Elaeagnus umbellata,species,,yes,,,,1,wpsm_woody_counts
+Eleusine coracana,species,millet finger; ragi,,,yes,,1,kew_viability_constants
+Elymus canadensis,species,"wildrye, canada",yes,,,,1,nrcs_conservation_counts
+Engelmannia pinnatifida,species,engelmann daisy,yes,,,,1,nrcs_conservation_counts
+Entandophragma angolense,species,,,,yes,,1,kew_viability_constants
+Epilobium ciliatum,species,,yes,,,,1,figshare_tsw_counts
+Epilobium hirsutum,species,,yes,,,,1,figshare_tsw_counts
+Epilobium obscurum,species,,yes,,,,1,figshare_tsw_counts
+Eragrostis intermedia,species,"lovegrass, plains",yes,,,,1,nrcs_conservation_counts
+Eragrostis tef,species,teff,,,yes,,1,kew_viability_constants
+Eragrostis tef cv.,species,,,,yes,,1,kew_viability_constants
+Eragrostis tef cvs.,species,,,,yes,,1,kew_viability_constants
+Eragrostis trichodes,species,"lovegrass, sand; lovegrass, sandhill - 'mason'",yes,,,,1,nrcs_conservation_counts
+Erigeron sumatrensis,species,,yes,,,,1,figshare_tsw_counts
+Eriochloa sericea,species,"cupgrass, texas",yes,,,,1,nrcs_conservation_counts
+Eruca vesicaria,species,arugula; rocket; roquette,yes,yes,,,3,figshare_tsw_counts; johnnys_longevity; osborne_viability
+Eryngium,genus,eryngium,,yes,,,1,johnnys_longevity
+Erysimum cheiranthoides,species,,yes,,,,1,figshare_tsw_counts
+Erysimum crepidifolium,species,,yes,,,,1,figshare_tsw_counts
+Erythronium dens-canis,species,,yes,,,,1,figshare_tsw_counts
+Eschscholzia californica,species,,yes,,,,1,figshare_tsw_counts
+Eucalyptus,genus,eucalyptus,,yes,,,1,johnnys_longevity
+Euonymus alata,species,eunoymus,yes,,,,1,wpsm_woody_counts
+Euonymus americana,species,eunoymus,yes,,,,1,wpsm_woody_counts
+Euonymus bungeana,species,eunoymus,yes,,,,1,wpsm_woody_counts
+Euonymus europaea,species,eunoymus,yes,,,,1,wpsm_woody_counts
+Euonymus obovata,species,eunoymus,yes,,,,1,wpsm_woody_counts
+Euonymus verrucosa,species,eunoymus,yes,,,,1,wpsm_woody_counts
+Euphorbia,genus,euphorbia,,yes,,,1,johnnys_longevity
+Euphorbia lathyris,species,,yes,,,,1,figshare_tsw_counts
+Euphorbia prostrata,species,,yes,,,,1,figshare_tsw_counts
+Euphorbia serpens,species,,yes,,,,1,figshare_tsw_counts
+Fagopyrum esculentum,species,buckwheat,,yes,,,1,johnnys_longevity
+Fagus grandifolia,species,beech,yes,,,,1,wpsm_woody_counts
+Fagus sylvatica,species,beech,yes,,,,1,wpsm_woody_counts
+Filago minima,species,,yes,,,,1,figshare_tsw_counts
+Foeniculum vulgare,species,fennel,yes,yes,,,4,figshare_tsw_counts; johnnys_longevity; osborne_counts; osborne_viability
+Fragaria x ananassa,species,strawberry,,yes,,,1,johnnys_longevity
+Fraxinus americana,species,ash,yes,,,,1,wpsm_woody_counts
+Fraxinus dipetala,species,ash,yes,,,,1,wpsm_woody_counts
+Fraxinus excelsior,species,ash,yes,,,,1,wpsm_woody_counts
+Fraxinus latifolia,species,ash,yes,,,,1,wpsm_woody_counts
+Fraxinus nigra,species,ash,yes,,,,1,wpsm_woody_counts
+Fraxinus profunda,species,ash,yes,,,,1,wpsm_woody_counts
+Fraxinus quadrangulata,species,ash,yes,,,,1,wpsm_woody_counts
+Fraxinus uhdei,species,ash,yes,,,,1,wpsm_woody_counts
+Fraxinus velutina,species,ash,yes,,,,1,wpsm_woody_counts
+Fremontodendron californicum,species,fremontia,yes,,,,1,wpsm_woody_counts
+Fremontodendron decumbens,species,fremontia,yes,,,,1,wpsm_woody_counts
+Fremontodendron mexicanum,species,fremontia,yes,,,,1,wpsm_woody_counts
+Galeopsis bifida,species,,yes,,,,1,figshare_tsw_counts
+Galeopsis pubescens,species,,yes,,,,1,figshare_tsw_counts
+Galeopsis segetum,species,,yes,,,,1,figshare_tsw_counts
+Galium divaricatum,species,,yes,,,,1,figshare_tsw_counts
+Galium parisiense,species,,yes,,,,1,figshare_tsw_counts
+Galium pumilum,species,,yes,,,,1,figshare_tsw_counts
+Galium sylvaticum,species,,yes,,,,1,figshare_tsw_counts
+Galium tricornutum,species,,yes,,,,1,figshare_tsw_counts
+Gentiana cruciata,species,,yes,,,,1,figshare_tsw_counts
+Geranium bohemicum,species,,yes,,,,1,figshare_tsw_counts
+Geranium palustre,species,,yes,,,,1,figshare_tsw_counts
+Geranium sibiricum,species,,yes,,,,1,figshare_tsw_counts
+Geranium sylvaticum,species,,yes,,,,1,figshare_tsw_counts
+Ginkgo biloba,species,,yes,,,,1,figshare_tsw_counts
+Glaucium corniculatum,species,,yes,,,,1,figshare_tsw_counts
+Glaucium flavum,species,,yes,,,,1,figshare_tsw_counts
+Globularia bisnagarica,species,,yes,,,,1,figshare_tsw_counts
+Glycine max,species,soya bean; soybean,yes,yes,yes,,4,dickie_ellis_constants_with_se; figshare_tsw_counts; johnnys_longevity; kew_viability_constants
+Gomphrena,genus,gomphrena (globe amaranth),,yes,,,1,johnnys_longevity
+Gourd,genus,gourd,yes,,,,1,osborne_counts
+Guizotia abyssinica,species,niger seed; ramtil,,,yes,,1,kew_viability_constants
+Gypsophila,genus,gypsophila (baby's breath),,yes,,,1,johnnys_longevity
+Gypsophila elegans,species,baby's breath,,,yes,,1,kew_viability_constants
+Gypsophila perfoliata,species,,yes,,,,1,figshare_tsw_counts
+Gypsophila scorzonerifolia,species,,yes,,,,1,figshare_tsw_counts
+Helianthemum canum,species,,yes,,,,1,figshare_tsw_counts
+Helianthemum nummularium,species,,yes,,,,1,figshare_tsw_counts
+Helianthus annuus,species,sunflower,,,yes,,1,kew_viability_constants
+Helianthus laetiflorus,species,,yes,,,,1,figshare_tsw_counts
+Helianthus maximiliani,species,"sunflower, maximilian - 'aztec'",yes,,,,1,nrcs_conservation_counts
+Helianthus tuberosus,species,,yes,,,,1,figshare_tsw_counts
+Heracleum mantegazzianum,species,,yes,,,,1,figshare_tsw_counts
+Herniaria hirsuta,species,,yes,,,,1,figshare_tsw_counts
+Hilaria belangeri,species,curlymesquite,yes,,,,1,nrcs_conservation_counts
+Hilaria jamesii,species,galleta,yes,,,,1,nrcs_conservation_counts
+Hilaria mutica,species,tobosa,yes,,,,1,nrcs_conservation_counts
+Hippuris vulgaris,species,,yes,,,,1,figshare_tsw_counts
+Hordeum vulgare,species,barley,,yes,yes,,3,dickie_ellis_constants_with_se; johnnys_longevity; kew_viability_constants
+Hydrocotyle leucocephala,species,,yes,,,,1,figshare_tsw_counts
+Hydrocotyle verticillata,species,,yes,,,,1,figshare_tsw_counts
+Hydrocotyle vulgaris,species,,yes,,,,1,figshare_tsw_counts
+Iberis umbellata,species,,yes,,,,1,figshare_tsw_counts
+Ilex aquifolium,species,holly,yes,,,,1,wpsm_woody_counts
+Ilex glabra,species,holly,yes,,,,1,wpsm_woody_counts
+Ilex montana,species,holly,yes,,,,1,wpsm_woody_counts
+Ilex opaca,species,holly,yes,,,,1,wpsm_woody_counts
+Ilex verticillata,species,holly,yes,,,,1,wpsm_woody_counts
+Ilex vomitoria,species,holly,yes,,,,1,wpsm_woody_counts
+Impatiens,genus,impatiens,,yes,,,1,johnnys_longevity
+Impatiens balfourii,species,,yes,,,,1,figshare_tsw_counts
+Iva xanthiifolia,species,,yes,,,,1,figshare_tsw_counts
+Jacobaea aquatica,species,,yes,,,,1,figshare_tsw_counts
+Jacobaea maritima,species,dusty miller,,yes,,,1,johnnys_longevity
+Juglans microcarpa,species,walnut,yes,,,,1,wpsm_woody_counts
+Juncus maritimus,species,,yes,,,,1,figshare_tsw_counts
+Juniperus ashei,species,juniper,yes,,,,1,wpsm_woody_counts
+Juniperus communis,species,juniper,yes,,,,1,wpsm_woody_counts
+Juniperus deppeana,species,juniper,yes,,,,1,wpsm_woody_counts
+Juniperus monosperma,species,juniper,yes,,,,1,wpsm_woody_counts
+Juniperus occidentalis,species,juniper,yes,,,,1,wpsm_woody_counts
+Juniperus osteosperma,species,juniper,yes,,,,1,wpsm_woody_counts
+Juniperus pinchotii,species,juniper,yes,,,,1,wpsm_woody_counts
+Juniperus scopulorum,species,juniper,yes,,,,1,wpsm_woody_counts
+Juniperus virginiana,species,juniper,yes,,,,1,wpsm_woody_counts
+Khaya senegalensis,species,,,,yes,,1,kew_viability_constants
+Kitaibela vitifolia,species,,yes,,,,1,figshare_tsw_counts
+Lablab purpureus,species,hyacinth bean,,yes,,,1,johnnys_longevity
+Lactuca perennis,species,,yes,,,,1,figshare_tsw_counts
+Lactuca sativa,species,lettuce,yes,yes,yes,yes,8,dickie_ellis_constants_with_se; figshare_tsw_counts; johnnys_longevity; kew_viability_constants; osborne_counts; osborne_viability; unl_g2090_counts; unl_g2090_germination
+Larix decidua,species,larch,yes,,,,1,wpsm_woody_counts
+Larix gmelinii,species,larch,yes,,,,1,wpsm_woody_counts
+Larix kaempferi,species,larch,yes,,,,1,wpsm_woody_counts
+Larix laricina,species,larch,yes,,,,1,wpsm_woody_counts
+Larix lyallii,species,larch,yes,,,,1,wpsm_woody_counts
+Larix occidentalis,species,larch,yes,,,,1,wpsm_woody_counts
+Larix sibirica,species,larch,yes,,,,1,wpsm_woody_counts
+Larkspur,genus,larkspur,,yes,,,1,johnnys_longevity
+Lathyrus odoratus,species,sweet pea,,yes,,,1,johnnys_longevity
+Lathyrus vernus,species,,yes,,,,1,figshare_tsw_counts
+Lavender,genus,lavender,,yes,,,1,johnnys_longevity
+Leersia oryzoides,species,,yes,,,,1,figshare_tsw_counts
+Legousia speculum-veneris,species,,yes,,,,1,figshare_tsw_counts
+Lens culinaris,species,lentil,,yes,,,1,johnnys_longevity
+Lepidium graminifolium,species,,yes,,,,1,figshare_tsw_counts
+Lepidium sativum,species,cress; garden cress,yes,yes,,,3,figshare_tsw_counts; johnnys_longevity; osborne_viability
+Leptochloa dubia,species,"sprangletop, green",yes,,,,1,nrcs_conservation_counts
+Leptoloma cognatum,species,"witchgrass, fall",yes,,,,1,nrcs_conservation_counts
+Lespedeza capitata,species,"lespedeza, roundhead",yes,,,,1,nrcs_conservation_counts
+Lespedeza hedysaroides,species,"lespedeza, rush",yes,,,,1,nrcs_conservation_counts
+Lespedeza striata,species,"lespedeza, common",yes,,,,1,nrcs_conservation_counts
+Linaria arvensis,species,,yes,,,,1,figshare_tsw_counts
+Linum dolomiticum,species,,yes,,,,1,figshare_tsw_counts
+Linum flavum,species,,yes,,,,1,figshare_tsw_counts
+Linum usitatissimum,species,flax; linseed,yes,,yes,,2,figshare_tsw_counts; kew_viability_constants
+Liquidambar styraciflua,species,,,,yes,,1,kew_viability_constants
+Lisianthus,genus,lisianthus,,yes,,,1,johnnys_longevity
+Lolium multiflorum,species,"ryegrass, italian; ryegrass, westerwold",yes,,,,1,nrcs_conservation_counts
+Lolium perenne,species,"ryegrass, perennial",yes,,,,1,nrcs_conservation_counts
+Lonicera caprifolium,species,,yes,,,,1,figshare_tsw_counts
+Lonicera involucrata,species,honeysuckle,yes,,,,1,wpsm_woody_counts
+Lonicera maackii,species,honeysuckle,yes,,,,1,wpsm_woody_counts
+Lonicera morrowii,species,honeysuckle,yes,,,,1,wpsm_woody_counts
+Lonicera oblongifolia,species,honeysuckle,yes,,,,1,wpsm_woody_counts
+Lonicera tatarica,species,honeysuckle,yes,,,,2,figshare_tsw_counts; wpsm_woody_counts
+Lotus pedunculatus,species,,yes,,,,1,figshare_tsw_counts
+Lovage,genus,lovage,,yes,,,1,johnnys_longevity
+Ludwigia repens,species,,yes,,,,1,figshare_tsw_counts
+Lunaria annua,species,,yes,,,,1,figshare_tsw_counts
+Lupinus albus,species,"lupinus, white",yes,,,,1,nrcs_conservation_counts
+Lupinus angustifolius,species,"lupine, blue",yes,,,,1,nrcs_conservation_counts
+Lupinus bicolor,species,"lupine, bicolor",yes,,,,1,nrcs_conservation_counts
+Lupinus hirsutus,species,"lupine, european blue",yes,,,,1,nrcs_conservation_counts
+Lupinus luteus,species,"lupine, european yellow",yes,,,,1,nrcs_conservation_counts
+Lupinus polyphyllus,species,lupine,,yes,yes,,2,johnnys_longevity; kew_viability_constants
+Lupinus subcamosus,species,"bluebonnet, texas",yes,,,,1,nrcs_conservation_counts
+Lupinus succulentus,species,"lupine, arroyo",yes,,,,1,nrcs_conservation_counts
+Luzula divulgata,species,,yes,,,,1,figshare_tsw_counts
+Lycium barbarum,species,wolfberry,yes,,,,2,figshare_tsw_counts; wpsm_woody_counts
+Lycium chinense,species,wolfberry,yes,,,,2,figshare_tsw_counts; wpsm_woody_counts
+Lycium richii,species,wolfberry,yes,,,,1,wpsm_woody_counts
+Lycopersicon esculentum,species,,yes,,,,1,figshare_tsw_counts
+Magnolia acuminata,species,,yes,,,,1,wpsm_woody_counts
+Magnolia fraseri,species,,yes,,,,1,wpsm_woody_counts
+Magnolia grandiflora,species,,yes,,,,1,wpsm_woody_counts
+Magnolia macrophylla,species,,yes,,,,1,wpsm_woody_counts
+Magnolia portoricensis,species,,yes,,,,1,wpsm_woody_counts
+Magnolia tripetala,species,,yes,,,,1,wpsm_woody_counts
+Magnolia virginiana,species,,yes,,,,1,wpsm_woody_counts
+Mahonia aquifolium,species,,yes,,,,1,wpsm_woody_counts
+Mahonia fremontii,species,,yes,,,,1,wpsm_woody_counts
+Mahonia haematocarpa,species,,yes,,,,1,wpsm_woody_counts
+Mahonia nervosa,species,,yes,,,,1,wpsm_woody_counts
+Mahonia nevinii,species,,yes,,,,1,wpsm_woody_counts
+Mahonia repens,species,,yes,,,,1,wpsm_woody_counts
+Malus domestica,species,apple,,,yes,,1,kew_viability_constants
+Malva thuringiaca,species,,yes,,,,1,figshare_tsw_counts
+Manihot esculenta,species,cassava; manioc; tapioca,,,yes,,1,kew_viability_constants
+Marigold,genus,marigold,,yes,,,1,johnnys_longevity
+Marjoram,genus,marjoram,,yes,,,1,johnnys_longevity
+Matricaria,genus,matricaria (feverfew),,yes,,,1,johnnys_longevity
+Medicago sativa,species,"alfalfa; alfalfa, common; lucerne",yes,yes,,,2,johnnys_longevity; nrcs_conservation_counts
+Melica nitens,species,"melic, threeflower",yes,,,,1,nrcs_conservation_counts
+Melilotus alba,species,"sweetclover, hubam",yes,,,,1,nrcs_conservation_counts
+Melilotus indica,species,"sweetclover, annual yellow",yes,,,,1,nrcs_conservation_counts
+Melilotus officinalis,species,"sweetclover, madrid",yes,,,,1,nrcs_conservation_counts
+Melissa officinalis,species,lemon balm,,yes,,,1,johnnys_longevity
+Millet,genus,millet,,yes,,,1,johnnys_longevity
+Mimulus guttatus,species,,yes,,,,1,figshare_tsw_counts
+Moenchia mantica,species,,yes,,,,1,figshare_tsw_counts
+Moluccella laevis,species,bells of ireland,,yes,,,1,johnnys_longevity
+Monarda,genus,monarda (bee balm),,yes,,,1,johnnys_longevity
+Morella cerifera,species,,yes,,,,1,wpsm_woody_counts
+Morus alba,species,mulberrry; mulberry,yes,,,,1,wpsm_woody_counts
+Morus rubra,species,mulberrry; mulberry,yes,,,,1,wpsm_woody_counts
+Muhlenbergia porteri,species,"muhly, bush",yes,,,,1,nrcs_conservation_counts
+Muhlenbergia pungens,species,"muhly, sandhill",yes,,,,1,nrcs_conservation_counts
+Muhlenbergia racemosa,species,"muhly, green",yes,,,,1,nrcs_conservation_counts
+Muhlenbergia repens,species,"muhly, red",yes,,,,1,nrcs_conservation_counts
+Muhlenbergia wrightii,species,"muhly, spike",yes,,,,1,nrcs_conservation_counts
+Muscari tenuiflorum,species,,yes,,,,1,figshare_tsw_counts
+Muskmelon,genus,muskmelon,yes,yes,,yes,2,unl_g2090_counts; unl_g2090_germination
+Myosotis arvensis,species,,yes,,,,1,figshare_tsw_counts
+Najas gracillima,species,,yes,,,,1,figshare_tsw_counts
+Nasturtium,genus,nasturtium,,yes,,,1,johnnys_longevity
+Nasturtium officinale,species,,yes,,,,1,figshare_tsw_counts
+Nepeta cataria,species,,yes,,,,1,figshare_tsw_counts
+Nicotiana rustica,species,,yes,,,,1,figshare_tsw_counts
+Nicotiana tabacum,species,,yes,,,,1,figshare_tsw_counts
+Nigella,genus,nigella,,yes,,,1,johnnys_longevity
+Nyssa aquatica,species,tupelo; tupleo,yes,,,,1,wpsm_woody_counts
+Nyssa biflora,species,tupelo; tupleo,yes,,,,1,wpsm_woody_counts
+Nyssa ogeche,species,tupelo; tupleo,yes,,,,1,wpsm_woody_counts
+Nyssa sylvatica,species,tupelo; tupleo,yes,,,,1,wpsm_woody_counts
+Ocimum basilicum,species,"basil; basil, sweet; sweet basil",,yes,,,1,johnnys_longevity
+Oenanthe fistulosa,species,,yes,,,,1,figshare_tsw_counts
+Opuntia humifusa,species,,yes,,,,1,figshare_tsw_counts
+Opuntia phaeacantha,species,,yes,,,,1,figshare_tsw_counts
+Oregano,genus,oregano,,yes,,,1,johnnys_longevity
+Oryza sativa,species,rice,,,yes,,1,kew_viability_constants
+Oryza sativa ssp.,species,,,,yes,,1,kew_viability_constants
+Oryzopsis hymenoides,species,"ricegrass, indian",yes,,,,1,nrcs_conservation_counts
+Panicum antidotale,species,"panicum, blue",yes,,,,1,nrcs_conservation_counts
+Panicum coloratum,species,"panicum, kleingrass",yes,,,,1,nrcs_conservation_counts
+Panicum dichotomiflorum,species,,yes,,,,1,figshare_tsw_counts
+Panicum hallii,species,"panicum, halls",yes,,,,1,nrcs_conservation_counts
+Panicum obtusum,species,vine-mesquite,yes,,,,1,nrcs_conservation_counts
+Panicum plenum,species,"switchgrass, false",yes,,,,1,nrcs_conservation_counts
+Panicum texanum,species,"panicum, texas",yes,,,,1,nrcs_conservation_counts
+Panicum virgatum,species,switchgrass; switchgrass - 'alamo',yes,,,,1,nrcs_conservation_counts
+Papaver nudicaule,species,poppy iceland,,,yes,,1,kew_viability_constants
+Papaver somniferum,species,,yes,,,,1,figshare_tsw_counts
+Pappophorum bicolor,species,"pappusgrass, pink",yes,,,,1,nrcs_conservation_counts
+Pappophorum mucronulatum,species,"pappusgrass, whiplash",yes,,,,1,nrcs_conservation_counts
+Paronychia cephalotes,species,,yes,,,,1,figshare_tsw_counts
+Paspalum ciliatifolium,species,"paspalum, fringeleaf",yes,,,,1,nrcs_conservation_counts
+Paspalum dilatatum,species,dallisgrass,yes,,,,1,nrcs_conservation_counts
+Paspalum hartwegianum,species,"paspalum, hartweg",yes,,,,1,nrcs_conservation_counts
+Paspalum notatum,species,"bahiagrass; bahiagrass, pensacola",yes,,,,1,nrcs_conservation_counts
+Paspalum plicatulum,species,"paspalum, brownseed",yes,,,,1,nrcs_conservation_counts
+Pastinaca sativa,species,parsnip,yes,yes,,yes,5,johnnys_longevity; osborne_counts; osborne_viability; unl_g2090_counts; unl_g2090_germination
+Pavonia lasiopetala,species,wright pavonia,yes,,,,1,nrcs_conservation_counts
+Pennisetum ciliare,species,buffelgrass,yes,,,,1,nrcs_conservation_counts
+Pennisetum glaucum,species,bajra; millet pearl,,,yes,,1,kew_viability_constants
+Persicaria minor,species,,yes,,,,1,figshare_tsw_counts
+Persicaria orientalis,species,,yes,,,,1,figshare_tsw_counts
+Petalostemon multiflorus,species,"prairieclover, roundheaded",yes,,,,1,nrcs_conservation_counts
+Petalostemon purpureus,species,"prairieclover, purple",yes,,,,1,nrcs_conservation_counts
+Petasites hybridus,species,,yes,,,,1,figshare_tsw_counts
+Petroselinum crispum,species,parsley,yes,yes,,yes,6,figshare_tsw_counts; johnnys_longevity; osborne_counts; osborne_viability; unl_g2090_counts; unl_g2090_germination
+Phaseolus coccineus,species,,yes,,,,1,figshare_tsw_counts
+Phaseolus lunatus,species,"bean lima; bean, lima; butter bean",yes,yes,,yes,2,unl_g2090_counts; unl_g2090_germination
+Phaseolus vulgaris,species,"bean snap; bean, snap; beans; common bean; dry bean; green bean; string bean",yes,yes,yes,yes,7,figshare_tsw_counts; johnnys_longevity; kew_viability_constants; osborne_counts; osborne_viability; unl_g2090_counts; unl_g2090_germination
+Phleum pratense,species,timothy,,,yes,,1,kew_viability_constants
+Phleum pratense cv.,species,,,,yes,,1,kew_viability_constants
+Phlox,genus,phlox,,yes,,,1,johnnys_longevity
+Picea abies,species,spruce,yes,,,,1,wpsm_woody_counts
+Picea asperata,species,spruce,yes,,,,1,wpsm_woody_counts
+Picea breweriana,species,spruce,yes,,,,1,wpsm_woody_counts
+Picea engelmannii,species,spruce,yes,,,,1,wpsm_woody_counts
+Picea glauca,species,spruce,yes,,,,1,wpsm_woody_counts
+Picea jezoensis,species,spruce,yes,,,,1,wpsm_woody_counts
+Picea koraiensis,species,spruce,yes,,,,1,wpsm_woody_counts
+Picea mariana,species,spruce,yes,,,,1,wpsm_woody_counts
+Picea omorika,species,spruce,yes,,,,1,wpsm_woody_counts
+Picea pungens,species,spruce,yes,,,,1,wpsm_woody_counts
+Picea rubens,species,spruce,yes,,,,1,wpsm_woody_counts
+Picea sitchensis,species,spruce,yes,,,,1,wpsm_woody_counts
+Picea smithiana,species,spruce,yes,,,,1,wpsm_woody_counts
+Pilosella piloselloides,species,,yes,,,,1,figshare_tsw_counts
+Pinus albicaulis,species,pine,yes,,,,1,wpsm_woody_counts
+Pinus aristata,species,pine,yes,,,,1,wpsm_woody_counts
+Pinus arizonica,species,pine,yes,,,,1,wpsm_woody_counts
+Pinus armandii,species,pine,yes,,,,1,wpsm_woody_counts
+Pinus balfouriana,species,pine,yes,,,,1,wpsm_woody_counts
+Pinus banksiana,species,pine,yes,,,,1,wpsm_woody_counts
+Pinus brutia,species,pine,yes,,,,1,wpsm_woody_counts
+Pinus canariensis,species,pine,yes,,,,1,wpsm_woody_counts
+Pinus caribaea,species,pine,yes,,,,1,wpsm_woody_counts
+Pinus cembra,species,pine,yes,,,,1,wpsm_woody_counts
+Pinus cembroides,species,pine,yes,,,,1,wpsm_woody_counts
+Pinus clausa,species,pine,yes,,,,1,wpsm_woody_counts
+Pinus contorta,species,pine,yes,,,,1,wpsm_woody_counts
+Pinus coulteri,species,pine,yes,,,,1,wpsm_woody_counts
+Pinus densiflora,species,pine,yes,,,,1,wpsm_woody_counts
+Pinus echinata,species,pine,yes,,,,1,wpsm_woody_counts
+Pinus edulis,species,pine,yes,,,,1,wpsm_woody_counts
+Pinus elliottii,species,pine,yes,,yes,,2,kew_viability_constants; wpsm_woody_counts
+Pinus engelmanni,species,pine,yes,,,,1,wpsm_woody_counts
+Pinus flexilis,species,pine,yes,,,,1,wpsm_woody_counts
+Pinus gerardiana,species,pine,yes,,,,1,wpsm_woody_counts
+Pinus glabra,species,pine,yes,,,,1,wpsm_woody_counts
+Pinus halepensis,species,pine,yes,,,,1,wpsm_woody_counts
+Pinus heldreichii,species,pine,yes,,,,1,wpsm_woody_counts
+Pinus jeffreyi,species,pine,yes,,,,1,wpsm_woody_counts
+Pinus keisya,species,pine,yes,,,,1,wpsm_woody_counts
+Pinus koraiensis,species,pine,yes,,,,1,wpsm_woody_counts
+Pinus lambertiana,species,pine,yes,,,,1,wpsm_woody_counts
+Pinus leiophylla,species,pine,yes,,,,1,wpsm_woody_counts
+Pinus merkussi,species,pine,yes,,,,1,wpsm_woody_counts
+Pinus monophylla,species,pine,yes,,,,1,wpsm_woody_counts
+Pinus monticola,species,pine,yes,,,,1,wpsm_woody_counts
+Pinus mugo,species,pine,yes,,,,1,wpsm_woody_counts
+Pinus muricata,species,pine,yes,,,,1,wpsm_woody_counts
+Pinus nigra,species,pine,yes,,,,1,wpsm_woody_counts
+Pinus occidentalis,species,,,,yes,,1,kew_viability_constants
+Pinus palustris,species,pine,yes,,,,1,wpsm_woody_counts
+Pinus parviflora,species,pine,yes,,,,1,wpsm_woody_counts
+Pinus peuce,species,pine,yes,,,,1,wpsm_woody_counts
+Pinus pinaster,species,pine,yes,,,,1,wpsm_woody_counts
+Pinus pinea,species,pine,yes,,,,1,wpsm_woody_counts
+Pinus pumila,species,pine,yes,,,,1,wpsm_woody_counts
+Pinus pungens,species,pine,yes,,,,1,wpsm_woody_counts
+Pinus radiata,species,pine,yes,,,,1,wpsm_woody_counts
+Pinus resinosa,species,pine,yes,,,,1,wpsm_woody_counts
+Pinus sabiniana,species,pine,yes,,,,1,wpsm_woody_counts
+Pinus serotina,species,pine,yes,,,,1,wpsm_woody_counts
+Pinus sibirica,species,pine,yes,,,,1,wpsm_woody_counts
+Pinus strobiformis,species,pine,yes,,,,1,wpsm_woody_counts
+Pinus strobus,species,pine,yes,,,,1,wpsm_woody_counts
+Pinus sylvestris,species,pine,yes,,,,1,wpsm_woody_counts
+Pinus taeda,species,pine,yes,,yes,,2,kew_viability_constants; wpsm_woody_counts
+Pinus thunbergiana,species,pine,yes,,,,1,wpsm_woody_counts
+Pinus virginiana,species,pine,yes,,,,1,wpsm_woody_counts
+Pinus wallichiana,species,pine,yes,,,,1,wpsm_woody_counts
+Pisum sativum,species,english pea; garden pea; pea; peas,yes,yes,yes,yes,6,johnnys_longevity; kew_viability_constants; osborne_counts; osborne_viability; unl_g2090_counts; unl_g2090_germination
+Plantago argentea,species,,yes,,,,1,figshare_tsw_counts
+Plantago coronopus,species,,yes,,,,1,figshare_tsw_counts
+Plantago lanceolata,species,,yes,,,,1,figshare_tsw_counts
+Platanus occidentalis,species,sycamore,yes,,,,1,wpsm_woody_counts
+Platanus orientalis,species,sycamore,yes,,,,1,wpsm_woody_counts
+Poa archnifera,species,"bluegrass, texas",yes,,,,1,nrcs_conservation_counts
+Poa pratensis,species,,yes,,,,1,figshare_tsw_counts
+Polemonium reptans,species,,yes,,,,1,figshare_tsw_counts
+Polycarpon tetraphyllum,species,,yes,,,,1,figshare_tsw_counts
+Poppy,genus,poppy,,yes,,,1,johnnys_longevity
+Potamogeton coloratus,species,,yes,,,,1,figshare_tsw_counts
+Potamogeton lucens,species,,yes,,,,1,figshare_tsw_counts
+Potamogeton natans,species,,yes,,,,1,figshare_tsw_counts
+Potentilla pusilla,species,,yes,,,,1,figshare_tsw_counts
+Prosopis juliflora,species,mesquite,yes,,,,1,wpsm_woody_counts
+Prunella grandiflora,species,,yes,,,,1,figshare_tsw_counts
+Prunus americana,species,and plum; cherry; peach,yes,,,,1,wpsm_woody_counts
+Prunus angustifolia,species,and plum; cherry; peach,yes,,,,1,wpsm_woody_counts
+Prunus cerasifera,species,and plum; cherry; peach,yes,,,,1,wpsm_woody_counts
+Prunus cerasus,species,and plum; cherry; peach,yes,,,,1,wpsm_woody_counts
+Prunus domestica,species,and plum; cherry; peach,yes,,,,1,wpsm_woody_counts
+Prunus emarginata,species,and plum; cherry; peach,yes,,,,1,wpsm_woody_counts
+Prunus fruticosa,species,,yes,,,,1,figshare_tsw_counts
+Prunus ilicifolia,species,and plum; cherry; peach,yes,,,,1,wpsm_woody_counts
+Prunus mahaleb,species,and plum; cherry; peach,yes,,,,1,wpsm_woody_counts
+Prunus munsoniana,species,and plum; cherry; peach,yes,,,,1,wpsm_woody_counts
+Prunus padus,species,and plum; cherry; peach,yes,,,,1,wpsm_woody_counts
+Prunus pensylvanica,species,and plum; cherry; peach,yes,,,,1,wpsm_woody_counts
+Prunus spinosa,species,and plum; cherry; peach,yes,,,,1,wpsm_woody_counts
+Prunus subcordata,species,and plum; cherry; peach,yes,,,,1,wpsm_woody_counts
+Prunus tomentosa,species,and plum; cherry; peach,yes,,,,1,wpsm_woody_counts
+Prunus virginiana,species,and plum; cherry; peach,yes,,,,1,wpsm_woody_counts
+Pseudotsuga macrocarpa,species,,yes,,,,1,wpsm_woody_counts
+Pseudotsuga menziesii,species,,yes,,,,1,wpsm_woody_counts
+Psophocarpus tetragonolobus,species,goa bean; winged bean,,,yes,,1,kew_viability_constants
+Psorothamnus emoryi,species,indigobush,yes,,,,1,wpsm_woody_counts
+Psorothamnus polydenius,species,indigobush,yes,,,,1,wpsm_woody_counts
+Psorothamnus spinosus,species,indigobush,yes,,,,1,wpsm_woody_counts
+Pulsatilla alpina,species,,yes,,,,1,figshare_tsw_counts
+Pumpkins,genus,pumpkins,,yes,,,2,johnnys_longevity; osborne_viability
+Purshia glandulosa,species,bitterbrush; bitterbrush and cliffrose; cliffrose,yes,,,,1,wpsm_woody_counts
+Purshia mexicana,species,bitterbrush; bitterbrush and cliffrose; cliffrose,yes,,,,1,wpsm_woody_counts
+Purshia tridentata,species,bitterbrush; bitterbrush and cliffrose; cliffrose,yes,,,,1,wpsm_woody_counts
+Purslane,genus,purslane,,yes,,,1,johnnys_longevity
+Pycnanthemum pilosum,species,mountain mint,,yes,,,1,johnnys_longevity
+Pyrus amygdaliforms,species,pear,yes,,,,1,wpsm_woody_counts
+Pyrus betulifolia,species,pear,yes,,,,1,wpsm_woody_counts
+Pyrus calleryana,species,pear,yes,,,,1,wpsm_woody_counts
+Pyrus communis,species,pear,yes,,,,1,wpsm_woody_counts
+Pyrus cordata,species,pear,yes,,,,1,wpsm_woody_counts
+Pyrus dimorphophylla,species,pear,yes,,,,1,wpsm_woody_counts
+Pyrus elaeagrifolia,species,pear,yes,,,,1,wpsm_woody_counts
+Pyrus fauriei,species,pear,yes,,,,1,wpsm_woody_counts
+Pyrus gharbiana,species,pear,yes,,,,1,wpsm_woody_counts
+Pyrus koehnii,species,pear,yes,,,,1,wpsm_woody_counts
+Pyrus mamorensis,species,pear,yes,,,,1,wpsm_woody_counts
+Pyrus nivalis,species,pear,yes,,,,1,wpsm_woody_counts
+Pyrus pashia,species,pear,yes,,,,1,wpsm_woody_counts
+Pyrus pyrifolia,species,pear,yes,,,,1,wpsm_woody_counts
+Pyrus salicifolia,species,pear,yes,,,,1,wpsm_woody_counts
+Pyrus ussuriensis,species,pear,yes,,,,1,wpsm_woody_counts
+Quercus acutissima,species,oak,yes,,,,1,wpsm_woody_counts
+Quercus bicolor,species,oak,yes,,,,1,wpsm_woody_counts
+Quercus cerris,species,oak,yes,,,,1,wpsm_woody_counts
+Quercus coccinea,species,oak,yes,,,,1,wpsm_woody_counts
+Quercus douglasii,species,oak,yes,,,,1,wpsm_woody_counts
+Quercus dumosa,species,oak,yes,,,,1,wpsm_woody_counts
+Quercus ellipsoidalis,species,oak,yes,,,,1,wpsm_woody_counts
+Quercus falcata,species,oak,yes,,,,1,wpsm_woody_counts
+Quercus ilicifolia,species,oak,yes,,,,1,wpsm_woody_counts
+Quercus imbricaria,species,oak,yes,,,,1,wpsm_woody_counts
+Quercus incana,species,oak,yes,,,,1,wpsm_woody_counts
+Quercus kelloggii,species,oak,yes,,,,1,wpsm_woody_counts
+Quercus laevis,species,oak,yes,,,,1,wpsm_woody_counts
+Quercus laurifolia,species,oak,yes,,,,1,wpsm_woody_counts
+Quercus lobata,species,oak,yes,,,,1,wpsm_woody_counts
+Quercus lyrata,species,oak,yes,,,,1,wpsm_woody_counts
+Quercus muehlenbergii,species,oak,yes,,,,1,wpsm_woody_counts
+Quercus nigra,species,oak,yes,,,,1,wpsm_woody_counts
+Quercus pagoda,species,oak,yes,,,,1,wpsm_woody_counts
+Quercus palustris,species,oak,yes,,,,1,wpsm_woody_counts
+Quercus petraea,species,oak,yes,,,,1,wpsm_woody_counts
+Quercus phellos,species,oak,yes,,,,1,wpsm_woody_counts
+Quercus prinus,species,oak,yes,,,,1,wpsm_woody_counts
+Quercus pubescens,species,,yes,,,,1,figshare_tsw_counts
+Quercus robur,species,oak,yes,,,,1,wpsm_woody_counts
+Quercus rubra,species,oak,yes,,,,1,wpsm_woody_counts
+Quercus shumardii,species,oak,yes,,,,1,wpsm_woody_counts
+Quercus stellata,species,oak,yes,,,,1,wpsm_woody_counts
+Quercus texana,species,oak,yes,,,,1,wpsm_woody_counts
+Quercus turbinella,species,oak,yes,,,,1,wpsm_woody_counts
+Quercus vaccinifolia,species,oak,yes,,,,1,wpsm_woody_counts
+Quercus variabilis,species,oak,yes,,,,1,wpsm_woody_counts
+Quercus velutina,species,oak,yes,,,,1,wpsm_woody_counts
+Quercus virginiana,species,oak,yes,,,,1,wpsm_woody_counts
+Quercus wislizenii,species,oak,yes,,,,1,wpsm_woody_counts
+Radicchio,genus,radicchio,yes,,,,1,osborne_counts
+Radiola linoides,species,,yes,,,,1,figshare_tsw_counts
+Ranunculus peltatus,species,,yes,,,,1,figshare_tsw_counts
+Ranunculus rionii,species,,yes,,,,1,figshare_tsw_counts
+Ranunculus sceleratus,species,,,,yes,,1,kew_viability_constants
+Raphanus raphanistrum,species,,yes,,,,1,figshare_tsw_counts
+Raphanus sativus,species,radish,yes,yes,,yes,5,johnnys_longevity; osborne_counts; osborne_viability; unl_g2090_counts; unl_g2090_germination
+Reynoutria japonica,species,,yes,,,,1,figshare_tsw_counts
+Rheum rhabarbarum,species,rhubarb,,yes,,,1,johnnys_longevity
+Rhus copallina,species,,yes,,,,1,wpsm_woody_counts
+Rhus glabra,species,,yes,,,,1,wpsm_woody_counts
+Rhus hirta,species,,yes,,,,1,wpsm_woody_counts
+Rhus integrifolia,species,,yes,,,,1,wpsm_woody_counts
+Rhus ovata,species,,yes,,,,1,wpsm_woody_counts
+Rhus trilobata,species,,yes,,,,1,wpsm_woody_counts
+Ribes americanum,species,currant; gooseberry,yes,,,,1,wpsm_woody_counts
+Ribes aureum,species,currant; gooseberry,yes,,,,1,wpsm_woody_counts
+Ribes cereum,species,currant; gooseberry,yes,,,,1,wpsm_woody_counts
+Ribes cynosbati,species,currant; gooseberry,yes,,,,1,wpsm_woody_counts
+Ribes hudsonianum,species,currant; gooseberry,yes,,,,1,wpsm_woody_counts
+Ribes inerme,species,currant; gooseberry,yes,,,,1,wpsm_woody_counts
+Ribes lacustre,species,currant; gooseberry,yes,,,,1,wpsm_woody_counts
+Ribes missouriense,species,currant; gooseberry,yes,,,,1,wpsm_woody_counts
+Ribes montigenum,species,currant; gooseberry,yes,,,,1,wpsm_woody_counts
+Ribes nevadense,species,currant; gooseberry,yes,,,,1,wpsm_woody_counts
+Ribes roezlii,species,currant; gooseberry,yes,,,,1,wpsm_woody_counts
+Ribes sanguineum,species,currant; gooseberry,yes,,,,1,wpsm_woody_counts
+Ribes viscosissimum,species,currant; gooseberry,yes,,,,1,wpsm_woody_counts
+Robinia hispida,species,locust,yes,,,,1,wpsm_woody_counts
+Robinia neomexicana,species,locust,yes,,,,1,wpsm_woody_counts
+Robinia pseudoacacia,species,locust,yes,,,,1,wpsm_woody_counts
+Rorippa amphibia,species,,yes,,,,1,figshare_tsw_counts
+Rorippa austriaca,species,,yes,,,,1,figshare_tsw_counts
+Rosa acicularis,species,rose,yes,,,,1,wpsm_woody_counts
+Rosa blanda,species,rose,yes,,,,1,wpsm_woody_counts
+Rosa californica,species,rose,yes,,,,1,wpsm_woody_counts
+Rosa canina,species,rose,yes,,,,1,wpsm_woody_counts
+Rosa eglanteria,species,rose,yes,,,,1,wpsm_woody_counts
+Rosa gymnocarpa,species,rose,yes,,,,1,wpsm_woody_counts
+Rosa multiflora,species,rose,yes,,,,1,wpsm_woody_counts
+Rosa nutkana,species,rose,yes,,,,1,wpsm_woody_counts
+Rosa rugosa,species,rose,yes,,,,1,wpsm_woody_counts
+Rosa setigera,species,rose,yes,,,,1,wpsm_woody_counts
+Rosa wichuriana,species,rose,yes,,,,1,wpsm_woody_counts
+Rosa woodsii,species,rose,yes,,,,1,wpsm_woody_counts
+Rosemary,genus,rosemary,,yes,,,1,johnnys_longevity
+Rubus allegheniensis,species,blackberry; raspberry,yes,,,,1,wpsm_woody_counts
+Rubus arcticus,species,blackberry; raspberry,yes,,,,1,wpsm_woody_counts
+Rubus canadensis,species,blackberry; raspberry,yes,,,,1,wpsm_woody_counts
+Rubus chamaemorus,species,blackberry; raspberry,yes,,,,1,wpsm_woody_counts
+Rubus hispidus,species,blackberry; raspberry,yes,,,,1,wpsm_woody_counts
+Rubus idaeus,species,blackberry; raspberry,yes,,,,1,wpsm_woody_counts
+Rubus laciniatus,species,blackberry; raspberry,yes,,,,1,wpsm_woody_counts
+Rubus occidentalis,species,blackberry; raspberry,yes,,,,1,wpsm_woody_counts
+Rubus odoratus,species,blackberry; raspberry,yes,,,,1,wpsm_woody_counts
+Rubus parviflorus,species,blackberry; raspberry,yes,,,,1,wpsm_woody_counts
+Rubus praecox,species,,yes,,,,1,figshare_tsw_counts
+Rubus procerus,species,blackberry; raspberry,yes,,,,1,wpsm_woody_counts
+Rubus spectabilis,species,blackberry; raspberry,yes,,,,1,wpsm_woody_counts
+Rubus ursinus,species,blackberry; raspberry,yes,,,,1,wpsm_woody_counts
+Rumex kerneri,species,,yes,,,,1,figshare_tsw_counts
+Rumex pulcher,species,,yes,,,,1,figshare_tsw_counts
+Rumex rugosus,species,,yes,,,,1,figshare_tsw_counts
+Rutabagas,genus,rutabagas,,yes,,,1,osborne_viability
+Sabal etonia,species,palmetto,yes,,,,1,wpsm_woody_counts
+Sage,genus,sage,,yes,,,1,johnnys_longevity
+Sagina apetala,species,,yes,,,,1,figshare_tsw_counts
+Sagittaria subulata,species,,yes,,,,1,figshare_tsw_counts
+Salix amygdaloides,species,willow,yes,,,,1,wpsm_woody_counts
+Salix bebbiana,species,willow,yes,,,,1,wpsm_woody_counts
+Salix caroliniana,species,willow,yes,,,,1,wpsm_woody_counts
+Salix exigua,species,willow,yes,,,,1,wpsm_woody_counts
+Salix fragilis,species,willow,yes,,,,1,wpsm_woody_counts
+Salix lasiandra,species,willow,yes,,,,1,wpsm_woody_counts
+Salix petiolaris,species,willow,yes,,,,1,wpsm_woody_counts
+Salix scouleriana,species,willow,yes,,,,1,wpsm_woody_counts
+Salsola soda,species,,yes,,,,1,figshare_tsw_counts
+Salvia,genus,salvia,,yes,,,1,johnnys_longevity
+Salvia aethiopis,species,,yes,,,,1,figshare_tsw_counts
+Salvia apiana,species,sage,yes,,,,1,wpsm_woody_counts
+Salvia dorrii,species,sage,yes,,,,1,wpsm_woody_counts
+Salvia mellifera,species,sage,yes,,,,1,wpsm_woody_counts
+Salvia officinalis,species,,yes,,,,1,figshare_tsw_counts
+Salvia sclarea,species,,yes,,,,1,figshare_tsw_counts
+Salvia sonomensis,species,sage,yes,,,,1,wpsm_woody_counts
+Salvia verbenaca,species,,yes,,,,1,figshare_tsw_counts
+Sambucus racemosa,species,elder,yes,,,,1,wpsm_woody_counts
+Saponaria,genus,saponaria,,yes,,,1,johnnys_longevity
+Sassafras albidum,species,,yes,,,,1,wpsm_woody_counts
+Savory,genus,savory,,yes,,,1,johnnys_longevity
+Scabiosa,genus,scabiosa (pincushion flower),,yes,,,1,johnnys_longevity
+Scabiosa canescens,species,,yes,,,,1,figshare_tsw_counts
+Sciatopitys verticillata,species,,yes,,,,1,wpsm_woody_counts
+Scilla spetana,species,,yes,,,,1,figshare_tsw_counts
+Scorzonera purpurea,species,,yes,,,,1,figshare_tsw_counts
+Scrophularia scopolii,species,,yes,,,,1,figshare_tsw_counts
+Scutellaria columnae,species,,yes,,,,1,figshare_tsw_counts
+Secale cereale,species,rye,,yes,,,1,johnnys_longevity
+Senecio nemorensis,species,,yes,,,,1,figshare_tsw_counts
+Senecio ovatus,species,,yes,,,,1,figshare_tsw_counts
+Senecio rupestris,species,,yes,,,,1,figshare_tsw_counts
+Senecio sarracenicus,species,,yes,,,,1,figshare_tsw_counts
+Sesamum indicum,species,benne; sesame,,,yes,,1,kew_viability_constants
+Sesbania exaltata,species,"sesbania, hemp",yes,,,,1,nrcs_conservation_counts
+Setaria italica,species,,yes,,yes,,2,figshare_tsw_counts; kew_viability_constants
+Setaria macrostachya,species,"bristlegrass, plains",yes,,,,1,nrcs_conservation_counts
+Setaria schaelei,species,"bristlegrass, southwestern",yes,,,,1,nrcs_conservation_counts
+Seteria italica,species,"millet, foxtail",yes,,,,1,nrcs_conservation_counts
+Shallots,genus,shallots,,yes,,,1,osborne_viability
+Silaum silaus,species,,yes,,,,1,figshare_tsw_counts
+Silene noctiflora,species,,yes,,,,1,figshare_tsw_counts
+Silybum marianum,species,,yes,,,,1,figshare_tsw_counts
+Simsia calva,species,"bushsunflower, awnless",yes,,,,1,nrcs_conservation_counts
+Sinapis alba,species,,yes,,,,1,figshare_tsw_counts
+Sisymbrium officinale,species,,yes,,,,1,figshare_tsw_counts
+Sisyrinchium angustifolium,species,,yes,,,,1,figshare_tsw_counts
+Sium sisarum,species,,yes,,,,1,figshare_tsw_counts
+Snapdragon,genus,snapdragon,,yes,,,1,johnnys_longevity
+Solanum alatum,species,,yes,,,,1,figshare_tsw_counts
+Solanum lycopersicum,species,tomato; tomatoes,yes,yes,,yes,5,johnnys_longevity; osborne_counts; osborne_viability; unl_g2090_counts; unl_g2090_germination
+Solanum melongena,species,aubergine; brinjal; eggplant,yes,yes,,yes,5,johnnys_longevity; osborne_counts; osborne_viability; unl_g2090_counts; unl_g2090_germination
+Solanum rostratum,species,,yes,,,,1,figshare_tsw_counts
+Sorbus americana,species,mountain-ash,yes,,,,1,wpsm_woody_counts
+Sorbus aucuparia,species,mountain-ash,yes,,,,1,wpsm_woody_counts
+Sorbus decora,species,mountain-ash,yes,,,,1,wpsm_woody_counts
+Sorbus domestica,species,,yes,,,,1,figshare_tsw_counts
+Sorbus sitchensis,species,mountain-ash,yes,,,,1,wpsm_woody_counts
+Sorghastrum nutans,species,"indiangrass, yellow; indiangrass, yellow - 'lometa",yes,,,,1,nrcs_conservation_counts
+Sorghum bicolor,species,milo; sorghum; sudan grass; sudangrass,yes,yes,yes,,3,figshare_tsw_counts; johnnys_longevity; kew_viability_constants
+Sorghum drummondii,species,,yes,,,,1,figshare_tsw_counts
+Spinacia oleracea,species,spinach,yes,yes,,yes,5,johnnys_longevity; osborne_counts; osborne_viability; unl_g2090_counts; unl_g2090_germination
+Sporobolus airoides,species,"sacaton, alkali; sacaton, alkali - 'saltalk'",yes,,,,1,nrcs_conservation_counts
+Sporobolus asper,species,"dropseed, meadow tall; dropseed, tall",yes,,,,1,nrcs_conservation_counts
+Sporobolus contractus,species,"dropseed, spike",yes,,,,1,nrcs_conservation_counts
+Sporobolus cryptandrus,species,"dropseed, sand",yes,,,,2,figshare_tsw_counts; nrcs_conservation_counts
+Sporobolus flexuosus,species,"dropseed, mesa",yes,,,,1,nrcs_conservation_counts
+Sporobolus giganteus,species,"dropseed, giant",yes,,,,1,nrcs_conservation_counts
+Sporobolus wrightii,species,sacaton,yes,,,,1,nrcs_conservation_counts
+Squash,genus,squash,yes,yes,,yes,2,unl_g2090_counts; unl_g2090_germination
+Staphylea pinnata,species,,yes,,,,1,figshare_tsw_counts
+Statice,genus,statice,,yes,,,1,johnnys_longevity
+Stellaria alsine,species,,yes,,,,1,figshare_tsw_counts
+Stellaria neglecta,species,,yes,,,,1,figshare_tsw_counts
+Stellaria nemorum,species,,yes,,,,1,figshare_tsw_counts
+Sternbergia colchiciflora,species,,yes,,,,1,figshare_tsw_counts
+Stipa comata,species,"needlegrass, needleandthread",yes,,,,1,nrcs_conservation_counts
+Stipa leucotricha,species,"needlegrass, texas",yes,,,,1,nrcs_conservation_counts
+Stipa viridula,species,"needlegrass, green",yes,,,,1,nrcs_conservation_counts
+Stock,genus,stock,,yes,,,1,johnnys_longevity
+Strawflower,genus,strawflower,,yes,,,1,johnnys_longevity
+Strophostyles helvola,species,"wildbean, trailing",yes,,,,1,nrcs_conservation_counts
+Styphnolobium japonicum,species,,yes,,,,1,figshare_tsw_counts
+Styrax americanus,species,snowbell,yes,,,,1,wpsm_woody_counts
+Styrax japonicus,species,snowbell,yes,,,,1,wpsm_woody_counts
+Styrax obassia,species,snowbell,yes,,,,1,wpsm_woody_counts
+Sunflowers,genus,sunflowers,,yes,,,1,johnnys_longevity
+Swietenia humilis,species,mahogany,yes,,yes,,2,dickie_ellis_constants_with_se; wpsm_woody_counts
+Swietenia macrophylla,species,mahogany,yes,,,,1,wpsm_woody_counts
+Swietinia humilis,species,,,,yes,,1,kew_viability_constants
+Symphoricarpos orbiculatus,species,snowberry,yes,,,,1,wpsm_woody_counts
+Symphyotrichum ciliatum,species,,yes,,,,1,figshare_tsw_counts
+Syringa vulgaris,species,lilac,yes,,,,1,wpsm_woody_counts
+Tagetes erecta,species,,yes,,,,1,figshare_tsw_counts
+Tagetes lucida,species,mexican mint marigold,,yes,,,1,johnnys_longevity
+Tagetes patula,species,,yes,,,,1,figshare_tsw_counts
+Taraxacum besarabicum,species,,yes,,,,1,figshare_tsw_counts
+Taxus baccata,species,yew,yes,,,,1,wpsm_woody_counts
+Taxus brevifolia,species,yew,yes,,,,1,wpsm_woody_counts
+Taxus canadensis,species,yew,yes,,,,1,wpsm_woody_counts
+Taxus cuspidata,species,yew,yes,,,,1,wpsm_woody_counts
+Tephroseris integrifolia,species,,yes,,,,1,figshare_tsw_counts
+Terminalia brassii,species,terb,,,yes,,2,dickie_ellis_constants_with_se; kew_viability_constants
+Tetragonia tetragonioides,species,new zealand spinach,yes,yes,,yes,2,unl_g2090_counts; unl_g2090_germination
+Thladiantha dubia,species,,yes,,,,1,figshare_tsw_counts
+Thyme,genus,thyme,,yes,,,1,johnnys_longevity
+Thymus serpyllum,species,,yes,,,,1,figshare_tsw_counts
+Thymus vulgaris,species,,yes,,,,1,figshare_tsw_counts
+Tilia americana,species,linden,yes,,,,1,wpsm_woody_counts
+Tilia cordata,species,linden,yes,,,,1,wpsm_woody_counts
+Tilia platyphyllos,species,linden,yes,,,,1,wpsm_woody_counts
+Tilia tomentosa,species,linden,yes,,,,1,wpsm_woody_counts
+Tomatillo,genus,tomatillo,,yes,,,1,osborne_viability
+Tradescantia virginiana,species,,yes,,,,1,figshare_tsw_counts
+Tragopogon porrifolius,species,oyster plant; salsify,yes,yes,,yes,4,figshare_tsw_counts; johnnys_longevity; unl_g2090_counts; unl_g2090_germination
+Trichloris crinita,species,"trichloris, twoflower",yes,,,,1,nrcs_conservation_counts
+Trichloris pluriflora,species,"trichloris, fourflower",yes,,,,1,nrcs_conservation_counts
+Tridens albescens,species,tridens white,yes,,,,1,nrcs_conservation_counts
+Tridens elongatus,species,"tridens, rough",yes,,,,1,nrcs_conservation_counts
+Tridens flavus,species,"tridens, purpletop",yes,,,,1,nrcs_conservation_counts
+Tridens strictus,species,"tridens, longspike",yes,,,,1,nrcs_conservation_counts
+Tridens texanus,species,"tridens, texas",yes,,,,1,nrcs_conservation_counts
+Trifolium incarnatum,species,"clover crimson; clover, crimson",yes,yes,,,2,figshare_tsw_counts; johnnys_longevity
+Trifolium lappaceum,species,,yes,,,,1,figshare_tsw_counts
+Trifolium repens,species,"clover white; clover, white; dutch clover",,yes,,,1,johnnys_longevity
+Trifolium resupinatum,species,,yes,,,,1,figshare_tsw_counts
+Trifolium subterraneum,species,clover subterranean,,,yes,,1,kew_viability_constants
+Tripsacum dactyloides,species,"gamagrass, eastern",yes,,,,1,nrcs_conservation_counts
+Triticum aestivum,species,"bread wheat; common wheat; wheat; wheat, common",yes,yes,yes,,3,figshare_tsw_counts; johnnys_longevity; kew_viability_constants
+Tsuga canadensis,species,hemlock,yes,,,,1,wpsm_woody_counts
+Tsuga caroliniana,species,hemlock,yes,,,,1,wpsm_woody_counts
+Tsuga heterophylla,species,hemlock,yes,,,,1,wpsm_woody_counts
+Tsuga mertensiana,species,hemlock,yes,,,,1,wpsm_woody_counts
+Typha minima,species,,yes,,,,1,figshare_tsw_counts
+Ulmus alata,species,elm,yes,,,,1,wpsm_woody_counts
+Ulmus americana,species,elm,yes,,,,1,wpsm_woody_counts
+Ulmus carpinifolia,species,elm,,,yes,,2,dickie_ellis_constants_with_se; kew_viability_constants
+Ulmus crassifolia,species,elm,yes,,,,1,wpsm_woody_counts
+Ulmus glabra,species,elm,yes,,,,1,wpsm_woody_counts
+Ulmus japonica,species,elm,yes,,,,1,wpsm_woody_counts
+Ulmus laevis,species,elm,yes,,,,1,wpsm_woody_counts
+Ulmus parvifolia,species,elm,yes,,,,1,wpsm_woody_counts
+Ulmus pumila,species,elm,yes,,,,1,wpsm_woody_counts
+Ulmus rubra,species,elm,yes,,,,1,wpsm_woody_counts
+Ulmus serotina,species,elm,yes,,,,1,wpsm_woody_counts
+Ulmus thomasii,species,elm,yes,,,,1,wpsm_woody_counts
+Uniola latifolia,species,"uniola, broadleaf",yes,,,,1,nrcs_conservation_counts
+Vaccaria hispanica,species,,yes,,,,1,figshare_tsw_counts
+Valerian,genus,valerian,,yes,,,1,johnnys_longevity
+Vaseyochloa multinervosa,species,texasgrass,yes,,,,1,nrcs_conservation_counts
+Verbascum nigrum,species,,yes,,,,1,figshare_tsw_counts
+Verbena,genus,verbena,,yes,,,1,johnnys_longevity
+Veronica agrestis,species,,yes,,,,1,figshare_tsw_counts
+Veronica beccabunga,species,,yes,,,,1,figshare_tsw_counts
+Veronica peregrina,species,,yes,,,,1,figshare_tsw_counts
+Viburnum acerifolium,species,,yes,,,,1,wpsm_woody_counts
+Viburnum dentatum,species,,yes,,,,1,wpsm_woody_counts
+Viburnum lantana,species,,yes,,,,1,wpsm_woody_counts
+Viburnum lantanoides,species,,yes,,,,1,wpsm_woody_counts
+Viburnum lentago,species,,yes,,,,1,wpsm_woody_counts
+Viburnum nudum,species,,yes,,,,1,wpsm_woody_counts
+Viburnum opulus,species,,yes,,,,1,wpsm_woody_counts
+Viburnum prunifolium,species,,yes,,,,1,wpsm_woody_counts
+Viburnum rufidulum,species,,yes,,,,1,wpsm_woody_counts
+Vicia dumetorum,species,,yes,,,,1,figshare_tsw_counts
+Vicia ervilia,species,,yes,,,,1,figshare_tsw_counts
+Vicia faba,species,,yes,,,,1,figshare_tsw_counts
+Vicia lutea,species,,yes,,,,1,figshare_tsw_counts
+Vicia oroboides,species,,yes,,,,1,figshare_tsw_counts
+Vicia sativa,species,"vetch common; vetch, common",,yes,,,1,johnnys_longevity
+Vicia sparsiflora,species,,yes,,,,1,figshare_tsw_counts
+Vicia villosa,species,"vetch hairy; vetch, hairy",yes,yes,,,2,johnnys_longevity; nrcs_conservation_counts
+Vigna radiata,species,green gram; mung bean,,,yes,,1,kew_viability_constants
+Vigna unguiculata,species,black-eyed pea; cowpea; southern pea,,yes,yes,,3,dickie_ellis_constants_with_se; johnnys_longevity; kew_viability_constants
+Vincetoxicum hirundinaria,species,,yes,,,,1,figshare_tsw_counts
+Viola,genus,viola (pansy),,yes,,,1,johnnys_longevity
+Viola prionantha,species,,yes,,,,1,figshare_tsw_counts
+Viola tricolor,species,,yes,,,,1,figshare_tsw_counts
+Vitex agnus-castus,species,,yes,,,,1,wpsm_woody_counts
+Xanthium orientale,species,,yes,,,,1,figshare_tsw_counts
+Xanthium strumarium,species,,yes,,,,1,figshare_tsw_counts
+Yarrow,genus,yarrow,,yes,,,1,johnnys_longevity
+Zannichellia palustris,species,,yes,,,,1,figshare_tsw_counts
+Zanthoxylum americanum,species,prickly-ash,yes,,,,1,wpsm_woody_counts
+Zanthoxylum clava-herculis,species,prickly-ash,yes,,,,1,wpsm_woody_counts
+Zanthoxylum martinicense,species,prickly-ash,yes,,,,1,wpsm_woody_counts
+Zea mays,species,"corn sweet; corn, sweet; maize; sweet corn",yes,yes,yes,yes,5,figshare_tsw_counts; johnnys_longevity; kew_viability_constants; unl_g2090_counts; unl_g2090_germination
+Zinnia,genus,zinnia,,yes,,,1,johnnys_longevity
+Zinnia elegans,species,,yes,,,,1,figshare_tsw_counts
+Zuckia brandegei,species,,yes,,,,1,wpsm_woody_counts

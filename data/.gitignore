@@ -15,3 +15,8 @@
 !species_doubling_reference/README.md
 !species_doubling_reference/*.csv
 !species_doubling_reference/*.json
+!seed_storage_lab/
+!seed_storage_lab/README.md
+!seed_storage_lab/*.csv
+!seed_storage_lab/*.json
+!seed_storage_lab/*.md

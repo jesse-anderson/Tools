@@ -1,0 +1,480 @@
+genus,species,seeds_per_kg_avg,seeds_per_lb_avg,seeds_per_kg_low,seeds_per_kg_high,seeds_per_lb_low,seeds_per_lb_high,derivation,source_file
+Abies,Abies alba,22500,10200,17400,41000,7900,18600,table,wpsm_genera_a.pdf -table
+Abies,Abies amabilis,24250,11000,17200,36400,7800,16500,table,wpsm_genera_a.pdf -table
+Abies,Abies balsamea,131400,59600,66150,208400,30000,94500,table,wpsm_genera_a.pdf -table
+Abies,Abies concolor,24500,11100,18950,39100,8600,17720,table,wpsm_genera_a.pdf -table
+Abies,Abies firma,,,30000,43000,13600,19500,table,wpsm_genera_a.pdf -layout
+Abies,Abies fraseri,134050,60800,117950,173650,53500,78750,table,wpsm_genera_a.pdf -table
+Abies,Abies grandis,40600,18400,26250,63500,11900,28800,table,wpsm_genera_a.pdf -table
+Abies,Abies guatemalensis,36500,16500,30000,43000,13600,19500,table,wpsm_genera_a.pdf -table
+Abies,Abies homolepis,43650,19800,32200,49000,14600,22200,table,wpsm_genera_a.pdf -table
+Abies,Abies lasiocarpa,76750,34800,52700,108700,23900,49300,table,wpsm_genera_a.pdf -table
+Abies,Abies magnifica,14100,6400,8800,19600,4000,8900,table,wpsm_genera_a.pdf -table
+Abies,Abies mariesii,50700,23000,42100,65050,19100,29500,table,wpsm_genera_a.pdf -table
+Abies,Abies nordmanniana,15650,7100,,,,,table,wpsm_genera_a.pdf -table
+Abies,Abies procera,29800,13500,20300,42100,9200,19100,table,wpsm_genera_a.pdf -table
+Abies,Abies sachalinensis,97000,44000,,,,,table,wpsm_genera_a.pdf -table
+Abies,Abies veitchii,99200,45000,50700,173750,23000,78800,table,wpsm_genera_a.pdf -table
+Acacia,Acacia mangium,,,80000,110000,36000,50000,table,wpsm_genera_a.pdf -table
+Acacia,Acacia mearnsii,,,33000,74000,15000,34000,table,wpsm_genera_a.pdf -table
+Acacia,Acacia melanoxylon,,,44000,88000,20000,40000,table,wpsm_genera_a.pdf -table
+Acer,Acer circinatum,10210,4620,7710,12220,3490,5530,table,wpsm_genera_a.pdf -table
+Acer,Acer ginnala,37570,17000,22980,44640,10400,20200,table,wpsm_genera_a.pdf -table
+Acer,Acer glabrum,29680,13430,17280,44860,7820,20300,table,wpsm_genera_a.pdf -table
+Acer,Acer macrophyllum,7180,3250,5970,8840,2700,4000,table,wpsm_genera_a.pdf -table
+Acer,Acer negundo,29610,13400,18120,45080,8200,20400,table,wpsm_genera_a.pdf -table
+Acer,Acer pensylvanicum,24530,11100,21430,34400,9700,15600,table,wpsm_genera_a.pdf -table
+Acer,Acer platanoides,6320,2860,2810,10300,1270,4660,table,wpsm_genera_a.pdf -table
+Acer,Acer pseudoplatanus,11290,5110,6480,15910,2930,7200,table,wpsm_genera_a.pdf -table
+Acer,Acer rubrum,50520,22860,28070,84420,12700,38200,table,wpsm_genera_a.pdf -table
+Acer,Acer saccharinum,3930,1780,1990,7070,900,3200,table,wpsm_genera_a.pdf -table
+Acer,Acer saccharum,15540,7030,7070,20110,3200,9100,table,wpsm_genera_a.pdf -table
+Acer,Acer spicatum,48910,22130,33810,60330,15300,27800,table,wpsm_genera_a.pdf -table
+Alnus,Alnus rubra,1712000,776000,,,,,table,wpsm_genera_a.pdf -raw x1000
+Amelanchier,Amelanchier alnifolia,181000,82000,80000,251000,36300,113800,table,wpsm_genera_a.pdf -raw x1000
+Amelanchier,Amelanchier arborea,176000,80000,110000,178600,50000,81000,table,wpsm_genera_a.pdf -raw x1000
+Amelanchier,Amelanchier sanguinea,185000,84000,,,,,table,wpsm_genera_a.pdf -raw x1000
+Amorpha,Amorpha californica,84000,38000,,,,,table,wpsm_genera_a.pdf -table x1000
+Amorpha,Amorpha canescens,624000,284000,598000,651000,272000,296000,table,wpsm_genera_a.pdf -table x1000
+Amorpha,Amorpha fruticosa,170000,77000,158000,180000,72000,82000,table,wpsm_genera_a.pdf -table x1000
+Amorpha,Amorpha nana,133000,60000,,,,,table,wpsm_genera_a.pdf -table x1000
+Aralia,Aralia hispida,203320,92000,207740,218790,94000,99000,table,wpsm_genera_a.pdf -table
+Aralia,Aralia nudicaulis,218300,99000,185640,245310,84000,111000,table,wpsm_genera_a.pdf -table
+Aralia,Aralia spinosa,288850,131000,232050,346970,105000,157000,table,wpsm_genera_a.pdf -table
+Araucaria,Araucaria columnaris,2200,1000,1980,2640,900,1200,table,wpsm_genera_a.pdf -table
+Araucaria,Araucaria cunninghamii,4400,2000,3300,6600,1500,3000,table,wpsm_genera_a.pdf -table
+Araucaria,Araucaria heterophylla,573,260,550,620,250,280,table,wpsm_genera_a.pdf -table
+Arctostaphylos,Arctostaphylos glandulosa,,,66150,97020,30000,44000,table,wpsm_genera_a.pdf -table
+Arctostaphylos,Arctostaphylos glauca,,,990,1760,450,800,table,wpsm_genera_a.pdf -table
+Arctostaphylos,Arctostaphylos patula,,,990,1760,450,800,table,wpsm_genera_a.pdf -layout
+Arctostaphylos,Arctostaphylos uva-ursi,,,59535,90405,27000,41000,table,wpsm_genera_a.pdf -table
+Atriplex,Atriplex canescens,68000,31000,,,,,table,wpsm_genera_a.pdf -layout x1000
+Atriplex,Atriplex confertifolia,142000,65000,65000,277000,30000,126000,table,wpsm_genera_a.pdf -table x1000
+Atriplex,Atriplex corrugata,174000,79000,,,,,table,wpsm_genera_a.pdf -table x1000
+Atriplex,Atriplex cuneata,180000,82000,,,,,table,wpsm_genera_a.pdf -table x1000
+Atriplex,Atriplex falcata,434000,197000,,,,,table,wpsm_genera_a.pdf -table x1000
+Atriplex,Atriplex gardneri,233000,106000,210000,262000,95000,119000,table,wpsm_genera_a.pdf -table x1000
+Atriplex,Atriplex hymenelytra,477000,217000,,,,,table,wpsm_genera_a.pdf -table x1000
+Atriplex,Atriplex lentiformis,1957000,890000,900000,2000000,409000,909000,table,wpsm_genera_a.pdf -table x1000
+Atriplex,Atriplex obovata,457000,208000,,,,,table,wpsm_genera_a.pdf -table x1000
+Atriplex,Atriplex polycarpa,1078000,490000,785000,1370000,357000,623000,table,wpsm_genera_a.pdf -table x1000
+Atriplex,Atriplex semibaccata,,,165000,317000,75000,144000,table,wpsm_genera_a.pdf -table x1000
+Atriplex,Atriplex tridentata,280000,128000,120000,370000,55000,168000,table,wpsm_genera_a.pdf -table x1000
+Bauhinia,Bauhinia monandra,5680,2576,,,,,table,wpsm_genera_b.pdf -table
+Bauhinia,Bauhinia purpurea,4670,2118,,,,,table,wpsm_genera_b.pdf -table
+Bauhinia,Bauhinia variegata,4950,2245,,,,,table,wpsm_genera_b.pdf -table
+Berberis,Berberis koreana,84000,38000,,,,,table,wpsm_genera_b.pdf -table x1000
+Berberis,Berberis thunbergii,64000,29000,55000,82000,25000,37000,table,wpsm_genera_b.pdf -table x1000
+Berberis,Berberis vulgaris,84000,38000,75000,90000,34000,41000,table,wpsm_genera_b.pdf -table x1000
+Betula,Betula alleghaniensis,990,450,612,1995,278,907,table,wpsm_genera_b.pdf -table
+Betula,Betula davurica,1595,725,1518,1672,690,760,table,wpsm_genera_b.pdf -table
+Betula,Betula lenta,1421,646,975,2053,443,933,table,wpsm_genera_b.pdf -table
+Betula,Betula nana,8446,3839,6547,11253,2976,5115,table,wpsm_genera_b.pdf -table
+Betula,Betula nigra,825,375,631,1206,287,548,table,wpsm_genera_b.pdf -table
+Betula,Betula papyrifera,3036,1380,1342,9064,610,4120,table,wpsm_genera_b.pdf -table
+Betula,Betula pendula,8446,3839,6547,11253,2976,5115,table,wpsm_genera_b.pdf -layout
+Betula,Betula populifolia,9363,4256,7878,10846,3581,4930,table,wpsm_genera_b.pdf -table
+Betula,Betula pubescens,3784,1720,1650,9900,750,4500,table,wpsm_genera_b.pdf -table
+Betula,Betula pumila,5328,2422,3072,7634,1396,3470,table,wpsm_genera_b.pdf -table
+Carpinus,Carpinus betulus,28660,13000,,,,,table,wpsm_genera_c.pdf -table
+Carpinus,Carpinus caroliniana,66138,30000,,,,,table,wpsm_genera_c.pdf -table
+Carya,Carya aquatica,360,164,,,,,table,wpsm_genera_c.pdf -table
+Carya,Carya cordiformis,344,156,275,408,125,185,table,wpsm_genera_c.pdf -table
+Carya,Carya glabra,441,200,386,496,175,225,table,wpsm_genera_c.pdf -table
+Carya,Carya illinoensis,220,100,,,,,table,wpsm_genera_c.pdf -table
+Carya,Carya laciniosa,357,162,,,,,table,wpsm_genera_c.pdf -layout
+Carya,Carya myristiciformis,273,124,207,375,94,170,table,wpsm_genera_c.pdf -table
+Carya,Carya ovata,220,100,,,,,table,wpsm_genera_c.pdf -table
+Castanea,Castanea dentata,,,220,360,100,162,table,wpsm_genera_c.pdf -table
+Castanea,Castanea pumilla,300,136,,,,,table,wpsm_genera_c.pdf -table
+Castanea,Castanea sativa,300,136,,,,,table,wpsm_genera_c.pdf -layout
+Catalpa,Catalpa bignonioides,36400,16500,,,,,table,wpsm_genera_c.pdf -table
+Catalpa,Catalpa longissima,600000,272160,572000,618000,259460,280325,table,wpsm_genera_c.pdf -table
+Catalpa,Catalpa speciosa,,,29450,48300,13359,21910,table,wpsm_genera_c.pdf -table
+Ceanothus,Ceanothus americanus,247,112,212,291,96,132,table,wpsm_genera_c.pdf -table
+Ceanothus,Ceanothus cordulatus,366,166,311,396,141,179,table,wpsm_genera_c.pdf -table
+Ceanothus,Ceanothus impressus,245,111,,,,,table,wpsm_genera_c.pdf -table
+Ceanothus,Ceanothus sanguineus,287,130,282,291,128,132,table,wpsm_genera_c.pdf -table
+Ceanothus,Ceanothus sorediatus,,,267,269,121,122,table,wpsm_genera_c.pdf -table
+Ceanothus,Ceanothus velutinus,207,94,,,,,table,wpsm_genera_c.pdf -table
+Cedrus,Cedrus atlantica,13900,6300,,,,,table,wpsm_genera_c.pdf -table
+Cedrus,Cedrus brevifolia,13000,5890,,,,,table,wpsm_genera_c.pdf -table
+Cedrus,Cedrus deodara,8150,3700,,,,,table,wpsm_genera_c.pdf -table
+Cedrus,Cedrus libani,11700,5300,,,,,table,wpsm_genera_c.pdf -table
+Celtis,Celtis laevigata,13200,6000,8150,15600,3700,7080,table,wpsm_genera_c.pdf -table
+Celtis,Celtis occidentalis,9500,4300,7700,11900,3500,5400,table,wpsm_genera_c.pdf -table
+Cercis,Cercis canadensis,39570,17950,30870,55100,14000,25000,table,wpsm_genera_c.pdf -table
+Cercis,Cercis orbiculata,27460,12455,20950,40100,9500,18169,table,wpsm_genera_c.pdf -table
+Chamaecyparis,Chamaecyparis lawsoniana,463000,210000,176400,1323000,80000,600000,table,wpsm_genera_c.pdf -table
+Chamaecyparis,Chamaecyparis nootkatensis,238140,108000,145500,396900,66000,180000,table,wpsm_genera_c.pdf -table
+Chamaecyparis,Chamaecyparis thyoides,1014300,460000,926100,1102500,420000,500000,table,wpsm_genera_c.pdf -table
+Chrysothamnus,Chrysothamnus teretifolius,1300,600,,,,,table,wpsm_genera_c.pdf -table x1000
+Clematis,Clematis columbiana,141440,64000,,,,,table,wpsm_genera_c.pdf -table
+Clematis,Clematis flammula,55250,25000,,,,,table,wpsm_genera_c.pdf -table
+Clematis,Clematis ligusticifolia,205530,93000,,,,,table,wpsm_genera_c.pdf -table
+Clematis,Clematis pauciflora,187850,85000,,,,,table,wpsm_genera_c.pdf -table
+Clematis,Clematis virginiana,424320,192000,402220,446420,182000,202000,table,wpsm_genera_c.pdf -table
+Clematis,Clematis vitalba,707200,320000,,,,,table,wpsm_genera_c.pdf -table
+Clematis,Clematis viticella,59670,27000,,,,,table,wpsm_genera_c.pdf -table
+Cornus,Cornus alba,33000,15000,27900,40900,12700,18600,table,wpsm_genera_c.pdf -table
+Cornus,Cornus alternifolia,17600,8000,13000,20500,5900,9300,table,wpsm_genera_c.pdf -table
+Cornus,Cornus amomum,26800,12200,22400,30800,10200,14000,table,wpsm_genera_c.pdf -table
+Cornus,Cornus canadensis,147400,67000,129800,169400,59000,77000,table,wpsm_genera_c.pdf -table
+Cornus,Cornus drummondii,34500,15700,18900,46200,8600,21000,table,wpsm_genera_c.pdf -table
+Cornus,Cornus florida,9900,4500,7300,13600,3300,6200,table,wpsm_genera_c.pdf -table
+Cornus,Cornus kousa,21300,9700,14300,18300,6500,8300,table,wpsm_genera_c.pdf -table
+Cornus,Cornus mas,5000,2300,3500,7500,1600,3400,table,wpsm_genera_c.pdf -table
+Cornus,Cornus nuttallii,10300,4700,8800,13400,4000,6100,table,wpsm_genera_c.pdf -table
+Cornus,Cornus racemosa,28600,13000,22400,33700,10200,15300,table,wpsm_genera_c.pdf -table
+Cornus,Cornus rugosa,41800,19000,,,,,table,wpsm_genera_c.pdf -table
+Cornus,Cornus sanguinea,20200,9200,16100,26000,7300,11800,table,wpsm_genera_c.pdf -table
+Cornus,Cornus sericea,40700,18500,30400,58700,13800,26700,table,wpsm_genera_c.pdf -table
+Corylus,Corylus americana,1083,491,434,1623,197,736,table,wpsm_genera_c.pdf -table
+Corylus,Corylus avellana,803,364,353,1180,160,535,table,wpsm_genera_c.pdf -table
+Corylus,Corylus cornuta,549,249,937,1490,425,676,table,wpsm_genera_c.pdf -table
+Cotoneaster,Cotoneaster acutifolus,59300,26900,48466,58212,21984,26405,table,wpsm_genera_c.pdf -table
+Cotoneaster,Cotoneaster horizontalis,141094,64000,,,,,table,wpsm_genera_c.pdf -table
+Cotoneaster,Cotoneaster integerrimus,35274,16000,,,,,table,wpsm_genera_c.pdf -table
+Cotoneaster,Cotoneaster lucidus,51560,23390,,,,,table,wpsm_genera_c.pdf -table
+Cupressus,Cupressus arizonica,182600,83000,387600,103200,176200,46900,table,wpsm_genera_c.pdf -table x1000
+Cupressus,Cupressus bakeri,359900,163600,387200,316800,176000,144000,table,wpsm_genera_c.pdf -table x1000
+Cupressus,Cupressus forbesii,98600,44800,112600,84500,51200,38400,table,wpsm_genera_c.pdf -table x1000
+Cupressus,Cupressus goveniana,283400,128800,313300,253400,142400,115200,table,wpsm_genera_c.pdf -table x1000
+Cupressus,Cupressus guadalupensis,55000,25000,,,,,table,wpsm_genera_c.pdf -table x1000
+Cupressus,Cupressus lusitanica,261800,119000,,,,,table,wpsm_genera_c.pdf -table x1000
+Cupressus,Cupressus macnabiana,174200,79200,200600,147800,91200,67200,table,wpsm_genera_c.pdf -table x1000
+Cupressus,Cupressus macrocarpa,167400,76100,356400,100100,162000,45500,table,wpsm_genera_c.pdf -table x1000
+Cupressus,Cupressus sargentii,123200,56000,147800,98600,67200,44800,table,wpsm_genera_c.pdf -table x1000
+Cupressus,Cupressus sempervirens,137900,62700,149600,118800,68000,54000,table,wpsm_genera_c.pdf -table x1000
+Cupressus,Cupressus torulosa,219000,99000,238000,200000,108000,91000,table,wpsm_genera_c.pdf -table x1000
+Diospyros,Diospyros kaki,,,3015,3790,1370,1720,table,wpsm_genera_d.pdf -table
+Diospyros,Diospyros lotus,8910,4040,,,,,table,wpsm_genera_d.pdf -table
+Diospyros,Diospyros virginiana,2640,1200,1460,3880,665,1765,table,wpsm_genera_d.pdf -table
+Elaeagnus,Elaeagnus angustifolia,11380,5160,7650,15400,3470,6990,table,wpsm_genera_e.pdf -table
+Elaeagnus,Elaeagnus commutata,8380,3800,5950,10140,2700,4600,table,wpsm_genera_e.pdf -table
+Elaeagnus,Elaeagnus umbellata,62180,28200,46525,84670,21100,38400,table,wpsm_genera_e.pdf -table
+Euonymus,Euonymus alata,55250,25000,41110,69620,18600,31500,table,wpsm_genera_e.pdf -table
+Euonymus,Euonymus americana,77571,35100,,,,,table,wpsm_genera_e.pdf -table
+Euonymus,Euonymus bungeana,29835,13500,,,,,table,wpsm_genera_e.pdf -table
+Euonymus,Euonymus europaea,29393,13300,18785,35360,8500,16000,table,wpsm_genera_e.pdf -table
+Euonymus,Euonymus obovata,,,18785,35360,8500,16000,table,wpsm_genera_e.pdf -layout
+Euonymus,Euonymus verrucosa,45084,20400,35950,58870,16300,26700,table,wpsm_genera_e.pdf -table
+Fagus,Fagus grandifolia,3500,1600,2850,5110,1290,2320,table,wpsm_genera_f.pdf -table
+Fagus,Fagus sylvatica,4630,2100,,,,,table,wpsm_genera_f.pdf -layout
+Fraxinus,Fraxinus americana,28930,13120,12220,40100,5540,18185,table,wpsm_genera_f.pdf -raw
+Fraxinus,Fraxinus dipetala,,,11025,19400,5000,8800,table,wpsm_genera_f.pdf -raw
+Fraxinus,Fraxinus excelsior,,,10470,15430,4750,7000,table,wpsm_genera_f.pdf -raw
+Fraxinus,Fraxinus latifolia,,,22000,31000,10000,14060,table,wpsm_genera_f.pdf -raw
+Fraxinus,Fraxinus nigra,17860,8100,13450,20950,6100,9500,table,wpsm_genera_f.pdf -raw
+Fraxinus,Fraxinus profunda,7050,3200,,,,,table,wpsm_genera_f.pdf -raw
+Fraxinus,Fraxinus quadrangulata,,,13000,15430,5900,7000,table,wpsm_genera_f.pdf -raw
+Fraxinus,Fraxinus uhdei,36380,16500,34200,38600,15500,17500,table,wpsm_genera_f.pdf -raw
+Fraxinus,Fraxinus velutina,45420,20600,28850,61740,13000,28000,table,wpsm_genera_f.pdf -raw
+Fremontodendron,Fremontodendron californicum,,,30870,55125,14000,25000,table,wpsm_genera_f.pdf -table
+Fremontodendron,Fremontodendron decumbens,26460,12000,,,,,table,wpsm_genera_f.pdf -table
+Fremontodendron,Fremontodendron mexicanum,,,44100,66150,20000,30000,table,wpsm_genera_f.pdf -table
+Ilex,Ilex aquifolium,125700,57000,,,,,table,wpsm_genera_i.pdf -table
+Ilex,Ilex glabra,63900,29000,,,,,table,wpsm_genera_i.pdf -table
+Ilex,Ilex montana,77200,35000,,,,,table,wpsm_genera_i.pdf -table
+Ilex,Ilex opaca,62700,28430,48500,80150,22000,36350,table,wpsm_genera_i.pdf -table
+Ilex,Ilex verticillata,202860,92000,88200,284450,40000,129000,table,wpsm_genera_i.pdf -table
+Ilex,Ilex vomitoria,83350,37800,,,,,table,wpsm_genera_i.pdf -table
+Juglans,Juglans microcarpa,203,92,,,,,table,wpsm_genera_j.pdf -table
+Juniperus,Juniperus ashei,22270,10100,,,,,table,wpsm_genera_j.pdf -table
+Juniperus,Juniperus communis,80480,36500,56120,120170,25450,54500,table,wpsm_genera_j.pdf -table
+Juniperus,Juniperus deppeana,28270,12820,19840,34400,9000,15600,table,wpsm_genera_j.pdf -table
+Juniperus,Juniperus monosperma,40350,18300,33650,44100,15260,20000,table,wpsm_genera_j.pdf -table
+Juniperus,Juniperus occidentalis,27120,12300,17640,34970,8000,15860,table,wpsm_genera_j.pdf -table
+Juniperus,Juniperus osteosperma,10910,4950,7940,15660,3600,7100,table,wpsm_genera_j.pdf -table
+Juniperus,Juniperus pinchotii,24230,10990,21280,30650,9650,13900,table,wpsm_genera_j.pdf -table
+Juniperus,Juniperus scopulorum,59760,27100,39360,92830,17850,42100,table,wpsm_genera_j.pdf -table
+Juniperus,Juniperus virginiana,96140,43600,81580,121270,37000,55000,table,wpsm_genera_j.pdf -table
+Larix,Larix decidua,154000,70000,,,,,table,wpsm_genera_l.pdf -table x1000
+Larix,Larix gmelinii,265000,120000,176000,465000,80000,211000,table,wpsm_genera_l.pdf -table x1000
+Larix,Larix kaempferi,249000,113000,170000,302000,77000,137000,table,wpsm_genera_l.pdf -table x1000
+Larix,Larix laricina,701000,318000,463000,926000,210000,420000,table,wpsm_genera_l.pdf -table x1000
+Larix,Larix lyallii,313000,142000,231000,359000,105000,163000,table,wpsm_genera_l.pdf -table x1000
+Larix,Larix occidentalis,302000,137000,216000,434000,98000,197000,table,wpsm_genera_l.pdf -table x1000
+Larix,Larix sibirica,97000,44000,,,,,table,wpsm_genera_l.pdf -table x1000
+Lonicera,Lonicera involucrata,720000,326500,500000,1050000,227000,477000,table,wpsm_genera_l.pdf -table
+Lonicera,Lonicera maackii,330000,148000,260000,430000,116000,194000,table,wpsm_genera_l.pdf -table
+Lonicera,Lonicera morrowii,335000,152000,,,,,table,wpsm_genera_l.pdf -table
+Lonicera,Lonicera oblongifolia,520000,236000,520000,530000,234000,239000,table,wpsm_genera_l.pdf -table
+Lonicera,Lonicera tatarica,310000,142000,260000,440000,116000,198000,table,wpsm_genera_l.pdf -table
+Lycium,Lycium barbarum,573000,260000,555600,586400,252000,266000,table,wpsm_genera_l.pdf -table
+Lycium,Lycium chinense,377000,171000,,,,,table,wpsm_genera_l.pdf -table
+Lycium,Lycium richii,3022600,1371000,,,,,table,wpsm_genera_l.pdf -table
+Magnolia,Magnolia acuminata,12020,5450,6400,14500,2900,6600,table,wpsm_genera_m.pdf -table
+Magnolia,Magnolia fraseri,10030,4550,5470,12460,2480,5650,table,wpsm_genera_m.pdf -table
+Magnolia,Magnolia grandiflora,14220,6450,12800,15000,5800,6800,table,wpsm_genera_m.pdf -table
+Magnolia,Magnolia macrophylla,9550,4330,,,,,table,wpsm_genera_m.pdf -table
+Magnolia,Magnolia portoricensis,7410,3360,,,,,table,wpsm_genera_m.pdf -table
+Magnolia,Magnolia tripetala,16540,7500,,,,,table,wpsm_genera_m.pdf -table
+Magnolia,Magnolia virginiana,16600,7530,,,,,table,wpsm_genera_m.pdf -table
+Mahonia,Mahonia aquifolium,73000,33000,,,,,table,wpsm_genera_m.pdf -table x1000
+Mahonia,Mahonia fremontii,93000,42000,,,,,table,wpsm_genera_m.pdf -table x1000
+Mahonia,Mahonia haematocarpa,227000,103000,,,,,table,wpsm_genera_m.pdf -table x1000
+Mahonia,Mahonia nervosa,51000,23000,,,,,table,wpsm_genera_m.pdf -table x1000
+Mahonia,Mahonia nevinii,126000,57000,,,,,table,wpsm_genera_m.pdf -table x1000
+Mahonia,Mahonia repens,136000,62000,119000,157000,54000,71000,table,wpsm_genera_m.pdf -table x1000
+Morella,Morella cerifera,185000,84000,,,,,table,wpsm_genera_m.pdf -table
+Morus,Morus alba,517000,235000,286000,770000,130000,350000,table,wpsm_genera_m.pdf -table x1000
+Morus,Morus rubra,792000,360000,440000,1100000,200000,500000,table,wpsm_genera_m.pdf -table x1000
+Nyssa,Nyssa aquatica,1000,456,,,,,table,wpsm_genera_n.pdf -table
+Nyssa,Nyssa biflora,5320,2415,,,,,table,wpsm_genera_n.pdf -table
+Nyssa,Nyssa ogeche,2700,1230,2300,3100,1040,1420,table,wpsm_genera_n.pdf -table
+Nyssa,Nyssa sylvatica,7280,3300,4100,8820,1850,4000,table,wpsm_genera_n.pdf -table
+Picea,Picea abies,,,105600,462300,47000,209700,table,wpsm_genera_p.pdf -raw
+Picea,Picea asperata,,,154300,165400,70000,75000,table,wpsm_genera_p.pdf -raw
+Picea,Picea breweriana,,,112500,163200,51000,74000,table,wpsm_genera_p.pdf -raw
+Picea,Picea engelmannii,,,152200,710000,69000,322000,table,wpsm_genera_p.pdf -raw
+Picea,Picea glauca,,,298000,884200,135000,401000,table,wpsm_genera_p.pdf -raw
+Picea,Picea jezoensis,,,395100,508500,179200,230600,table,wpsm_genera_p.pdf -raw
+Picea,Picea koraiensis,,,209500,242500,95000,110000,table,wpsm_genera_p.pdf -raw
+Picea,Picea mariana,,,739000,1464100,335000,664000,table,wpsm_genera_p.pdf -raw
+Picea,Picea omorika,,,277000,377500,125600,171200,table,wpsm_genera_p.pdf -raw
+Picea,Picea pungens,,,176400,359000,80000,163000,table,wpsm_genera_p.pdf -raw
+Picea,Picea rubens,,,220500,637000,100000,289000,table,wpsm_genera_p.pdf -raw
+Picea,Picea sitchensis,,,342000,882000,155000,400000,table,wpsm_genera_p.pdf -raw
+Picea,Picea smithiana,,,53000,88200,24000,40000,table,wpsm_genera_p.pdf -raw
+Pinus,Pinus albicaulis,5700,2600,4800,6600,2200,3000,table,wpsm_genera_p.pdf -table x1000
+Pinus,Pinus aristata,40000,18000,,,,,table,wpsm_genera_p.pdf -table x1000
+Pinus,Pinus arizonica,40000,18000,,,,,table,wpsm_genera_p.pdf -layout x1000
+Pinus,Pinus armandii,3500,1600,,,,,table,wpsm_genera_p.pdf -table x1000
+Pinus,Pinus balfouriana,37000,17000,31000,49000,14000,22000,table,wpsm_genera_p.pdf -table x1000
+Pinus,Pinus banksiana,289000,131000,156000,551000,71000,250000,table,wpsm_genera_p.pdf -table x1000
+Pinus,Pinus brutia,20100,9100,17000,26000,7600,11600,table,wpsm_genera_p.pdf -table x1000
+Pinus,Pinus canariensis,9300,4200,8800,9900,4000,4500,table,wpsm_genera_p.pdf -table x1000
+Pinus,Pinus caribaea,68300,31000,52000,81000,24000,37000,table,wpsm_genera_p.pdf -table x1000
+Pinus,Pinus cembra,4400,2000,3500,5100,1600,2300,table,wpsm_genera_p.pdf -table x1000
+Pinus,Pinus cembroides,289000,131000,8800,9900,4000,4500,table,wpsm_genera_p.pdf -layout x1000
+Pinus,Pinus clausa,165000,75000,143000,187000,65000,85000,table,wpsm_genera_p.pdf -table x1000
+Pinus,Pinus contorta,20100,9100,,,,,table,wpsm_genera_p.pdf -layout x1000
+Pinus,Pinus coulteri,3100,1400,2600,3500,1200,1600,table,wpsm_genera_p.pdf -table x1000
+Pinus,Pinus densiflora,115000,52000,79000,141000,36000,64000,table,wpsm_genera_p.pdf -table x1000
+Pinus,Pinus echinata,102000,46000,71000,161000,32000,73000,table,wpsm_genera_p.pdf -table x1000
+Pinus,Pinus edulis,4200,1900,3300,5500,1500,2500,table,wpsm_genera_p.pdf -table x1000
+Pinus,Pinus elliottii,165000,75000,,,,,table,wpsm_genera_p.pdf -layout x1000
+Pinus,Pinus engelmanni,207000,94000,174000,251000,79000,114000,table,wpsm_genera_p.pdf -layout x1000
+Pinus,Pinus flexilis,,,7100,15000,3200,6800,table,wpsm_genera_p.pdf -table x1000
+Pinus,Pinus gerardiana,,,2400,2900,1100,1300,table,wpsm_genera_p.pdf -table x1000
+Pinus,Pinus glabra,,,88000,115000,40000,52000,table,wpsm_genera_p.pdf -table x1000
+Pinus,Pinus halepensis,3100,1400,79000,141000,36000,64000,table,wpsm_genera_p.pdf -layout x1000
+Pinus,Pinus heldreichii,,,35000,71000,16000,32000,table,wpsm_genera_p.pdf -table x1000
+Pinus,Pinus jeffreyi,8200,3700,5800,11700,2600,5300,table,wpsm_genera_p.pdf -table x1000
+Pinus,Pinus keisya,59500,27000,44000,76000,20000,34000,table,wpsm_genera_p.pdf -table x1000
+Pinus,Pinus koraiensis,102000,46000,,,,,table,wpsm_genera_p.pdf -layout x1000
+Pinus,Pinus lambertiana,4600,2100,3300,6000,1500,2700,table,wpsm_genera_p.pdf -table x1000
+Pinus,Pinus leiophylla,4200,1900,,,,,table,wpsm_genera_p.pdf -layout x1000
+Pinus,Pinus merkussi,,,31000,37000,14000,17000,table,wpsm_genera_p.pdf -layout x1000
+Pinus,Pinus monophylla,2400,1100,,,,,table,wpsm_genera_p.pdf -table x1000
+Pinus,Pinus monticola,59000,27000,31000,71000,14000,32000,table,wpsm_genera_p.pdf -raw x1000
+Pinus,Pinus mugo,152000,69000,126000,201000,57000,91000,table,wpsm_genera_p.pdf -raw x1000
+Pinus,Pinus muricata,22000,10000,7100,15000,3200,6800,table,wpsm_genera_p.pdf -layout x1000
+Pinus,Pinus nigra,57000,26000,31000,86000,14000,39000,table,wpsm_genera_p.pdf -raw x1000
+Pinus,Pinus palustris,10800,4900,6600,15400,3000,7000,table,wpsm_genera_p.pdf -raw x1000
+Pinus,Pinus parviflora,8600,3900,6800,10100,3100,4600,table,wpsm_genera_p.pdf -raw x1000
+Pinus,Pinus peuce,24000,11000,22000,31000,10000,14000,table,wpsm_genera_p.pdf -raw x1000
+Pinus,Pinus pinaster,22000,10000,,,,,table,wpsm_genera_p.pdf -raw x1000
+Pinus,Pinus pinea,1300,600,,,,,table,wpsm_genera_p.pdf -raw x1000
+Pinus,Pinus pumila,24000,11000,,,,,table,wpsm_genera_p.pdf -table x1000
+Pinus,Pinus pungens,75000,34000,68000,84000,31000,38000,table,wpsm_genera_p.pdf -table x1000
+Pinus,Pinus radiata,29000,13000,,,,,table,wpsm_genera_p.pdf -table x1000
+Pinus,Pinus resinosa,115000,52000,66000,166000,30000,76000,table,wpsm_genera_p.pdf -table x1000
+Pinus,Pinus sabiniana,1300,600,,,,,table,wpsm_genera_p.pdf -table x1000
+Pinus,Pinus serotina,119000,54000,104000,139000,47000,63000,table,wpsm_genera_p.pdf -table x1000
+Pinus,Pinus sibirica,4000,1800,3500,4600,1600,2100,table,wpsm_genera_p.pdf -table x1000
+Pinus,Pinus strobiformis,6000,2700,5500,6400,2500,2900,table,wpsm_genera_p.pdf -table x1000
+Pinus,Pinus strobus,58000,26000,39000,117000,17500,53000,table,wpsm_genera_p.pdf -table x1000
+Pinus,Pinus sylvestris,165000,75000,74000,245000,33800,111000,table,wpsm_genera_p.pdf -table x1000
+Pinus,Pinus taeda,40000,18000,,,,,table,wpsm_genera_p.pdf -table x1000
+Pinus,Pinus thunbergiana,75000,34000,57000,110000,26000,50000,table,wpsm_genera_p.pdf -table x1000
+Pinus,Pinus virginiana,122000,55000,101000,201000,46000,91000,table,wpsm_genera_p.pdf -table x1000
+Pinus,Pinus wallichiana,20000,9000,,,,,table,wpsm_genera_p.pdf -table x1000
+Platanus,Platanus occidentalis,426160,193270,294370,589620,133500,267400,table,wpsm_genera_p.pdf -table
+Platanus,Platanus orientalis,282240,128000,178600,357200,81000,162000,table,wpsm_genera_p.pdf -table
+Prosopis,Prosopis juliflora,38300,17400,,,,,prose,wpsm_genera_p.pdf prose
+Prunus,Prunus americana,870,395,550,1500,250,680,table,wpsm_genera_p.pdf -table
+Prunus,Prunus angustifolia,1030,467,770,1530,350,694,table,wpsm_genera_p.pdf -table
+Prunus,Prunus cerasifera,994,451,782,1330,355,603,table,wpsm_genera_p.pdf -table
+Prunus,Prunus cerasus,2910,1320,1510,4000,685,1815,table,wpsm_genera_p.pdf -table
+Prunus,Prunus domestica,597,271,416,907,189,411,table,wpsm_genera_p.pdf -table
+Prunus,Prunus emarginata,7020,3184,4120,8790,1869,3987,table,wpsm_genera_p.pdf -table
+Prunus,Prunus ilicifolia,220,100,,,,,table,wpsm_genera_p.pdf -table
+Prunus,Prunus mahaleb,5200,2359,4800,5600,2177,2540,table,wpsm_genera_p.pdf -table
+Prunus,Prunus munsoniana,1690,767,900,2240,408,1016,table,wpsm_genera_p.pdf -table
+Prunus,Prunus padus,8910,4042,6600,12300,2994,5580,table,wpsm_genera_p.pdf -table
+Prunus,Prunus pensylvanica,14200,6442,8000,21800,3629,9889,table,wpsm_genera_p.pdf -table
+Prunus,Prunus spinosa,2240,1016,1970,2670,894,1211,table,wpsm_genera_p.pdf -table
+Prunus,Prunus subcordata,556,252,450,631,204,286,table,wpsm_genera_p.pdf -table
+Prunus,Prunus tomentosa,4740,2150,1730,6400,785,2903,table,wpsm_genera_p.pdf -table
+Prunus,Prunus virginiana,4790,2173,,,,,table,wpsm_genera_p.pdf -table
+Pseudotsuga,Pseudotsuga macrocarpa,7145,3241,6137,8115,2800,3681,table,wpsm_genera_p.pdf -layout
+Pseudotsuga,Pseudotsuga menziesii,83555,37900,,,,,table,wpsm_genera_p.pdf -layout
+Psorothamnus,Psorothamnus emoryi,600,275,,,,,table,wpsm_genera_p.pdf -table
+Psorothamnus,Psorothamnus polydenius,460,210,,,,,table,wpsm_genera_p.pdf -table
+Psorothamnus,Psorothamnus spinosus,460,210,,,,,table,wpsm_genera_p.pdf -layout
+Purshia,Purshia glandulosa,,,45000,90000,20300,40900,table,wpsm_genera_c.pdf -table
+Purshia,Purshia mexicana,129000,58600,108000,210000,49000,95000,table,wpsm_genera_c.pdf -table
+Purshia,Purshia tridentata,35000,15750,29000,51000,13400,23200,table,wpsm_genera_c.pdf -table
+Pyrus,Pyrus amygdaliforms,24000,11000,,,,,table,wpsm_genera_p.pdf -table
+Pyrus,Pyrus betulifolia,90000,41000,,,,,table,wpsm_genera_p.pdf -table
+Pyrus,Pyrus calleryana,55000,25000,,,,,table,wpsm_genera_p.pdf -table
+Pyrus,Pyrus communis,40000,18000,,,,,table,wpsm_genera_p.pdf -table
+Pyrus,Pyrus cordata,86000,39000,,,,,table,wpsm_genera_p.pdf -table
+Pyrus,Pyrus dimorphophylla,77000,35000,,,,,table,wpsm_genera_p.pdf -table
+Pyrus,Pyrus elaeagrifolia,22000,10000,,,,,table,wpsm_genera_p.pdf -table
+Pyrus,Pyrus fauriei,57000,26000,,,,,table,wpsm_genera_p.pdf -table
+Pyrus,Pyrus gharbiana,99000,45000,,,,,table,wpsm_genera_p.pdf -table
+Pyrus,Pyrus koehnii,79000,36000,,,,,table,wpsm_genera_p.pdf -table
+Pyrus,Pyrus mamorensis,11000,5000,,,,,table,wpsm_genera_p.pdf -table
+Pyrus,Pyrus nivalis,77000,35000,,,,,table,wpsm_genera_p.pdf -layout
+Pyrus,Pyrus pashia,55000,25000,,,,,table,wpsm_genera_p.pdf -table
+Pyrus,Pyrus pyrifolia,26000,12000,,,,,table,wpsm_genera_p.pdf -table
+Pyrus,Pyrus salicifolia,24000,11000,,,,,table,wpsm_genera_p.pdf -table
+Pyrus,Pyrus ussuriensis,20000,9000,,,,,table,wpsm_genera_p.pdf -table
+Quercus,Quercus acutissima,,,210,245,95,110,table,wpsm_genera_q.pdf -table
+Quercus,Quercus bicolor,265,120,,,,,table,wpsm_genera_q.pdf -table
+Quercus,Quercus cerris,240,110,,,,,table,wpsm_genera_q.pdf -table
+Quercus,Quercus coccinea,520,235,230,890,105,405,table,wpsm_genera_q.pdf -table
+Quercus,Quercus douglasii,220,100,,,,,table,wpsm_genera_q.pdf -table
+Quercus,Quercus dumosa,220,100,,,,,table,wpsm_genera_q.pdf -table
+Quercus,Quercus ellipsoidalis,540,245,450,640,205,290,table,wpsm_genera_q.pdf -table
+Quercus,Quercus falcata,1190,540,705,1730,320,785,table,wpsm_genera_q.pdf -table
+Quercus,Quercus ilicifolia,1545,700,,,,,table,wpsm_genera_q.pdf -table
+Quercus,Quercus imbricaria,915,415,695,1750,315,795,table,wpsm_genera_q.pdf -table
+Quercus,Quercus incana,,,500,1500,225,680,table,wpsm_genera_q.pdf -table
+Quercus,Quercus kelloggii,210,95,,,,,table,wpsm_genera_q.pdf -table
+Quercus,Quercus laevis,870,395,,,,,table,wpsm_genera_q.pdf -table
+Quercus,Quercus laurifolia,1235,560,,,,,table,wpsm_genera_q.pdf -table
+Quercus,Quercus lobata,285,130,,,,,table,wpsm_genera_q.pdf -table
+Quercus,Quercus lyrata,265,120,285,340,130,154,table,wpsm_genera_q.pdf -table
+Quercus,Quercus muehlenbergii,870,395,580,1145,265,520,table,wpsm_genera_q.pdf -table
+Quercus,Quercus nigra,640,290,510,1545,230,700,table,wpsm_genera_q.pdf -table
+Quercus,Quercus pagoda,690,312,925,1640,420,745,table,wpsm_genera_q.pdf -table
+Quercus,Quercus palustris,,,705,1190,320,540,table,wpsm_genera_q.pdf -table
+Quercus,Quercus petraea,375,170,,,,,table,wpsm_genera_q.pdf -table
+Quercus,Quercus phellos,835,380,600,1530,270,695,table,wpsm_genera_q.pdf -table
+Quercus,Quercus prinus,220,100,,,,,table,wpsm_genera_q.pdf -table
+Quercus,Quercus robur,285,130,,,,,table,wpsm_genera_q.pdf -table
+Quercus,Quercus rubra,235,105,,,,,table,wpsm_genera_q.pdf -table
+Quercus,Quercus shumardii,220,100,,,,,table,wpsm_genera_q.pdf -table
+Quercus,Quercus stellata,840,380,440,1400,200,635,table,wpsm_genera_q.pdf -table
+Quercus,Quercus texana,220,100,,,,,table,wpsm_genera_q.pdf -table
+Quercus,Quercus turbinella,715,325,660,770,300,350,table,wpsm_genera_q.pdf -table
+Quercus,Quercus vaccinifolia,2270,1030,1630,2910,740,1320,table,wpsm_genera_q.pdf -table
+Quercus,Quercus variabilis,230,105,,,,,table,wpsm_genera_q.pdf -table
+Quercus,Quercus velutina,540,245,275,882,125,400,table,wpsm_genera_q.pdf -table
+Quercus,Quercus virginiana,775,350,530,1125,240,510,table,wpsm_genera_q.pdf -raw
+Quercus,Quercus wislizenii,275,125,,,,,table,wpsm_genera_q.pdf -raw
+Rhus,Rhus copallina,125400,57000,81400,173800,37000,79000,table,wpsm_genera_m.pdf -table x1000
+Rhus,Rhus glabra,107800,49000,52800,277200,24000,126000,table,wpsm_genera_m.pdf -table x1000
+Rhus,Rhus hirta,117300,53300,107100,148700,48700,67600,table,wpsm_genera_m.pdf -table x1000
+Rhus,Rhus integrifolia,16700,7600,15000,17600,6800,8000,table,wpsm_genera_m.pdf -table x1000
+Rhus,Rhus ovata,37400,17000,41100,57200,18700,26000,table,wpsm_genera_m.pdf -table x1000
+Rhus,Rhus trilobata,44700,20300,23300,66000,10600,30000,table,wpsm_genera_m.pdf -table x1000
+Ribes,Ribes americanum,690000,313000,544000,741000,247000,336000,table,wpsm_genera_r.pdf -table x1000
+Ribes,Ribes aureum,514000,233000,441000,628000,200000,285000,table,wpsm_genera_r.pdf -table x1000
+Ribes,Ribes cereum,553000,251000,443000,624000,201000,283000,table,wpsm_genera_r.pdf -table x1000
+Ribes,Ribes cynosbati,452000,205000,417000,487000,189000,221000,table,wpsm_genera_r.pdf -table x1000
+Ribes,Ribes hudsonianum,2127000,965000,1389000,2703000,630000,1226000,table,wpsm_genera_r.pdf -table x1000
+Ribes,Ribes inerme,807000,366000,780000,877000,354000,398000,table,wpsm_genera_r.pdf -table x1000
+Ribes,Ribes lacustre,1135000,515000,,,,,table,wpsm_genera_r.pdf -table x1000
+Ribes,Ribes missouriense,357000,162000,344000,370000,156000,168000,table,wpsm_genera_r.pdf -table x1000
+Ribes,Ribes montigenum,313000,142000,,,,,table,wpsm_genera_r.pdf -table x1000
+Ribes,Ribes nevadense,862000,391000,650000,935000,295000,424000,table,wpsm_genera_r.pdf -table x1000
+Ribes,Ribes roezlii,520000,236000,388000,650000,176000,295000,table,wpsm_genera_r.pdf -table x1000
+Ribes,Ribes sanguineum,626000,284000,,,,,table,wpsm_genera_r.pdf -table x1000
+Ribes,Ribes viscosissimum,657000,298000,562000,769000,255000,344000,table,wpsm_genera_r.pdf -table x1000
+Robinia,Robinia hispida,50715,23000,,,,,table,wpsm_genera_r.pdf -table
+Robinia,Robinia neomexicana,47630,21600,,,,,table,wpsm_genera_r.pdf -table
+Robinia,Robinia pseudoacacia,52920,24000,,,,,table,wpsm_genera_r.pdf -table
+Rosa,Rosa acicularis,,,35940,40130,16300,18200,table,wpsm_genera_r.pdf -table
+Rosa,Rosa blanda,,,81580,116860,37000,53000,table,wpsm_genera_r.pdf -table
+Rosa,Rosa californica,224910,102000,,,,,table,wpsm_genera_r.pdf -table
+Rosa,Rosa canina,,,59530,119070,27000,54000,table,wpsm_genera_r.pdf -table
+Rosa,Rosa eglanteria,,,59530,119070,27000,54000,table,wpsm_genera_r.pdf -layout
+Rosa,Rosa gymnocarpa,61740,28000,,,,,table,wpsm_genera_r.pdf -table
+Rosa,Rosa multiflora,,,110250,180810,50000,82000,table,wpsm_genera_r.pdf -table
+Rosa,Rosa nutkana,,,66150,132300,30000,60000,table,wpsm_genera_r.pdf -table
+Rosa,Rosa rugosa,,,114660,163170,52000,74000,table,wpsm_genera_r.pdf -table
+Rosa,Rosa setigera,,,66150,132300,30000,60000,table,wpsm_genera_r.pdf -layout
+Rosa,Rosa wichuriana,,,114660,163170,52000,74000,table,wpsm_genera_r.pdf -layout
+Rosa,Rosa woodsii,,,77170,143320,35000,65000,table,wpsm_genera_r.pdf -table
+Rubus,Rubus allegheniensis,574000,262000,370000,724000,168000,329000,table,wpsm_genera_r.pdf -table x1000
+Rubus,Rubus arcticus,980000,446000,,,,,table,wpsm_genera_r.pdf -table x1000
+Rubus,Rubus canadensis,476000,216000,458000,495000,208000,225000,table,wpsm_genera_r.pdf -table x1000
+Rubus,Rubus chamaemorus,122000,56000,,,,,table,wpsm_genera_r.pdf -table x1000
+Rubus,Rubus hispidus,408000,185000,282000,513000,128000,233000,table,wpsm_genera_r.pdf -table x1000
+Rubus,Rubus idaeus,722000,328000,667000,845000,303000,384000,table,wpsm_genera_r.pdf -table x1000
+Rubus,Rubus laciniatus,301000,137000,,,,,table,wpsm_genera_r.pdf -table x1000
+Rubus,Rubus occidentalis,735000,334000,629000,845000,286000,384000,table,wpsm_genera_r.pdf -table x1000
+Rubus,Rubus odoratus,1085000,493000,,,,,table,wpsm_genera_r.pdf -table x1000
+Rubus,Rubus parviflorus,611000,278000,357000,806000,162000,367000,table,wpsm_genera_r.pdf -table x1000
+Rubus,Rubus procerus,323000,147000,,,,,table,wpsm_genera_r.pdf -table x1000
+Rubus,Rubus spectabilis,354000,162000,251000,528000,115000,240000,table,wpsm_genera_r.pdf -table x1000
+Rubus,Rubus ursinus,845000,384000,,,,,table,wpsm_genera_r.pdf -table x1000
+Sabal,Sabal etonia,1280,581,,,,,table,wpsm_genera_s.pdf -table
+Salix,Salix amygdaloides,5720000,2600000,,,,,table,wpsm_genera_s.pdf -table x1000
+Salix,Salix bebbiana,5500000,2500000,,,,,table,wpsm_genera_s.pdf -table x1000
+Salix,Salix caroliniana,18260000,8300000,,,,,table,wpsm_genera_s.pdf -table x1000
+Salix,Salix exigua,22000000,10000000,,,,,table,wpsm_genera_s.pdf -table x1000
+Salix,Salix fragilis,7040000,3200000,,,,,table,wpsm_genera_s.pdf -table x1000
+Salix,Salix lasiandra,25300000,11500000,,,,,table,wpsm_genera_s.pdf -table x1000
+Salix,Salix petiolaris,1100000,500000,,,,,table,wpsm_genera_s.pdf -table x1000
+Salix,Salix scouleriana,14300000,6500000,,,,,table,wpsm_genera_s.pdf -table x1000
+Salvia,Salvia apiana,714400,324000,,,,,table,wpsm_genera_s.pdf -table
+Salvia,Salvia dorrii,416800,189000,,,,,table,wpsm_genera_s.pdf -table
+Salvia,Salvia mellifera,911000,413000,,,,,table,wpsm_genera_s.pdf -table
+Salvia,Salvia sonomensis,685800,311000,,,,,table,wpsm_genera_s.pdf -table
+Sambucus,Sambucus racemosa,629,286,422,829,192,377,table,wpsm_genera_s.pdf -table
+Sassafras,Sassafras albidum,13000,5900,,,,,prose,wpsm_genera_s.pdf prose
+Sciatopitys,Sciatopitys verticillata,,,32600,42800,14800,19400,prose,wpsm_genera_s.pdf prose
+Sorbus,Sorbus americana,319400,144900,183000,521000,83000,236300,table,wpsm_genera_s.pdf -table
+Sorbus,Sorbus aucuparia,286200,129800,229300,374800,104000,170000,table,wpsm_genera_s.pdf -table
+Sorbus,Sorbus decora,280400,127200,,,,,table,wpsm_genera_s.pdf -table
+Sorbus,Sorbus sitchensis,290800,131900,146400,385000,66400,174600,table,wpsm_genera_s.pdf -table
+Styrax,Styrax americanus,11200,5090,,,,,table,wpsm_genera_s.pdf -table
+Styrax,Styrax japonicus,8000,3630,,,,,table,wpsm_genera_s.pdf -table
+Styrax,Styrax obassia,2950,1340,,,,,table,wpsm_genera_s.pdf -table
+Swietenia,Swietenia humilis,1500,680,,,,,table,wpsm_genera_s.pdf -table
+Swietenia,Swietenia macrophylla,,,1400,2400,640,1100,table,wpsm_genera_s.pdf -table
+Symphoricarpos,Symphoricarpos orbiculatus,308,140,298,317,135,144,table,wpsm_genera_s.pdf -table
+Syringa,Syringa vulgaris,189630,86000,,,,,prose,wpsm_genera_s.pdf prose
+Taxus,Taxus baccata,17000,7700,13900,18000,6300,8200,table,wpsm_genera_t.pdf -table
+Taxus,Taxus brevifolia,33100,15000,32400,36200,14700,16500,table,wpsm_genera_t.pdf -table
+Taxus,Taxus canadensis,46300,21000,33000,62400,15000,28400,table,wpsm_genera_t.pdf -table
+Taxus,Taxus cuspidata,31300,14200,24700,43000,11200,19500,table,wpsm_genera_t.pdf -table
+Tilia,Tilia americana,6600,3000,,,,,table,wpsm_genera_t.pdf -table x1000
+Tilia,Tilia cordata,30400,13800,24900,38300,11300,17400,table,wpsm_genera_t.pdf -table x1000
+Tilia,Tilia platyphyllos,,,25100,30600,11400,13900,table,wpsm_genera_t.pdf -table x1000
+Tilia,Tilia tomentosa,,,20000,25100,9100,11400,table,wpsm_genera_t.pdf -table x1000
+Tsuga,Tsuga canadensis,412000,187000,273000,794000,124000,360000,table,wpsm_genera_t.pdf -table x1000
+Tsuga,Tsuga caroliniana,,,167000,213000,76000,97000,table,wpsm_genera_t.pdf -table x1000
+Tsuga,Tsuga heterophylla,573000,260000,417000,1120000,189000,508000,table,wpsm_genera_t.pdf -table x1000
+Tsuga,Tsuga mertensiana,251000,114000,132000,459000,60000,208000,table,wpsm_genera_t.pdf -table x1000
+Ulmus,Ulmus alata,245000,112000,,,,,table,wpsm_genera_u.pdf -table x1000
+Ulmus,Ulmus americana,156000,71000,106000,240000,48000,109000,table,wpsm_genera_u.pdf -table x1000
+Ulmus,Ulmus crassifolia,147000,67000,130000,135000,59000,61000,table,wpsm_genera_u.pdf -table x1000
+Ulmus,Ulmus glabra,88000,40000,66000,99000,30000,45000,table,wpsm_genera_u.pdf -table x1000
+Ulmus,Ulmus japonica,147000,67000,130000,135000,59000,61000,table,wpsm_genera_u.pdf -layout x1000
+Ulmus,Ulmus laevis,140000,63000,117000,205000,53000,93000,table,wpsm_genera_u.pdf -table x1000
+Ulmus,Ulmus parvifolia,265000,121000,250000,372000,114000,169000,table,wpsm_genera_u.pdf -table x1000
+Ulmus,Ulmus pumila,158000,72000,88000,261000,40000,119000,table,wpsm_genera_u.pdf -table x1000
+Ulmus,Ulmus rubra,90000,41000,77000,119000,35000,54000,table,wpsm_genera_u.pdf -table x1000
+Ulmus,Ulmus serotina,328000,149000,,,,,table,wpsm_genera_u.pdf -table x1000
+Ulmus,Ulmus thomasii,140000,63000,117000,205000,53000,93000,table,wpsm_genera_u.pdf -layout x1000
+Viburnum,Viburnum acerifolium,10600,4800,24050,36600,10900,16600,table,wpsm_genera_v.pdf -table
+Viburnum,Viburnum dentatum,45000,20400,32200,71900,14600,32600,table,wpsm_genera_v.pdf -table
+Viburnum,Viburnum lantana,19200,8700,9250,29100,4200,13200,table,wpsm_genera_v.pdf -table
+Viburnum,Viburnum lantanoides,25350,11500,,,,,table,wpsm_genera_v.pdf -table
+Viburnum,Viburnum lentago,13000,5900,4850,27350,2200,12400,table,wpsm_genera_v.pdf -table
+Viburnum,Viburnum nudum,6600,3000,55100,63950,25000,29000,table,wpsm_genera_v.pdf -table
+Viburnum,Viburnum opulus,30000,13600,20700,39250,9400,17800,table,wpsm_genera_v.pdf -table
+Viburnum,Viburnum prunifolium,10600,4800,8800,13230,4000,6000,table,wpsm_genera_v.pdf -table
+Viburnum,Viburnum rufidulum,13000,5900,8800,13230,4000,6000,table,wpsm_genera_v.pdf -layout
+Vitex,Vitex agnus-castus,,,74800,130000,34000,59000,prose,wpsm_genera_v.pdf prose
+Zanthoxylum,Zanthoxylum americanum,56490,25600,48100,72590,21800,32900,table,wpsm_genera_z.pdf -table
+Zanthoxylum,Zanthoxylum clava-herculis,35000,15900,33100,37050,15000,16800,table,wpsm_genera_z.pdf -table
+Zanthoxylum,Zanthoxylum martinicense,75000,34020,,,,,table,wpsm_genera_z.pdf -table
+Zuckia,Zuckia brandegei,284000,129000,555000,769000,252000,349000,table,wpsm_genera_z.pdf -raw x1000

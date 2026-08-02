@@ -1,0 +1,148 @@
+category,crop,avg_storage_life_years
+farm_seed,Alfalfa,2-5
+farm_seed,Barley,3-5
+farm_seed,Buckwheat,2-5
+farm_seed,Cowpea,5
+farm_seed,"Clover, Crimson",5
+farm_seed,"Clover, White",5
+farm_seed,Millet,1-2
+farm_seed,Oats,1-4
+farm_seed,Rapeseed,3-5
+farm_seed,Rye,1-3
+farm_seed,Sorghum,1-2
+farm_seed,Sudan Grass,1-4
+farm_seed,"Vetch, common",3-5
+farm_seed,"Vetch, hairy",5
+farm_seed,"Wheat, common",3-5
+vegetable,Artichoke & Cardoon,1-4
+vegetable,Arugula,6
+vegetable,Asparagus,3-4
+vegetable,Asian Greens,3
+vegetable,Beans,2-4
+vegetable,Beets,2-5
+vegetable,Broccoli,3-5
+vegetable,Brussels Sprouts,3-5
+vegetable,Cabbage,3-5
+vegetable,"Cabbage, Chinese",3-5
+vegetable,Carrots,3-4
+vegetable,Cauliflower,4-5
+vegetable,Celery & Celeriac,3-5
+vegetable,Chicory,4-5
+vegetable,Collards,3-5
+vegetable,"Corn, Sweet",1-3
+vegetable,Cress,5
+vegetable,Cucumber,3-6
+vegetable,Dandelion,1-2
+vegetable,Eggplant,4-5
+vegetable,Endive,5
+vegetable,Fennel,3-4
+vegetable,Kale,3-5
+vegetable,Kohlrabi,3-5
+vegetable,Leeks,2-3
+vegetable,Lentil,1-2
+vegetable,Lettuce,1-6
+vegetable,Melon,3-6
+vegetable,Mustard,4
+vegetable,Okra,2-3
+vegetable,Onions,1-2
+vegetable,Parsnip,1-3
+vegetable,Peas,2-4
+vegetable,Peppers,2-5
+vegetable,Pumpkins,4-6
+vegetable,Purslane,3-5
+vegetable,Radish,4-5
+vegetable,Rutabaga,3-5
+vegetable,Salsify,1-2
+vegetable,Soybean,3-5
+vegetable,Spinach,1-5
+vegetable,Squash & Gourds,3-6
+vegetable,Swiss Chard,2-5
+vegetable,Tomato,3-7
+vegetable,Turnip,4-5
+vegetable,Watermelon,4-5
+herb,Angelica,2
+herb,Anise,1-4
+herb,"Basil, sweet",3-5
+herb,Borage,1-4
+herb,Caraway,1-2
+herb,Catnip,3
+herb,Chamomile,4
+herb,Chervil,1-4
+herb,Chives,1-3
+herb,Cilantro/Coriander,1-4
+herb,Cumin,1-3
+herb,Dill,1-4
+herb,Fennel,1-2
+herb,Lavender,4
+herb,Lemon Balm,1-4
+herb,Lemon Grass,3
+herb,Lovage,1-3
+herb,Marjoram,1-4
+herb,Mexican Mint Marigold,4
+herb,Mountain Mint,4
+herb,Oregano,4
+herb,Parsley,1-4
+herb,Rosemary,1-4
+herb,Sage,1-3
+herb,Savory,1-4
+herb,Thyme,1-4
+herb,Valerian,2-3
+fruit,Melon,3-6
+fruit,Rhubarb,1-2
+fruit,Strawberry,5
+fruit,Watermelon,4-5
+flower,Ageratum,3-5
+flower,Agrostemma (Corn Cockle),3
+flower,Amaranthus,4-5
+flower,Ammi (False Queen Anne's Lace),2
+flower,Alyssum,3-5
+flower,Asclepias (Butterfly Weed),1
+flower,Artemisia,1-5
+flower,Aster,1-2
+flower,Bells of Ireland,2
+flower,Calendula,4-6
+flower,Carnation,3-5
+flower,Celosia,2-4
+flower,Centaurea (Bachelor’s Buttons),1-5
+flower,Columbine (Aquilegia),1-2
+flower,Cosmos,3-5
+flower,Cynoglossum (Forget-me-Not),2
+flower,Dahlia,2-5
+flower,Daisy,3
+flower,Delphinium,1-3
+flower,Dianthus (Sweet William),3-5
+flower,Didiscus,1
+flower,Digitalis,1-2
+flower,Dusty Miller,3-5
+flower,Echinacea (Coneflower),1-4
+flower,Eryngium,2
+flower,Eucalyptus,4
+flower,Euphorbia,4
+flower,Gomphrena (Globe Amaranth),3-5
+flower,Gypsophila (Baby's Breath),2-4
+flower,Hyacinth Bean,3-5
+flower,Impatiens,1-2
+flower,Larkspur,1-3
+flower,Lavender,1-3
+flower,Lisianthus,2-3
+flower,Lupine,3-5
+flower,Marigold,2-5
+flower,Matricaria (Feverfew),1-3
+flower,Monarda (Bee Balm),4
+flower,Nasturtium,3-7
+flower,Nigella,3-5
+flower,Phlox,1-3
+flower,Poppy,2-4
+flower,Salvia,1-3
+flower,Saponaria,2-5
+flower,Scabiosa (Pincushion Flower),2-5
+flower,Snapdragon,3-5
+flower,Statice,1-2
+flower,Stock,4-5
+flower,Strawflower,1-2
+flower,Sunflowers,3-5
+flower,Sweet Pea,3-5
+flower,Verbena,1-5
+flower,Viola (Pansy),1-2
+flower,Yarrow,3-5
+flower,Zinnia,2-5

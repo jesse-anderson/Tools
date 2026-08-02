@@ -1,0 +1,44 @@
+taxon,rank,common_names,behaviour,propagation,in_scope,provenance,notes
+Quercus,genus,oak,recalcitrant,seed,no,ipgri_1996_compendium,"Listed by Hong Linington & Ellis 1996 among large desiccation-sensitive seeds requiring moist storage. WE HOLD 34 Quercus seed-count rows from WPSM - counts are valid but the longevity model must NOT run."
+Castanea,genus,chestnut,recalcitrant,seed,no,ipgri_1996_compendium,Same compendium list. Seed counts held from WPSM.
+Carya,genus,hickory; pecan,recalcitrant,seed,no,ipgri_1996_compendium,Same compendium list. Seed counts held from WPSM.
+Juglans,genus,walnut,recalcitrant,seed,no,ipgri_1996_compendium,Same compendium list. Seed counts held from WPSM.
+Fagus,genus,beech,recalcitrant,seed,no,ipgri_1996_compendium,Same compendium list. Seed counts held from WPSM.
+Corylus,genus,hazelnut; filbert,recalcitrant,seed,no,ipgri_1996_compendium,Same compendium list.
+Aesculus,genus,buckeye; horsechestnut,recalcitrant,seed,no,ipgri_1996_compendium,Same compendium list.
+Acer,genus,maple,intermediate,seed,caution,ipgri_1996_compendium,"Compendium groups Acer with seeds storable moist short-term or dry long-term. Behaviour is species-dependent: Acer saccharinum (silver maple) is recalcitrant while Acer platanoides is orthodox and has published viability constants. Do not apply a genus-wide rule."
+Acer saccharinum,species,silver maple,recalcitrant,seed,no,curated,"Well-established recalcitrant temperate species. WE HOLD a WPSM seed count (1780/lb) - the count is valid but longevity modelling must be refused."
+Acer platanoides,species,Norway maple,orthodox,seed,yes,ipgri_1996_compendium,Has published viability constants in Appendix I.
+Prunus,genus,cherry; peach; plum; apricot,intermediate,seed,caution,ipgri_1996_compendium,"Compendium groups Prunus with seeds storable moist short-term or dry long-term. Seed counts held from WPSM; treat longevity output as indicative only."
+Pyrus,genus,pear,intermediate,seed,caution,ipgri_1996_compendium,Same compendium group. Seed counts held from WPSM.
+Sorbus,genus,mountain-ash,intermediate,seed,caution,ipgri_1996_compendium,Same compendium group.
+Fraxinus,genus,ash,intermediate,seed,caution,ipgri_1996_compendium,Same compendium group. Seed counts held from WPSM.
+Tilia,genus,basswood; linden,intermediate,seed,caution,ipgri_1996_compendium,Same compendium group. Seed counts held from WPSM.
+Carpinus,genus,hornbeam,intermediate,seed,caution,ipgri_1996_compendium,Same compendium group. Seed counts held from WPSM.
+Euonymus,genus,euonymus,intermediate,seed,caution,ipgri_1996_compendium,Same compendium group. Seed counts held from WPSM.
+Crataegus,genus,hawthorn,intermediate,seed,caution,ipgri_1996_compendium,Same compendium group.
+Liriodendron,genus,tulip tree,intermediate,seed,caution,ipgri_1996_compendium,Same compendium group.
+Nothofagus,genus,southern beech,intermediate,seed,caution,ipgri_1996_compendium,Same compendium group.
+Hevea brasiliensis,species,rubber,recalcitrant,seed,no,ipgri_1996_compendium,Lowest safe temperature 7-10 C.
+Mangifera indica,species,mango,recalcitrant,seed,no,ipgri_1996_compendium,Lowest safe temperature 15 C. Killed by 2 C.
+Theobroma cacao,species,cacao; cocoa,recalcitrant,seed,no,curated,Classic tropical recalcitrant.
+Persea americana,species,avocado,recalcitrant,seed,no,curated,Classic tropical recalcitrant; also normally grafted.
+Cocos nucifera,species,coconut,recalcitrant,seed,no,curated,
+Litchi chinensis,species,lychee; litchi,recalcitrant,seed,no,curated,
+Artocarpus heterophyllus,species,jackfruit,recalcitrant,seed,no,curated,
+Garcinia mangostana,species,mangosteen,recalcitrant,seed,no,curated,
+Citrus,genus,orange; lemon; lime; grapefruit; citron,intermediate,vegetative,no,curated,"Intermediate storage behaviour, and commercially propagated by grafting onto rootstock rather than from seed."
+Coffea,genus,coffee,intermediate,seed,caution,curated,Intermediate; cannot be dried to orthodox moisture contents.
+Allium sativum,species,garlic,not_applicable,vegetative,no,curated,Propagated from cloves. Rarely produces viable true seed in cultivation.
+Solanum tuberosum,species,potato,not_applicable,vegetative,no,curated,"Propagated from seed tubers. True potato seed exists but is a breeding tool, not a garden input."
+Armoracia rusticana,species,horseradish,not_applicable,vegetative,no,curated,Propagated from root cuttings; rarely sets viable seed.
+Ipomoea batatas,species,sweet potato,not_applicable,vegetative,no,curated,Propagated from slips.
+Allium ascalonicum,species,shallot,not_applicable,vegetative,no,curated,Normally propagated from bulbs.
+Musa,genus,banana; plantain,not_applicable,vegetative,no,curated,Edible cultivars are seedless triploids propagated from suckers.
+Ananas comosus,species,pineapple,not_applicable,vegetative,no,curated,Propagated from crowns and slips.
+Vitis vinifera,species,grape,orthodox,vegetative,caution,curated,"Seed is orthodox and appears in the compendium's desiccation figures, but vines are propagated from cuttings and grafts."
+Ficus carica,species,fig,not_applicable,vegetative,no,curated,Propagated from cuttings.
+Olea europaea,species,olive,intermediate,vegetative,no,curated,Propagated from cuttings and grafts.
+Phoenix dactylifera,species,date palm,orthodox,vegetative,caution,curated,Seed is storable but cultivars are propagated from offshoots.
+Fragaria x ananassa,species,strawberry,orthodox,vegetative,caution,curated,Seed is orthodox but garden plants are propagated from runners.
+Rheum rhabarbarum,species,rhubarb,orthodox,vegetative,caution,curated,Normally propagated by crown division.

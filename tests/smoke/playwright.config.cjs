@@ -12,6 +12,7 @@ module.exports = defineConfig({
     'tools-hub.spec.cjs',
     'tool-pages-load.spec.cjs',
     'creatine-lab.spec.cjs',
+    'seed-storage-lab.spec.cjs',
     'stoichiometry-calculator.spec.cjs',
     'graph-paper-generator.spec.cjs',
     'battery-capacity.spec.cjs',
