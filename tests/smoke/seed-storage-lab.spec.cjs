@@ -163,17 +163,67 @@ test('an overruled recalcitrant flag is named and costs the species its ok statu
   await expect(page.locator('#gateDetail')).not.toContainText('A second source disagrees');
 });
 
-test('a species with germination data but no temperature does not render NaN', async ({ page, baseURL }) => {
+test('searching a crop selects that crop, not the first name on the species', async ({ page, baseURL }) => {
   await expectPageToLoadCleanly(page, baseURL, '/tools/seed-storage-lab.html');
 
-  // G2090 gives watermelon a minimum germination percentage and no
-  // temperatures, which used to format as "NaN °C".
+  // Brassica oleracea is broccoli, cabbage, cauliflower, kale, kohlrabi and
+  // brussels sprouts at once. Searching kale used to answer "broccoli" and
+  // pool all seven crops into one span reported as sources disagreeing.
+  await pickSpecies(page, 'kale', 'Brassica oleracea');
+
+  await expect(page.locator('#statusLine')).toContainText('Kale (Brassica oleracea)');
+  await expect(page.locator('#cropGroupRow')).toBeVisible();
+  await expect(page.locator('#cropGroup')).toHaveValue('kale');
+
+  await page.locator('[data-tab-target="count"]').click();
+  const labels = await page.locator('#countsTableBody tr td:nth-child(2)').allTextContents();
+  expect(labels.every((label) => /kale|Brassica oleracea/i.test(label))).toBeTruthy();
+  expect(labels.some((label) => /broccoli|kohlrabi|cabbage/i.test(label))).toBeFalsy();
+
+  // Switching crop moves every number with it. The selector sits in the
+  // species tab, so go back to it first.
+  await page.locator('[data-tab-target="species"]').click();
+  await page.selectOption('#cropGroup', 'kohlrabi');
+  await expect(page.locator('#statusLine')).toContainText('Kohlrabi (Brassica oleracea)');
+  await page.locator('[data-tab-target="count"]').click();
+  const after = await page.locator('#countsTableBody tr td:nth-child(2)').allTextContents();
+  expect(after.some((label) => /kohlrabi/i.test(label))).toBeTruthy();
+  expect(after.some((label) => /kale/i.test(label))).toBeFalsy();
+});
+
+test('a single-crop species shows no crop selector', async ({ page, baseURL }) => {
+  await expectPageToLoadCleanly(page, baseURL, '/tools/seed-storage-lab.html');
+
+  await pickSpecies(page, 'lettuce', 'Lactuca sativa');
+  await expect(page.locator('#cropGroupRow')).toBeHidden();
+  await expect(page.locator('#statusLine')).toContainText('Lettuce (Lactuca sativa)');
+});
+
+test('the flattened watermelon germination row is split back into two crops', async ({ page, baseURL }) => {
+  await expectPageToLoadCleanly(page, baseURL, '/tools/seed-storage-lab.html');
+
+  // G2090 prints seeded and seedless watermelon as one row with two values per
+  // cell ("21 30", "4-5 5-6"). Flattened, no field parsed and the card read
+  // "NaN °C". Split, both crops carry real figures.
   await pickSpecies(page, 'watermelon', 'Citrullus lanatus');
   await page.locator('[data-tab-target="species"]').click();
 
-  await expect(page.locator('#germinationValue')).toHaveText('--');
-  await expect(page.locator('#germinationMeta')).toContainText('minimum 70% germination');
+  await expect(page.locator('#germinationValue')).toContainText('35 °C');
+  await expect(page.locator('#germinationMeta')).toContainText('4-5 days');
   await expect(page.locator('body')).not.toContainText('NaN');
+
+  await page.selectOption('#cropGroup', 'triploid watermelon');
+  await expect(page.locator('#germinationMeta')).toContainText('5-6 days');
+});
+
+test('germination day ranges are not dropped', async ({ page, baseURL }) => {
+  await expectPageToLoadCleanly(page, baseURL, '/tools/seed-storage-lab.html');
+
+  // parse_number silently discarded every ranged value, so lettuce, cucumber,
+  // eggplant, muskmelon, onion and watermelon showed no days to germinate.
+  await pickSpecies(page, 'lettuce', 'Lactuca sativa');
+  await page.locator('[data-tab-target="species"]').click();
+  await expect(page.locator('#germinationMeta')).toContainText('2-3 days');
 });
 
 test('conflicting seed-count sources are shown as a range with both citations', async ({ page, baseURL }) => {

@@ -38,8 +38,25 @@ def load(name):
         return list(csv.DictReader(fh))
 
 
+def repair_scan_text(text):
+    """Restore characters the compendium extraction lost to a decode error.
+
+    884 cells in the volume 2 evidence column carry U+FFFD where a degree sign
+    or a plus/minus stood, and that text is the note the species gate shows, so
+    115 taxa displayed "hermetic storage at -18<?>C" to the reader. The original
+    byte is gone but the context recovers it: between a figure and a percentage
+    it is a tolerance, and everywhere else in this column it is a degree.
+    """
+    if "�" not in text:
+        return text
+    text = re.sub(r"(?<=[\d%])�(?=\s*\d{1,2}\s*%)", "±", text)
+    text = text.replace("�", "°")
+    # "1<deg>_3<deg>C" is a range whose dash went with the degree sign.
+    return text.replace("°_", "°-")
+
+
 def clean(value):
-    return (value or "").strip()
+    return repair_scan_text((value or "").strip())
 
 
 def parse_number(text):
@@ -177,6 +194,7 @@ def add(name, bucket, entry):
 
 QUANTITY_KEYS = ("perOz", "perLb", "perGram", "perKg", "perLbRange")
 skipped_counts = []
+skipped_germination = []
 
 
 def add_count(name, entry):
@@ -329,20 +347,58 @@ for row in load("figshare_thousand_seed_weight_counts.csv"):
 # Germination conditions
 # --------------------------------------------------------------------------
 
+"""G2090 prints seeded and seedless watermelon as one row carrying two values in
+every numeric cell ("70 85", "21 30", "4-5 5-6"). Flattened, not one field
+parsed, so the entry reached the browser holding a germination percentage and
+nothing else and the card rendered "NaN C". The two columns are recoverable, so
+the row is split back into the two crops the table actually prints."""
+# Seedless watermelon is the triploid, which is the label Osborne already uses
+# for its seed count, so the split lands both crops in the groups that exist.
+G2090_SPLIT_GERMINATION = {
+    "Watermelon Seeded Seedless": ("Watermelon", "Watermelon (Triploid)"),
+}
+
+GERMINATION_NUMERIC = ("min_percent_germination", "temp_min_c", "temp_opt_c",
+                       "temp_max_c", "days_to_germinate")
+
+
+def split_germination_row(row, crop):
+    """Yield (crop_label, row) pairs, splitting a two-column row if needed."""
+    labels = G2090_SPLIT_GERMINATION.get(crop)
+    if not labels:
+        yield crop, row
+        return
+    for index, label in enumerate(labels):
+        variant = dict(row)
+        for column in GERMINATION_NUMERIC:
+            parts = clean(row[column]).split()
+            # A cell holding one value applies to both crops.
+            variant[column] = parts[index] if len(parts) > index else (parts[0] if parts else "")
+        yield label, variant
+
+
 for row in load("unl_g2090_germination_conditions.csv"):
-    crop = clean(row["crop"])
-    name = resolve_common(crop, "unl_g2090_germination")
-    if not name:
-        continue
-    add(name, "germination", {
-        "cropLabel": crop,
-        "sourceKey": "unlG2090",
-        "minPercent": parse_number(row["min_percent_germination"]),
-        "tempMinC": parse_number(row["temp_min_c"]),
-        "tempOptC": parse_number(row["temp_opt_c"]),
-        "tempMaxC": parse_number(row["temp_max_c"]),
-        "daysToGerminate": parse_number(row["days_to_germinate"]),
-    })
+    for crop, values in split_germination_row(row, clean(row["crop"])):
+        name = resolve_common(crop, "unl_g2090_germination")
+        if not name:
+            continue
+        entry = {
+            "cropLabel": crop,
+            "sourceKey": "unlG2090",
+            "minPercent": parse_number(values["min_percent_germination"]),
+            "tempMinC": parse_number(values["temp_min_c"]),
+            "tempOptC": parse_number(values["temp_opt_c"]),
+            "tempMaxC": parse_number(values["temp_max_c"]),
+            # parse_number dropped every range here, so cucumber, eggplant,
+            # lettuce, muskmelon, onion and watermelon showed no days at all.
+            "daysToGerminate": parse_quantity(values["days_to_germinate"]),
+        }
+        # A germination row with no temperature is not a germination row. It
+        # would show as a crop the user can select and then answer nothing.
+        if entry["tempOptC"] is None:
+            skipped_germination.append((name, crop))
+            continue
+        add(name, "germination", entry)
 
 # --------------------------------------------------------------------------
 # Viability constants. K_E, C_W, C_H and C_Q travel together or not at all.
@@ -676,6 +732,11 @@ print(f"  with constants   {const_n}")
 print(f"  with germination {germ_n}")
 print(f"  recalcitrant     {len(gated)} ({len(gated_with_counts)} of them carry seed counts)")
 print(f"  bytes            {os.path.getsize(OUT):,}")
+
+if skipped_germination:
+    print(f"\n  germination rows with no usable temperature ({len(skipped_germination)}):")
+    for taxon, label in skipped_germination:
+        print(f"    {taxon}: {label}")
 
 if skipped_counts:
     print(f"\n  count entries with no usable number ({len(skipped_counts)}):")

@@ -326,6 +326,159 @@ export function evaluateSpeciesGate(record) {
 }
 
 // ---------------------------------------------------------------------------
+// Crop groups
+// ---------------------------------------------------------------------------
+
+// One species is often several vegetables. Brassica oleracea is broccoli,
+// cabbage, cauliflower, kale, kohlrabi and brussels sprouts at once; Beta
+// vulgaris is beetroot and chard; Brassica rapa is turnip and chinese cabbage.
+// Every source row already names its crop, and pooling them produced two
+// visible defects: a search for kale answered "broccoli", and the min/max
+// across seven vegetables was reported as sources disagreeing 2.04x when the
+// sources agree and the crops differ. Rows are grouped by crop, and a row that
+// names no crop is a species-level measurement that belongs to all of them.
+
+// "Brussels Sprouts" and "Brussel Sprouts" are one crop; "Cabbage" and
+// "Cabbage, Napa" are two. Sorting the tokens folds "Sweet Corn" into
+// "Corn, Sweet", and singularising folds the plurals, without merging crops
+// that genuinely differ by a qualifier.
+function singularise(word) {
+    // "Tomatoes" needs the es; "peas" is only four letters; "grass" must not
+    // become "gras". Getting any of the three wrong splits a crop in two.
+    if (word.length > 4 && /(?:o|s|x|ch|sh)es$/.test(word)) return word.slice(0, -2);
+    if (word.length > 3 && word.endsWith("s") && !word.endsWith("ss")) return word.slice(0, -1);
+    return word;
+}
+
+export function cropGroupKey(label) {
+    return String(label || "")
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, " ")
+        .split(" ")
+        .filter(Boolean)
+        .map(singularise)
+        .sort()
+        .join(" ");
+}
+
+const CROP_BUCKETS = ["counts", "longevity", "germination"];
+
+// Vendors publish one figure for two crops: "Cilantro/Coriander" (the same
+// plant twice), "Celery & Celeriac", "Endive/Escarole", "Squash & Gourds".
+// Treated as a crop of its own, the row splits a crop in half and hides the
+// figure that should sit beside its neighbour. It belongs to each crop it
+// names instead, and forms no group of its own.
+function combinedLabelParts(label) {
+    const parts = String(label || "").split(/\s*(?:\/|&|\+| and )\s*/i)
+        .map((part) => part.trim())
+        .filter(Boolean);
+    return parts.length > 1 ? parts : null;
+}
+
+function entryCropKeys(entry) {
+    const label = (entry.cropLabel || "").trim();
+    if (!label) return [];
+    const parts = combinedLabelParts(label);
+    if (!parts) return [cropGroupKey(label)];
+    return parts.map(cropGroupKey).filter(Boolean);
+}
+
+/**
+ * The distinct crops a species record covers, in display order.
+ *
+ * Returns [] when every row is species-level, which is the common case: only
+ * 31 of 1,048 taxa carry rows for more than one crop.
+ */
+export function cropGroups(record) {
+    if (!record) return [];
+    const groups = new Map();
+    const combined = [];
+    for (const bucket of CROP_BUCKETS) {
+        for (const entry of record[bucket] || []) {
+            const label = (entry.cropLabel || "").trim();
+            if (!label) continue;
+            if (combinedLabelParts(label)) {
+                combined.push(entry);
+                continue;
+            }
+            const key = cropGroupKey(label);
+            if (!key) continue;
+            const group = groups.get(key) || { key, label, rows: 0 };
+            // Prefer the shortest spelling as the display label, so the list
+            // reads "Kale" rather than whichever source happened to come first.
+            if (label.length < group.label.length) group.label = label;
+            group.rows += 1;
+            groups.set(key, group);
+        }
+    }
+
+    // A combined row whose crops are all absent is the only evidence held, so
+    // it becomes a group rather than vanishing. Cucurbita pepo's
+    // "Squash & Gourds" names neither Pumpkin nor Summer Squash.
+    for (const entry of combined) {
+        const keys = entryCropKeys(entry);
+        if (keys.some((key) => groups.has(key))) {
+            for (const key of keys) {
+                if (groups.has(key)) groups.get(key).rows += 1;
+            }
+            continue;
+        }
+        const label = entry.cropLabel.trim();
+        const key = cropGroupKey(label);
+        const group = groups.get(key) || { key, label, rows: 0 };
+        group.rows += 1;
+        groups.set(key, group);
+    }
+
+    return [...groups.values()].sort((a, b) => a.label.localeCompare(b.label));
+}
+
+/** True when a row applies to the species as a whole rather than one crop. */
+function isSpeciesLevel(entry) {
+    return !((entry.cropLabel || "").trim());
+}
+
+function matchesCrop(entry, cropKey) {
+    if (!cropKey) return true;
+    if (isSpeciesLevel(entry)) return true;
+    const keys = entryCropKeys(entry);
+    if (keys.includes(cropKey)) return true;
+    // A combined row that names no crop the species holds applies to all of
+    // them, which is the reading that loses no data.
+    return keys.length > 1 && cropGroupKey(entry.cropLabel) === cropKey;
+}
+
+/**
+ * Pick the crop a search term meant, falling back to the first one held.
+ *
+ * Typing "kale" has to land on kale, not on whichever crop happens to be
+ * alphabetically first inside Brassica oleracea.
+ */
+export function resolveCropGroup(record, hint) {
+    const groups = cropGroups(record);
+    if (!groups.length) return null;
+    const tokens = tokenize(hint);
+    if (tokens.length) {
+        const exact = groups.find((group) => group.key === cropGroupKey(tokens.join(" ")));
+        if (exact) return exact;
+        const partial = groups.find((group) => {
+            const words = group.key.split(" ");
+            return tokens.every((token) => words.some((word) => word.startsWith(token)));
+        });
+        if (partial) return partial;
+    }
+    return groups[0];
+}
+
+/** The name to show for a record once the crop is known. */
+export function cropDisplayName(record, cropKey) {
+    if (!record) return "";
+    const group = cropGroups(record).find((entry) => entry.key === cropKey);
+    if (!group) return speciesDisplayName(record);
+    return `${group.label} (${record.scientificName})`;
+}
+
+// ---------------------------------------------------------------------------
 // Seed counts
 // ---------------------------------------------------------------------------
 
@@ -383,8 +536,8 @@ export function findUnreadableCountEntries() {
  * when the extremes differ by more than 1.3x, which is the tool's cue to show
  * a range and refuse to imply a single authoritative count.
  */
-export function summariseCounts(record) {
-    const entries = (record && record.counts) || [];
+export function summariseCounts(record, { cropKey = null } = {}) {
+    const entries = ((record && record.counts) || []).filter((entry) => matchesCrop(entry, cropKey));
     const rows = [];
 
     for (const entry of entries) {
@@ -394,6 +547,7 @@ export function summariseCounts(record) {
             sourceKey: entry.sourceKey,
             reference: SEED_REFERENCES[entry.sourceKey] || null,
             cropLabel: entry.cropLabel || (record ? record.scientificName : ""),
+            speciesLevel: isSpeciesLevel(entry),
             perLb,
             perOz: { low: perLb.low / OZ_PER_LB, high: perLb.high / OZ_PER_LB },
             perGram: { low: perLb.low / GRAMS_PER_LB, high: perLb.high / GRAMS_PER_LB },
@@ -406,7 +560,7 @@ export function summariseCounts(record) {
     }
 
     if (!rows.length) {
-        return { rows: [], span: null, disagreement: false, ratio: null };
+        return { rows: [], span: null, disagreement: false, ratio: null, speciesLevelRows: 0 };
     }
 
     const low = Math.min(...rows.map((row) => row.perLb.low));
@@ -417,7 +571,8 @@ export function summariseCounts(record) {
         rows,
         span: { perLb: { low, high }, perOz: { low: low / OZ_PER_LB, high: high / OZ_PER_LB } },
         ratio,
-        disagreement: isNumber(ratio) && ratio > COUNT_DISAGREEMENT_RATIO
+        disagreement: isNumber(ratio) && ratio > COUNT_DISAGREEMENT_RATIO,
+        speciesLevelRows: rows.filter((row) => row.speciesLevel).length
     };
 }
 
@@ -592,12 +747,13 @@ export function hundredRule({ temperatureC, relativeHumidityPct } = {}) {
 // ---------------------------------------------------------------------------
 
 /** Published baseline longevity across sources, kept as a span. */
-export function summariseLongevity(record) {
-    const entries = (record && record.longevity) || [];
+export function summariseLongevity(record, { cropKey = null } = {}) {
+    const entries = ((record && record.longevity) || []).filter((entry) => matchesCrop(entry, cropKey));
     const rows = entries.map((entry) => ({
         sourceKey: entry.sourceKey,
         reference: SEED_REFERENCES[entry.sourceKey] || null,
         cropLabel: entry.cropLabel || (record ? record.scientificName : ""),
+        speciesLevel: isSpeciesLevel(entry),
         years: entry.years,
         condition: entry.condition || null,
         low: isNumber(entry.years.value) ? entry.years.value : entry.years.low,
@@ -621,8 +777,8 @@ export function summariseLongevity(record) {
  * past the evidence horizon is still reported but explicitly marked as an
  * extrapolation beyond any measurement.
  */
-export function projectLongevity({ record, multiplier, gate }) {
-    const baseline = summariseLongevity(record);
+export function projectLongevity({ record, multiplier, gate, cropKey = null }) {
+    const baseline = summariseLongevity(record, { cropKey });
     if (!gate || !gate.allowLongevity) {
         return { ok: false, reason: "gated", baseline, gate };
     }
@@ -670,6 +826,7 @@ export function projectLongevity({ record, multiplier, gate }) {
 
 export const DEFAULT_INPUTS = Object.freeze({
     speciesId: "lactuca-sativa",
+    cropKey: null,
     baselineTemperatureC: DEFAULT_BASELINE.temperatureC,
     baselineMoisturePct: DEFAULT_BASELINE.moisturePct,
     storageTemperatureC: 5,
@@ -686,7 +843,16 @@ export function runSeedModel(rawInputs = {}) {
     const inputs = { ...DEFAULT_INPUTS, ...rawInputs };
     const record = getSpeciesById(inputs.speciesId);
     const gate = evaluateSpeciesGate(record);
-    const counts = summariseCounts(record);
+
+    // A species covering several crops must resolve to one before any number is
+    // reported, or the answer is a blend of vegetables. Absent a choice, the
+    // first crop held wins, which keeps single-crop species behaving as before.
+    const groups = cropGroups(record);
+    const activeGroup = groups.find((group) => group.key === inputs.cropKey)
+        || (groups.length ? groups[0] : null);
+    const cropKey = activeGroup ? activeGroup.key : null;
+
+    const counts = summariseCounts(record, { cropKey });
 
     const measured = (isNumber(inputs.measuredSeedCount) && isNumber(inputs.measuredSampleMass))
         ? countFromMeasurement({
@@ -703,7 +869,7 @@ export function runSeedModel(rawInputs = {}) {
         storageMoisturePct: inputs.storageMoisturePct
     });
 
-    const projection = projectLongevity({ record, multiplier, gate });
+    const projection = projectLongevity({ record, multiplier, gate, cropKey });
     const rule = hundredRule({
         temperatureC: inputs.storageTemperatureC,
         relativeHumidityPct: inputs.storageRelativeHumidityPct
@@ -734,6 +900,11 @@ export function runSeedModel(rawInputs = {}) {
     return {
         inputs,
         record,
+        cropGroups: groups,
+        cropGroup: activeGroup,
+        cropKey,
+        germination: ((record && record.germination) || []).filter((entry) => matchesCrop(entry, cropKey)),
+        displayName: activeGroup ? cropDisplayName(record, cropKey) : speciesDisplayName(record),
         gate,
         counts,
         measured,

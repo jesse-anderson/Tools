@@ -12,7 +12,9 @@ import {
     searchSpecies,
     getSpeciesById,
     speciesDisplayName,
-    speciesWithCountsInGenus
+    speciesWithCountsInGenus,
+    cropGroups,
+    resolveCropGroup
 } from "./seed-model.js";
 import { SEED_REFERENCES } from "./seed-source-map.js";
 import { SEED_EQUATION_SPECS, getSeedEquationSources, runSeedEquationTest, runAllSeedEquationTests } from "./seed-math.js";
@@ -21,7 +23,7 @@ import { evaluateSeedChecks, summariseSeedChecks } from "./seed-validation.js";
 const STORAGE_KEY = "seed-storage-lab-settings-v1";
 
 const INPUT_IDS = [
-    "speciesSearch",
+    "speciesSearch", "cropGroup",
     "measuredSeedCount", "measuredSampleMass", "measuredSampleMassUnit",
     "packetMass", "packetMassUnit",
     "baselineTemperature", "baselineTemperatureUnit", "baselineMoisture",
@@ -45,7 +47,7 @@ const OUTPUT_IDS = [
 ];
 
 const OTHER_IDS = [
-    "speciesResults", "gateBanner", "gateHeadline", "gateDetail",
+    "speciesResults", "cropGroupRow", "gateBanner", "gateHeadline", "gateDetail",
     "countsTableBody", "warningList", "sourcesTableBody",
     "checksCard", "checksSummary", "checksBody",
     "statusLine", "settingsStatus", "resetBtn",
@@ -55,6 +57,7 @@ const OTHER_IDS = [
 
 const INPUT_HELP_TEXT = Object.freeze({
     speciesSearch: "Type a common name (lettuce, oak, sweet corn) or a scientific name. Matching is on whole words, so \"pine\" does not return every Lupinus.",
+    cropGroup: "One species is often several vegetables. Brassica oleracea covers broccoli, cabbage, cauliflower, kale, kohlrabi and brussels sprouts, and each has its own published seed count. Pick the crop you actually have; searching for it selects it for you.",
     measuredSeedCount: "How many seeds you physically counted. Counting error is roughly 1/n, so 100 seeds gives about 1% error and 10 seeds gives about 10%.",
     measuredSampleMass: "What those counted seeds weigh. Most kitchen scales resolve to 0.1-1 g, which dominates the result below about 0.1 g of seed.",
     measuredSampleMassUnit: "Unit for the sample weight. Grams give the best resolution on a domestic scale.",
@@ -93,6 +96,7 @@ const PRESETS = Object.freeze({
 
 const dom = {};
 let selectedSpeciesId = "lactuca-sativa";
+let selectedCropKey = null;
 let recomputeHandle = null;
 
 // ---------------------------------------------------------------------------
@@ -153,6 +157,7 @@ function temperatureC(valueElement, unitElement) {
 function readInputs() {
     return {
         speciesId: selectedSpeciesId,
+        cropKey: selectedCropKey,
         baselineTemperatureC: temperatureC(dom.baselineTemperature, dom.baselineTemperatureUnit),
         baselineMoisturePct: numberOrNull(dom.baselineMoisture),
         storageTemperatureC: temperatureC(dom.storageTemperature, dom.storageTemperatureUnit),
@@ -175,6 +180,31 @@ function setCard(valueId, metaId, value, meta, blocked = false) {
     if (dom[metaId]) dom[metaId].textContent = meta;
     const card = dom[valueId] ? dom[valueId].closest(".result-card") : null;
     if (card) card.classList.toggle("is-blocked", Boolean(blocked));
+}
+
+// The selector only appears for the 31 species that hold more than one crop.
+// Everything else would gain a control with a single option.
+function renderCropGroups(model) {
+    if (!dom.cropGroupRow || !dom.cropGroup) return;
+    const groups = model.cropGroups || [];
+    if (groups.length < 2) {
+        dom.cropGroupRow.hidden = true;
+        dom.cropGroup.innerHTML = "";
+        return;
+    }
+    dom.cropGroupRow.hidden = false;
+    const current = model.cropKey;
+    if (dom.cropGroup.dataset.speciesId !== model.record.id) {
+        dom.cropGroup.innerHTML = "";
+        for (const group of groups) {
+            const option = document.createElement("option");
+            option.value = group.key;
+            option.textContent = group.label;
+            dom.cropGroup.appendChild(option);
+        }
+        dom.cropGroup.dataset.speciesId = model.record.id;
+    }
+    dom.cropGroup.value = current;
 }
 
 function renderGate(gate) {
@@ -212,11 +242,18 @@ function renderCounts(model) {
             "Thousand-seed weight from your own sample.");
     } else if (counts.span) {
         const sourceCount = counts.rows.length;
+        const crop = model.cropGroup ? ` for ${model.cropGroup.label.toLowerCase()}` : "";
+        // A thousand-seed-weight row that names no cultivar group is not a
+        // determination of this crop, and saying so is the difference between
+        // a real disagreement and one the tool invented.
+        const wider = counts.speciesLevelRows
+            ? ` ${counts.speciesLevelRows} of them measures ${model.record.scientificName} without naming a crop.`
+            : "";
         setCard("countPerOzValue", "countPerOzMeta",
             formatSpan(counts.span.perOz),
             counts.disagreement
-                ? `${sourceCount} sources spanning ${counts.ratio.toFixed(1)}×. Shown as a range because they disagree; the tool does not average them.`
-                : `${sourceCount} source${sourceCount === 1 ? "" : "s"} in agreement.`);
+                ? `${sourceCount} determinations${crop} spanning ${counts.ratio.toFixed(1)}×. Shown as a range because they disagree; the tool does not average them.${wider}`
+                : `${sourceCount} determination${sourceCount === 1 ? "" : "s"}${crop} in agreement.${wider}`);
         setCard("countPerLbValue", "countPerLbMeta",
             formatSpan(counts.span.perLb),
             "Published values. Count a sample of your own for a figure without lot-to-lot variation.");
@@ -255,7 +292,7 @@ function renderCounts(model) {
                 : (reference ? reference.label : entry.sourceKey);
             row.innerHTML = `
                 <td class="wrap">${sourceCell}${entry.correction ? `<span class="row-note">${entry.correction}</span>` : ""}</td>
-                <td class="wrap">${entry.cropLabel}</td>
+                <td class="wrap">${entry.cropLabel}${entry.speciesLevel ? '<span class="row-note">Species-level; no cultivar group stated.</span>' : ""}</td>
                 <td>${formatSpan(entry.perOz)}</td>
                 <td>${formatSpan(entry.perLb)}</td>`;
             dom.countsTableBody.appendChild(row);
@@ -319,7 +356,7 @@ function renderSpeciesFacts(model) {
     // G2090 prints a minimum germination percentage for watermelon and no
     // temperatures at all. Formatting the missing fields put "NaN °C" on the
     // card, so each part is now written only if its number survived.
-    const germination = record && record.germination && record.germination[0];
+    const germination = model.germination && model.germination[0];
     const hasOpt = germination && Number.isFinite(germination.tempOptC);
     if (germination) {
         const parts = [];
@@ -329,8 +366,11 @@ function renderSpeciesFacts(model) {
                 : "";
             parts.push(`Optimum ${nf(germination.tempOptC, 0)} °C${range}`);
         }
-        if (Number.isFinite(germination.daysToGerminate)) {
-            parts.push(`${nf(germination.daysToGerminate, 0)} days`);
+        const days = germination.daysToGerminate;
+        if (days && (Number.isFinite(days.value) || Number.isFinite(days.low))) {
+            const span = Number.isFinite(days.value) ? { low: days.value, high: days.value } : days;
+            // Days to germinate are counted, so they print whole.
+            parts.push(`${formatSpan(span, (value) => nf(value, 0))} days`);
         }
         if (Number.isFinite(germination.minPercent)) {
             parts.push(`minimum ${nf(germination.minPercent, 0)}% germination`);
@@ -454,6 +494,10 @@ function renderChecks() {
 
 function render() {
     const model = runSeedModel(readInputs());
+    // The model resolves the crop when the stored key is stale or absent, so
+    // the selector and every downstream card read back from its answer.
+    selectedCropKey = model.cropKey;
+    renderCropGroups(model);
     renderGate(model.gate);
     renderCounts(model);
     renderStorage(model);
@@ -462,7 +506,7 @@ function render() {
     renderSources(model);
     if (dom.statusLine) {
         dom.statusLine.textContent = model.record
-            ? `Showing ${speciesDisplayName(model.record)}.`
+            ? `Showing ${model.displayName}.`
             : "No species selected.";
     }
     return model;
@@ -491,7 +535,12 @@ function renderSearchResults(query) {
         const button = document.createElement("button");
         button.type = "button";
         button.dataset.speciesId = record.id;
-        const common = (record.commonNames || [])[0] || record.scientificName;
+        // Label the hit with the crop that matched. A search for kale that
+        // offers "broccoli" looks like the wrong result even when it is right.
+        const group = cropGroups(record).length > 1 ? resolveCropGroup(record, trimmed) : null;
+        const common = group
+            ? group.label
+            : (record.commonNames || [])[0] || record.scientificName;
         const badges = [
             ["count", Boolean(record.counts)],
             ["years", Boolean(record.longevity)],
@@ -504,12 +553,19 @@ function renderSearchResults(query) {
     }
 }
 
-function selectSpecies(id) {
+// The search term is the only evidence of which crop was wanted. Typing "kale"
+// used to select Brassica oleracea and then label it "broccoli", because the
+// record's first common name won regardless of what was asked for.
+function selectSpecies(id, query) {
     const record = getSpeciesById(id);
     if (!record) return;
     selectedSpeciesId = id;
+    const group = resolveCropGroup(record, query);
+    selectedCropKey = group ? group.key : null;
     if (dom.speciesSearch) {
-        dom.speciesSearch.value = (record.commonNames || [])[0] || record.scientificName;
+        dom.speciesSearch.value = group
+            ? group.label.toLowerCase()
+            : (record.commonNames || [])[0] || record.scientificName;
     }
     if (dom.speciesResults) dom.speciesResults.innerHTML = "";
     persist();
@@ -580,9 +636,9 @@ function runAllMathTests() {
 
 function persist() {
     try {
-        const payload = { selectedSpeciesId };
+        const payload = { selectedSpeciesId, selectedCropKey };
         for (const id of INPUT_IDS) {
-            if (id === "speciesSearch") continue;
+            if (id === "speciesSearch" || id === "cropGroup") continue;
             if (dom[id]) payload[id] = dom[id].value;
         }
         window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
@@ -601,11 +657,14 @@ function restore() {
     }
     if (!payload) return;
     for (const id of INPUT_IDS) {
-        if (id === "speciesSearch") continue;
+        if (id === "speciesSearch" || id === "cropGroup") continue;
         if (dom[id] && typeof payload[id] === "string") dom[id].value = payload[id];
     }
     if (payload.selectedSpeciesId && getSpeciesById(payload.selectedSpeciesId)) {
         selectedSpeciesId = payload.selectedSpeciesId;
+        // A key from an older bundle is discarded by the model, which falls
+        // back to the first crop rather than reporting nothing.
+        selectedCropKey = typeof payload.selectedCropKey === "string" ? payload.selectedCropKey : null;
     }
 }
 
@@ -616,6 +675,7 @@ function resetAll() {
         /* storage unavailable; the in-memory reset below still applies */
     }
     selectedSpeciesId = "lactuca-sativa";
+    selectedCropKey = null;
     applyPreset("fridge");
     if (dom.baselineTemperature) dom.baselineTemperature.value = String(DEFAULT_BASELINE.temperatureC);
     if (dom.baselineTemperatureUnit) dom.baselineTemperatureUnit.value = "C";
@@ -734,13 +794,31 @@ function init() {
 
     const record = getSpeciesById(selectedSpeciesId);
     if (dom.speciesSearch && record) {
-        dom.speciesSearch.value = (record.commonNames || [])[0] || record.scientificName;
+        const group = cropGroups(record).find((entry) => entry.key === selectedCropKey);
+        dom.speciesSearch.value = group
+            ? group.label.toLowerCase()
+            : (record.commonNames || [])[0] || record.scientificName;
     }
 
     for (const id of INPUT_IDS) {
-        if (!dom[id] || id === "speciesSearch") continue;
+        if (!dom[id] || id === "speciesSearch" || id === "cropGroup") continue;
         dom[id].addEventListener("input", scheduleRecompute);
         dom[id].addEventListener("change", scheduleRecompute);
+    }
+
+    if (dom.cropGroup) {
+        // Switching crop changes every number on screen, so it renders at once
+        // rather than on the input debounce.
+        dom.cropGroup.addEventListener("change", () => {
+            selectedCropKey = dom.cropGroup.value;
+            if (dom.speciesSearch) {
+                const group = cropGroups(getSpeciesById(selectedSpeciesId))
+                    .find((entry) => entry.key === selectedCropKey);
+                if (group) dom.speciesSearch.value = group.label.toLowerCase();
+            }
+            persist();
+            render();
+        });
     }
 
     if (dom.speciesSearch) {
@@ -752,7 +830,7 @@ function init() {
     if (dom.speciesResults) {
         dom.speciesResults.addEventListener("click", (event) => {
             const button = event.target instanceof Element ? event.target.closest("[data-species-id]") : null;
-            if (button) selectSpecies(button.dataset.speciesId);
+            if (button) selectSpecies(button.dataset.speciesId, dom.speciesSearch ? dom.speciesSearch.value : "");
         });
     }
 

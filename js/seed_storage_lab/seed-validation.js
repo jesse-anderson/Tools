@@ -16,6 +16,8 @@ import {
     runSeedModel,
     searchSpecies,
     summariseCounts,
+    cropGroups,
+    cropGroupKey,
     cToF
 } from "./seed-model.js";
 import { SEED_SPECIES } from "./seed-species-data.js";
@@ -238,6 +240,26 @@ export function evaluateSeedChecks() {
         detail: correctedRow
             ? `Corrected to ${Math.round(correctedRow.perOz.low).toLocaleString()}-${Math.round(correctedRow.perOz.high).toLocaleString()} seeds/oz.`
             : "No corrected tomato entry found in the bundle."
+    }));
+
+    const multiCrop = SEED_SPECIES.filter((record) => cropGroups(record).length > 1);
+    const pooled = multiCrop.filter((record) => {
+        const model = runSeedModel({ speciesId: record.id });
+        const labels = new Set(model.counts.rows
+            .filter((row) => !row.speciesLevel)
+            .map((row) => cropGroupKey(row.cropLabel)));
+        return labels.size > 1;
+    });
+    checks.push(check({
+        id: "crops-not-pooled",
+        title: "A species covering several crops reports one crop at a time",
+        reference: SEED_REFERENCES.unlG2090,
+        fixture: `Fixture: all ${multiCrop.length} species holding rows for more than one crop.`,
+        benchmark: "Brassica oleracea is broccoli, cabbage, cauliflower, kale, kohlrabi and brussels sprouts. Pooling them answered a search for kale with broccoli and reported the spread across seven vegetables as sources disagreeing 2.0x.",
+        pass: pooled.length === 0,
+        detail: pooled.length
+            ? `${pooled.length} species still pool crops, starting with ${pooled[0].scientificName}.`
+            : `All ${multiCrop.length} resolve to a single crop before any number is reported.`
     }));
 
     const lettuce = summariseCounts(getSpeciesById("lactuca-sativa"));

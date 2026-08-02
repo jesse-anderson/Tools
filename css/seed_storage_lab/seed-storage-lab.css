@@ -201,6 +201,13 @@
     gap: 0.7rem;
 }
 
+/* An explicit display value outranks the user-agent rule for [hidden], so a
+   grid container stays on screen when hidden is set. The crop selector is the
+   one that toggles. */
+.input-grid[hidden] {
+    display: none;
+}
+
 .input-line {
     display: flex;
     flex-direction: column;
