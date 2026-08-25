@@ -1,8 +1,32 @@
 <!DOCTYPE html>
+<!--
+============================================
+SENSOR DATABASE v1.1.0
+============================================
+Description: Searchable, sortable reference of industrial and hobbyist sensors
+covering gas and air quality, pressure and flow, thermal, motion, and vibration
+and condition monitoring, with logic level, supply voltage, and cost band.
+
+Dependencies: None (Vanilla JavaScript)
+
+Project: Tools Hub by Jesse Anderson
+Repository: https://github.com/jesse-anderson/Tools
+License: GPL-3.0 - https://github.com/jesse-anderson/Tools/blob/main/LICENSE
+
+Features:
+- Debounced full-text search across every column
+- Column sorting that preserves category grouping, with cost-aware ordering
+- Logic level and supply voltage at a glance for interface planning
+- Estimated cost bands and a manufacturer datasheet lookup per part
+
+Last Updated: August 2026
+============================================
+-->
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
     <title>Sensors Reference | Tools Hub</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -46,7 +70,7 @@
                     </div>
                 </div>
             </div>
-            <div style="margin-top: 24px; display: flex; align-items: center; gap: 16px;">
+            <div class="tool-title-row">
                 <div class="tool-icon-header engineering">📡</div>
                 <div>
                     <h1>Sensor Database</h1>
@@ -467,6 +491,9 @@
                         </tr>
                     </tbody>
                 </table>
+                <p id="noResults" class="no-results" hidden role="status">
+                    No sensors match that search. Try a model number, manufacturer, or interface.
+                </p>
             </div>
             <div class="disclaimer-card">
                 <div class="disclaimer-title">
@@ -478,7 +505,7 @@
                     CRITICAL ENGINEERING DISCLAIMER
                 </div>
                 <div class="disclaimer-content">
-                    <p style="margin-bottom: 8px;"><strong>Reference Use Only.</strong> Pricing and availability data are estimates current as of <strong>December 2025</strong>. This database does not replace official documentation. Be aware of:</p>
+                    <p class="disclaimer-intro"><strong>Reference Use Only.</strong> Pricing and availability data are estimates current as of <strong>December 2025</strong>. This database does not replace official documentation. Be aware of:</p>
                     <ul class="disclaimer-list">
                         <li><strong>Revisions & EOL:</strong> Manufacturers frequently update silicon revisions or End-of-Life (EOL) parts without notice.</li>
                         <li><strong>Implementation Safety:</strong> Logic levels, absolute maximum ratings, and isolation requirements must be verified against the manufacturer's datasheet.</li>

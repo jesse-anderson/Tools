@@ -135,15 +135,24 @@ th {
     color: var(--text-primary);
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    cursor: pointer;
     user-select: none;
     position: sticky;
     top: 0;
 }
 
-th:hover {
+th[data-sort] {
+    cursor: pointer;
+}
+
+th[data-sort]:hover,
+th[data-sort]:focus-visible {
     color: var(--accent-engineering);
     background: var(--accent-engineering-dim);
+}
+
+th[data-sort]:focus-visible {
+    outline: 2px solid var(--accent-engineering);
+    outline-offset: -2px;
 }
 
 /* Sort Indicators */
@@ -161,7 +170,8 @@ th {
     transition: opacity 0.2s;
 }
 
-th:hover .sort-indicator {
+th[data-sort]:hover .sort-indicator,
+th[data-sort]:focus-visible .sort-indicator {
     opacity: 0.6;
 }
 
@@ -192,6 +202,18 @@ tr:hover td {
     color: var(--text-primary);
 }
 
+/* Empty Search State */
+.no-results {
+    padding: 32px 16px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.875rem;
+}
+
+.no-results[hidden] {
+    display: none;
+}
+
 /* Disclaimer Card */
 .disclaimer-card {
     border: 1px solid #f59e0b;
@@ -219,6 +241,7 @@ tr:hover td {
     font-family: sans-serif;
 }
 
+.disclaimer-intro { margin-bottom: 8px; }
 .disclaimer-list { margin: 8px 0; padding-left: 16px; }
 .disclaimer-list li { margin-bottom: 6px; }
 .disclaimer-list strong { color: var(--text-primary); font-weight: 600; }

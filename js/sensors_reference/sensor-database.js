@@ -24,9 +24,22 @@ const SensorDatabase = (() => {
     }
 
     /**
+     * Shows or hides a table row, keeping aria-hidden in sync.
+     * @param {HTMLTableRowElement|null} row - Row to toggle; null is a no-op
+     * @param {boolean} visible - Whether the row should be shown
+     */
+    function setRowVisible(row, visible) {
+        if (!row) return;
+        row.style.display = visible ? "" : "none";
+        row.setAttribute("aria-hidden", (!visible).toString());
+    }
+
+    /**
      * Filters the sensor table based on search input.
      * Searches across all columns and updates the results count.
      * Shows/hides the clear button and results indicator based on search state.
+     * A category header is hidden when the search empties its section, and an
+     * empty-state message replaces the table when nothing matches at all.
      * Sets aria-hidden attribute on filtered rows for accessibility.
      */
     function filterTable() {
@@ -36,31 +49,46 @@ const SensorDatabase = (() => {
         const tr = table.getElementsByTagName("tr");
         const clearBtn = document.getElementById("clearSearch");
         const resultsCount = document.getElementById("resultsCount");
+        const noResults = document.getElementById("noResults");
 
         let visibleCount = 0;
         let totalCount = 0;
+        let categoryRow = null;
+        let categoryMatches = 0;
 
         for (let i = 1; i < tr.length; i++) {
-            // Skip category headers
-            if (tr[i].classList.contains("category-row")) continue;
+            const row = tr[i];
+
+            if (row.classList.contains("category-row")) {
+                // Resolve the section that just ended before opening the next
+                setRowVisible(categoryRow, categoryMatches > 0);
+                categoryRow = row;
+                categoryMatches = 0;
+                continue;
+            }
 
             totalCount++;
-            let tds = tr[i].getElementsByTagName("td");
+            const tds = row.getElementsByTagName("td");
             let found = false;
             // Search all columns
             for (let j = 0; j < tds.length; j++) {
                 if (tds[j]) {
-                    let txtValue = tds[j].textContent || "";
+                    const txtValue = tds[j].textContent || "";
                     if (txtValue.toUpperCase().indexOf(filter) > -1) {
                         found = true;
                         break;
                     }
                 }
             }
-            tr[i].style.display = found ? "" : "none";
-            tr[i].setAttribute("aria-hidden", (!found).toString());
-            if (found) visibleCount++;
+            setRowVisible(row, found);
+            if (found) {
+                visibleCount++;
+                categoryMatches++;
+            }
         }
+
+        // The final section has no following header to trigger the resolve above
+        setRowVisible(categoryRow, categoryMatches > 0);
 
         // Update UI based on search state
         const hasSearch = filter.length > 0;
@@ -74,6 +102,9 @@ const SensorDatabase = (() => {
             } else {
                 resultsCount.classList.remove("visible");
             }
+        }
+        if (noResults) {
+            noResults.hidden = visibleCount > 0;
         }
     }
 
@@ -97,11 +128,13 @@ const SensorDatabase = (() => {
             tr[i].removeAttribute("aria-hidden");
         }
 
-        // Hide clear button and results count
+        // Hide clear button, results count, and empty state
         const clearBtn = document.getElementById("clearSearch");
         const resultsCount = document.getElementById("resultsCount");
+        const noResults = document.getElementById("noResults");
         if (clearBtn) clearBtn.classList.remove("visible");
         if (resultsCount) resultsCount.classList.remove("visible");
+        if (noResults) noResults.hidden = true;
     }
 
     /**
@@ -248,9 +281,16 @@ const SensorDatabase = (() => {
         if (table) {
             const headers = table.querySelectorAll('th[data-sort]');
             headers.forEach(th => {
-                th.addEventListener('click', () => {
-                    const columnIndex = parseInt(th.dataset.sort);
-                    sortTable(columnIndex);
+                // Sorting is JS-driven, so the focus affordance is added here
+                // rather than in markup that would be inert without this script
+                th.tabIndex = 0;
+                const sort = () => sortTable(parseInt(th.dataset.sort, 10));
+                th.addEventListener('click', sort);
+                th.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        sort();
+                    }
                 });
             });
         }
