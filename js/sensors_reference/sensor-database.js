@@ -38,12 +38,13 @@ const SensorDatabase = (() => {
         const resultsCount = document.getElementById("resultsCount");
 
         let visibleCount = 0;
-        const totalCount = tr.length - 1; // Exclude header row
+        let totalCount = 0;
 
         for (let i = 1; i < tr.length; i++) {
             // Skip category headers
             if (tr[i].classList.contains("category-row")) continue;
 
+            totalCount++;
             let tds = tr[i].getElementsByTagName("td");
             let found = false;
             // Search all columns
@@ -115,7 +116,7 @@ const SensorDatabase = (() => {
 
         if (costTag.classList.contains('cost-low')) return 15;      // $
         if (costTag.classList.contains('cost-med')) return 60;      // $$
-        if (costTag.classList.contains('cost-high')) return 200;    // $$$$
+        if (costTag.classList.contains('cost-high')) return 200;    // $$$
         if (costTag.classList.contains('cost-extreme')) return 201; // $$$$
         return 999;
     }
