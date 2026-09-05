@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<!--
+============================================
+BEAM DEFLECTION CALCULATOR v1.0.0 (Phase 3)
+============================================
+Description: Euler-Bernoulli beam deflection for the four common boundary
+conditions, reporting maximum deflection and its location alongside midspan
+deflection, plus bending stress, utilization, maximum moment, and support
+reactions, in SI or US customary units.
+
+Dependencies: None (Vanilla JavaScript)
+Google Fonts (JetBrains Mono, Space Grotesk) loaded from CDN.
+
+Project: Tools Hub by Jesse Anderson
+Repository: https://github.com/jesse-anderson/Tools
+License: GPL-3.0 - https://github.com/jesse-anderson/Tools/blob/main/LICENSE
+
+Features:
+- Four support cases: cantilever, simply supported, fixed-fixed, propped
+  cantilever, selected by their own diagrams rather than by a dropdown, each
+  card showing that case's deflection for the beam currently entered
+- Point load at the standard position, point load at an arbitrary position,
+  and a full-span uniformly distributed load, with optional self-weight
+- Maximum deflection and its location reported separately from midspan
+  deflection, since for an off-center load they are not the same point
+- Off-center loads normalized before the closed forms are applied, so the
+  whole input domain is valid rather than half of it
+- Sections: solid rectangle, solid round, round tube, rectangular tube,
+  symmetric I-beam, and custom I and c, each with geometry guards that reject
+  rather than returning a negative second moment
+- Material library with elastic modulus, strength, and density, every value
+  carrying its source, and a strength kind (yield, rupture, none) so brittle
+  materials are not given a ductile utilization they do not have
+- Deflection limit check against L/360, L/240, L/180, or a custom ratio, each
+  labelled with what it is actually for
+- Bending stress and utilization with a user-set safety factor
+- Independent verification: a Hermitian finite-element solve of the same beam,
+  run from the sidebar, that shares no formula with the closed forms
+- Six worked examples, each built around one specific point
+- Pure SI engine on window.BeamDeflection
+
+Scope: teaching and first-pass estimating only. Buckling and stability are
+never checked. This tool does not size a structural member.
+
+Last Updated: September 2026
+============================================
+-->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; base-uri 'none'; form-action 'none'">
+    <title>Beam Deflection Calculator | Tools Hub</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/shared.css">
+    <link rel="stylesheet" href="../css/beam_deflection/beam-deflection.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <div class="header-left">
+                    <a href="../tools.html" class="back-link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="19" y1="12" x2="5" y2="12"/>
+                            <polyline points="12 19 5 12 12 5"/>
+                        </svg>
+                        Back to Tools
+                    </a>
+                </div>
+                <div class="header-right">
+                    <div class="theme-toggle">
+                        <button data-theme-toggle="light" aria-pressed="false" title="Light mode">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="5"/>
+                                <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+                            </svg>
+                        </button>
+                        <button data-theme-toggle="dark" aria-pressed="false" title="Dark mode">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="tool-title-row">
+                <div class="tool-icon-header engineering">⌐</div>
+                <div>
+                    <h1>Beam Deflection Calculator</h1>
+                    <p class="tagline">// DEFLECTION • STRESS • MOMENT • REACTIONS</p>
+                </div>
+            </div>
+        </header>
+
+        <main>
+            <div class="calculator-layout">
+                <div class="calculator-panel">
+                    <div class="panel-header">
+                        <h2>Beam, load, and section</h2>
+                        <p>Pick the boundary condition from its diagram. "Supported on both sides" means two different things, and under a uniform load they differ by a factor of five.</p>
+                        <div class="input-group unit-switch">
+                            <label for="unitSystem">Units</label>
+                            <select class="main-select" id="unitSystem">
+                                <option value="si">SI (metric)</option>
+                                <option value="us">US customary</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <h3 class="section-title" id="examplesTitle">Worked examples</h3>
+                    <div class="preset-row" id="presets" role="group" aria-labelledby="examplesTitle"></div>
+                    <p class="field-note preset-note" id="presetNote" role="status" aria-live="polite"></p>
+
+                    <h3 class="section-title">Support case</h3>
+                    <div class="support-cards" id="supportCards" role="radiogroup" aria-label="Support case"></div>
+
+                    <h3 class="section-title">Load</h3>
+                    <div class="input-grid">
+                        <div class="input-group">
+                            <label for="loadType">Load type</label>
+                            <select class="main-select" id="loadType" aria-describedby="standardLoadNote">
+                                <option value="point-standard">Point load, standard position</option>
+                                <option value="point-at">Point load at a position</option>
+                                <option value="udl">Uniformly distributed load</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label for="loadMagnitude" id="loadMagnitudeLabel">Point load P (kN)</label>
+                            <input class="main-input" type="number" id="loadMagnitude" value="10" step="any">
+                        </div>
+                        <div class="input-group" id="loadPosGroup" hidden>
+                            <label for="loadPos" id="loadPosLabel">Load position a from the left end (m)</label>
+                            <input class="main-input" type="number" id="loadPos" value="1" step="any" min="0">
+                        </div>
+                    </div>
+                    <p class="field-note" id="standardLoadNote"></p>
+                    <div class="check-row" id="selfWeightGroup">
+                        <input type="checkbox" id="selfWeight" aria-describedby="selfWeightNote">
+                        <label for="selfWeight">Add self-weight</label>
+                    </div>
+                    <p class="field-note" id="selfWeightNote"></p>
+
+                    <h3 class="section-title">Span and material</h3>
+                    <div class="input-grid">
+                        <div class="input-group">
+                            <label for="span" id="spanLabel">Span L (m)</label>
+                            <input class="main-input" type="number" id="span" value="3" step="any" min="0">
+                        </div>
+                        <div class="input-group">
+                            <label for="material">Material</label>
+                            <select class="main-select" id="material" aria-describedby="materialFacts"></select>
+                        </div>
+                        <div class="input-group">
+                            <label for="modulus" id="modulusLabel">Elastic modulus E (GPa)</label>
+                            <input class="main-input" type="number" id="modulus" value="200" step="any" min="0">
+                        </div>
+                    </div>
+                    <div id="materialFacts" class="material-facts"></div>
+
+                    <h3 class="section-title">Cross-section</h3>
+                    <div class="input-grid">
+                        <div class="input-group">
+                            <label for="sectionType">Section</label>
+                            <select class="main-select" id="sectionType" aria-describedby="sectionAxisNote">
+                                <option value="rect">Solid rectangle</option>
+                                <option value="round">Solid round</option>
+                                <option value="tubeRound">Round tube</option>
+                                <option value="tubeRect">Rectangular tube</option>
+                                <option value="ibeam">Symmetric I-beam</option>
+                                <option value="custom">Custom (enter I and c)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="input-grid" id="sectionFields"></div>
+                    <p class="field-note" id="sectionAxisNote">Bending is about the strong (horizontal) axis. Weak-axis bending is not offered.</p>
+
+                    <h3 class="section-title">Checks</h3>
+                    <div class="input-grid">
+                        <div class="input-group">
+                            <label for="limitSelect">Deflection limit</label>
+                            <select class="main-select" id="limitSelect" aria-describedby="limitNote">
+                                <option value="L360">L / 360</option>
+                                <option value="L240">L / 240</option>
+                                <option value="L180">L / 180</option>
+                                <option value="custom">Custom ratio</option>
+                            </select>
+                        </div>
+                        <div class="input-group" id="customLimitGroup" hidden>
+                            <label for="customLimit">Custom limit, L / this</label>
+                            <input class="main-input" type="number" id="customLimit" value="500" step="any" min="0">
+                        </div>
+                        <div class="input-group">
+                            <label for="safetyFactor">Safety factor on strength</label>
+                            <input class="main-input" type="number" id="safetyFactor" value="1" step="any" min="0" aria-describedby="safetyNote">
+                        </div>
+                    </div>
+                    <p class="field-note" id="limitNote"></p>
+                    <p class="field-note" id="safetyNote">A safety factor of 1 reports raw utilization against the published strength. Wood rows already carry NDS reference design values, which are reduced values, so leave the factor at 1 for those.</p>
+                </div>
+
+                <aside class="sidebar">
+                    <div class="sidebar-panel">
+                        <h3>Results</h3>
+                        <div class="error-banner" id="errorBanner" role="alert" hidden></div>
+                        <p id="resultsStatus" class="visually-hidden" role="status" aria-live="polite"></p>
+                        <div id="results"></div>
+                        <div class="disclaimer">
+                            <strong>Not a structural design tool.</strong>
+                            This is a teaching and first-pass estimating tool. It computes deflection, bending stress, moment, and reactions for an idealised prismatic beam. It does not check buckling, lateral-torsional stability, connections, fatigue, or any code requirement, and it must not be used to size a load-bearing member.
+                        </div>
+                    </div>
+
+                    <div class="sidebar-panel">
+                        <h3 id="sectionPropsTitle">Section properties</h3>
+                        <div id="sectionProps" role="region" aria-labelledby="sectionPropsTitle"></div>
+                    </div>
+
+                    <div class="sidebar-panel">
+                        <h3>Independent check</h3>
+                        <p>Solve the same beam numerically, by assembling and solving Hermitian beam elements, and compare against every closed form the tool uses.</p>
+                        <button class="tool-btn primary" id="verifyBtn" type="button">
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="20 6 9 17 4 12"/>
+                            </svg>
+                            Run verification
+                        </button>
+                        <div id="verifyOutput" class="verify-output" role="status" aria-live="polite" hidden></div>
+                    </div>
+
+                    <div class="sidebar-panel">
+                        <h3>What this tool does not do</h3>
+                        <ul class="scope-list">
+                            <li>Euler-Bernoulli theory only. Shear deformation is neglected, which under-predicts deflection for short deep beams.</li>
+                            <li>One load at a time. Superposition of several loads is left to you.</li>
+                            <li>Full-span distributed loads only, no partial or triangular loads.</li>
+                            <li>No buckling, no lateral-torsional stability, no connections, no fatigue, no code compliance.</li>
+                            <li>Material properties are single representative values. All 28 rows were checked against the source cited on each one in September 2026, but a real member has scatter, and wood and plastics have a great deal of it.</li>
+                        </ul>
+                    </div>
+                </aside>
+            </div>
+        </main>
+
+        <footer data-footer></footer>
+    </div>
+
+    <script type="module" src="../js/shared.js"></script>
+    <script type="module" src="../js/footer.js"></script>
+    <script type="module" src="../js/beam_deflection/beam-deflection.js"></script>
+</body>
+</html>

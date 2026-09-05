@@ -18,3 +18,7 @@
 !seed_storage_lab/
 !seed_storage_lab/*.csv
 !seed_storage_lab/*.json
+!beam_deflection_materials/
+!beam_deflection_materials/README.md
+!beam_deflection_materials/*.csv
+!beam_deflection_materials/*.json

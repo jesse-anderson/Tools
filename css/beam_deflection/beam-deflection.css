@@ -1,0 +1,701 @@
+/* Page-specific styles for the Beam Deflection Calculator.
+   shared.css supplies theme variables, the reset, header and footer, and base
+   input styling. It does not define .calculator-layout, .calculator-panel,
+   .main-input, .tool-btn or .sidebar, so those live here. */
+
+.calculator-layout {
+    display: grid;
+    grid-template-columns: 1fr 360px;
+    gap: 24px;
+    align-items: start;
+}
+
+.calculator-panel,
+.sidebar-panel {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 24px;
+}
+
+.sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.panel-header {
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.panel-header h2 {
+    font-size: 1.5rem;
+    margin-bottom: 4px;
+}
+
+.panel-header p {
+    color: var(--text-secondary);
+    font-size: 0.9375rem;
+}
+
+.section-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-secondary);
+    margin: 24px 0 12px;
+}
+
+.section-title:first-child {
+    margin-top: 0;
+}
+
+.input-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+}
+
+.input-group label {
+    display: block;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+}
+
+.main-input,
+.main-select {
+    width: 100%;
+    background: var(--bg-input);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 12px 14px;
+    color: var(--text-primary);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.9375rem;
+}
+
+.main-input:focus,
+.main-select:focus {
+    outline: none;
+    border-color: var(--accent-engineering);
+    box-shadow: 0 0 0 3px var(--accent-engineering-dim);
+}
+
+.field-note {
+    font-size: 0.8125rem;
+    color: var(--text-secondary);
+    margin-top: 8px;
+}
+
+.tool-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 44px;
+    padding: 10px 16px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    color: var(--text-primary);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.tool-btn:hover {
+    background: var(--bg-card-hover);
+    border-color: var(--border-hover);
+}
+
+.tool-btn.primary {
+    background: var(--accent-engineering);
+    border-color: var(--accent-engineering);
+    color: #1a1a1a;
+}
+
+/* --- Support case selector -------------------------------------------------
+   Four radio-and-label pairs, so keyboard and screen-reader operation are
+   native. The diagram is the control. */
+
+.support-cards {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+}
+
+.support-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 12px 12px 14px;
+    min-height: 44px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.support-card:hover {
+    border-color: var(--border-hover);
+    background: var(--bg-card-hover);
+}
+
+.support-card.selected {
+    border-color: var(--accent-engineering);
+    background: var(--accent-engineering-dim);
+}
+
+/* The radio stays in the accessibility tree and keeps focus, but the card
+   itself carries the visual state. */
+.support-card input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: 0;
+    opacity: 0;
+}
+
+.support-card:focus-within {
+    outline: 2px solid var(--accent-engineering);
+    outline-offset: 2px;
+}
+
+.support-figure {
+    width: 100%;
+}
+
+.support-name {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.support-sub {
+    font-size: 0.75rem;
+    line-height: 1.35;
+    color: var(--text-secondary);
+}
+
+/* --- Diagrams --------------------------------------------------------------
+   Colour comes from the theme variables, so both themes work with no JS. */
+
+.bd-diagram {
+    display: block;
+    width: 100%;
+    height: auto;
+    color: var(--text-secondary);
+}
+
+.bd-beam {
+    stroke: var(--text-primary);
+}
+
+.bd-support,
+.bd-hatch {
+    stroke: var(--text-secondary);
+}
+
+.bd-support[fill='currentColor'] {
+    fill: var(--text-secondary);
+}
+
+.bd-load {
+    stroke: var(--accent-it);
+    fill: var(--accent-it);
+}
+
+.bd-deflected {
+    stroke: var(--accent-engineering);
+}
+
+.bd-max-line {
+    stroke: var(--accent-engineering);
+}
+
+.bd-max-dot {
+    fill: var(--accent-engineering);
+}
+
+.bd-dim {
+    stroke: var(--text-secondary);
+}
+
+.bd-dim-label {
+    fill: var(--text-secondary);
+    stroke: none;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+}
+
+/* --- Results --------------------------------------------------------------- */
+
+.result-box {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 12px;
+}
+
+.result-box.primary {
+    border-color: var(--accent-engineering);
+    background: var(--accent-engineering-dim);
+}
+
+.result-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 12px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.result-row:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.result-label {
+    flex: 1 1 140px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.result-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.result-note {
+    flex-basis: 100%;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.result-subtitle {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-secondary);
+    margin-bottom: 10px;
+}
+
+.badge {
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.badge-pass {
+    background: var(--accent-success-dim);
+    color: var(--accent-success);
+}
+
+.badge-fail {
+    background: var(--accent-error-dim);
+    color: var(--accent-error);
+}
+
+/* --- Utilization and comparison bars --------------------------------------- */
+
+.util-bar {
+    height: 8px;
+    margin-top: 10px;
+    border-radius: 999px;
+    background: var(--bg-card);
+    overflow: hidden;
+}
+
+.util-fill {
+    height: 100%;
+    background: var(--accent-success);
+}
+
+.util-fill.over {
+    background: var(--accent-error);
+}
+
+.compare-row {
+    display: grid;
+    grid-template-columns: 1fr 60px auto 42px;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 0;
+    font-size: 0.8125rem;
+}
+
+.compare-row.current .compare-name,
+.compare-row.current .compare-value {
+    color: var(--accent-engineering);
+    font-weight: 600;
+}
+
+.compare-name {
+    color: var(--text-secondary);
+    font-family: 'Space Grotesk', sans-serif;
+}
+
+.compare-bar {
+    height: 6px;
+    border-radius: 999px;
+    background: var(--bg-card);
+    overflow: hidden;
+}
+
+.compare-fill {
+    display: block;
+    height: 100%;
+    background: var(--accent-engineering);
+}
+
+.compare-value,
+.compare-ratio {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text-primary);
+    text-align: right;
+}
+
+.compare-ratio {
+    color: var(--text-secondary);
+}
+
+/* --- Material facts -------------------------------------------------------- */
+
+.material-facts {
+    margin-top: 12px;
+    padding: 12px 14px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+}
+
+.material-source {
+    margin-top: 8px;
+    font-size: 0.75rem;
+    line-height: 1.5;
+    color: var(--text-secondary);
+}
+
+.material-unreviewed {
+    margin-top: 8px;
+    font-size: 0.75rem;
+    line-height: 1.5;
+    color: var(--accent-warning);
+}
+
+/* --- Self-weight and unit controls ----------------------------------------- */
+
+.check-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 44px;
+}
+
+.check-row input {
+    width: 18px;
+    height: 18px;
+    flex: 0 0 auto;
+    accent-color: var(--accent-engineering);
+}
+
+.check-row label {
+    margin: 0;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    cursor: pointer;
+}
+
+.check-row input:disabled + label {
+    color: var(--text-secondary);
+    cursor: not-allowed;
+}
+
+.unit-switch {
+    margin-top: 16px;
+    max-width: 220px;
+}
+
+/* --- Support card value ---------------------------------------------------- */
+
+.support-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--accent-engineering);
+    /* The card's other lines are uppercased, but a unit symbol is not free to
+       change case: MM is not mm. */
+    text-transform: none;
+}
+
+/* --- Verification output --------------------------------------------------- */
+
+.verify-output {
+    margin-top: 12px;
+}
+
+.verify-result {
+    padding: 12px 14px;
+    border-radius: 8px;
+    border-left: 3px solid var(--accent-success);
+    background: var(--accent-success-dim);
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    color: var(--text-primary);
+}
+
+.verify-result.fail {
+    border-left-color: var(--accent-error);
+    background: var(--accent-error-dim);
+}
+
+/* --- Gate ------------------------------------------------------------------ */
+
+.gate-box {
+    padding: 16px;
+    border: 1px solid var(--accent-warning);
+    border-radius: 8px;
+    background: var(--accent-warning-dim);
+    font-size: 0.8125rem;
+    line-height: 1.6;
+    color: var(--text-primary);
+}
+
+.gate-box strong {
+    display: block;
+    margin-bottom: 8px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.9375rem;
+}
+
+.warning-error {
+    border-left-color: var(--accent-error);
+    background: var(--accent-error-dim);
+    color: var(--text-primary);
+}
+
+.warning-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.warning {
+    padding: 12px 14px;
+    border-radius: 8px;
+    border-left: 3px solid var(--text-secondary);
+    background: var(--bg-secondary);
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    color: var(--text-secondary);
+}
+
+.warning-warn {
+    border-left-color: var(--accent-warning);
+    background: var(--accent-warning-dim);
+    color: var(--text-primary);
+}
+
+.warning-always {
+    border-left-color: var(--accent-error);
+}
+
+.error-banner {
+    padding: 12px 14px;
+    margin-bottom: 12px;
+    border-radius: 8px;
+    border-left: 3px solid var(--accent-error);
+    background: var(--accent-error-dim);
+    color: var(--text-primary);
+    font-size: 0.875rem;
+}
+
+.disclaimer {
+    margin-top: 16px;
+    padding: 14px 16px;
+    border: 1px solid var(--accent-error);
+    border-radius: 8px;
+    background: var(--accent-error-dim);
+    font-size: 0.8125rem;
+    line-height: 1.55;
+    color: var(--text-primary);
+}
+
+.disclaimer strong {
+    display: block;
+    margin-bottom: 4px;
+    font-family: 'Space Grotesk', sans-serif;
+}
+
+.sidebar-panel h3 {
+    font-size: 1.125rem;
+    margin-bottom: 12px;
+}
+
+.sidebar-panel p,
+.sidebar-panel li {
+    font-size: 0.8125rem;
+    line-height: 1.6;
+    color: var(--text-secondary);
+}
+
+.sidebar-panel ul {
+    margin: 0;
+    padding-left: 18px;
+}
+
+.sidebar-panel li + li {
+    margin-top: 8px;
+}
+
+.scope-list code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--accent-engineering);
+}
+
+/* --- Responsive ------------------------------------------------------------
+   The selector is the main responsive risk: four diagrams that shrink to
+   illegibility help nobody, so they drop to two-across and then one. */
+
+@media (max-width: 1080px) {
+    .calculator-layout {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 900px) {
+    .support-cards {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .support-cards {
+        grid-template-columns: 1fr;
+    }
+
+    .calculator-panel,
+    .sidebar-panel {
+        padding: 16px;
+    }
+
+    .input-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* --- Phase 3: worked examples, focus, and screen-reader affordances --------
+
+   This file deliberately does not use --text-muted. It measures
+   2.6:1 on the light theme card and 3.7:1 on the dark one, so it fails WCAG AA
+   for text in both. It is a shared variable used across the hub, so rather than
+   change it here, this tool uses --text-secondary throughout (7.6:1 and 6.9:1),
+   which still reads as de-emphasised. */
+
+.preset-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.preset-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    min-height: 44px;
+    padding: 8px 12px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    color: var(--text-primary);
+    font-family: 'Space Grotesk', sans-serif;
+    text-align: left;
+    cursor: pointer;
+}
+
+.preset-btn:hover {
+    background: var(--bg-card-hover);
+    border-color: var(--border-hover);
+}
+
+.preset-btn[aria-pressed="true"] {
+    border-color: var(--accent-engineering);
+    box-shadow: inset 0 0 0 1px var(--accent-engineering);
+}
+
+.preset-btn .preset-name {
+    font-size: 0.8125rem;
+    font-weight: 600;
+}
+
+.preset-btn .preset-summary {
+    font-size: 0.75rem;
+    font-weight: 400;
+    color: var(--text-secondary);
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.preset-note:empty {
+    display: none;
+}
+
+/* A visible focus ring on every interactive control. The inputs style their own
+   focus above; these are the ones that would otherwise inherit the UA default,
+   which disappears against the dark theme. */
+.tool-btn:focus-visible,
+.preset-btn:focus-visible,
+.support-card:focus-within {
+    outline: 2px solid var(--accent-engineering);
+    outline-offset: 2px;
+}
+
+/* Available to assistive technology, not painted. Used for the spoken result
+   summary, which exists so a change announces one line rather than the whole
+   results panel being re-read on every keystroke. */
+.visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+}
+
+@media (max-width: 768px) {
+    .preset-btn {
+        flex: 1 1 100%;
+    }
+}

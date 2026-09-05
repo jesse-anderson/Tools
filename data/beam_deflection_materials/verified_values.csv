@@ -1,0 +1,28 @@
+material_id,property,stored_si,si_unit,source_value,source_unit,source_si,rel_error,source_id,locator,verdict
+steel-a36,strength,250000000,Pa,250,MPa,250000000,0.00e+0,astm_a36,"Specified minimum yield, 36 ksi [250 MPa]",agrees
+steel-a36,E,200000000000,Pa,200,GPa,200000000000,0.00e+0,aisc_spec,"E for structural steel, 29,000 ksi [200 GPa]",agrees
+steel-a992,strength,345000000,Pa,345,MPa,345000000,0.00e+0,astm_a992,"Specified minimum yield, 50 ksi [345 MPa]",agrees
+steel-a500b-round,strength,290000000,Pa,290,MPa,290000000,0.00e+0,sti_a500,"Grade B round, 42 ksi [290 MPa]",agrees
+steel-a500c-shaped,strength,345000000,Pa,345,MPa,345000000,0.00e+0,sti_a500,"Grade C shaped, 50 ksi [345 MPa]",agrees
+stainless-304,strength,205000000,Pa,205,MPa,205000000,0.00e+0,astm_a240,"Type 304 minimum yield, 30 ksi [205 MPa]",agrees
+stainless-316,strength,205000000,Pa,205,MPa,205000000,0.00e+0,astm_a240,"Type 316 minimum yield, 30 ksi [205 MPa]",agrees
+alu-6061-t6,strength,241000000,Pa,35,ksi,241316505,1.31e-3,adm_a34,6061-T6 minimum Fty,agrees
+alu-6063-t5,strength,110000000,Pa,16,ksi,110316117,2.87e-3,adm_a34,"6063-T5 minimum Fty, to 0.5 in",agrees
+alumina-99,strength,300000000,Pa,300,MPa,300000000,0.00e+0,coorstek_alumina,"4-PT Flexural Strength (MOR) 20 C, AD-995",agrees
+alumina-99,E,370000000000,Pa,370,GPa,370000000000,0.00e+0,coorstek_alumina,"Elastic Modulus 20 C, AD-995",agrees
+alumina-99,rho,3900,kg/m^3,3900,kg/m^3,3900,0.00e+0,coorstek_alumina,"Density 3.90 g/cm3, AD-995",agrees
+nylon-66,strength,82000000,Pa,82,MPa,82000000,0.00e+0,dupont_zytel101l,"Yield stress 82 / 55 MPa, dry value",agrees
+nylon-66,E,3100000000,Pa,3100,MPa,3100000000,0.00e+0,dupont_zytel101l,"Tensile Modulus 3100 / 1400 MPa, dry value",agrees
+glass-soda-lime,strength,41000000,Pa,41,MPa,41000000,0.00e+0,nga_fm05_12,"Typical mean MOR, annealed, 6000 psi",agrees
+glass-soda-lime,E,71700000000,Pa,71.7,GPa,71700000000,0.00e+0,nga_fm05_12,Modulus of Elasticity (Young's) 10.4e6 psi,agrees
+glass-soda-lime,rho,2530,kg/m^3,2530,kg/m^3,2530,0.00e+0,nga_fm05_12,Density 158 lb/ft3,agrees
+wood-dfl-ss,strength,10342100,Pa,1500,psi,10342135.9,3.48e-6,nds_table_4a,"Douglas Fir-Larch, Select Structural, Fb",agrees
+wood-dfl-ss,E,13100000000,Pa,1900000,psi,13100038900,2.97e-6,nds_table_4a,"Douglas Fir-Larch, Select Structural, E",agrees
+wood-dfl-no2,strength,6205280,Pa,900,psi,6205281.56,2.52e-7,nds_table_4a,"Douglas Fir-Larch, No. 2, Fb",agrees
+wood-dfl-no2,E,11031600000,Pa,1600000,psi,11031611700,1.06e-6,nds_table_4a,"Douglas Fir-Larch, No. 2, E",agrees
+wood-hf-no2,strength,5860540,Pa,850,psi,5860543.7,6.31e-7,nds_table_4a,"Hem-Fir, No.2, Fb",agrees
+wood-hf-no2,E,8963180000,Pa,1300000,psi,8963184480,5.00e-7,nds_table_4a,"Hem-Fir, No.2, E",agrees
+wood-spf-no2,strength,6032910,Pa,875,psi,6032912.63,4.36e-7,nds_table_4a,"Spruce-Pine-Fir, No. 1/No. 2, Fb",agrees
+wood-spf-no2,E,9652660000,Pa,1400000,psi,9652660210,2.18e-8,nds_table_4a,"Spruce-Pine-Fir, No. 1/No. 2, E",agrees
+wood-glulam-24f,strength,16547400,Pa,2400,psi,16547417.5,1.06e-6,apa_glulam,24F-V4 Fbx+,agrees
+wood-glulam-24f,E,12410600000,Pa,1800000,psi,12410563100,2.97e-6,apa_glulam,24F-V4 Ex,agrees
