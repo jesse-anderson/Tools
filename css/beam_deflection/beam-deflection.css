@@ -740,3 +740,163 @@
     font-size: 0.75rem;
     color: var(--text-primary);
 }
+
+/* --- Disclaimer banner and foldable ----------------------------------------
+   A beam calculator reads like a design tool to anyone who does not already
+   know the difference, so the scope limit sits above the inputs rather than in
+   a footnote. The banner is always visible; the card holds the detail and
+   follows the linear-thermal-expansion pattern. It uses native details/summary
+   so keyboard and screen-reader operation need no JavaScript. */
+
+.liability-banner {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 10px;
+    padding: 14px 18px;
+    background: var(--bg-card);
+    border: 1px solid var(--accent-error);
+    border-left: 4px solid var(--accent-error);
+    border-radius: 8px;
+}
+
+.liability-banner strong {
+    display: block;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.9375rem;
+    color: var(--text-primary);
+}
+
+.liability-banner p {
+    margin: 6px 0 0;
+    font-size: 0.8125rem;
+    line-height: 1.55;
+    color: var(--text-secondary);
+}
+
+.status-pill {
+    display: inline-block;
+    flex-shrink: 0;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.6875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.status-pill.locked {
+    background: var(--accent-error-dim, rgba(239, 68, 68, 0.15));
+    color: var(--accent-error);
+    border: 1px solid var(--accent-error);
+}
+
+.disclaimer-card {
+    margin-bottom: 20px;
+    background: var(--bg-card);
+    border: 1px solid var(--accent-error);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.disclaimer-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 18px;
+    min-height: 44px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--accent-error);
+    cursor: pointer;
+    list-style: none;
+}
+
+/* The default marker would sit beside the warning triangle. */
+.disclaimer-header::-webkit-details-marker { display: none; }
+.disclaimer-header::marker { content: ''; }
+
+.disclaimer-header span {
+    flex: 1;
+}
+
+.disclaimer-header .chevron {
+    flex-shrink: 0;
+    transition: transform 0.15s ease;
+}
+
+.disclaimer-card[open] .disclaimer-header .chevron {
+    transform: rotate(180deg);
+}
+
+.disclaimer-header:hover {
+    background: var(--bg-card-hover);
+}
+
+.disclaimer-header:focus-visible {
+    outline: 2px solid var(--accent-engineering);
+    outline-offset: -2px;
+}
+
+.disclaimer-content {
+    padding: 4px 18px 18px;
+    border-top: 1px solid var(--border-color);
+}
+
+.disclaimer-section {
+    margin-top: 16px;
+}
+
+.disclaimer-section h4 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-primary);
+    margin: 0 0 8px;
+}
+
+.disclaimer-section p,
+.disclaimer-footer p {
+    font-size: 0.8125rem;
+    line-height: 1.6;
+    color: var(--text-secondary);
+    margin: 0 0 8px;
+}
+
+.disclaimer-note {
+    padding-left: 10px;
+    border-left: 2px solid var(--accent-error);
+}
+
+.disclaimer-list {
+    margin: 0;
+    padding-left: 20px;
+}
+
+.disclaimer-list li {
+    font-size: 0.8125rem;
+    line-height: 1.6;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+}
+
+.disclaimer-section strong,
+.disclaimer-footer strong {
+    color: var(--text-primary);
+}
+
+.disclaimer-footer {
+    margin-top: 18px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border-color);
+}
+
+@media (max-width: 768px) {
+    .liability-banner {
+        flex-direction: column;
+    }
+}

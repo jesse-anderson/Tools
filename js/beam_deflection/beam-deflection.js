@@ -48,6 +48,7 @@ const state = {
     units: 'si',
     limitId: 'L360',
     selfWeight: false,
+    loadEntry: 'force',
 };
 
 const el = (id) => document.getElementById(id);
@@ -81,6 +82,15 @@ const currentMaterial = () => MATERIALS_BY_ID[state.materialId] || null;
 // Both distributed cases carry w in force per unit length, so magnitude units,
 // labels and the self-weight rules key off this instead of testing for 'udl'.
 const isDistributed = () => state.loadType === 'udl' || state.loadType === 'udl-partial';
+
+// The quantity the magnitude field is currently expressed in. Mass entry is a
+// display convenience: it converts through standard gravity in units.js, and
+// the engine still receives newtons.
+function magnitudeQuantity() {
+    const mass = state.loadEntry === 'mass';
+    if (isDistributed()) return mass ? 'distMass' : 'distLoad';
+    return mass ? 'pointMass' : 'pointLoad';
+}
 
 // ---------------------------------------------------------------------------
 // Support case selector. Real radio inputs inside labels, so keyboard and
@@ -381,8 +391,7 @@ function switchUnits(next) {
     if (!UNIT_SYSTEMS.includes(next) || next === state.units) return;
     const from = state.units;
 
-    const magnitudeQuantity = isDistributed() ? 'distLoad' : 'pointLoad';
-    const carried = [...CONVERTIBLE_FIELDS, ['loadMagnitude', magnitudeQuantity]]
+    const carried = [...CONVERTIBLE_FIELDS, ['loadMagnitude', magnitudeQuantity()]]
         .map(([id, quantity]) => {
             const value = readNumber(id);
             return [id, Number.isFinite(value) ? toSI(value, quantity, from) : NaN, quantity];
@@ -429,9 +438,18 @@ function syncLoadInputs() {
     el('loadPosLabel').textContent = isPartial
         ? `Load starts at a (${unitLabel('span', U())})`
         : `Load position a from the left end (${unitLabel('span', U())})`;
+    const mass = state.loadEntry === 'mass';
+    const q = magnitudeQuantity();
     el('loadMagnitudeLabel').textContent = isUDL
-        ? `Distributed load w (${unitLabel('distLoad', U())})`
-        : `Point load P (${unitLabel('pointLoad', U())})`;
+        ? `Distributed load ${mass ? 'mass' : 'w'} (${unitLabel(q, U())})`
+        : `Point load ${mass ? 'mass' : 'P'} (${unitLabel(q, U())})`;
+    const massNote = el('massNote');
+    massNote.hidden = !mass;
+    if (mass) {
+        massNote.textContent = U() === 'si'
+            ? `Converted to force at standard gravity, so 1 kg is ${G.toFixed(4)} N. The engine only ever sees force.`
+            : 'Converted to force at standard gravity. A pound mass weighs a pound force, so the number does not change in US units.';
+    }
 
     const standardNote = el('standardLoadNote');
     if (state.loadType === 'point-standard') {
@@ -835,8 +853,7 @@ function recompute() {
     const E = toSI(readNumber('modulus'), 'modulus', U());
     const aRaw = toSI(readNumber('loadPos'), 'span', U());
     const cRaw = toSI(readNumber('loadLength'), 'span', U());
-    const magnitudeQuantity = isDistributed() ? 'distLoad' : 'pointLoad';
-    const magnitude = toSI(readNumber('loadMagnitude'), magnitudeQuantity, U());
+    const magnitude = toSI(readNumber('loadMagnitude'), magnitudeQuantity(), U());
 
     const spanKnown = Number.isFinite(L) && L > 0;
     const aFrac = spanKnown && Number.isFinite(aRaw) ? aRaw / L : 0.5;
@@ -945,6 +962,20 @@ function init() {
         clearActivePreset();
         recompute();
     });
+    // Switching between force and mass converts the field, so the beam on the
+    // page does not change when the way of describing its load does.
+    el('loadEntry').addEventListener('change', (e) => {
+        const from = magnitudeQuantity();
+        const value = readNumber('loadMagnitude');
+        state.loadEntry = e.target.value;
+        if (Number.isFinite(value)) {
+            const si = toSI(value, from, U());
+            el('loadMagnitude').value = Number(fromSI(si, magnitudeQuantity(), U()).toPrecision(6));
+        }
+        clearActivePreset();
+        syncLoadInputs();
+        recompute();
+    });
     el('selfWeight').addEventListener('change', (e) => {
         state.selfWeight = e.target.checked;
         clearActivePreset();
@@ -990,6 +1021,7 @@ window.BeamDeflection = {
     PRESETS_BY_ID,
     SECTIONS,
     UNITS,
+    UNIT_SYSTEMS,
     SUPPORTS,
     LOAD_TYPES,
     STANDARD_POINT_RATIO,

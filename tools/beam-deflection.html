@@ -19,6 +19,9 @@ Features:
 - Four support cases: cantilever, simply supported, fixed-fixed, propped
   cantilever, selected by their own diagrams rather than by a dropdown, each
   card showing that case's deflection for the beam currently entered
+- Loads can be entered as a force or as the mass of what sits on the beam,
+  converted at standard gravity, so a 10 kg part does not have to be turned
+  into newtons by hand
 - Point load at the standard position, point load at an arbitrary position,
   a full-span uniformly distributed load with optional self-weight, and a
   uniform load covering any part of the span
@@ -41,7 +44,10 @@ Features:
 - Pure SI engine on window.BeamDeflection
 
 Scope: teaching and first-pass estimating only. Buckling and stability are
-never checked. This tool does not size a structural member.
+never checked, no load combinations are formed, and no code requirement is
+applied. This tool does not size or verify a structural member, and it is not
+engineering advice. A banner and an expandable disclaimer sit at the top of the
+page, above the inputs, carrying the complete scope limits.
 
 Last Updated: September 2026
 ============================================
@@ -97,6 +103,90 @@ Last Updated: September 2026
         </header>
 
         <main>
+            <section class="liability-banner" aria-label="Required disclaimer">
+                <div>
+                    <strong>Teaching and estimating only. This is not a structural design tool, and it is not engineering advice.</strong>
+                    <p>Do not use it to size, verify, or approve any load-bearing member. It models one load on an idealised prismatic beam and checks no stability, connection, fatigue, dynamic, or code requirement. A licensed engineer and the governing standard control.</p>
+                </div>
+                <span class="status-pill locked">Not for design</span>
+            </section>
+
+            <details class="disclaimer-card" id="scopeDisclaimer">
+                <summary class="disclaimer-header">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                        <line x1="12" y1="9" x2="12" y2="13"/>
+                        <line x1="12" y1="17" x2="12.01" y2="17"/>
+                    </svg>
+                    <span>Critical engineering disclaimer, scope limits, and use at your own risk</span>
+                    <svg class="chevron" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <polyline points="6 9 12 15 18 9"/>
+                    </svg>
+                </summary>
+                <div class="disclaimer-content">
+                    <div class="disclaimer-section">
+                        <h4>What this tool actually solves</h4>
+                        <p>Small-deflection Euler-Bernoulli bending for a straight, prismatic, homogeneous, isotropic, linearly elastic beam under a single static load, in one plane, about the strong axis.</p>
+                        <p class="disclaimer-note">Every one of those words is a restriction, and real members routinely break at least one of them.</p>
+                    </div>
+
+                    <div class="disclaimer-section">
+                        <h4>Not checked, at all</h4>
+                        <ul class="disclaimer-list">
+                            <li><strong>Stability:</strong> buckling of any kind, lateral-torsional stability, local and flange buckling, web crippling and bearing.</li>
+                            <li><strong>Other actions:</strong> shear capacity, torsion, biaxial or skew bending, axial load and combined stress.</li>
+                            <li><strong>Joints:</strong> connections, welds, bolts, anchors, fixings, and whether the support can carry the reactions this page reports.</li>
+                            <li><strong>Time and environment:</strong> fatigue, vibration, impact, seismic, wind, snow drift, ponding, temperature, creep, shrinkage, corrosion, fire.</li>
+                            <li><strong>Real geometry:</strong> notches, holes, penetrations, stress concentrations, residual stress, initial camber or bow, construction tolerance, erection stability.</li>
+                            <li><strong>Compliance:</strong> every code requirement of every jurisdiction.</li>
+                        </ul>
+                        <p class="disclaimer-note">A member can satisfy every number reported here and <strong>still be unsafe</strong>.</p>
+                    </div>
+
+                    <div class="disclaimer-section">
+                        <h4>One load, unfactored</h4>
+                        <ul class="disclaimer-list">
+                            <li>A single load case only. Loads are not superposed and combinations are not formed.</li>
+                            <li>No load or resistance factors, and no distinction between service and ultimate limit states.</li>
+                            <li>Real design works from the load combinations in the governing code, not one load typed into a box.</li>
+                        </ul>
+                    </div>
+
+                    <div class="disclaimer-section">
+                        <h4>Material values are representative, not guaranteed</h4>
+                        <ul class="disclaimer-list">
+                            <li><strong>Wood:</strong> values depend on species, grade, size, moisture and load duration. The NDS adjustment factors are not applied here.</li>
+                            <li><strong>Polymers:</strong> stiffness falls under sustained load, so a polymer result is a lower bound on the deflection you will actually get.</li>
+                            <li><strong>Brittle materials:</strong> no yield plateau, and rupture strength is a statistical quantity rather than a property. Glass quoted at its mean modulus of rupture breaks half the time.</li>
+                            <li><strong>Everything else:</strong> one published figure per row, with its source. Real material has scatter; your certificate governs.</li>
+                        </ul>
+                    </div>
+
+                    <div class="disclaimer-section">
+                        <h4>Theory limits</h4>
+                        <ul class="disclaimer-list">
+                            <li>Shear deformation is neglected, which under-predicts deflection for short deep beams.</li>
+                            <li>Small-deflection theory assumes deflection stays small against the span. Past roughly a fiftieth of the span it no longer holds.</li>
+                            <li>Beyond yield every deflection number is wrong, and not by a small margin.</li>
+                            <li>Deflection limits like L/360 are conventions from building practice for particular situations. They are not requirements, they do not apply to machine parts, and meeting one is not evidence that anything is adequate.</li>
+                        </ul>
+                    </div>
+
+                    <div class="disclaimer-section">
+                        <h4>Get a professional engineer for</h4>
+                        <ul class="disclaimer-list">
+                            <li>Anything load-bearing or safety-critical: beams, joists, lintels, rafters, purlins, mezzanines, platforms, guardrails, lifting points, temporary works.</li>
+                            <li>Anything where failure means property damage, injury, or a regulatory problem.</li>
+                            <li>Anything needing a certified calculation or a PE stamp.</li>
+                        </ul>
+                    </div>
+
+                    <div class="disclaimer-footer">
+                        <p><strong>No warranty. No liability. You assume all risk.</strong> This page, its numbers, diagrams, material library and independent check are provided as-is and as-available, without warranty of any kind, express or implied, including accuracy, completeness, timeliness, reliability, fitness for a particular purpose, merchantability, engineering or professional suitability, regulatory or code acceptability, or non-infringement. To the maximum extent permitted by law, the author accepts no liability for any loss, injury, damage, cost or claim arising from use of or reliance on this page.</p>
+                        <p><strong>Independent verification required.</strong> Check every value against the governing design standard, the actual material specification and test certificates, and a competent structural engineer before acting on anything. The standard, the certificate and professional judgement control; where this page disagrees with them, this page is wrong.</p>
+                    </div>
+                </div>
+            </details>
             <div class="calculator-layout">
                 <div class="calculator-panel">
                     <div class="panel-header">
@@ -137,8 +227,15 @@ Last Updated: September 2026
                             </select>
                         </div>
                         <div class="input-group">
+                            <label for="loadEntry">Enter load as</label>
+                            <select class="main-select" id="loadEntry">
+                                <option value="force">Force</option>
+                                <option value="mass">Mass (weight)</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
                             <label for="loadMagnitude" id="loadMagnitudeLabel">Point load P (kN)</label>
-                            <input class="main-input" type="number" id="loadMagnitude" value="10" step="any">
+                            <input class="main-input" type="number" id="loadMagnitude" value="10" step="any" aria-describedby="massNote">
                         </div>
                         <div class="input-group" id="loadPosGroup" hidden>
                             <label for="loadPos" id="loadPosLabel">Load position a from the left end (m)</label>
@@ -149,6 +246,7 @@ Last Updated: September 2026
                             <input class="main-input" type="number" id="loadLength" value="1" step="any" min="0">
                         </div>
                     </div>
+                    <p class="field-note" id="massNote" hidden></p>
                     <p class="field-note" id="standardLoadNote"></p>
                     <div class="check-row" id="selfWeightGroup">
                         <input type="checkbox" id="selfWeight" aria-describedby="selfWeightNote">
@@ -222,7 +320,7 @@ Last Updated: September 2026
                         <div id="results"></div>
                         <div class="disclaimer">
                             <strong>Not a structural design tool.</strong>
-                            This is a teaching and first-pass estimating tool. It computes deflection, bending stress, moment, and reactions for an idealised prismatic beam. It does not check buckling, lateral-torsional stability, connections, fatigue, or any code requirement, and it must not be used to size a load-bearing member.
+                            Teaching and first-pass estimating only. It computes deflection, bending stress, moment, and reactions for an idealised prismatic beam under one load. It does not check buckling, lateral-torsional stability, connections, fatigue, load combinations, or any code requirement, and it must not be used to size or verify a load-bearing member. See the full disclaimer at the top of the page.
                         </div>
                     </div>
 

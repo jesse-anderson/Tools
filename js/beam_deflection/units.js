@@ -10,6 +10,10 @@
 // Every factor below converts one display unit into its SI counterpart, so the
 // direction is always `si = display * factor` and `display = si / factor`.
 
+// Standard gravity, the factor that turns an entered mass into the force the
+// engine actually needs. Imported rather than redefined so there is one value.
+import { G } from './beam-engine.js';
+
 // Exact by definition, so no rounding creeps into a round trip.
 const FT_TO_M = 0.3048;
 const IN_TO_M = 0.0254;
@@ -23,6 +27,10 @@ export const UNIT_SYSTEMS = ['si', 'us'];
 //
 // E is given in ksi rather than Msi on purpose. It keeps modulus and strength in
 // the same unit, so a utilization ratio can be eyeballed without a mental shift.
+//
+// pointMass and distMass let a load be entered as the mass of the thing sitting
+// on the beam. They convert to newtons through standard gravity, so entering
+// 10 kg is entering 98.0665 N. The engine only ever sees force.
 export const UNITS = {
     si: {
         id: 'si',
@@ -32,6 +40,8 @@ export const UNITS = {
         sectionDim: { factor: 1e-3, label: 'mm' },
         pointLoad: { factor: 1e3, label: 'kN' },
         distLoad: { factor: 1e3, label: 'kN/m' },
+        pointMass: { factor: G, label: 'kg' },
+        distMass: { factor: G, label: 'kg/m' },
         modulus: { factor: 1e9, label: 'GPa' },
         strength: { factor: 1e6, label: 'MPa' },
         stress: { factor: 1e6, label: 'MPa' },
@@ -50,6 +60,11 @@ export const UNITS = {
         sectionDim: { factor: IN_TO_M, label: 'in' },
         pointLoad: { factor: LBF_TO_N, label: 'lbf' },
         distLoad: { factor: LBF_TO_N / FT_TO_M, label: 'lbf/ft' },
+        // A pound mass weighs a pound force under standard gravity, so mass and
+        // force share a factor here. They do not in SI, which is the whole
+        // reason people reach for this.
+        pointMass: { factor: LBF_TO_N, label: 'lb' },
+        distMass: { factor: LBF_TO_N / FT_TO_M, label: 'lb/ft' },
         modulus: { factor: KSI_TO_PA, label: 'ksi' },
         strength: { factor: KSI_TO_PA, label: 'ksi' },
         stress: { factor: KSI_TO_PA, label: 'ksi' },

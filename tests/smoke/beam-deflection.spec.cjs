@@ -461,7 +461,10 @@ test.describe('page', () => {
     expect(labels.every((l) => l && l.length > 20)).toBe(true);
     // Real radios, so the selector is keyboard and screen-reader operable.
     await expect(page.locator('.support-card input[type="radio"]')).toHaveCount(4);
-    await expect(page.locator('.disclaimer')).toContainText('not be used to size a load-bearing member');
+    await expect(page.locator('.disclaimer')).toContainText('must not be used to size or verify a load-bearing member');
+    // The scope warning is on the page from the first paint, with no dismissal
+    // step in the way of it or of the calculator.
+    await expect(page.locator('.liability-banner')).toBeVisible();
   });
 
   test('default case computes and matches the engine', async ({ page }) => {
@@ -1677,5 +1680,640 @@ test.describe('partial distributed load', () => {
     await expect(note).toContainText('Almost always pinned');
     await expect(note).toContainText('both flanges');
     await expect(note).toContainText('bracket it');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Physics invariants, swept over every support case and every load type.
+//
+// Everything above this point compares the engine against a formula, a table,
+// or a second solver. These check it against physics instead: equilibrium, the
+// governing differential equation, and the boundary conditions each support is
+// supposed to impose. They hold for load cases nobody has tabulated, so they
+// keep covering the engine as load types are added, and they catch a class of
+// mistake that a golden on one configuration cannot see.
+//
+// Each probe is inlined into its own page.evaluate rather than passed in as a
+// source string, because rebuilding a function inside the page would need
+// new Function, which the strict CSP on this page blocks.
+// ---------------------------------------------------------------------------
+
+// Every load type, including bands that touch each end and one that spans the
+// whole beam, since those are where a Macaulay term can silently drop out.
+const SWEEP = {
+  supports: ['cantilever', 'simple', 'fixed-fixed', 'propped'],
+  loads: [
+    ['point-standard', {}],
+    ['point-at', { a: 0.9 }],
+    ['point-at', { a: 2.1 }],
+    ['udl', {}],
+    ['udl-partial', { a: 0, c: 1.2 }],
+    ['udl-partial', { a: 0.7, c: 1.1 }],
+    ['udl-partial', { a: 1.8, c: 1.2 }],
+    ['udl-partial', { a: 0, c: 3 }],
+  ],
+};
+const SWEEP_ARG = { ...SWEEP, beam: { L, E, I, P, w } };
+const SWEEP_SIZE = SWEEP.supports.length * SWEEP.loads.length;
+
+// Shared preamble used inside each page.evaluate: rebuilds one solve input.
+function expectAllUnder(rows, limit) {
+  expect(rows.length).toBe(SWEEP_SIZE);
+  for (const row of rows) {
+    expect(row.value, `${row.label}${row.error ? ` (${row.error})` : ''}`).toBeLessThan(limit);
+  }
+}
+
+test.describe('physics invariants over every case', () => {
+  test('the reactions carry exactly the load that was applied', async ({ page }) => {
+    await openTool(page);
+    const rows = await page.evaluate(({ supports, loads, beam }) => {
+      const out = [];
+      for (const support of supports) {
+        for (const [loadType, extra] of loads) {
+          const distributed = loadType === 'udl' || loadType === 'udl-partial';
+          const r = window.BeamDeflection.solve({
+            support, loadType, ...beam, ...(distributed ? { w: beam.w } : { P: beam.P }), ...extra,
+          });
+          const label = `${support}/${loadType} ${JSON.stringify(extra)}`;
+          if (!r.ok) { out.push({ label, value: 1, error: r.error }); continue; }
+          const total = loadType === 'udl' ? beam.w * beam.L
+            : loadType === 'udl-partial' ? beam.w * extra.c : beam.P;
+          const sum = r.reactions.reduce((s, x) => s + x.force, 0);
+          out.push({ label, value: Math.abs(sum - total) / total });
+        }
+      }
+      return out;
+    }, SWEEP_ARG);
+    // Vertical equilibrium is exact arithmetic, so this needs no slack.
+    expectAllUnder(rows, 1e-12);
+  });
+
+  test('the deflection curve satisfies EI y.. = -M(x) everywhere', async ({ page }) => {
+    await openTool(page);
+    // The deflection curve and the moment function are written separately in
+    // the engine. If either is wrong, they stop agreeing here.
+    const rows = await page.evaluate(({ supports, loads, beam }) => {
+      const EI = beam.E * beam.I;
+      const out = [];
+      for (const support of supports) {
+        for (const [loadType, extra] of loads) {
+          const distributed = loadType === 'udl' || loadType === 'udl-partial';
+          const r = window.BeamDeflection.solve({
+            support, loadType, ...beam, ...(distributed ? { w: beam.w } : { P: beam.P }), ...extra,
+          });
+          const label = `${support}/${loadType} ${JSON.stringify(extra)}`;
+          if (!r.ok) { out.push({ label, value: 1, error: r.error }); continue; }
+
+          const edges = [0, beam.L];
+          if (loadType === 'point-at') edges.push(extra.a);
+          if (loadType === 'point-standard') edges.push(0.5 * beam.L, beam.L);
+          if (loadType === 'udl-partial') edges.push(extra.a, extra.a + extra.c);
+
+          // Curvature is compared against the beam's own characteristic
+          // curvature. Scaling by the local value would divide by zero on the
+          // straight run of a cantilever beyond its load.
+          const scale = Math.abs(r.MmaxAbs) / EI;
+          const h = beam.L * 2e-4;
+          let worst = 0;
+          for (let i = 1; i < 40; i += 1) {
+            const x = (beam.L * i) / 40;
+            if (!edges.every((e) => Math.abs(x - e) > 0.08 * beam.L)) continue;
+            const d2 = (r.deflectionAt(x + h) - 2 * r.deflectionAt(x) + r.deflectionAt(x - h)) / (h * h);
+            worst = Math.max(worst, Math.abs(d2 + r.momentAt(x) / EI) / scale);
+          }
+          out.push({ label, value: worst });
+        }
+      }
+      return out;
+    }, SWEEP_ARG);
+    // Limited by the second difference, not by the engine: 1e-6 sits well above
+    // the 8.7e-8 actually achieved and far below any real formula error.
+    expectAllUnder(rows, 1e-6);
+  });
+
+  test('every support holds its end of the beam where it claims to', async ({ page }) => {
+    await openTool(page);
+    const rows = await page.evaluate(({ supports, loads, beam }) => {
+      const out = [];
+      for (const support of supports) {
+        for (const [loadType, extra] of loads) {
+          const distributed = loadType === 'udl' || loadType === 'udl-partial';
+          const r = window.BeamDeflection.solve({
+            support, loadType, ...beam, ...(distributed ? { w: beam.w } : { P: beam.P }), ...extra,
+          });
+          const label = `${support}/${loadType} ${JSON.stringify(extra)}`;
+          if (!r.ok) { out.push({ label, value: 1, error: r.error }); continue; }
+          const scale = r.deltaMax || 1;
+          let worst = Math.abs(r.deflectionAt(0)) / scale;
+          if (support !== 'cantilever') worst = Math.max(worst, Math.abs(r.deflectionAt(beam.L)) / scale);
+          out.push({ label, value: worst });
+        }
+      }
+      return out;
+    }, SWEEP_ARG);
+    expectAllUnder(rows, 1e-10);
+  });
+
+  test('a free, pinned or roller end carries no moment', async ({ page }) => {
+    await openTool(page);
+    const rows = await page.evaluate(({ supports, loads, beam }) => {
+      const out = [];
+      for (const support of supports) {
+        for (const [loadType, extra] of loads) {
+          const distributed = loadType === 'udl' || loadType === 'udl-partial';
+          const r = window.BeamDeflection.solve({
+            support, loadType, ...beam, ...(distributed ? { w: beam.w } : { P: beam.P }), ...extra,
+          });
+          const label = `${support}/${loadType} ${JSON.stringify(extra)}`;
+          if (!r.ok) { out.push({ label, value: 1, error: r.error }); continue; }
+          const scale = Math.abs(r.MmaxAbs) || 1;
+          let worst = 0;
+          if (support === 'simple') worst = Math.abs(r.momentAt(0)) / scale;
+          // Free end of a cantilever, pin of a propped cantilever, roller of a
+          // simply supported beam: all moment-free by definition.
+          if (support !== 'fixed-fixed') worst = Math.max(worst, Math.abs(r.momentAt(beam.L)) / scale);
+          out.push({ label, value: worst });
+        }
+      }
+      return out;
+    }, SWEEP_ARG);
+    expectAllUnder(rows, 1e-12);
+  });
+
+  test('a built-in end has zero slope and a pinned end does not', async ({ page }) => {
+    await openTool(page);
+    // Stated so no step size can fudge it. Approaching a built-in end the curve
+    // grows as x^2, so delta(d)/delta(2d) tends to 1/4; approaching a pinned end
+    // it grows as x and the same ratio tends to 1/2. This is the zero end slope
+    // the diagrams exist to show, written as a number.
+    const rows = await page.evaluate(({ supports, loads, beam }) => {
+      const out = [];
+      for (const support of supports) {
+        for (const [loadType, extra] of loads) {
+          const distributed = loadType === 'udl' || loadType === 'udl-partial';
+          const r = window.BeamDeflection.solve({
+            support, loadType, ...beam, ...(distributed ? { w: beam.w } : { P: beam.P }), ...extra,
+          });
+          const label = `${support}/${loadType} ${JSON.stringify(extra)}`;
+          if (!r.ok) { out.push({ label, value: 1, error: r.error }); continue; }
+          const d = beam.L * 1e-3;
+          const near0 = r.deflectionAt(d) / r.deflectionAt(2 * d);
+          const nearL = r.deflectionAt(beam.L - d) / r.deflectionAt(beam.L - 2 * d);
+          const clamped = [];
+          const pinned = [];
+          (support === 'simple' ? pinned : clamped).push(near0);
+          if (support === 'fixed-fixed') clamped.push(nearL);
+          if (support === 'simple' || support === 'propped') pinned.push(nearL);
+          let worst = 0;
+          for (const v of clamped) worst = Math.max(worst, Math.abs(v - 0.25));
+          for (const v of pinned) worst = Math.max(worst, Math.abs(v - 0.5));
+          out.push({ label, value: worst });
+        }
+      }
+      return out;
+    }, SWEEP_ARG);
+    expectAllUnder(rows, 5e-3);
+  });
+
+  test('doubling the load doubles the answer, on every case', async ({ page }) => {
+    await openTool(page);
+    const rows = await page.evaluate(({ supports, loads, beam }) => {
+      const out = [];
+      for (const support of supports) {
+        for (const [loadType, extra] of loads) {
+          const distributed = loadType === 'udl' || loadType === 'udl-partial';
+          const base = { support, loadType, L: beam.L, E: beam.E, I: beam.I, ...extra };
+          const one = window.BeamDeflection.solve({ ...base, ...(distributed ? { w: beam.w } : { P: beam.P }) });
+          const two = window.BeamDeflection.solve({ ...base, ...(distributed ? { w: beam.w * 2 } : { P: beam.P * 2 }) });
+          const label = `${support}/${loadType} ${JSON.stringify(extra)}`;
+          if (!one.ok || !two.ok) { out.push({ label, value: 1, error: one.error || two.error }); continue; }
+          out.push({ label, value: Math.abs(two.deltaMax - 2 * one.deltaMax) / (2 * one.deltaMax) });
+        }
+      }
+      return out;
+    }, SWEEP_ARG);
+    // Linear elasticity, so this is exact rather than merely close.
+    expectAllUnder(rows, 1e-12);
+  });
+});
+
+test.describe('more partial-load coverage', () => {
+  test('a cantilever partial band, computed by hand', async ({ page }) => {
+    await openTool(page);
+    // Fixed at x = 0, w = 5 kN/m over [1, 2], L = 3, EI = 2e6.
+    // W = 5000 at xbar = 1.5, so M0 = -7500 and R0 = 5000.
+    //   Q2(3) = -(w/24)(2^4 - 1^4) = -3125
+    //   EI*delta(3) = 7500*9/2 - 5000*27/6 + 3125 = 14375
+    const r = await solveIn(page, { support: 'cantilever', loadType: 'udl-partial', a: 1, c: 1, w, L, E, I });
+    expectRel(r.deltaMax, 14375 / 2e6, 1e-12);
+    expectRel(r.xMax, L, 1e-9);
+    // The wall carries the whole load and the moment of its centroid.
+    expectRel(r.reactions[0].force, 5000, 1e-12);
+    expectRel(r.reactions[0].moment, -7500, 1e-12);
+  });
+
+  test('the moment peaks where the shear crosses zero', async ({ page }) => {
+    await openTool(page);
+    // Inside the loaded band the shear falls linearly from R0, reaching zero at
+    // a + R0/w. That is where the bending moment turns over.
+    const got = await page.evaluate((arg) => {
+      const out = [];
+      for (const [a, c] of [[1, 1], [0.5, 1.5], [0.2, 2.4]]) {
+        const r = window.BeamDeflection.solve({ support: 'simple', loadType: 'udl-partial', a, c, ...arg });
+        out.push({ a, c, predicted: a + r.reactions[0].force / arg.w, reported: r.MmaxAt, moment: Math.abs(r.MmaxAbs) });
+      }
+      return out;
+    }, { L, E, I, w });
+
+    for (const g of got) {
+      expect(Math.abs(g.predicted - g.reported), `band a=${g.a} c=${g.c}`).toBeLessThan(1e-9);
+      expect(g.moment, `band a=${g.a} c=${g.c}`).toBeGreaterThan(0);
+    }
+  });
+
+  test('span scaling holds for a band that keeps its proportions', async ({ page }) => {
+    await openTool(page);
+    // A distributed load scales as L^4 at fixed w, so a beam twice as long with
+    // the band in the same relative place deflects sixteen times as far.
+    const got = await page.evaluate((arg) => {
+      const run = (span) => window.BeamDeflection.solve({
+        support: 'propped', loadType: 'udl-partial',
+        a: 0.25 * span, c: 0.5 * span, L: span, E: arg.E, I: arg.I, w: arg.w,
+      }).deltaMax;
+      return { base: run(arg.L), doubled: run(2 * arg.L) };
+    }, { L, E, I, w });
+    expectRel(got.doubled / got.base, 16, 1e-12);
+  });
+
+  test('mirroring a band mirrors the answer, except where the beam is not symmetric', async ({ page }) => {
+    await openTool(page);
+    const got = await page.evaluate((arg) => {
+      const run = (support, a) => window.BeamDeflection.solve({
+        support, loadType: 'udl-partial', a, c: 0.8, ...arg,
+      });
+      const out = {};
+      for (const support of ['simple', 'fixed-fixed', 'propped']) {
+        const left = run(support, 0.4);
+        const right = run(support, arg.L - 1.2);
+        out[support] = { ratio: left.deltaMax / right.deltaMax, xSum: left.xMax + right.xMax };
+      }
+      return out;
+    }, { L, E, I, w });
+
+    expectRel(got.simple.ratio, 1, 1e-12);
+    expectRel(got['fixed-fixed'].ratio, 1, 1e-12);
+    expectRel(got.simple.xSum, L, 1e-6);
+    expectRel(got['fixed-fixed'].xSum, L, 1e-6);
+    // A propped cantilever is built in at one end only, so the same band near
+    // the wall and near the prop are genuinely different problems.
+    expect(Math.abs(got.propped.ratio - 1)).toBeGreaterThan(0.1);
+  });
+});
+
+test.describe('diagram and preset data integrity', () => {
+  test('every support and load combination draws a usable diagram', async ({ page }) => {
+    await openTool(page);
+    const bad = await page.evaluate(() => {
+      const out = [];
+      const cards = document.querySelectorAll('.support-card');
+      const select = document.getElementById('loadType');
+      for (const lt of ['point-standard', 'point-at', 'udl', 'udl-partial']) {
+        select.value = lt;
+        select.dispatchEvent(new Event('change'));
+        for (const card of cards) {
+          const tag = `${lt}/${card.dataset.support}`;
+          const svg = card.querySelector('svg.bd-diagram');
+          if (!svg) { out.push(`${tag}: no svg`); continue; }
+          const markup = svg.outerHTML;
+          if (/NaN|undefined|Infinity/.test(markup)) out.push(`${tag}: bad number in markup`);
+          const path = svg.querySelector('.bd-deflected');
+          if (!path || (path.getAttribute('d') || '').length < 20) out.push(`${tag}: empty deflected shape`);
+          if (!svg.querySelector('title')) out.push(`${tag}: no title`);
+        }
+      }
+      return out;
+    });
+    expect(bad).toEqual([]);
+  });
+
+  test('every preset describes a beam the engine will accept', async ({ page }) => {
+    await openTool(page);
+    const problems = await page.evaluate(() => {
+      const B = window.BeamDeflection;
+      const out = [];
+      for (const p of B.PRESETS) {
+        const bad = (msg) => out.push(`${p.id}: ${msg}`);
+        if (!B.SUPPORTS.includes(p.state.support)) bad('unknown support');
+        if (!B.LOAD_TYPES.includes(p.state.loadType)) bad('unknown load type');
+        if (!B.MATERIALS_BY_ID[p.state.materialId]) bad('unknown material');
+        if (!B.SECTIONS[p.state.sectionType]) bad('unknown section');
+        if (!['si', 'us'].includes(p.units)) bad('unknown unit system');
+        if (!B.DEFLECTION_LIMITS.some((l) => l.id === p.state.limitId)) bad('unknown limit');
+        if (p.state.limitId === 'custom' && !(p.fields.customLimit > 0)) bad('custom limit without a ratio');
+
+        const section = B.SECTIONS[p.state.sectionType];
+        if (section) {
+          for (const f of section.fields) {
+            if (!f.optional && !(p.section[f.key] > 0)) bad(`missing section field ${f.key}`);
+          }
+          for (const key of Object.keys(p.section)) {
+            if (!section.fields.some((f) => f.key === key)) bad(`stray section field ${key}`);
+          }
+        }
+
+        if (!(p.fields.span > 0)) bad('non-positive span');
+        if (p.state.loadType === 'point-at' && !(p.fields.loadPos >= 0 && p.fields.loadPos <= p.fields.span)) {
+          bad('load position outside the span');
+        }
+        if (p.state.loadType === 'udl-partial') {
+          const { loadPos, loadLength, span } = p.fields;
+          if (!(loadLength > 0)) bad('non-positive loaded length');
+          if (!(loadPos >= 0)) bad('band starts before the beam');
+          if (loadPos + loadLength > span * (1 + 1e-12)) bad('band runs past the end');
+        }
+        // Self-weight is offered on the full-span distributed case only.
+        if (p.state.selfWeight && p.state.loadType !== 'udl') bad('self-weight on a case that cannot take it');
+        if (!p.teaches || p.teaches.length < 40) bad('no explanation of what it demonstrates');
+      }
+      return out;
+    });
+    expect(problems).toEqual([]);
+  });
+
+  test('sampleCurve returns a usable curve for every case', async ({ page }) => {
+    await openTool(page);
+    const bad = await page.evaluate((arg) => {
+      const out = [];
+      for (const support of ['cantilever', 'simple', 'fixed-fixed', 'propped']) {
+        for (const [loadType, extra] of [['udl', {}], ['udl-partial', { a: 0.6, c: 1.2 }], ['point-at', { a: 1.1 }]]) {
+          const distributed = loadType !== 'point-at';
+          const r = window.BeamDeflection.solve({
+            support, loadType, L: arg.L, E: arg.E, I: arg.I,
+            ...(distributed ? { w: arg.w } : { P: arg.P }), ...extra,
+          });
+          const pts = window.BeamDeflection.sampleCurve(r, 40);
+          const tag = `${support}/${loadType}`;
+          if (pts.length !== 41) out.push(`${tag}: ${pts.length} points`);
+          if (pts[0].x !== 0) out.push(`${tag}: does not start at 0`);
+          if (Math.abs(pts[pts.length - 1].x - arg.L) > 1e-12) out.push(`${tag}: does not end at L`);
+          for (let i = 1; i < pts.length; i += 1) {
+            if (!(pts[i].x > pts[i - 1].x)) out.push(`${tag}: x not increasing at ${i}`);
+            if (!Number.isFinite(pts[i].y)) out.push(`${tag}: non-finite y at ${i}`);
+          }
+          // A sampled point cannot exceed the reported maximum.
+          const peak = Math.max(...pts.map((q) => Math.abs(q.y)));
+          if (peak > r.deltaMax * (1 + 1e-9)) out.push(`${tag}: sample exceeds deltaMax`);
+        }
+      }
+      return out;
+    }, { L, E, I, P, w });
+    expect(bad).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The scope disclaimer.
+//
+// A beam calculator reads like a design tool to anyone who does not already
+// know the difference, so the warning sits above the inputs rather than in a
+// footnote. It is deliberately not a modal: a dialog every visitor has to
+// dismiss is a tax on every visit and gets clicked through without reading.
+// These tests check that it is visible without any interaction, that it comes
+// before the inputs, and that it names specifics rather than waving at risk.
+// ---------------------------------------------------------------------------
+
+test.describe('scope disclaimer', () => {
+  test('the warning is visible immediately, with nothing to dismiss', async ({ page }) => {
+    await openTool(page);
+
+    const banner = page.locator('.liability-banner');
+    await expect(banner).toBeVisible();
+    await expect(banner).toContainText('not a structural design tool');
+    await expect(banner).toContainText('load-bearing member');
+
+    // No modal, no overlay, no acknowledgement step.
+    await expect(page.locator('#disclaimerSplash')).toHaveCount(0);
+    await expect(page.locator('.disclaimer-card')).toBeVisible();
+
+    // The calculator is usable on arrival rather than gated behind a click.
+    await expect(page.locator('#results .result-box.primary')).toBeVisible();
+    const inert = await page.evaluate(() =>
+      [...document.querySelectorAll('[inert]')].length);
+    expect(inert).toBe(0);
+  });
+
+  test('both the banner and the foldable sit above the inputs', async ({ page }) => {
+    await openTool(page);
+    const tops = await page.evaluate(() => {
+      const top = (sel) => document.querySelector(sel).getBoundingClientRect().top;
+      return {
+        banner: top('.liability-banner'),
+        card: top('.disclaimer-card'),
+        panel: top('.calculator-panel'),
+        results: top('.sidebar'),
+      };
+    });
+    expect(tops.banner).toBeLessThan(tops.card);
+    expect(tops.card).toBeLessThan(tops.panel);
+    expect(tops.card).toBeLessThan(tops.results);
+
+    // Near enough to the top of the page that it is on screen without scrolling.
+    await expect(page.locator('.liability-banner')).toBeInViewport();
+    await expect(page.locator('.disclaimer-card summary')).toBeInViewport();
+  });
+
+  test('the foldable opens, and is keyboard operable without script', async ({ page }) => {
+    await openTool(page);
+    const card = page.locator('.disclaimer-card');
+    // Collapsed by default so it does not push the calculator down the page.
+    expect(await card.evaluate((n) => n.open)).toBe(false);
+
+    // Native details/summary, so Enter on the focused summary is enough.
+    await card.locator('summary').focus();
+    await page.keyboard.press('Enter');
+    expect(await card.evaluate((n) => n.open)).toBe(true);
+    await page.keyboard.press('Enter');
+    expect(await card.evaluate((n) => n.open)).toBe(false);
+  });
+
+  test('the disclaimer names specifics rather than waving at risk', async ({ page }) => {
+    await openTool(page);
+    const card = page.locator('.disclaimer-card');
+    await card.locator('summary').click();
+
+    for (const phrase of [
+      'lateral-torsional', 'web crippling', 'fatigue', 'load combinations',
+      'professional engineer', 'No warranty', 'assume all risk',
+      'Independent verification', 'still be unsafe',
+    ]) {
+      await expect(card, phrase).toContainText(phrase);
+    }
+    // The material caveats that the numbers themselves cannot carry.
+    await expect(card).toContainText('NDS adjustment factors are not applied');
+    await expect(card).toContainText('breaks half the time');
+
+    const text = await card.textContent();
+    expect(text.length).toBeGreaterThan(2500);
+  });
+
+  test('the disclaimer renders in both themes and at a phone width', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 800 });
+    await openTool(page);
+    await page.locator('.disclaimer-card summary').click();
+
+    for (const theme of ['dark', 'light']) {
+      await page.evaluate((t) => document.documentElement.setAttribute('data-theme', t), theme);
+      await expect(page.locator('.liability-banner'), theme).toBeVisible();
+      await expect(page.locator('.disclaimer-card'), theme).toBeVisible();
+    }
+
+    const overflow = await page.evaluate(() => {
+      const doc = document.documentElement;
+      return doc.scrollWidth > doc.clientWidth + 1;
+    });
+    expect(overflow).toBe(false);
+  });
+
+  test('the sidebar note still backs up the banner at the point of the result', async ({ page }) => {
+    await openTool(page);
+    const note = page.locator('.disclaimer');
+    await expect(note).toContainText('must not be used to size or verify a load-bearing member');
+    await expect(note).toContainText('full disclaimer at the top');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Entering a load as a mass.
+//
+// People know what the thing on the beam weighs, not what it pushes with, and
+// in SI those are different numbers. The conversion is a display convenience:
+// it happens in units.js like every other unit, and the engine still receives
+// newtons. These tests pin that the beam does not change when only the way of
+// describing its load changes.
+// ---------------------------------------------------------------------------
+
+test.describe('load entered as mass', () => {
+  test('mass and force are the same conversion path as every other unit', async ({ page }) => {
+    await openTool(page);
+    const got = await page.evaluate(() => {
+      const { toSI, fromSI, unitLabel } = window.BeamDeflection;
+      return {
+        kg: toSI(10, 'pointMass', 'si'),
+        lb: toSI(10, 'pointMass', 'us'),
+        lbf: toSI(10, 'pointLoad', 'us'),
+        kgPerM: toSI(5, 'distMass', 'si'),
+        lbPerFt: toSI(5, 'distMass', 'us'),
+        lbfPerFt: toSI(5, 'distLoad', 'us'),
+        labels: [unitLabel('pointMass', 'si'), unitLabel('pointMass', 'us'),
+          unitLabel('distMass', 'si'), unitLabel('distMass', 'us')],
+        roundTrip: fromSI(toSI(12.5, 'pointMass', 'si'), 'pointMass', 'si'),
+      };
+    });
+
+    // 10 kg weighs 98.0665 N at standard gravity.
+    expectRel(got.kg, 10 * 9.80665, 1e-12);
+    expectRel(got.kgPerM, 5 * 9.80665, 1e-12);
+    // A pound mass weighs a pound force, so the US pair share a factor exactly.
+    expect(got.lb).toBe(got.lbf);
+    expect(got.lbPerFt).toBe(got.lbfPerFt);
+    expect(got.labels).toEqual(['kg', 'lb', 'kg/m', 'lb/ft']);
+    expectRel(got.roundTrip, 12.5, 1e-12);
+  });
+
+  test('a mass and its equivalent force give the same beam', async ({ page }) => {
+    await openTool(page);
+    // 100 kg is 980.665 N, so the two must agree to the bit.
+    const got = await page.evaluate((arg) => {
+      const B = window.BeamDeflection;
+      const beam = { support: 'simple', loadType: 'point-standard', ...arg };
+      return {
+        byForce: B.solve({ ...beam, P: 100 * 9.80665 }).deltaMax,
+        byMass: B.solve({ ...beam, P: B.toSI(100, 'pointMass', 'si') }).deltaMax,
+      };
+    }, { L, E, I });
+    expectRel(got.byMass, got.byForce, 1e-15);
+  });
+
+  test('switching to mass restates the load without moving the beam', async ({ page }) => {
+    await openTool(page);
+    await page.fill('#loadMagnitude', '10');
+    const before = await page.locator('#results .result-box.primary').textContent();
+
+    await page.locator('#loadEntry').selectOption('mass');
+    await expect(page.locator('#loadMagnitudeLabel')).toContainText('mass (kg)');
+    // 10 kN is 1019.72 kg.
+    expect(Number(await page.locator('#loadMagnitude').inputValue())).toBeCloseTo(1019.72, 2);
+    const after = await page.locator('#results .result-box.primary').textContent();
+    expect(after.replace(/\s+/g, ' ')).toBe(before.replace(/\s+/g, ' '));
+
+    // And back again, with no drift from the round trip.
+    await page.locator('#loadEntry').selectOption('force');
+    expect(Number(await page.locator('#loadMagnitude').inputValue())).toBeCloseTo(10, 6);
+    await expect(page.locator('#loadMagnitudeLabel')).toContainText('P (kN)');
+  });
+
+  test('a mass entry survives a unit switch as the same mass', async ({ page }) => {
+    await openTool(page);
+    await page.locator('#loadEntry').selectOption('mass');
+    await page.fill('#loadMagnitude', '10');
+    const before = await page.locator('#results .result-box.primary').textContent();
+
+    await page.locator('#unitSystem').selectOption('us');
+    await expect(page.locator('#loadMagnitudeLabel')).toContainText('mass (lb)');
+    // 10 kg is 22.0462 lb, the same lump of metal described differently.
+    expect(Number(await page.locator('#loadMagnitude').inputValue())).toBeCloseTo(22.0462, 3);
+
+    await page.locator('#unitSystem').selectOption('si');
+    expect(Number(await page.locator('#loadMagnitude').inputValue())).toBeCloseTo(10, 4);
+    const after = await page.locator('#results .result-box.primary').textContent();
+    expect(after.replace(/\s+/g, ' ')).toBe(before.replace(/\s+/g, ' '));
+  });
+
+  test('a distributed load can be entered as mass per length', async ({ page }) => {
+    await openTool(page);
+    await page.locator('#loadType').selectOption('udl');
+    await page.locator('#loadEntry').selectOption('mass');
+    await expect(page.locator('#loadMagnitudeLabel')).toContainText('mass (kg/m)');
+
+    await page.fill('#span', '3');
+    await page.fill('#loadMagnitude', '100');
+    // 100 kg/m is 980.665 N/m. Default 50 x 100 steel: I = 4.1666667e-6,
+    // EI = 8.3333333e5, so 5wL^4/384EI = 1.2409 mm.
+    const want = (5 * 100 * 9.80665 * 3 ** 4) / (384 * 200e9 * 4.1666666666666667e-6);
+    const text = await page.locator('#results .result-box.primary').textContent();
+    expect(Number(text.match(/([\d.]+) mm/)[1])).toBeCloseTo(want * 1000, 3);
+  });
+
+  test('mass mode says how it converts, and only while it is on', async ({ page }) => {
+    await openTool(page);
+    const note = page.locator('#massNote');
+    await expect(note).toBeHidden();
+
+    await page.locator('#loadEntry').selectOption('mass');
+    await expect(note).toBeVisible();
+    await expect(note).toContainText('standard gravity');
+    await expect(note).toContainText('9.8066');
+
+    // In US units the number does not change, and the note says so rather than
+    // implying a conversion the reader will not see.
+    await page.locator('#unitSystem').selectOption('us');
+    await expect(note).toContainText('pound mass weighs a pound force');
+
+    await page.locator('#loadEntry').selectOption('force');
+    await expect(note).toBeHidden();
+  });
+
+  test('the load entry control is labelled and clears the active example', async ({ page }) => {
+    await openTool(page);
+    const label = await page.evaluate(() =>
+      document.querySelector('label[for="loadEntry"]').textContent.trim());
+    expect(label.toLowerCase()).toContain('enter load as');
+
+    await page.locator('[data-preset="fixed-vs-simple"]').click();
+    await expect(page.locator('[data-preset="fixed-vs-simple"]')).toHaveAttribute('aria-pressed', 'true');
+    // Restating the load is an edit, so the form no longer matches the example.
+    await page.locator('#loadEntry').selectOption('mass');
+    await expect(page.locator('[data-preset="fixed-vs-simple"]')).toHaveAttribute('aria-pressed', 'false');
   });
 });

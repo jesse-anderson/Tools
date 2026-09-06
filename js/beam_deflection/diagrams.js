@@ -172,7 +172,11 @@ export function beamDiagram(support, loadType, aFrac = 0.5, cFrac = 1) {
         ? clamp(cFrac, 1e-4, 1 - bandStart)
         : 1;
     const bandEnd = bandStart + bandLen;
-    const { path, xMaxFrac } = deflectedPath(support, loadType, bandStart, bandLen);
+    // A point load takes its position from frac; a band takes it from bandStart.
+    // Passing bandStart for both puts a point load at x = 0, on the support,
+    // where the beam does not bend and the drawn curve comes back empty.
+    const loadFrac = loadType === 'udl-partial' ? bandStart : frac;
+    const { path, xMaxFrac } = deflectedPath(support, loadType, loadFrac, bandLen);
     const xLoad = X0 + (X1 - X0) * frac;
 
     const marker = xMaxFrac === null ? '' : (() => {
