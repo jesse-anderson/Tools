@@ -432,8 +432,17 @@
     cursor: pointer;
 }
 
+/* The self-weight box spends most of its life disabled, because it only
+   applies to the full-span distributed case. Dimming the whole row says so at a
+   glance; the label used to keep its normal colour, so the only clue that the
+   control was dead was the note underneath it. Opacity dims the box and its
+   label together as one unit, and WCAG exempts disabled controls from the
+   contrast minimum, so this is the one place it is the right tool. */
+.check-row:has(input:disabled) {
+    opacity: 0.55;
+}
+
 .check-row input:disabled + label {
-    color: var(--text-secondary);
     cursor: not-allowed;
 }
 

@@ -510,6 +510,12 @@ function showError(message) {
     // The banner is role="alert", so it speaks for itself. Clear the summary so
     // a stale result is not still being announced next to a live error.
     el('resultsStatus').textContent = '';
+    // The per-case numbers on the selector cards belong to the beam that was
+    // last valid. Leaving them up next to an error message reads as though the
+    // rejected input still produced an answer, so they go too.
+    for (const node of document.querySelectorAll('[data-support-value]')) {
+        node.textContent = '';
+    }
 }
 
 function clearError() {
@@ -580,9 +586,6 @@ function renderSectionProps(section) {
     host.append(row('Section modulus S', `${fmt(fromSI(section.S, 'sectionModulus', U()), 1)} ${unitLabel('sectionModulus', U())}`));
 }
 
-// Same load, same section, all four boundary conditions. This is the number the
-// tool exists to make obvious: pinned-pinned and fixed-fixed are both "supported
-// on both sides" and they are five times apart under a uniform load.
 // Which result sections the user has opened. The results panel is rebuilt from
 // scratch on every keystroke, so without this a section would slam shut the
 // moment anyone edited a field while reading it.
@@ -608,6 +611,9 @@ function foldSection(titleText) {
     return { details, body };
 }
 
+// Same load, same section, all four boundary conditions. This is the number the
+// tool exists to make obvious: pinned-pinned and fixed-fixed are both "supported
+// on both sides" and they are five times apart under a uniform load.
 function renderComparison(baseInput, selected) {
     const { details, body: host } = foldSection('Same beam, other boundary conditions');
 
@@ -630,8 +636,9 @@ function renderComparison(baseInput, selected) {
         bar.className = 'compare-bar';
         const fill = document.createElement('span');
         fill.className = 'compare-fill';
-        // Width is the honest ratio, floored so a very stiff case stays visible.
-        fill.style.width = `${Math.max(2, (r.deltaMax / worst) * 100)}%`;
+        // Width is the honest ratio, floored so a very stiff case stays visible
+        // and capped so nothing can paint outside its own track.
+        fill.style.width = `${Math.min(100, Math.max(2, (r.deltaMax / worst) * 100))}%`;
         bar.append(fill);
 
         const value = document.createElement('span');
@@ -657,12 +664,18 @@ function renderComparison(baseInput, selected) {
 function renderStress(result, section, material) {
     const { details, body: host } = foldSection('Bending stress');
 
-    const safetyFactor = Math.max(readNumber('safetyFactor') || 1, 0);
+    // Blank, zero and negative all mean the same thing here, which is that no
+    // factor was given. Reading it once and coercing once keeps the number the
+    // allowable is divided by identical to the number reported beside it: the
+    // two used to be computed separately, so a negative entry divided by 1 and
+    // then labelled itself "safety factor 0".
+    const entered = readNumber('safetyFactor');
+    const safetyFactor = Number.isFinite(entered) && entered > 0 ? entered : 1;
     const check = stressCheck({
         MmaxAbs: result.MmaxAbs,
         S: section.S,
         strength: material ? material.strength : { kind: 'none', value: null },
-        safetyFactor: safetyFactor || 1,
+        safetyFactor,
     });
     if (!check.ok) {
         host.append(row('Stress', check.error));
@@ -889,6 +902,10 @@ function recompute() {
     if (!Number.isFinite(L) || L <= 0) return showError('Enter a positive span.');
     if (!Number.isFinite(E) || E <= 0) return showError('Enter a positive elastic modulus.');
     if (!Number.isFinite(magnitude)) return showError('Enter a load magnitude.');
+    // The engine rejects this too, but its message names P or w. This one names
+    // whatever the field in front of the user currently says, which may be a
+    // mass rather than a force.
+    if (magnitude < 0) return showError('The load must not be negative. Loads act downward here, and an upward load is not modelled.');
     if (!section.ok) return showError(section.error);
     if (state.loadType === 'point-at') {
         if (!Number.isFinite(aRaw)) return showError('Enter a load position.');

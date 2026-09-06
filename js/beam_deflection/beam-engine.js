@@ -20,6 +20,17 @@
 export const G = 9.80665;
 
 export const SUPPORTS = ['cantilever', 'simple', 'fixed-fixed', 'propped'];
+
+// What each support is called, left to right, in the results. One table rather
+// than a string literal at each site: the tabulated solvers and the partial-load
+// solver both report reactions, and they used to name the propped cantilever's
+// two ends differently depending on which load type happened to be selected.
+export const REACTION_LABELS = {
+    'cantilever': ['Fixed end'],
+    'simple': ['Left pin', 'Right roller'],
+    'fixed-fixed': ['Left fixed end', 'Right fixed end'],
+    'propped': ['Fixed end', 'Prop (pin)'],
+};
 export const LOAD_TYPES = ['point-standard', 'point-at', 'udl', 'udl-partial'];
 
 // Where the standard point load sits, as a fraction of span, per support case.
@@ -129,7 +140,7 @@ function solveCantilever({ loadType, P, w, a, L, E, I }) {
             xMaxLabel: 'free end',
             momentCandidates: [0],
             reactions: [
-                { at: 0, label: 'Fixed end', force: w * L, moment: -(w * L * L) / 2 },
+                { at: 0, label: REACTION_LABELS.cantilever[0], force: w * L, moment: -(w * L * L) / 2 },
             ],
         };
     }
@@ -147,7 +158,7 @@ function solveCantilever({ loadType, P, w, a, L, E, I }) {
         deltaAtLoad: (P * a ** 3) / (3 * EI),
         momentCandidates: [0],
         reactions: [
-            { at: 0, label: 'Fixed end', force: P, moment: -P * a },
+            { at: 0, label: REACTION_LABELS.cantilever[0], force: P, moment: -P * a },
         ],
     };
 }
@@ -164,8 +175,8 @@ function solveSimple({ loadType, P, w, a, L, E, I }) {
             xMaxLabel: 'midspan',
             momentCandidates: [L / 2],
             reactions: [
-                { at: 0, label: 'Left pin', force: (w * L) / 2, moment: 0 },
-                { at: L, label: 'Right roller', force: (w * L) / 2, moment: 0 },
+                { at: 0, label: REACTION_LABELS.simple[0], force: (w * L) / 2, moment: 0 },
+                { at: L, label: REACTION_LABELS.simple[1], force: (w * L) / 2, moment: 0 },
             ],
         };
     }
@@ -188,8 +199,8 @@ function solveSimple({ loadType, P, w, a, L, E, I }) {
         deltaAtLoad: curveN(an),
         momentCandidates: [a],
         reactions: [
-            { at: 0, label: 'Left pin', force: (P * (L - a)) / L, moment: 0 },
-            { at: L, label: 'Right roller', force: (P * a) / L, moment: 0 },
+            { at: 0, label: REACTION_LABELS.simple[0], force: (P * (L - a)) / L, moment: 0 },
+            { at: L, label: REACTION_LABELS.simple[1], force: (P * a) / L, moment: 0 },
         ],
     };
 }
@@ -211,8 +222,8 @@ function solveFixedFixed({ loadType, P, w, a, L, E, I }) {
             // are negative in the sagging-positive convention. Reporting the
             // right end as +MA renders it as "sagging", which it is not.
             reactions: [
-                { at: 0, label: 'Left fixed end', force: R, moment: -MA },
-                { at: L, label: 'Right fixed end', force: R, moment: -MA },
+                { at: 0, label: REACTION_LABELS['fixed-fixed'][0], force: R, moment: -MA },
+                { at: L, label: REACTION_LABELS['fixed-fixed'][1], force: R, moment: -MA },
             ],
         };
     }
@@ -238,12 +249,12 @@ function solveFixedFixed({ loadType, P, w, a, L, E, I }) {
         // normalized pair swaps back when the load was mirrored.
         reactions: mirrored
             ? [
-                { at: 0, label: 'Left fixed end', force: P - RA, moment: -MB },
-                { at: L, label: 'Right fixed end', force: RA, moment: -MA },
+                { at: 0, label: REACTION_LABELS['fixed-fixed'][0], force: P - RA, moment: -MB },
+                { at: L, label: REACTION_LABELS['fixed-fixed'][1], force: RA, moment: -MA },
             ]
             : [
-                { at: 0, label: 'Left fixed end', force: RA, moment: -MA },
-                { at: L, label: 'Right fixed end', force: P - RA, moment: -MB },
+                { at: 0, label: REACTION_LABELS['fixed-fixed'][0], force: RA, moment: -MA },
+                { at: L, label: REACTION_LABELS['fixed-fixed'][1], force: P - RA, moment: -MB },
             ],
     };
 }
@@ -263,8 +274,8 @@ function solvePropped({ loadType, P, w, a, L, E, I }) {
             // Zero shear, and so the peak sagging moment, sits at 5L/8.
             momentCandidates: [0, (5 * L) / 8],
             reactions: [
-                { at: 0, label: 'Fixed end', force: RA, moment: -MA },
-                { at: L, label: 'Prop (pin)', force: (3 * w * L) / 8, moment: 0 },
+                { at: 0, label: REACTION_LABELS.propped[0], force: RA, moment: -MA },
+                { at: L, label: REACTION_LABELS.propped[1], force: (3 * w * L) / 8, moment: 0 },
             ],
         };
     }
@@ -299,8 +310,8 @@ function solvePropped({ loadType, P, w, a, L, E, I }) {
         deltaAtLoad: deflectionAt(a),
         momentCandidates: [0, a],
         reactions: [
-            { at: 0, label: 'Fixed end', force: RA, moment: -MA },
-            { at: L, label: 'Prop (pin)', force: Rp, moment: 0 },
+            { at: 0, label: REACTION_LABELS.propped[0], force: RA, moment: -MA },
+            { at: L, label: REACTION_LABELS.propped[1], force: Rp, moment: 0 },
         ],
     };
 }
@@ -437,19 +448,14 @@ function solvePartialUDL({ support, w, a, c, L, E, I }) {
     const xShear = a + R0 / w;
     if (Number.isFinite(xShear) && xShear > a && xShear < b) momentCandidates.push(xShear);
 
+    const labels = REACTION_LABELS[support];
     const reactions = support === 'cantilever'
-        ? [{ at: 0, label: 'Fixed end', force: W, moment: M0 }]
+        ? [{ at: 0, label: labels[0], force: W, moment: M0 }]
         : [
-            {
-                at: 0,
-                label: support === 'simple' ? 'Left pin' : 'Left fixed end',
-                force: R0,
-                moment: M0,
-            },
+            { at: 0, label: labels[0], force: R0, moment: M0 },
             {
                 at: L,
-                label: support === 'fixed-fixed' ? 'Right fixed end'
-                    : (support === 'propped' ? 'Right pin' : 'Right roller'),
+                label: labels[1],
                 force: W - R0,
                 moment: support === 'fixed-fixed' ? momentAt(L) : 0,
             },
@@ -477,11 +483,12 @@ const SOLVERS = {
 // zero-deflection limit with correct reactions beats returning NaN or refusing.
 function degenerateResult(input, atSupport) {
     const { L, support, P } = input;
+    const labels = REACTION_LABELS[support];
     const reactions = support === 'cantilever'
-        ? [{ at: 0, label: 'Fixed end', force: P, moment: 0 }]
+        ? [{ at: 0, label: labels[0], force: P, moment: 0 }]
         : [
-            { at: 0, label: 'Left support', force: atSupport === 0 ? P : 0, moment: 0 },
-            { at: L, label: 'Right support', force: atSupport === 0 ? 0 : P, moment: 0 },
+            { at: 0, label: labels[0], force: atSupport === 0 ? P : 0, moment: 0 },
+            { at: L, label: labels[1], force: atSupport === 0 ? 0 : P, moment: 0 },
         ];
     return {
         ok: true,
@@ -539,6 +546,13 @@ export function solve(input) {
     const isPoint = loadType === 'point-standard' || loadType === 'point-at';
     if (isPoint && !isFiniteNumber(input.P)) return err('Point load P must be a number.');
     if (!isPoint && !isFiniteNumber(input.w)) return err('Distributed load w must be a number.');
+    // Loads act downward by definition here, and the rest of the tool is built
+    // on that: deflection is reported as a downward magnitude, the span-over-
+    // deflection check divides by it, and the comparison bars scale against it.
+    // An upward load ran all of that in reverse and produced a negative
+    // deflection that still passed its limit check, so it is rejected instead.
+    if (isPoint && input.P < 0) return err('Point load P must not be negative. Loads act downward, and an upward load is not modelled.');
+    if (!isPoint && input.w < 0) return err('Distributed load w must not be negative. Loads act downward, and an upward load is not modelled.');
     if (isPartial) {
         if (!isFiniteNumber(input.a)) return err('Load start position must be a number.');
         if (!isFiniteNumber(input.c)) return err('Loaded length must be a number.');

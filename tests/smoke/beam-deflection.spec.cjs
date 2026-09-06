@@ -2404,3 +2404,192 @@ test.describe('foldable result sections', () => {
     ).toBeVisible();
   });
 });
+
+// ---------------------------------------------------------------------------
+// The correctness pass.
+//
+// Four defects found by driving the finished tool rather than by reading it.
+// Each of these produced a plausible-looking screen rather than an obvious
+// failure, which is why they survived the build: an upward load reported a
+// negative deflection and then passed its own limit check, a negative safety
+// factor divided by one while labelling itself zero, the per-case numbers on
+// the selector cards stayed on screen next to an input error, and the propped
+// cantilever's two ends were named differently depending on the load type.
+// ---------------------------------------------------------------------------
+
+test.describe('correctness pass', () => {
+  test('an upward load is rejected rather than deflecting the beam upward', async ({ page }) => {
+    await openTool(page);
+
+    // The engine refuses it, so a caller using the public handle cannot get a
+    // negative deflection out of it either.
+    const engine = await page.evaluate((arg) => {
+      const B = window.BeamDeflection;
+      const cases = [
+        ['point-standard', { P: -1e4 }],
+        ['point-at', { P: -1e4, a: 1.1 }],
+        ['udl', { w: -1e4 }],
+        ['udl-partial', { w: -1e4, a: 0.5, c: 1.5 }],
+      ];
+      return {
+        rejected: cases.map(([loadType, extra]) => {
+          const r = B.solve({ ...arg, support: 'simple', loadType, ...extra });
+          return { loadType, ok: r.ok, error: r.error || null };
+        }),
+        // Zero is a real answer, not an error: an unloaded beam does not deflect.
+        zero: B.solve({ ...arg, support: 'simple', loadType: 'udl', w: 0 }),
+      };
+    }, { L, E, I });
+
+    for (const r of engine.rejected) {
+      expect(r.ok, r.loadType).toBe(false);
+      expect(r.error, r.loadType).toMatch(/must not be negative/);
+    }
+    expect(engine.zero.ok).toBe(true);
+    expect(engine.zero.deltaMax).toBe(0);
+
+    // And the page says so in terms of the field the user is looking at,
+    // instead of reporting a negative deflection that passes its limit check.
+    await page.fill('#loadMagnitude', '-10');
+    const banner = page.locator('#errorBanner');
+    await expect(banner).toBeVisible();
+    await expect(banner).toContainText('must not be negative');
+    await expect(page.locator('#results')).toBeHidden();
+
+    await page.fill('#loadMagnitude', '10');
+    await expect(banner).toBeHidden();
+    await expect(page.locator('#results .result-box.primary')).toContainText('6.75 mm');
+  });
+
+  test('the safety factor that is used is the safety factor that is shown', async ({ page }) => {
+    await openTool(page);
+    const stress = page.locator('#results .result-fold', { hasText: 'Bending stress' });
+    await stress.locator('summary').click();
+
+    // A36 steel, 250 MPa yield. At safety factor 2 the allowable halves.
+    await page.fill('#safetyFactor', '2');
+    await expect(stress).toContainText('125 MPa');
+    await expect(stress).toContainText('safety factor 2');
+
+    // Blank, zero and negative all mean "no factor given". Each has to divide
+    // by one AND say one: the two used to be computed separately, so -2 gave
+    // the full 250 MPa allowable under the label "safety factor 0".
+    for (const entry of ['', '0', '-2']) {
+      await page.fill('#safetyFactor', entry);
+      await expect(stress, `entry ${JSON.stringify(entry)}`).toContainText('250 MPa');
+      await expect(stress, `entry ${JSON.stringify(entry)}`).toContainText('safety factor 1');
+      await expect(stress, `entry ${JSON.stringify(entry)}`).not.toContainText('safety factor 0');
+    }
+  });
+
+  test('an input error clears the per-case numbers on the selector cards', async ({ page }) => {
+    await openTool(page);
+    const cards = page.locator('[data-support-value]');
+    const before = await cards.allTextContents();
+    expect(before.every((t) => t.trim().length > 0)).toBe(true);
+
+    // The cards are not inside #results, so hiding the results panel does not
+    // hide them. They used to keep showing the last valid beam's deflections
+    // alongside a message saying the input was rejected.
+    await page.fill('#span', '');
+    await expect(page.locator('#errorBanner')).toContainText('positive span');
+    expect((await cards.allTextContents()).every((t) => t.trim() === '')).toBe(true);
+
+    await page.fill('#span', '3');
+    await expect(page.locator('#errorBanner')).toBeHidden();
+    expect(await cards.allTextContents()).toEqual(before);
+  });
+
+  test('each support names its reactions the same way whatever the load type', async ({ page }) => {
+    await openTool(page);
+    const bySupport = await page.evaluate((arg) => {
+      const B = window.BeamDeflection;
+      const cases = [
+        ['point-standard', { P: 1e4 }],
+        ['point-at', { P: 1e4, a: 1.1 }],
+        ['udl', { w: 1e4 }],
+        ['udl-partial', { w: 1e4, a: 0.5, c: 1.5 }],
+      ];
+      const out = {};
+      for (const support of B.SUPPORTS) {
+        out[support] = cases.map(([loadType, extra]) =>
+          B.solve({ ...arg, support, loadType, ...extra }).reactions.map((r) => r.label).join(' | '));
+      }
+      // A load sitting on a support takes a different code path again, and it
+      // used to fall back to a generic "Left support" / "Right support".
+      out.degenerate = B.solve({ ...arg, support: 'propped', loadType: 'point-at', P: 1e4, a: 0 })
+        .reactions.map((r) => r.label).join(' | ');
+      return out;
+    }, { L, E, I });
+
+    // The propped cantilever is the one that diverged: the tabulated solver
+    // called its ends "Fixed end" and "Prop (pin)", the partial-load solver
+    // called them "Left fixed end" and "Right pin".
+    expect(bySupport.propped).toEqual(Array(4).fill('Fixed end | Prop (pin)'));
+    expect(bySupport.cantilever).toEqual(Array(4).fill('Fixed end'));
+    expect(bySupport.simple).toEqual(Array(4).fill('Left pin | Right roller'));
+    expect(bySupport['fixed-fixed']).toEqual(Array(4).fill('Left fixed end | Right fixed end'));
+    expect(bySupport.degenerate).toBe('Fixed end | Prop (pin)');
+  });
+
+  test('no comparison bar paints outside its own track', async ({ page }) => {
+    await openTool(page);
+    await page.locator('#results .result-fold', { hasText: 'Same beam, other boundary conditions' })
+      .locator('summary').click();
+    const overflow = await page.evaluate(() => [...document.querySelectorAll('#results .compare-row')]
+      .map((row) => {
+        const track = row.querySelector('.compare-bar').getBoundingClientRect();
+        const fill = row.querySelector('.compare-fill').getBoundingClientRect();
+        return fill.width - track.width;
+      }));
+    for (const over of overflow) expect(over).toBeLessThanOrEqual(0.5);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The performance pass.
+//
+// Measured rather than assumed, because the answer decided whether to add a
+// debounce and a diagram cache at all. A keystroke runs nine closed-form solves
+// (the beam, four boundary conditions for the comparison, four for the selector
+// cards) and rebuilds four SVG schematics and the whole results panel, and it
+// still lands near a millisecond. The budget below is deliberately loose enough
+// to survive a slow CI runner while still catching an order-of-magnitude
+// regression, which is the only kind worth failing a build over.
+// ---------------------------------------------------------------------------
+
+test.describe('performance', () => {
+  test('a keystroke stays well inside a frame, on the slowest load type', async ({ page }) => {
+    await openTool(page);
+    const perKeystroke = await page.evaluate(() => {
+      const span = document.getElementById('span');
+      const fire = (v) => {
+        span.value = String(v);
+        span.dispatchEvent(new Event('input', { bubbles: true }));
+      };
+      // The partial band is the expensive one: its maximum has no closed form,
+      // so every solve scans and then refines instead of evaluating a formula.
+      const type = document.getElementById('loadType');
+      type.value = 'udl-partial';
+      type.dispatchEvent(new Event('change', { bubbles: true }));
+      for (let i = 0; i < 10; i += 1) fire(3);   // warm
+      const t0 = performance.now();
+      for (let i = 0; i < 50; i += 1) fire(3 + i * 0.01);
+      return (performance.now() - t0) / 50;
+    });
+    expect(perKeystroke).toBeLessThan(16);
+  });
+
+  test('the verification sweep is fast enough to run on the main thread', async ({ page }) => {
+    await openTool(page);
+    const ms = await page.evaluate(() => {
+      window.BeamDeflection.verifyAll();   // warm
+      const t0 = performance.now();
+      window.BeamDeflection.verifyAll();
+      return performance.now() - t0;
+    });
+    // 60 cases, each a banded Hermitian solve over 200 elements. It runs on a
+    // click with no spinner, so it has to stay short enough not to need one.
+    expect(ms).toBeLessThan(1500);
+  });
+});

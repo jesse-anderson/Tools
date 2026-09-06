@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
 ============================================
-BEAM DEFLECTION CALCULATOR v1.0.0 (Phase 3)
+BEAM DEFLECTION CALCULATOR v1.0.0
 ============================================
 Description: Euler-Bernoulli beam deflection for the four common boundary
 conditions, reporting maximum deflection and its location alongside midspan
@@ -40,14 +40,15 @@ Features:
 - Bending stress and utilization with a user-set safety factor
 - Independent verification: a Hermitian finite-element solve of the same beam,
   run from the sidebar, that shares no formula with the closed forms
-- Six worked examples, each built around one specific point
+- Seven worked examples, each built around one specific point
 - Pure SI engine on window.BeamDeflection
 
 Scope: teaching and first-pass estimating only. Buckling and stability are
 never checked, no load combinations are formed, and no code requirement is
 applied. This tool does not size or verify a structural member, and it is not
-engineering advice. A banner and an expandable disclaimer sit at the top of the
-page, above the inputs, carrying the complete scope limits.
+engineering advice. An expandable disclaimer card sits at the top of the page,
+above the inputs, with the headline warning in its summary so the key sentence
+reads without opening anything, and the complete scope limits inside.
 
 Last Updated: September 2026
 ============================================
@@ -230,7 +231,7 @@ Last Updated: September 2026
                         </div>
                         <div class="input-group">
                             <label for="loadMagnitude" id="loadMagnitudeLabel">Point load P (kN)</label>
-                            <input class="main-input" type="number" id="loadMagnitude" value="10" step="any" aria-describedby="massNote">
+                            <input class="main-input" type="number" id="loadMagnitude" value="10" step="any" min="0" aria-describedby="massNote">
                         </div>
                         <div class="input-group" id="loadPosGroup" hidden>
                             <label for="loadPos" id="loadPosLabel">Load position a from the left end (m)</label>
