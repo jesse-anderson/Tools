@@ -81,7 +81,7 @@ test.describe('engine handle', () => {
     expect(shape.sectionProperties).toBe('function');
     expect(shape.normalizeOffCenter).toBe('function');
     expect(shape.supports).toEqual(['cantilever', 'simple', 'fixed-fixed', 'propped']);
-    expect(shape.loadTypes).toEqual(['point-standard', 'point-at', 'udl']);
+    expect(shape.loadTypes).toEqual(['point-standard', 'point-at', 'udl', 'udl-partial']);
   });
 });
 
@@ -900,7 +900,8 @@ test.describe('independent numerical cross-check', () => {
     expect(report.failed).toEqual([]);
     expect(report.pass).toBe(true);
     // Four support cases x (two standard load types + seven swept positions).
-    expect(report.total).toBe(36);
+    // 4 supports x (1 standard + 1 full-span UDL + 7 positions + 6 partial bands).
+    expect(report.total).toBe(60);
     expect(report.elements).toBe(200);
     // Agreement is far tighter than any real coefficient error would be.
     expect(report.worst).toBeLessThan(1e-6);
@@ -972,7 +973,7 @@ test.describe('independent numerical cross-check', () => {
     const out = page.locator('#verifyOutput');
     await expect(out).toBeVisible();
     await expect(out.locator('.verify-result')).toHaveClass(/pass/);
-    await expect(out).toContainText('36 closed forms agree');
+    await expect(out).toContainText('60 closed forms agree');
     await expect(out).toContainText('200 Hermitian beam elements');
     // The known limit of the method is stated rather than left implied.
     await expect(out).toContainText('shear deformation');
@@ -1451,5 +1452,230 @@ test.describe('responsive, themes, and CSP', () => {
 
     expect(await page.evaluate(() => window.__cspViolations)).toEqual([]);
     expect(consoleHits).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Partial distributed load.
+//
+// The Macaulay skeleton behind this is shared by all four support cases, so a
+// mistake in it is a mistake everywhere at once. Three independent things pin
+// it: the full-span limit must reproduce the four tabulated closed forms, a
+// band shrinking onto a point must reproduce the point-load solution, and the
+// finite-element sweep must agree on bands that touch neither end.
+// ---------------------------------------------------------------------------
+
+test.describe('partial distributed load', () => {
+  test('the full-span band collapses onto the tabulated full-span forms', async ({ page }) => {
+    await openTool(page);
+    const got = await page.evaluate((arg) => {
+      const out = {};
+      for (const support of ['cantilever', 'simple', 'fixed-fixed', 'propped']) {
+        const partial = window.BeamDeflection.solve({
+          support, loadType: 'udl-partial', a: 0, c: arg.L, ...arg,
+        });
+        const full = window.BeamDeflection.solve({ support, loadType: 'udl', ...arg });
+        out[support] = {
+          partial: partial.deltaMax,
+          full: full.deltaMax,
+          xPartial: partial.xMax,
+          xFull: full.xMax,
+          mPartial: partial.MmaxAbs,
+          mFull: full.MmaxAbs,
+        };
+      }
+      return out;
+    }, { L, E, I, w });
+
+    for (const [support, r] of Object.entries(got)) {
+      // Two independently derived routes to the same number, so this is tight.
+      expectRel(r.partial, r.full, 1e-12);
+      expect(Math.abs(r.xPartial - r.xFull), `${support} location`).toBeLessThan(L * 1e-6);
+      expectRel(r.mPartial, r.mFull, 1e-12);
+    }
+  });
+
+  test('a band shrinking onto a point reproduces the point load', async ({ page }) => {
+    await openTool(page);
+    // Total load held at P while the band narrows around a = 1.2 m.
+    const got = await page.evaluate((arg) => {
+      const at = 1.2;
+      const point = window.BeamDeflection.solve({
+        support: 'simple', loadType: 'point-at', a: at, P: arg.P, ...arg,
+      }).deltaMax;
+      const bands = [0.4, 0.1, 0.02, 0.004].map((c) => window.BeamDeflection.solve({
+        support: 'simple', loadType: 'udl-partial', a: at - c / 2, c, w: arg.P / c, ...arg,
+      }).deltaMax);
+      return { point, bands };
+    }, { L, E, I, P });
+
+    const errors = got.bands.map((d) => Math.abs(d - got.point) / got.point);
+    // Each halving of the band must shrink the gap, and the tightest band has
+    // to land on the point-load answer.
+    for (let i = 1; i < errors.length; i += 1) {
+      expect(errors[i], `band ${i} vs ${i - 1}`).toBeLessThan(errors[i - 1]);
+    }
+    expect(errors[errors.length - 1]).toBeLessThan(1e-5);
+  });
+
+  test('a golden partial band, computed by hand', async ({ page }) => {
+    await openTool(page);
+    // Simply supported, L = 3, EI = 2e6, w = 5 kN/m over [1, 2].
+    // W = 5000 N centred on midspan, so R0 = 2500 N and the maximum is at 1.5.
+    //   Q2(1.5) = -(w/24)(0.5)^4              = -13.020833...
+    //   Q2(3)   = -(w/24)(2^4 - 1^4)          = -3125
+    //   C1      = (R0 L^3/6 + Q2(3)) / L      = 2708.3333...
+    //   EI*delta(1.5) = -R0*1.5^3/6 - Q2(1.5) + C1*1.5 = 2669.270833...
+    const r = await solveIn(page, { support: 'simple', loadType: 'udl-partial', a: 1, c: 1, w, L, E, I });
+    expectRel(r.deltaMax, 2669.2708333333335 / 2e6, 1e-12);
+    // The location is held to a looser tolerance than the value on purpose.
+    // Around a smooth peak the deflection varies quadratically, so comparing
+    // function values pins x only to about sqrt(machine epsilon), near 1.5e-8
+    // relative, however many refinement steps are taken. The value itself is
+    // still good to 1e-16.
+    expectRel(r.xMax, 1.5, 1e-6);
+    // Symmetric band, so the reactions split evenly.
+    expectRel(r.reactions[0].force, 2500, 1e-12);
+    expectRel(r.reactions[1].force, 2500, 1e-12);
+  });
+
+  test('the band position moves the answer, and the ends are the awkward cases', async ({ page }) => {
+    await openTool(page);
+    const got = await page.evaluate((arg) => {
+      const run = (a, c) => window.BeamDeflection.solve({
+        support: 'simple', loadType: 'udl-partial', a, c, ...arg,
+      });
+      return {
+        // Same load, mirrored about midspan, must mirror the answer.
+        left: run(0.4, 1).deltaMax,
+        right: run(arg.L - 1.4, 1).deltaMax,
+        xLeft: run(0.4, 1).xMax,
+        xRight: run(arg.L - 1.4, 1).xMax,
+        // A band hard against each end, where a Macaulay term drops out.
+        atStart: run(0, 1).deltaMax,
+        atEnd: run(arg.L - 1, 1).deltaMax,
+      };
+    }, { L, E, I, w });
+
+    expectRel(got.left, got.right, 1e-12);
+    // Location, so the sqrt(machine epsilon) floor described above applies.
+    expectRel(got.xLeft, L - got.xRight, 1e-6);
+    // A band at either end of a symmetric beam is the same problem mirrored.
+    expectRel(got.atStart, got.atEnd, 1e-12);
+  });
+
+  test('the geometry guards reject a band that will not fit', async ({ page }) => {
+    await openTool(page);
+    const got = await page.evaluate((arg) => {
+      const run = (a, c) => {
+        const r = window.BeamDeflection.solve({ support: 'simple', loadType: 'udl-partial', a, c, ...arg });
+        return r.ok ? 'accepted' : r.error;
+      };
+      return {
+        past: run(2.5, 1),
+        negativeStart: run(-0.5, 1),
+        zeroLength: run(1, 0),
+        negativeLength: run(1, -1),
+        exact: run(2, 1),
+      };
+    }, { L, E, I, w });
+
+    expect(got.past).toMatch(/past the right end/);
+    expect(got.negativeStart).toMatch(/at or after the left end/);
+    expect(got.zeroLength).toMatch(/greater than zero/);
+    expect(got.negativeLength).toMatch(/greater than zero/);
+    // A band that exactly reaches the far end is legal, not a rounding failure.
+    expect(got.exact).toBe('accepted');
+  });
+
+  test('both fixed ends hog, in every load case', async ({ page }) => {
+    await openTool(page);
+    // A downward load bends a fixed-fixed beam so that both ends hog. Reporting
+    // the right end with a positive moment renders it as "sagging", which had
+    // been the case for every fixed-fixed result before this was pinned.
+    const got = await page.evaluate((arg) => {
+      const cases = [
+        { loadType: 'udl', w: arg.w },
+        { loadType: 'point-standard', P: arg.P },
+        { loadType: 'point-at', a: 0.9, P: arg.P },
+        { loadType: 'udl-partial', a: 0.5, c: 1.5, w: arg.w },
+      ];
+      return cases.map((c) => {
+        const r = window.BeamDeflection.solve({ support: 'fixed-fixed', L: arg.L, E: arg.E, I: arg.I, ...c });
+        return {
+          loadType: c.loadType,
+          moments: r.reactions.map((x) => x.moment),
+          internal: [r.momentAt(0), r.momentAt(arg.L)],
+        };
+      });
+    }, { L, E, I, w, P });
+
+    for (const c of got) {
+      for (const m of c.moments) expect(m, `${c.loadType} reaction moment`).toBeLessThan(0);
+      for (const m of c.internal) expect(m, `${c.loadType} internal moment`).toBeLessThan(0);
+    }
+  });
+
+  test('the page drives a partial band and draws it', async ({ page }) => {
+    await openTool(page);
+    await page.locator('#loadType').selectOption('udl-partial');
+
+    await expect(page.locator('#loadPosGroup')).toBeVisible();
+    await expect(page.locator('#loadLengthGroup')).toBeVisible();
+    await expect(page.locator('#loadPosLabel')).toContainText('Load starts at');
+    await expect(page.locator('#loadMagnitudeLabel')).toContainText('kN/m');
+
+    await page.fill('#span', '3');
+    await page.fill('#loadPos', '1');
+    await page.fill('#loadLength', '1');
+    await page.fill('#loadMagnitude', '5');
+
+    // Default 50 x 100 steel section: I = 4.1666667e-6, so EI = 8.3333333e5 and
+    // the hand-computed 2669.2708 / EI is 3.2031 mm.
+    await expect(page.locator('#results .result-box.primary')).toContainText('3.2031 mm');
+
+    // The drawing has to follow the input, not stay on the full-span glyph.
+    const band = await page.evaluate(() => {
+      const svg = document.querySelector('.support-card svg.bd-diagram').outerHTML;
+      return { hasBandDim: svg.includes('>c<'), arrows: (svg.match(/<path d="M /g) || []).length };
+    });
+    expect(band.hasBandDim).toBe(true);
+    expect(band.arrows).toBeGreaterThan(1);
+    expect(band.arrows).toBeLessThan(9);
+
+    // Self-weight spans the whole beam, so it cannot be added to a partial load.
+    await expect(page.locator('#selfWeight')).toBeDisabled();
+    await expect(page.locator('#selfWeightNote')).toContainText('whole span');
+  });
+
+  test('the loaded band survives a unit switch unchanged', async ({ page }) => {
+    await openTool(page);
+    await page.locator('#loadType').selectOption('udl-partial');
+    await page.fill('#span', '3');
+    await page.fill('#loadPos', '1');
+    await page.fill('#loadLength', '1');
+    await page.fill('#loadMagnitude', '5');
+    const before = await page.locator('#results .result-box.primary').textContent();
+
+    await page.locator('#unitSystem').selectOption('us');
+    await expect(page.locator('#loadLengthLabel')).toContainText('(ft)');
+    // 1 m is 3.28084 ft; the physical beam must not have moved.
+    expect(Number(await page.locator('#loadLength').inputValue())).toBeCloseTo(3.28084, 4);
+
+    await page.locator('#unitSystem').selectOption('si');
+    const after = await page.locator('#results .result-box.primary').textContent();
+    expect(after.replace(/\s+/g, ' ')).toBe(before.replace(/\s+/g, ' '));
+  });
+
+  test('the connection fixity note is present and says bolted is usually pinned', async ({ page }) => {
+    await openTool(page);
+    const note = page.locator('.fixity-note');
+    await expect(note).toBeVisible();
+    // Collapsed by default so it does not push the selector off the screen.
+    expect(await note.evaluate((n) => n.open)).toBe(false);
+    await note.locator('summary').click();
+    await expect(note).toContainText('Almost always pinned');
+    await expect(note).toContainText('both flanges');
+    await expect(note).toContainText('bracket it');
   });
 });

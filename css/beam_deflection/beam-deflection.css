@@ -699,3 +699,44 @@
         flex: 1 1 100%;
     }
 }
+
+/* --- Connection fixity note ------------------------------------------------
+   Collapsed by default. The four diagrams answer "which case is this", and this
+   answers the question they raise next, which is whether a real bolted end
+   counts as fixed. */
+
+.fixity-note {
+    margin-top: 12px;
+    padding: 10px 14px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-left: 3px solid var(--accent-engineering);
+    border-radius: 6px;
+}
+
+.fixity-note summary {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    cursor: pointer;
+    min-height: 24px;
+}
+
+.fixity-note summary:focus-visible {
+    outline: 2px solid var(--accent-engineering);
+    outline-offset: 2px;
+}
+
+.fixity-note p {
+    font-size: 0.8125rem;
+    line-height: 1.55;
+    color: var(--text-secondary);
+    margin: 10px 0 0;
+}
+
+.fixity-note code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--text-primary);
+}

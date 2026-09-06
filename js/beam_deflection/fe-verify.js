@@ -45,31 +45,54 @@ const bandGet = (A, i, j) => (Math.abs(i - j) > BW ? 0 : A[i * STRIDE + (j - i +
 const bandSet = (A, i, j, v) => { if (Math.abs(i - j) <= BW) A[i * STRIDE + (j - i + BW)] = v; };
 const bandAdd = (A, i, j, v) => { if (Math.abs(i - j) <= BW) A[i * STRIDE + (j - i + BW)] += v; };
 
-// Node positions, always including the beam ends and, for a point load, a node
-// exactly at the load. Putting the load between nodes would smear it and turn an
-// exact comparison into an approximate one.
-function meshNodes(L, a, elements) {
+// Node positions, always including the beam ends plus any breakpoint the load
+// introduces: the position of a point load, and both edges of a partial
+// distributed band. A load edge falling inside an element would smear it and
+// turn an exact comparison into an approximate one.
+function meshNodes(L, breaks, elements) {
     const n = Math.max(4, Math.min(elements, MAX_ELEMENTS));
-    if (!Number.isFinite(a) || a <= 0 || a >= L) {
+    const stops = [0, L];
+    for (const b of breaks || []) {
+        if (Number.isFinite(b) && b > 1e-12 && b < L - 1e-12) stops.push(b);
+    }
+    const unique = [...new Set(stops.map((x) => Number(x.toPrecision(12))))]
+        .sort((p, q) => p - q);
+    if (unique.length === 2) {
         return Array.from({ length: n + 1 }, (_, i) => (L * i) / n);
     }
-    // Split the element budget between the two segments in proportion to length,
-    // with at least two elements either side.
-    const left = Math.max(2, Math.min(n - 2, Math.round((n * a) / L)));
-    const right = n - left;
-    const nodes = [];
-    for (let i = 0; i < left; i += 1) nodes.push((a * i) / left);
-    for (let i = 0; i <= right; i += 1) nodes.push(a + ((L - a) * i) / right);
+
+    // Split the element budget across the segments in proportion to length, with
+    // a floor of two elements per segment so a short band is still resolved.
+    const spans = unique.slice(1).map((x, i) => x - unique[i]);
+    const total = spans.reduce((acc, x) => acc + x, 0);
+    const counts = spans.map((len) => Math.max(2, Math.round((n * len) / total)));
+    const nodes = [unique[0]];
+    for (let i = 0; i < spans.length; i += 1) {
+        for (let j = 1; j <= counts[i]; j += 1) {
+            nodes.push(unique[i] + (spans[i] * j) / counts[i]);
+        }
+    }
+    // Rounding through the segment loop can leave the last node a few ulps short.
+    nodes[nodes.length - 1] = L;
     return nodes;
 }
 
 /**
  * Solves one beam numerically. Strict SI, same as the engine.
  *
+ * A distributed load covers the whole span unless `c` is given, in which case it
+ * runs from `a` to `a + c`.
+ *
  * @returns {object} { vAt, dMax, xMax, dMid, reactions, elements }
  */
-export function feSolveBeam({ support, L, E, I, P, w, a, elements = DEFAULT_ELEMENTS }) {
-    const nodes = meshNodes(L, P ? a : NaN, elements);
+export function feSolveBeam({ support, L, E, I, P, w, a, c, elements = DEFAULT_ELEMENTS }) {
+    const partial = !!w && Number.isFinite(c) && c > 0 && c < L;
+    const loadStart = partial ? a : 0;
+    const loadEnd = partial ? a + c : L;
+    const breaks = [];
+    if (P) breaks.push(a);
+    if (partial) breaks.push(loadStart, loadEnd);
+    const nodes = meshNodes(L, breaks, elements);
     const nEl = nodes.length - 1;
     const nDof = 2 * (nEl + 1);
     const K = new Float64Array(nDof * STRIDE);
@@ -88,7 +111,10 @@ export function feSolveBeam({ support, L, E, I, P, w, a, elements = DEFAULT_ELEM
         for (let i = 0; i < 4; i += 1) {
             for (let j = 0; j < 4; j += 1) bandAdd(K, map[i], map[j], k * ke[i][j]);
         }
-        if (w) {
+        // Every load edge is a node, so an element is either fully covered or
+        // fully clear and the consistent load vector stays exact.
+        const mid = (nodes[e] + nodes[e + 1]) / 2;
+        if (w && mid > loadStart - 1e-12 && mid < loadEnd + 1e-12) {
             // Consistent load vector for a uniform load, downward positive.
             F[map[0]] += (w * le) / 2;
             F[map[1]] += (w * le * le) / 12;
@@ -216,7 +242,7 @@ const rel = (got, ref) => (Math.abs(ref) < 1e-15 ? Math.abs(got - ref) : Math.ab
 export function verifyCase(input, elements = DEFAULT_ELEMENTS) {
     const closed = solve(input);
     if (!closed.ok) return { label: 'invalid input', pass: false, error: closed.error };
-    const fe = feSolveBeam({ ...input, a: closed.a, elements });
+    const fe = feSolveBeam({ ...input, a: input.loadType === 'udl-partial' ? input.a : closed.a, elements });
     const deltaError = rel(closed.deltaMax, fe.dMax);
     const midError = rel(closed.deltaMid, fe.dMid);
     // The location is compared as a fraction of span rather than relatively, so
@@ -251,11 +277,17 @@ export const TOLERANCE = { delta: 1e-5, x: 1e-4 };
 export function verifyAll({ L = 3, E = 200e9, I = 1e-5, P = 10000, w = 5000, elements = DEFAULT_ELEMENTS } = {}) {
     const cases = [];
     const positions = [0.15, 0.25, 0.35, 0.5, 0.65, 0.75, 0.85];
+    const bands = [[0, 0.35], [0.2, 0.3], [0.35, 0.3], [0.5, 0.5], [0.65, 0.35], [0.25, 0.5]];
     for (const support of ['cantilever', 'simple', 'fixed-fixed', 'propped']) {
         cases.push(verifyCase({ support, loadType: 'point-standard', L, E, I, P }, elements));
         cases.push(verifyCase({ support, loadType: 'udl', L, E, I, w }, elements));
         for (const frac of positions) {
             cases.push(verifyCase({ support, loadType: 'point-at', a: frac * L, L, E, I, P }, elements));
+        }
+        // Partial bands, including ones that touch an end and ones that do not,
+        // since the end cases are where a Macaulay term can silently drop out.
+        for (const [aFrac, cFrac] of bands) {
+            cases.push(verifyCase({ support, loadType: 'udl-partial', a: aFrac * L, c: cFrac * L, L, E, I, w }, elements));
         }
     }
     const failed = cases.filter((c) => !c.pass);

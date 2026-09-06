@@ -66,6 +66,23 @@ export const PRESETS = [
         section: { b: 40, h: 40, t: 3 },
     },
     {
+        id: 'partial-load',
+        name: 'Load over part of the span',
+        summary: '100 x 200 x 6 mm steel tube, 4 m span, 10 kN/m over 1.5 m',
+        teaches: 'The load covers 1.5 m starting 0.5 m in, and the maximum deflection sits neither at midspan nor under the middle of the load. Spreading a load over part of a beam is not the same problem as putting all of it at the load centroid, and it is not the same as loading the whole span either.',
+        units: 'si',
+        state: {
+            support: 'simple',
+            loadType: 'udl-partial',
+            sectionType: 'tubeRect',
+            materialId: 'steel-a36',
+            limitId: 'L240',
+            selfWeight: false,
+        },
+        fields: { span: 4, loadMagnitude: 10, loadPos: 0.5, loadLength: 1.5, safetyFactor: 1 },
+        section: { b: 100, h: 200, t: 6 },
+    },
+    {
         id: 'printed-bracket',
         name: 'Printed PLA bracket',
         summary: '20 x 6 mm bar, 80 mm arm, 20 N load',

@@ -93,32 +93,42 @@ function arrow(x, yFrom, yTo) {
     ].join('');
 }
 
-function loadGlyph(loadType, xFrac) {
-    if (loadType === 'udl') {
-        const parts = [`<line x1="${X0}" y1="${Y_BEAM - 32}" x2="${X1}" y2="${Y_BEAM - 32}" stroke="currentColor" stroke-width="2"/>`];
-        const count = 9;
-        for (let i = 0; i < count; i += 1) {
-            const x = X0 + ((X1 - X0) * i) / (count - 1);
-            parts.push(arrow(x, Y_BEAM - 32, Y_BEAM - 5));
-        }
-        return `<g class="bd-load">${parts.join('')}</g>`;
+// A distributed load is drawn as a rail with arrows hanging off it, spanning
+// only the loaded part. The arrow count follows the band width so a short band
+// does not end up more densely arrowed than a long one.
+function distributedGlyph(startFrac, endFrac) {
+    const xa = X0 + (X1 - X0) * startFrac;
+    const xb = X0 + (X1 - X0) * endFrac;
+    const count = Math.max(3, Math.round(9 * (endFrac - startFrac)));
+    const parts = [`<line x1="${n(xa)}" y1="${Y_BEAM - 32}" x2="${n(xb)}" y2="${Y_BEAM - 32}" stroke="currentColor" stroke-width="2"/>`];
+    for (let i = 0; i < count; i += 1) {
+        const x = count === 1 ? (xa + xb) / 2 : xa + ((xb - xa) * i) / (count - 1);
+        parts.push(arrow(x, Y_BEAM - 32, Y_BEAM - 5));
     }
+    return `<g class="bd-load">${parts.join('')}</g>`;
+}
+
+function loadGlyph(loadType, xFrac, startFrac, endFrac) {
+    if (loadType === 'udl') return distributedGlyph(0, 1);
+    if (loadType === 'udl-partial') return distributedGlyph(startFrac, endFrac);
     const x = X0 + (X1 - X0) * xFrac;
     return `<g class="bd-load">${arrow(x, Y_BEAM - 38, Y_BEAM - 5)}</g>`;
 }
 
 // Samples the engine at unit values so the drawn shape is the real shape for
 // this boundary condition rather than a freehand curve.
-function deflectedPath(support, loadType, aFrac) {
+function deflectedPath(support, loadType, aFrac, cFrac) {
+    const distributed = loadType === 'udl' || loadType === 'udl-partial';
     const input = {
         support,
         loadType,
         L: 1,
         E: 1,
         I: 1,
-        P: loadType === 'udl' ? undefined : 1,
-        w: loadType === 'udl' ? 1 : undefined,
-        a: loadType === 'point-at' ? aFrac : undefined,
+        P: distributed ? undefined : 1,
+        w: distributed ? 1 : undefined,
+        a: loadType === 'point-at' || loadType === 'udl-partial' ? aFrac : undefined,
+        c: loadType === 'udl-partial' ? cFrac : undefined,
     };
     const result = solve(input);
     if (!result.ok || result.deltaMax <= 0) return { path: '', xMaxFrac: null };
@@ -148,14 +158,21 @@ function dimensionLine(y, xa, xb, label) {
  * Builds one schematic.
  *
  * @param {string} support   one of the four support cases
- * @param {string} loadType  'point-standard' | 'point-at' | 'udl'
- * @param {number} aFrac     load position as a fraction of span, for 'point-at'
+ * @param {string} loadType  'point-standard' | 'point-at' | 'udl' | 'udl-partial'
+ * @param {number} aFrac     start of the load as a fraction of span
+ * @param {number} cFrac     loaded length as a fraction of span, for 'udl-partial'
  * @returns {string} SVG markup, safe to insert: every value is a formatted number
  */
-export function beamDiagram(support, loadType, aFrac = 0.5) {
+export function beamDiagram(support, loadType, aFrac = 0.5, cFrac = 1) {
+    const clamp = (v, lo, hi) => Math.min(Math.max(v, lo), hi);
     const standardFrac = support === 'cantilever' ? 1 : 0.5;
-    const frac = loadType === 'point-at' ? Math.min(Math.max(aFrac, 0), 1) : standardFrac;
-    const { path, xMaxFrac } = deflectedPath(support, loadType, frac);
+    const frac = loadType === 'point-at' ? clamp(aFrac, 0, 1) : standardFrac;
+    const bandStart = loadType === 'udl-partial' ? clamp(aFrac, 0, 1) : 0;
+    const bandLen = loadType === 'udl-partial'
+        ? clamp(cFrac, 1e-4, 1 - bandStart)
+        : 1;
+    const bandEnd = bandStart + bandLen;
+    const { path, xMaxFrac } = deflectedPath(support, loadType, bandStart, bandLen);
     const xLoad = X0 + (X1 - X0) * frac;
 
     const marker = xMaxFrac === null ? '' : (() => {
@@ -166,14 +183,21 @@ export function beamDiagram(support, loadType, aFrac = 0.5) {
         ].join('');
     })();
 
-    const aDim = loadType === 'point-at'
-        ? dimensionLine(Y_BEAM + 46, X0, xLoad, 'a')
-        : '';
+    let aDim = '';
+    if (loadType === 'point-at') {
+        aDim = dimensionLine(Y_BEAM + 46, X0, xLoad, 'a');
+    } else if (loadType === 'udl-partial') {
+        // The loaded band gets its own dimension, offset from the span line so a
+        // band covering the whole span does not draw on top of it.
+        const xa = X0 + (X1 - X0) * bandStart;
+        const xb = X0 + (X1 - X0) * bandEnd;
+        aDim = dimensionLine(Y_BEAM + 46, xa, xb, 'c');
+    }
 
     return [
         `<svg class="bd-diagram" viewBox="0 0 ${VIEW_W} ${VIEW_H}" role="img" aria-label="${SUPPORT_TITLES[support]}" preserveAspectRatio="xMidYMid meet">`,
         `<title>${SUPPORT_TITLES[support]}</title>`,
-        loadGlyph(loadType, frac),
+        loadGlyph(loadType, frac, bandStart, bandEnd),
         `<line class="bd-beam" x1="${X0}" y1="${Y_BEAM}" x2="${X1}" y2="${Y_BEAM}" stroke="currentColor" stroke-width="3"/>`,
         `<path class="bd-deflected" d="${path}" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="5 4"/>`,
         marker,

@@ -20,7 +20,8 @@ Features:
   cantilever, selected by their own diagrams rather than by a dropdown, each
   card showing that case's deflection for the beam currently entered
 - Point load at the standard position, point load at an arbitrary position,
-  and a full-span uniformly distributed load, with optional self-weight
+  a full-span uniformly distributed load with optional self-weight, and a
+  uniform load covering any part of the span
 - Maximum deflection and its location reported separately from midspan
   deflection, since for an off-center load they are not the same point
 - Off-center loads normalized before the closed forms are applied, so the
@@ -116,6 +117,13 @@ Last Updated: September 2026
 
                     <h3 class="section-title">Support case</h3>
                     <div class="support-cards" id="supportCards" role="radiogroup" aria-label="Support case"></div>
+                    <details class="fixity-note">
+                        <summary>Is a bolted end fixed or pinned?</summary>
+                        <p>Almost always pinned. A standard bolted shear connection, a shear tab or clip angles or a single vertical line of bolts, is detailed so the beam end can rotate, and AISC designs it as a simple connection. Two or three bolts do not change that when they all sit on one vertical line: the end pivots about that line.</p>
+                        <p>A bolted end is fixed only if it was built to be, with bolts at both flanges spread over the depth of the beam so they form a couple. Bolts clustered at the web are a pin. The AISC criterion is on connection stiffness: with <code>Ks</code> the secant stiffness at service load, <code>Ks L / EI</code> at or below 2 may be taken as simple, and at or above 20 as fully restrained. Ordinary bolted connections sit near the bottom of that range.</p>
+                        <p>Fixity is also a chain. A perfect moment connection into a column that can itself rotate is not a fixed end, and a fixed end generates a real end moment that whatever it bolts to has to carry.</p>
+                        <p><strong>What to do here:</strong> bracket it. Use simply supported for deflection, since assuming fixed under-predicts it by 5x under a distributed load and 4x under a central point load, in the unconservative direction. Use fixed-fixed to size the connection, since that gives the end moment it would have to carry. If the truth is partial fixity the real answer sits between the two, and finding where needs a frame analysis with a rotational spring at each end, which this tool does not do.</p>
+                    </details>
 
                     <h3 class="section-title">Load</h3>
                     <div class="input-grid">
@@ -124,7 +132,8 @@ Last Updated: September 2026
                             <select class="main-select" id="loadType" aria-describedby="standardLoadNote">
                                 <option value="point-standard">Point load, standard position</option>
                                 <option value="point-at">Point load at a position</option>
-                                <option value="udl">Uniformly distributed load</option>
+                                <option value="udl">Uniformly distributed load, full span</option>
+                                <option value="udl-partial">Distributed over part of the span</option>
                             </select>
                         </div>
                         <div class="input-group">
@@ -134,6 +143,10 @@ Last Updated: September 2026
                         <div class="input-group" id="loadPosGroup" hidden>
                             <label for="loadPos" id="loadPosLabel">Load position a from the left end (m)</label>
                             <input class="main-input" type="number" id="loadPos" value="1" step="any" min="0">
+                        </div>
+                        <div class="input-group" id="loadLengthGroup" hidden>
+                            <label for="loadLength" id="loadLengthLabel">Loaded length c (m)</label>
+                            <input class="main-input" type="number" id="loadLength" value="1" step="any" min="0">
                         </div>
                     </div>
                     <p class="field-note" id="standardLoadNote"></p>
@@ -235,7 +248,7 @@ Last Updated: September 2026
                         <ul class="scope-list">
                             <li>Euler-Bernoulli theory only. Shear deformation is neglected, which under-predicts deflection for short deep beams.</li>
                             <li>One load at a time. Superposition of several loads is left to you.</li>
-                            <li>Full-span distributed loads only, no partial or triangular loads.</li>
+                            <li>One uniform load at a time. Distributed loads can cover part of the span, but they cannot be combined with each other or with a point load, and triangular or varying loads are not offered.</li>
                             <li>No buckling, no lateral-torsional stability, no connections, no fatigue, no code compliance.</li>
                             <li>Material properties are single representative values. All 28 rows were checked against the source cited on each one in September 2026, but a real member has scatter, and wood and plastics have a great deal of it.</li>
                         </ul>

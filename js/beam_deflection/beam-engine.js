@@ -20,7 +20,7 @@
 export const G = 9.80665;
 
 export const SUPPORTS = ['cantilever', 'simple', 'fixed-fixed', 'propped'];
-export const LOAD_TYPES = ['point-standard', 'point-at', 'udl'];
+export const LOAD_TYPES = ['point-standard', 'point-at', 'udl', 'udl-partial'];
 
 // Where the standard point load sits, as a fraction of span, per support case.
 // On a cantilever the canonical case is a load at the free end, not at midspan.
@@ -207,9 +207,12 @@ function solveFixedFixed({ loadType, P, w, a, L, E, I }) {
             xMax: L / 2,
             xMaxLabel: 'midspan',
             momentCandidates: [0, L / 2, L],
+            // Both ends hog under a downward load, so both reaction moments
+            // are negative in the sagging-positive convention. Reporting the
+            // right end as +MA renders it as "sagging", which it is not.
             reactions: [
                 { at: 0, label: 'Left fixed end', force: R, moment: -MA },
-                { at: L, label: 'Right fixed end', force: R, moment: MA },
+                { at: L, label: 'Right fixed end', force: R, moment: -MA },
             ],
         };
     }
@@ -236,11 +239,11 @@ function solveFixedFixed({ loadType, P, w, a, L, E, I }) {
         reactions: mirrored
             ? [
                 { at: 0, label: 'Left fixed end', force: P - RA, moment: -MB },
-                { at: L, label: 'Right fixed end', force: RA, moment: MA },
+                { at: L, label: 'Right fixed end', force: RA, moment: -MA },
             ]
             : [
                 { at: 0, label: 'Left fixed end', force: RA, moment: -MA },
-                { at: L, label: 'Right fixed end', force: P - RA, moment: MB },
+                { at: L, label: 'Right fixed end', force: P - RA, moment: -MB },
             ],
     };
 }
@@ -302,6 +305,34 @@ function solvePropped({ loadType, P, w, a, L, E, I }) {
     };
 }
 
+// Largest magnitude of f on [lo, hi]: a dense scan to bracket the peak, then
+// ternary refinement inside the bracketing interval. Root-finding on the slope
+// is not usable for the partial-load cases, because a fixed-fixed beam has zero
+// slope at both ends and a bracketed search settles on one of them, where the
+// deflection is zero.
+function argMaxAbs(f, lo, hi, coarse = 400) {
+    let bestX = lo;
+    let bestV = Math.abs(f(lo));
+    for (let i = 1; i <= coarse; i += 1) {
+        const x = lo + ((hi - lo) * i) / coarse;
+        const v = Math.abs(f(x));
+        if (v > bestV) {
+            bestV = v;
+            bestX = x;
+        }
+    }
+    const h = (hi - lo) / coarse;
+    let a = Math.max(lo, bestX - h);
+    let b = Math.min(hi, bestX + h);
+    for (let i = 0; i < 100; i += 1) {
+        const m1 = a + (b - a) / 3;
+        const m2 = b - (b - a) / 3;
+        if (Math.abs(f(m1)) < Math.abs(f(m2))) a = m1;
+        else b = m2;
+    }
+    return (a + b) / 2;
+}
+
 // Bracketed bisection for the single interior sign change of a slope function.
 // Used only by the propped cantilever off-center case, where the location of the
 // maximum has no reliable closed form.
@@ -328,6 +359,111 @@ function bisect(f, lo, hi, iterations = 200) {
         }
     }
     return (a + b) / 2;
+}
+
+// ---------------------------------------------------------------------------
+// Partial distributed load: w over [a, b] with b = a + c, on a span L.
+//
+// All four support cases come out of one Macaulay skeleton, so there is no set
+// of four separately transcribed formulas to get wrong. Writing the internal
+// sagging moment as
+//
+//   M(x) = M0 + R0*x + q(x),   q(x) = -(w/2)<x-a>^2 + (w/2)<x-b>^2
+//
+// and integrating EI*delta'' = -M(x) twice gives
+//
+//   EI*delta' = -M0*x - R0*x^2/2 - Q1(x) + C1
+//   EI*delta  = -M0*x^2/2 - R0*x^3/6 - Q2(x) + C1*x + C2
+//
+// with Q1 and Q2 the successive integrals of q. Only the boundary conditions
+// differ between the cases, and each one fixes M0, R0, C1 and C2 from them.
+// Setting a = 0 and c = L reproduces all four tabulated full-span forms, which
+// the spec asserts rather than taking the derivation on trust.
+// ---------------------------------------------------------------------------
+
+function partialKernel(w, a, b) {
+    return {
+        q: (x) => -(w / 2) * mac(x, a) ** 2 + (w / 2) * mac(x, b) ** 2,
+        Q1: (x) => -(w / 6) * mac(x, a) ** 3 + (w / 6) * mac(x, b) ** 3,
+        Q2: (x) => -(w / 24) * mac(x, a) ** 4 + (w / 24) * mac(x, b) ** 4,
+    };
+}
+
+// M0 is the reaction moment at the left end in the sagging-positive convention,
+// so a built-in end comes out negative. R0 is the upward reaction there.
+function partialConstants(support, { L, W, xbar, k }) {
+    const Q1L = k.Q1(L);
+    const Q2L = k.Q2(L);
+    const qL = k.q(L);
+
+    if (support === 'cantilever') {
+        // Statics alone fixes both reactions, and the built-in end kills both
+        // constants of integration.
+        return { M0: -W * xbar, R0: W, C1: 0, C2: 0 };
+    }
+    if (support === 'simple') {
+        // No end moments, so R0 follows from moments about the right support.
+        const R0 = (W * (L - xbar)) / L;
+        return { M0: 0, R0, C1: ((R0 * L ** 3) / 6 + Q2L) / L, C2: 0 };
+    }
+    if (support === 'fixed-fixed') {
+        // delta(0) and delta'(0) kill the constants; delta(L) = delta'(L) = 0
+        // then leaves a 2x2 in M0 and R0.
+        const R0 = ((Q2L - (Q1L * L) / 2) * 12) / L ** 3;
+        return { M0: (-Q1L - (R0 * L * L) / 2) / L, R0, C1: 0, C2: 0 };
+    }
+    // Propped cantilever: delta(L) = 0 pairs with M(L) = 0 at the pin.
+    const R0 = (3 * (Q2L - (qL * L * L) / 2)) / L ** 3;
+    return { M0: -R0 * L - qL, R0, C1: 0, C2: 0 };
+}
+
+function solvePartialUDL({ support, w, a, c, L, E, I }) {
+    const EI = E * I;
+    const b = a + c;
+    const W = w * c;
+    const xbar = (a + b) / 2;
+    const k = partialKernel(w, a, b);
+    const { M0, R0, C1, C2 } = partialConstants(support, { L, W, xbar, k });
+
+    const momentAt = (x) => M0 + R0 * x + k.q(x);
+    const deflectionAt = (x) =>
+        (-(M0 * x * x) / 2 - (R0 * x ** 3) / 6 - k.Q2(x) + C1 * x + C2) / EI;
+
+    const xMax = argMaxAbs(deflectionAt, 0, L);
+
+    // Moment extremes sit at the ends, at the edges of the loaded band, and
+    // wherever shear crosses zero inside it.
+    const momentCandidates = [0, L, a, b];
+    const xShear = a + R0 / w;
+    if (Number.isFinite(xShear) && xShear > a && xShear < b) momentCandidates.push(xShear);
+
+    const reactions = support === 'cantilever'
+        ? [{ at: 0, label: 'Fixed end', force: W, moment: M0 }]
+        : [
+            {
+                at: 0,
+                label: support === 'simple' ? 'Left pin' : 'Left fixed end',
+                force: R0,
+                moment: M0,
+            },
+            {
+                at: L,
+                label: support === 'fixed-fixed' ? 'Right fixed end'
+                    : (support === 'propped' ? 'Right pin' : 'Right roller'),
+                force: W - R0,
+                moment: support === 'fixed-fixed' ? momentAt(L) : 0,
+            },
+        ];
+
+    return {
+        deflectionAt,
+        momentAt,
+        deltaMax: Math.abs(deflectionAt(xMax)),
+        xMax,
+        xMaxLabel: 'maximum',
+        momentCandidates,
+        reactions,
+    };
 }
 
 const SOLVERS = {
@@ -399,9 +535,19 @@ export function solve(input) {
     const bad = checkCommon(input);
     if (bad) return bad;
 
-    const isPoint = loadType !== 'udl';
+    const isPartial = loadType === 'udl-partial';
+    const isPoint = loadType === 'point-standard' || loadType === 'point-at';
     if (isPoint && !isFiniteNumber(input.P)) return err('Point load P must be a number.');
     if (!isPoint && !isFiniteNumber(input.w)) return err('Distributed load w must be a number.');
+    if (isPartial) {
+        if (!isFiniteNumber(input.a)) return err('Load start position must be a number.');
+        if (!isFiniteNumber(input.c)) return err('Loaded length must be a number.');
+        if (input.a < 0) return err('The loaded band must start at or after the left end.');
+        if (input.c <= 0) return err('The loaded length must be greater than zero.');
+        if (input.a + input.c > L * (1 + 1e-12)) {
+            return err('The loaded band runs past the right end of the beam. Reduce the start position or the loaded length.');
+        }
+    }
 
     let a = null;
     if (isPoint) {
@@ -418,7 +564,9 @@ export function solve(input) {
 
     const P = isPoint ? input.P : 0;
     const w = isPoint ? 0 : input.w;
-    const solved = SOLVERS[support]({ loadType, P, w, a, L, E, I });
+    const solved = isPartial
+        ? solvePartialUDL({ support, w, a: input.a, c: Math.min(input.c, L - input.a), L, E, I })
+        : SOLVERS[support]({ loadType, P, w, a, L, E, I });
 
     const deltaMid = solved.deflectionAt(L / 2);
     let MmaxAbs = 0;

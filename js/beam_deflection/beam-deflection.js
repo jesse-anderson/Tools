@@ -78,6 +78,10 @@ function readNumber(id) {
 
 const currentMaterial = () => MATERIALS_BY_ID[state.materialId] || null;
 
+// Both distributed cases carry w in force per unit length, so magnitude units,
+// labels and the self-weight rules key off this instead of testing for 'udl'.
+const isDistributed = () => state.loadType === 'udl' || state.loadType === 'udl-partial';
+
 // ---------------------------------------------------------------------------
 // Support case selector. Real radio inputs inside labels, so keyboard and
 // screen-reader operation come for free rather than being retrofitted.
@@ -135,10 +139,10 @@ function syncSupportSelection() {
     }
 }
 
-function redrawDiagrams(aFrac) {
+function redrawDiagrams(aFrac, cFrac) {
     for (const card of document.querySelectorAll('.support-card')) {
         const figure = card.querySelector('.support-figure');
-        figure.innerHTML = beamDiagram(card.dataset.support, state.loadType, aFrac);
+        figure.innerHTML = beamDiagram(card.dataset.support, state.loadType, aFrac, cFrac);
     }
 }
 
@@ -370,13 +374,14 @@ const CONVERTIBLE_FIELDS = [
     ['span', 'span'],
     ['modulus', 'modulus'],
     ['loadPos', 'span'],
+    ['loadLength', 'span'],
 ];
 
 function switchUnits(next) {
     if (!UNIT_SYSTEMS.includes(next) || next === state.units) return;
     const from = state.units;
 
-    const magnitudeQuantity = state.loadType === 'udl' ? 'distLoad' : 'pointLoad';
+    const magnitudeQuantity = isDistributed() ? 'distLoad' : 'pointLoad';
     const carried = [...CONVERTIBLE_FIELDS, ['loadMagnitude', magnitudeQuantity]]
         .map(([id, quantity]) => {
             const value = readNumber(id);
@@ -407,7 +412,7 @@ function switchUnits(next) {
 function syncUnitLabels() {
     el('spanLabel').textContent = `Span L (${unitLabel('span', U())})`;
     el('modulusLabel').textContent = `Elastic modulus E (${unitLabel('modulus', U())})`;
-    el('loadPosLabel').textContent = `Load position a from the left end (${unitLabel('span', U())})`;
+    el('loadLengthLabel').textContent = `Loaded length c (${unitLabel('span', U())})`;
     syncLoadInputs();
 }
 
@@ -416,9 +421,14 @@ function syncUnitLabels() {
 // ---------------------------------------------------------------------------
 
 function syncLoadInputs() {
-    const isUDL = state.loadType === 'udl';
+    const isUDL = isDistributed();
+    const isPartial = state.loadType === 'udl-partial';
     const isOffCenter = state.loadType === 'point-at';
-    el('loadPosGroup').hidden = !isOffCenter;
+    el('loadPosGroup').hidden = !isOffCenter && !isPartial;
+    el('loadLengthGroup').hidden = !isPartial;
+    el('loadPosLabel').textContent = isPartial
+        ? `Load starts at a (${unitLabel('span', U())})`
+        : `Load position a from the left end (${unitLabel('span', U())})`;
     el('loadMagnitudeLabel').textContent = isUDL
         ? `Distributed load w (${unitLabel('distLoad', U())})`
         : `Point load P (${unitLabel('pointLoad', U())})`;
@@ -429,6 +439,9 @@ function syncLoadInputs() {
         standardNote.textContent = state.support === 'cantilever'
             ? 'Load sits at the free end, the standard cantilever case.'
             : 'Load sits at midspan.';
+    } else if (isPartial) {
+        standardNote.hidden = false;
+        standardNote.textContent = 'The load covers only the length entered, starting from a. Set a to 0 and the length to the full span to get the ordinary uniformly distributed case.';
     } else {
         standardNote.hidden = true;
     }
@@ -440,11 +453,16 @@ function syncLoadInputs() {
     const note = el('selfWeightNote');
     const section = readSection();
     const hasArea = section.ok && section.A !== null && section.A > 0;
-    if (!isUDL) {
+    if (isPartial) {
         checkbox.disabled = true;
         checkbox.checked = false;
         state.selfWeight = false;
-        note.textContent = 'Self-weight is a distributed load. Combining it with a point load needs superposition, which this tool does not do, so it is available on the uniformly distributed case only.';
+        note.textContent = 'Self-weight acts over the whole span while this load covers only part of it, so adding the two is a superposition of two different distributed loads. That is out of scope here, so add the self-weight into the applied load yourself if it matters.';
+    } else if (!isUDL) {
+        checkbox.disabled = true;
+        checkbox.checked = false;
+        state.selfWeight = false;
+        note.textContent = 'Self-weight is a distributed load. Combining it with a point load needs superposition, which this tool does not do, so it is available on the full-span distributed case only.';
     } else if (!hasArea) {
         checkbox.disabled = true;
         checkbox.checked = false;
@@ -816,11 +834,14 @@ function recompute() {
     const L = toSI(readNumber('span'), 'span', U());
     const E = toSI(readNumber('modulus'), 'modulus', U());
     const aRaw = toSI(readNumber('loadPos'), 'span', U());
-    const magnitudeQuantity = state.loadType === 'udl' ? 'distLoad' : 'pointLoad';
+    const cRaw = toSI(readNumber('loadLength'), 'span', U());
+    const magnitudeQuantity = isDistributed() ? 'distLoad' : 'pointLoad';
     const magnitude = toSI(readNumber('loadMagnitude'), magnitudeQuantity, U());
 
-    const aFrac = Number.isFinite(L) && L > 0 && Number.isFinite(aRaw) ? aRaw / L : 0.5;
-    redrawDiagrams(aFrac);
+    const spanKnown = Number.isFinite(L) && L > 0;
+    const aFrac = spanKnown && Number.isFinite(aRaw) ? aRaw / L : 0.5;
+    const cFrac = spanKnown && Number.isFinite(cRaw) ? cRaw / L : 1;
+    redrawDiagrams(aFrac, cFrac);
 
     const section = readSection();
     renderSectionProps(section);
@@ -842,8 +863,17 @@ function recompute() {
         if (!Number.isFinite(aRaw)) return showError('Enter a load position.');
         if (aRaw < 0 || aRaw > L) return showError('The load position must lie between 0 and the span.');
     }
+    if (state.loadType === 'udl-partial') {
+        if (!Number.isFinite(aRaw)) return showError('Enter where the load starts.');
+        if (!Number.isFinite(cRaw)) return showError('Enter the loaded length.');
+        if (aRaw < 0) return showError('The load cannot start before the left end of the beam.');
+        if (cRaw <= 0) return showError('The loaded length must be greater than zero.');
+        if (aRaw + cRaw > L * (1 + 1e-12)) {
+            return showError('The loaded band runs past the right end of the beam. Reduce the start position or the loaded length.');
+        }
+    }
 
-    let w = state.loadType === 'udl' ? magnitude : 0;
+    let w = isDistributed() ? magnitude : 0;
     if (state.loadType === 'udl' && state.selfWeight && material && section.A) {
         w += selfWeightUDL(material.rho, section.A);
     }
@@ -856,9 +886,13 @@ function recompute() {
         I: section.I,
         depth: section.depth,
     };
-    if (state.loadType === 'udl') input.w = w;
+    if (isDistributed()) input.w = w;
     else input.P = magnitude;
     if (state.loadType === 'point-at') input.a = aRaw;
+    if (state.loadType === 'udl-partial') {
+        input.a = aRaw;
+        input.c = cRaw;
+    }
 
     const result = solve(input);
     if (!result.ok) return showError(result.error);
@@ -916,7 +950,7 @@ function init() {
         clearActivePreset();
         recompute();
     });
-    for (const id of ['span', 'modulus', 'loadMagnitude', 'loadPos', 'safetyFactor', 'customLimit']) {
+    for (const id of ['span', 'modulus', 'loadMagnitude', 'loadPos', 'loadLength', 'safetyFactor', 'customLimit']) {
         el(id).addEventListener('input', () => {
             clearActivePreset();
             recompute();
