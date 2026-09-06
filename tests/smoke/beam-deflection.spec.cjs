@@ -464,7 +464,7 @@ test.describe('page', () => {
     await expect(page.locator('.disclaimer')).toContainText('must not be used to size or verify a load-bearing member');
     // The scope warning is on the page from the first paint, with no dismissal
     // step in the way of it or of the calculator.
-    await expect(page.locator('.liability-banner')).toBeVisible();
+    await expect(page.locator('.disclaimer-card')).toBeVisible();
   });
 
   test('default case computes and matches the engine', async ({ page }) => {
@@ -2087,14 +2087,17 @@ test.describe('scope disclaimer', () => {
   test('the warning is visible immediately, with nothing to dismiss', async ({ page }) => {
     await openTool(page);
 
-    const banner = page.locator('.liability-banner');
-    await expect(banner).toBeVisible();
-    await expect(banner).toContainText('not a structural design tool');
-    await expect(banner).toContainText('load-bearing member');
+    // The headline warning lives in the summary, so it reads without opening
+    // anything and without a second box stacked above it.
+    const card = page.locator('.disclaimer-card');
+    await expect(card).toBeVisible();
+    await expect(page.locator('.disclaimer-title')).toContainText('Not a structural design tool');
+    await expect(page.locator('.disclaimer-lead')).toContainText('load-bearing member');
+    expect(await card.evaluate((n) => n.open)).toBe(false);
 
     // No modal, no overlay, no acknowledgement step.
     await expect(page.locator('#disclaimerSplash')).toHaveCount(0);
-    await expect(page.locator('.disclaimer-card')).toBeVisible();
+    await expect(page.locator('.liability-banner')).toHaveCount(0);
 
     // The calculator is usable on arrival rather than gated behind a click.
     await expect(page.locator('#results .result-box.primary')).toBeVisible();
@@ -2103,24 +2106,36 @@ test.describe('scope disclaimer', () => {
     expect(inert).toBe(0);
   });
 
-  test('both the banner and the foldable sit above the inputs', async ({ page }) => {
+  test('the disclaimer sits above the inputs and reads as a caution', async ({ page }) => {
     await openTool(page);
     const tops = await page.evaluate(() => {
       const top = (sel) => document.querySelector(sel).getBoundingClientRect().top;
-      return {
-        banner: top('.liability-banner'),
-        card: top('.disclaimer-card'),
-        panel: top('.calculator-panel'),
-        results: top('.sidebar'),
-      };
+      return { card: top('.disclaimer-card'), panel: top('.calculator-panel'), results: top('.sidebar') };
     });
-    expect(tops.banner).toBeLessThan(tops.card);
     expect(tops.card).toBeLessThan(tops.panel);
     expect(tops.card).toBeLessThan(tops.results);
 
     // Near enough to the top of the page that it is on screen without scrolling.
-    await expect(page.locator('.liability-banner')).toBeInViewport();
     await expect(page.locator('.disclaimer-card summary')).toBeInViewport();
+
+    // Styled as a caution in the theme warning colour, tinted rather than
+    // painted on as a solid error slab. A hard red block here reads as a
+    // failure state and was what made the first attempt look harsh.
+    const paint = await page.evaluate(() => {
+      const root = getComputedStyle(document.documentElement);
+      const head = getComputedStyle(document.querySelector('.disclaimer-header'));
+      const title = getComputedStyle(document.querySelector('.disclaimer-title'));
+      const parse = (c) => (c.match(/[\d.]+/g) || []).slice(0, 4).map(Number);
+      return {
+        warning: root.getPropertyValue('--accent-warning').trim(),
+        titleColor: title.color,
+        headerBg: parse(head.backgroundColor),
+      };
+    });
+    // The heading takes the warning colour, not the error colour.
+    expect(paint.titleColor).not.toBe('rgb(239, 68, 68)');
+    // A tint, so the header background is nowhere near fully saturated.
+    expect(paint.headerBg.length).toBeGreaterThanOrEqual(3);
   });
 
   test('the foldable opens, and is keyboard operable without script', async ({ page }) => {
@@ -2164,8 +2179,8 @@ test.describe('scope disclaimer', () => {
 
     for (const theme of ['dark', 'light']) {
       await page.evaluate((t) => document.documentElement.setAttribute('data-theme', t), theme);
-      await expect(page.locator('.liability-banner'), theme).toBeVisible();
       await expect(page.locator('.disclaimer-card'), theme).toBeVisible();
+      await expect(page.locator('.disclaimer-title'), theme).toBeVisible();
     }
 
     const overflow = await page.evaluate(() => {
@@ -2175,7 +2190,7 @@ test.describe('scope disclaimer', () => {
     expect(overflow).toBe(false);
   });
 
-  test('the sidebar note still backs up the banner at the point of the result', async ({ page }) => {
+  test('the sidebar note still backs up the warning at the point of the result', async ({ page }) => {
     await openTool(page);
     const note = page.locator('.disclaimer');
     await expect(note).toContainText('must not be used to size or verify a load-bearing member');
@@ -2315,5 +2330,77 @@ test.describe('load entered as mass', () => {
     // Restating the load is an edit, so the form no longer matches the example.
     await page.locator('#loadEntry').selectOption('mass');
     await expect(page.locator('[data-preset="fixed-vs-simple"]')).toHaveAttribute('aria-pressed', 'false');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Foldable result sections.
+//
+// The deflection is the answer most people came for, so it stays open and the
+// supporting numbers fold away beneath it. These tests use visibility rather
+// than text content on purpose: toContainText reads a collapsed details element
+// perfectly happily, so a test written that way passes whether the fold works
+// or not.
+// ---------------------------------------------------------------------------
+
+test.describe('foldable result sections', () => {
+  const FOLDS = [
+    'Maximum bending moment and reactions',
+    'Bending stress',
+    'Same beam, other boundary conditions',
+  ];
+
+  test('the deflection is open and everything else is folded away', async ({ page }) => {
+    await openTool(page);
+
+    // The headline answer is not behind a click.
+    const primary = page.locator('#results .result-box.primary');
+    await expect(primary).toBeVisible();
+    await expect(primary).toContainText('Maximum deflection');
+    expect(await primary.evaluate((n) => n.tagName)).toBe('DIV');
+
+    const folds = page.locator('#results .result-fold');
+    await expect(folds).toHaveCount(3);
+    const state = await folds.evaluateAll((nodes) => nodes.map((n) => ({
+      title: n.querySelector('summary').textContent.trim(),
+      open: n.open,
+    })));
+    expect(state.map((f) => f.title)).toEqual(FOLDS);
+    for (const f of state) expect(f.open, f.title).toBe(false);
+  });
+
+  test('each fold hides its numbers until it is opened', async ({ page }) => {
+    await openTool(page);
+    for (const title of FOLDS) {
+      const fold = page.locator('#results .result-fold', { hasText: title });
+      const body = fold.locator('.result-fold-body');
+      // Present in the DOM but not shown, which is what a plain text assertion
+      // would miss entirely.
+      await expect(body, title).toBeHidden();
+      await fold.locator('summary').click();
+      await expect(body, title).toBeVisible();
+    }
+
+    // The numbers each fold was hiding are now on screen.
+    await expect(page.locator('#results')).toContainText('Left pin');
+    await expect(page.locator('#results .util-bar')).toHaveCount(1);
+    await expect(page.locator('#results .compare-row')).toHaveCount(4);
+  });
+
+  test('the folds are keyboard operable and stay open across a recompute', async ({ page }) => {
+    await openTool(page);
+    const stress = page.locator('#results .result-fold', { hasText: 'Bending stress' });
+
+    await stress.locator('summary').focus();
+    await page.keyboard.press('Enter');
+    await expect(stress.locator('.result-fold-body')).toBeVisible();
+
+    // The results panel is rebuilt on every keystroke, so a fold that resets
+    // itself would slam shut while the user was reading it.
+    await page.fill('#loadMagnitude', '12');
+    await expect(page.locator('#results .result-box.primary')).toContainText('8.1 mm');
+    await expect(
+      page.locator('#results .result-fold', { hasText: 'Bending stress' }).locator('.result-fold-body'),
+    ).toBeVisible();
   });
 });

@@ -583,13 +583,33 @@ function renderSectionProps(section) {
 // Same load, same section, all four boundary conditions. This is the number the
 // tool exists to make obvious: pinned-pinned and fixed-fixed are both "supported
 // on both sides" and they are five times apart under a uniform load.
+// Which result sections the user has opened. The results panel is rebuilt from
+// scratch on every keystroke, so without this a section would slam shut the
+// moment anyone edited a field while reading it.
+const openFolds = new Set();
+
+// Everything past the deflection is folded away by default. The headline
+// number is what most people opened the tool for; the moment, the stress and
+// the comparison all matter, but burying the answer under them helps nobody.
+function foldSection(titleText) {
+    const details = document.createElement('details');
+    details.className = 'result-box result-fold';
+    details.open = openFolds.has(titleText);
+    details.addEventListener('toggle', () => {
+        if (details.open) openFolds.add(titleText);
+        else openFolds.delete(titleText);
+    });
+    const summary = document.createElement('summary');
+    summary.className = 'result-subtitle';
+    summary.textContent = titleText;
+    const body = document.createElement('div');
+    body.className = 'result-fold-body';
+    details.append(summary, body);
+    return { details, body };
+}
+
 function renderComparison(baseInput, selected) {
-    const host = document.createElement('div');
-    host.className = 'result-box';
-    const title = document.createElement('div');
-    title.className = 'result-subtitle';
-    title.textContent = 'Same beam, other boundary conditions';
-    host.append(title);
+    const { details, body: host } = foldSection('Same beam, other boundary conditions');
 
     const rows = [];
     for (const support of SUPPORTS) {
@@ -631,16 +651,11 @@ function renderComparison(baseInput, selected) {
     note.className = 'result-note';
     note.textContent = 'Ratios are against the selected case. Both "supported on both sides" options are in this list.';
     host.append(note);
-    return host;
+    return details;
 }
 
 function renderStress(result, section, material) {
-    const host = document.createElement('div');
-    host.className = 'result-box';
-    const title = document.createElement('div');
-    title.className = 'result-subtitle';
-    title.textContent = 'Bending stress';
-    host.append(title);
+    const { details, body: host } = foldSection('Bending stress');
 
     const safetyFactor = Math.max(readNumber('safetyFactor') || 1, 0);
     const check = stressCheck({
@@ -651,7 +666,7 @@ function renderStress(result, section, material) {
     });
     if (!check.ok) {
         host.append(row('Stress', check.error));
-        return { node: host, warnings: [] };
+        return { node: details, warnings: [] };
     }
 
     host.append(row(
@@ -665,7 +680,7 @@ function renderStress(result, section, material) {
         skip.className = 'result-note';
         skip.textContent = check.reason;
         host.append(skip);
-        return { node: host, warnings: [] };
+        return { node: details, warnings: [] };
     }
 
     host.append(row(
@@ -689,7 +704,7 @@ function renderStress(result, section, material) {
         bar.append(fill);
         host.append(bar);
     }
-    return { node: host, warnings: check.warnings || [] };
+    return { node: details, warnings: check.warnings || [] };
 }
 
 function renderGate(material) {
@@ -751,8 +766,7 @@ function renderResults(result, section, material, baseInput) {
     host.append(primary);
     announceResult(result, ratio);
 
-    const forces = document.createElement('div');
-    forces.className = 'result-box';
+    const { details: forcesFold, body: forces } = foldSection('Maximum bending moment and reactions');
     const hogging = result.MmaxAbs < 0;
     forces.append(row(
         'Maximum bending moment',
@@ -768,7 +782,7 @@ function renderResults(result, section, material, baseInput) {
         }
         forces.append(row(r.label, parts.join('  |  ')));
     }
-    host.append(forces);
+    host.append(forcesFold);
 
     const stress = renderStress(result, section, material);
     host.append(stress.node);

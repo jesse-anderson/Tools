@@ -524,7 +524,7 @@
 }
 
 .warning-always {
-    border-left-color: var(--accent-error);
+    border-left-color: var(--accent-warning);
 }
 
 .error-banner {
@@ -540,9 +540,11 @@
 .disclaimer {
     margin-top: 16px;
     padding: 14px 16px;
-    border: 1px solid var(--accent-error);
+    /* Tinted like the disclaimer card at the top rather than painted a solid
+       error red. It is a caution about scope, not a failure. */
+    border: 1px solid color-mix(in srgb, var(--accent-warning) 45%, transparent);
     border-radius: 8px;
-    background: var(--accent-error-dim);
+    background: color-mix(in srgb, var(--accent-warning) 7%, transparent);
     font-size: 0.8125rem;
     line-height: 1.55;
     color: var(--text-primary);
@@ -552,6 +554,7 @@
     display: block;
     margin-bottom: 4px;
     font-family: 'Space Grotesk', sans-serif;
+    color: var(--accent-warning);
 }
 
 .sidebar-panel h3 {
@@ -741,98 +744,39 @@
     color: var(--text-primary);
 }
 
-/* --- Disclaimer banner and foldable ----------------------------------------
-   A beam calculator reads like a design tool to anyone who does not already
-   know the difference, so the scope limit sits above the inputs rather than in
-   a footnote. The banner is always visible; the card holds the detail and
-   follows the linear-thermal-expansion pattern. It uses native details/summary
-   so keyboard and screen-reader operation need no JavaScript. */
-
-.liability-banner {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 16px;
-    margin-bottom: 10px;
-    padding: 14px 18px;
-    background: var(--bg-card);
-    border: 1px solid var(--accent-error);
-    border-left: 4px solid var(--accent-error);
-    border-radius: 8px;
-}
-
-.liability-banner strong {
-    display: block;
-    font-family: 'Space Grotesk', sans-serif;
-    font-size: 0.9375rem;
-    color: var(--text-primary);
-}
-
-.liability-banner p {
-    margin: 6px 0 0;
-    font-size: 0.8125rem;
-    line-height: 1.55;
-    color: var(--text-secondary);
-}
-
-.status-pill {
-    display: inline-block;
-    flex-shrink: 0;
-    padding: 4px 10px;
-    border-radius: 999px;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.6875rem;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-}
-
-.status-pill.locked {
-    background: var(--accent-error-dim, rgba(239, 68, 68, 0.15));
-    color: var(--accent-error);
-    border: 1px solid var(--accent-error);
-}
+/* --- Scope disclaimer ------------------------------------------------------
+   Same treatment as the linear-thermal-expansion card: the theme warning
+   colour, tinted through color-mix rather than painted on as a solid slab, so
+   it reads as a caution rather than an error. Native details/summary, so it
+   needs no JavaScript, and the summary carries the headline warning where it
+   is visible without opening anything. */
 
 .disclaimer-card {
     margin-bottom: 20px;
-    background: var(--bg-card);
-    border: 1px solid var(--accent-error);
+    border: 1px solid var(--accent-warning);
+    background: color-mix(in srgb, var(--accent-warning) 5%, transparent);
     border-radius: 8px;
     overflow: hidden;
 }
 
 .disclaimer-header {
     display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 12px 18px;
-    min-height: 44px;
-    font-family: 'Space Grotesk', sans-serif;
-    font-size: 0.875rem;
-    font-weight: 600;
-    color: var(--accent-error);
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 16px;
     cursor: pointer;
+    user-select: none;
     list-style: none;
+    background: color-mix(in srgb, var(--accent-warning) 10%, transparent);
+    transition: background 0.2s ease;
 }
 
-/* The default marker would sit beside the warning triangle. */
-.disclaimer-header::-webkit-details-marker { display: none; }
-.disclaimer-header::marker { content: ''; }
-
-.disclaimer-header span {
-    flex: 1;
-}
-
-.disclaimer-header .chevron {
-    flex-shrink: 0;
-    transition: transform 0.15s ease;
-}
-
-.disclaimer-card[open] .disclaimer-header .chevron {
-    transform: rotate(180deg);
+.disclaimer-card[open] .disclaimer-header {
+    border-bottom: 1px solid color-mix(in srgb, var(--accent-warning) 20%, transparent);
 }
 
 .disclaimer-header:hover {
-    background: var(--bg-card-hover);
+    background: color-mix(in srgb, var(--accent-warning) 15%, transparent);
 }
 
 .disclaimer-header:focus-visible {
@@ -840,13 +784,65 @@
     outline-offset: -2px;
 }
 
+/* The default marker would sit beside the warning triangle. */
+.disclaimer-header::-webkit-details-marker { display: none; }
+.disclaimer-header::marker { content: ''; }
+
+.disclaimer-header > svg:first-child,
+.disclaimer-header .chevron {
+    color: var(--accent-warning);
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+
+.disclaimer-header .chevron {
+    transform: rotate(-90deg);
+    transition: transform 0.3s ease;
+}
+
+.disclaimer-card[open] .disclaimer-header .chevron {
+    transform: rotate(0deg);
+}
+
+.disclaimer-summary-text {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.disclaimer-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--accent-warning);
+}
+
+.disclaimer-lead {
+    font-size: 0.75rem;
+    line-height: 1.5;
+    color: var(--text-secondary);
+}
+
 .disclaimer-content {
-    padding: 4px 18px 18px;
-    border-top: 1px solid var(--border-color);
+    padding: 16px;
+    max-height: 460px;
+    overflow-y: auto;
+    font-size: 0.75rem;
+    line-height: 1.5;
+    color: var(--text-secondary);
 }
 
 .disclaimer-section {
-    margin-top: 16px;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid color-mix(in srgb, var(--accent-warning) 15%, transparent);
+}
+
+.disclaimer-section:last-of-type {
+    border-bottom: none;
 }
 
 .disclaimer-section h4 {
@@ -854,49 +850,96 @@
     font-size: 0.8125rem;
     font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--text-primary);
+    letter-spacing: 0.5px;
+    color: var(--accent-warning);
     margin: 0 0 8px;
 }
 
 .disclaimer-section p,
 .disclaimer-footer p {
-    font-size: 0.8125rem;
-    line-height: 1.6;
-    color: var(--text-secondary);
-    margin: 0 0 8px;
+    margin: 6px 0;
 }
 
 .disclaimer-note {
-    padding-left: 10px;
-    border-left: 2px solid var(--accent-error);
+    font-style: italic;
 }
 
 .disclaimer-list {
-    margin: 0;
-    padding-left: 20px;
+    margin: 8px 0;
+    padding-left: 16px;
 }
 
 .disclaimer-list li {
-    font-size: 0.8125rem;
-    line-height: 1.6;
-    color: var(--text-secondary);
-    margin-bottom: 6px;
+    margin-bottom: 8px;
+    line-height: 1.4;
 }
 
-.disclaimer-section strong,
-.disclaimer-footer strong {
+.disclaimer-list strong,
+.disclaimer-section strong {
     color: var(--text-primary);
+    font-weight: 600;
 }
 
 .disclaimer-footer {
-    margin-top: 18px;
-    padding-top: 14px;
-    border-top: 1px solid var(--border-color);
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid color-mix(in srgb, var(--accent-warning) 30%, transparent);
 }
 
-@media (max-width: 768px) {
-    .liability-banner {
-        flex-direction: column;
-    }
+.disclaimer-footer strong {
+    color: var(--accent-warning);
+}
+
+
+/* --- Foldable result sections ----------------------------------------------
+   The maximum deflection stays open. Moment, stress and the comparison fold
+   away, so the answer is not buried under three blocks of supporting numbers. */
+
+.result-fold {
+    padding: 0;
+}
+
+.result-fold > summary.result-subtitle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    padding: 12px 14px;
+    cursor: pointer;
+    user-select: none;
+    list-style: none;
+    border-radius: 8px;
+}
+
+.result-fold > summary::-webkit-details-marker { display: none; }
+.result-fold > summary::marker { content: ''; }
+
+/* Chevron drawn in CSS, so no icon markup is needed per section. */
+.result-fold > summary.result-subtitle::after {
+    content: '';
+    margin-left: auto;
+    width: 7px;
+    height: 7px;
+    border-right: 2px solid currentColor;
+    border-bottom: 2px solid currentColor;
+    transform: rotate(-45deg);
+    transition: transform 0.2s ease;
+    opacity: 0.7;
+}
+
+.result-fold[open] > summary.result-subtitle::after {
+    transform: rotate(45deg);
+}
+
+.result-fold > summary.result-subtitle:hover {
+    background: var(--bg-card-hover);
+}
+
+.result-fold > summary.result-subtitle:focus-visible {
+    outline: 2px solid var(--accent-engineering);
+    outline-offset: -2px;
+}
+
+.result-fold-body {
+    padding: 0 14px 12px;
 }
