@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<!--
+============================================
+CONTROL VALVE SIZING v0.1.0
+============================================
+Description: Control valve sizing to the ISA-75.01.01 / IEC 60534-2-1
+procedure, for incompressible and compressible service, with the choked-flow,
+cavitation and flashing regime checks that the widely quoted one-line formula
+omits.
+
+Dependencies: None (Vanilla JavaScript)
+
+Data: Representative sizing coefficients and the equation constants are
+transcribed from the Fisher / Emerson Control Valve Handbook, 5th edition
+(D101881X012/Sept19), a freely published secondary source. Provenance and a
+SHA-256 are recorded in data/control_valve_coefficients/download_manifest.csv.
+
+Project: Tools Hub by Jesse Anderson
+Repository: https://github.com/jesse-anderson/Tools
+License: GPL-3.0 - https://github.com/jesse-anderson/Tools/blob/main/LICENSE
+
+Features:
+- Liquid and gas sizing, both solve directions (required coefficient from a
+  flow, or achievable flow from a coefficient)
+- Gas flow entered as mass or as standard volumetric, the latter against a
+  pinned 101.325 kPa / 15 C reference state
+- Choked flow detected and capped rather than extrapolated past
+- Cavitation and flashing assessment, with the sigma definition stated
+- Piping geometry factor for reducers, solved iteratively
+- Regime always reported alongside the coefficient
+- Water vapour pressure from a vendored saturation table, gas properties from
+  a cited table, both with the source named in the interface
+- Inherent and installed characteristic with valve authority
+- Recovery factor and terminal ratio bounded to their definitions, because
+  outside them the choking and cavitation checks silently stop working
+
+Last Updated: September 2026
+============================================
+-->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control Valve Sizing | Tools Hub</title>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; base-uri 'none'; form-action 'none'">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/shared.css">
+    <link rel="stylesheet" href="../css/control_valve_sizing/control-valve-sizing.css">
+</head>
+<body>
+<div class="container">
+    <header>
+        <a href="../tools.html" class="back-link">&larr; All tools</a>
+        <h1>Control Valve Sizing</h1>
+        <p class="subtitle">ISA-75.01.01 / IEC 60534-2-1 flow coefficient, with the regime that decides whether it means anything.</p>
+    </header>
+
+    <main>
+        <details class="disclaimer-card">
+            <summary>
+                <span class="disclaimer-icon" aria-hidden="true">&#9888;</span>
+                <span>Screening tool. Sizes to the standard with published typical coefficients; the manufacturer's data for the specific trim always governs.</span>
+                <span class="disclaimer-chevron" aria-hidden="true">&#9662;</span>
+            </summary>
+            <div class="disclaimer-body">
+                <p><strong>What this claims.</strong> A faithful implementation of the published sizing procedure. Predicting the flow through your actual valve is a different thing, and this does not do it: the sizing equations are empirical correlations and the coefficients are flow-test measurements per trim, so ground truth for a real valve is a flow test.</p>
+                <p><strong>What that is checked against.</strong> Seven worked examples from three independent publishers: the four annex examples in IEC 60534-2-1 itself, and three from the Fisher handbook, covering liquid and gas, choked and not, with and without reducers. The reducer loss coefficients reproduce the standard's printed values to the digit.</p>
+                <ul>
+                    <li>Noise, actuator thrust and seat leakage class are not evaluated.</li>
+                    <li>Two-phase and flashing service is detected and refused; the tool will not size it.</li>
+                    <li>Cavitation assessment is a screening indication and says nothing about trim life. A quiet result is not a clean bill of health; see the note beside it.</li>
+                    <li>The Reynolds number factor is not computed, so turbulence is not verified.</li>
+                    <li>No code or specification compliance is claimed.</li>
+                </ul>
+            </div>
+        </details>
+
+        <div class="calculator-layout">
+            <div class="calculator-panel">
+                <div class="panel-header">
+                    <h2>Service conditions</h2>
+                    <p>All pressures are absolute unless you switch the entry mode.</p>
+                </div>
+
+                <div class="control-row">
+                    <div class="input-group">
+                        <label for="direction">Solve for</label>
+                        <select id="direction" class="main-input">
+                            <option value="size" selected>Required coefficient, from a flow</option>
+                            <option value="rate">Achievable flow, from a coefficient</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label for="service">Service</label>
+                        <select id="service" class="main-input">
+                            <option value="liquid" selected>Liquid</option>
+                            <option value="gas">Gas or vapour</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label for="unitSystem">Units</label>
+                        <select id="unitSystem" class="main-input">
+                            <option value="si" selected>SI (kPa, m3/h, mm)</option>
+                            <option value="us">US customary (psi, gpm, in)</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label for="pressureBasis">Pressure entry</label>
+                        <select id="pressureBasis" class="main-input">
+                            <option value="absolute" selected>Absolute</option>
+                            <option value="gauge">Gauge</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="control-row">
+                    <div class="input-group">
+                        <label for="p1">Inlet pressure <span class="unit" data-unit="pressure"></span></label>
+                        <input id="p1" class="main-input" type="number" step="any" min="0" value="1000"
+                               data-quantity="pressure">
+                    </div>
+                    <div class="input-group">
+                        <label for="p2">Outlet pressure <span class="unit" data-unit="pressure"></span></label>
+                        <input id="p2" class="main-input" type="number" step="any" min="0" value="700"
+                               data-quantity="pressure">
+                    </div>
+                    <div class="input-group" data-when-direction="rate">
+                        <label for="cInstalled">Installed C<sub>v</sub></label>
+                        <input id="cInstalled" class="main-input" type="number" step="any" min="0" value="50"
+                               aria-describedby="cInstalledNote">
+                        <p class="field-note" id="cInstalledNote">The coefficient the valve actually has, at the opening of interest. The result becomes the flow it will pass.</p>
+                    </div>
+                </div>
+
+                <div class="control-row" data-when="liquid">
+                    <div class="input-group" data-when-direction="size">
+                        <label for="q">Flow rate <span class="unit" data-unit="volumeFlow"></span></label>
+                        <input id="q" class="main-input" type="number" step="any" min="0" value="50"
+                               data-quantity="volumeFlow">
+                    </div>
+                    <div class="input-group">
+                        <label for="relativeDensity">Relative density (SG)</label>
+                        <input id="relativeDensity" class="main-input" type="number" step="any" min="0" value="1.0">
+                    </div>
+                </div>
+
+                <div class="control-row" data-when="liquid">
+                    <div class="input-group">
+                        <label for="liquidFluid">Liquid</label>
+                        <select id="liquidFluid" class="main-input">
+                            <option value="water" selected>Water, vapour pressure from the vendored curve</option>
+                            <option value="">Other, enter the vapour pressure</option>
+                        </select>
+                    </div>
+                    <div class="input-group" data-when-liquid="water">
+                        <label for="tLiquid">Inlet temperature <span class="unit" data-unit="temperature"></span></label>
+                        <input id="tLiquid" class="main-input" type="number" step="any" value="20"
+                               data-quantity="temperature" aria-describedby="tLiquidNote">
+                        <p class="field-note" id="tLiquidNote">Fills the two pressures below from the vendored saturation table, 0.01 to 200 C. Outside that range the fields are left alone, since the curve is never extrapolated.</p>
+                    </div>
+                </div>
+
+                <div class="control-row" data-when="liquid">
+                    <div class="input-group">
+                        <label for="pv">Vapour pressure <span class="unit" data-unit="pressure"></span></label>
+                        <input id="pv" class="main-input" type="number" step="any" min="0" value="2.34"
+                               data-quantity="pressure" aria-describedby="pvNote">
+                        <p class="field-note" id="pvNote">Absolute, at the inlet temperature. Leave it blank and the cavitation and flashing checks report that they did not run. Nothing is assumed to pass.</p>
+                    </div>
+                    <div class="input-group">
+                        <label for="pc">Critical pressure <span class="unit" data-unit="pressure"></span></label>
+                        <input id="pc" class="main-input" type="number" step="any" min="0" value="22064"
+                               data-quantity="pressure" aria-describedby="pcNote">
+                        <p class="field-note" id="pcNote">Needed with the vapour pressure to form FF, so leaving it blank stops the choke check specifically. A choked service sized without it comes out undersized.</p>
+                    </div>
+                </div>
+
+                <div class="control-row" data-when="gas">
+                    <div class="input-group">
+                        <label for="gasFluid">Gas</label>
+                        <select id="gasFluid" class="main-input"></select>
+                        <p class="field-note" id="gasNote"></p>
+                    </div>
+                    <div class="input-group">
+                        <label for="gasBasis">Flow basis</label>
+                        <select id="gasBasis" class="main-input">
+                            <option value="mass" selected>Mass flow</option>
+                            <option value="volumetric">Standard volumetric flow</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label for="gamma">Specific heat ratio</label>
+                        <input id="gamma" class="main-input" type="number" step="any" min="1" max="2" value="1.4">
+                    </div>
+                </div>
+
+                <div class="control-row" data-when="gas">
+                    <div class="input-group" data-when-gas="mass">
+                        <label for="w">Mass flow <span class="unit" data-unit="massFlow"></span></label>
+                        <input id="w" class="main-input" type="number" step="any" min="0" value="2000"
+                               data-quantity="massFlow">
+                    </div>
+                    <div class="input-group" data-when-gas="mass">
+                        <label for="rho1">Inlet density <span class="unit" data-unit="density"></span></label>
+                        <input id="rho1" class="main-input" type="number" step="any" min="0" value="5"
+                               data-quantity="density">
+                    </div>
+                    <div class="input-group" data-when-gas="volumetric">
+                        <label for="qGas">Standard volumetric flow <span class="unit" data-unit="volumeFlow"></span></label>
+                        <input id="qGas" class="main-input" type="number" step="any" min="0" value="1500"
+                               data-quantity="volumeFlow" aria-describedby="qGasNote">
+                        <p class="field-note" id="qGasNote" data-standard-conditions></p>
+                    </div>
+                    <div class="input-group" data-when-gas="volumetric">
+                        <label for="mw">Molar mass <span class="unit">kg/kmol</span></label>
+                        <input id="mw" class="main-input" type="number" step="any" min="0" value="28.97">
+                    </div>
+                    <div class="input-group" data-when-gas="volumetric">
+                        <label for="t1">Inlet temperature <span class="unit" data-unit="temperature"></span></label>
+                        <input id="t1" class="main-input" type="number" step="any" value="15"
+                               data-quantity="temperature">
+                    </div>
+                    <div class="input-group" data-when-gas="volumetric">
+                        <label for="z">Compressibility Z</label>
+                        <input id="z" class="main-input" type="number" step="any" min="0" value="1.0">
+                    </div>
+                </div>
+
+                <div class="panel-header">
+                    <h2>Valve and piping</h2>
+                </div>
+
+                <div class="control-row">
+                    <div class="input-group">
+                        <label for="style">Valve style</label>
+                        <select id="style" class="main-input"></select>
+                        <p class="field-note" id="styleNote"></p>
+                    </div>
+                </div>
+
+                <div class="control-row">
+                    <div class="input-group">
+                        <label for="fl">F<sub>L</sub> recovery factor</label>
+                        <input id="fl" class="main-input" type="number" step="any" min="0.01" max="1" value="0.9"
+                               aria-describedby="coefficientNote">
+                    </div>
+                    <div class="input-group">
+                        <label for="xt">x<sub>T</sub> terminal ratio</label>
+                        <input id="xt" class="main-input" type="number" step="any" min="0.01" max="0.99" value="0.7"
+                               aria-describedby="coefficientNote">
+                    </div>
+                    <p class="field-note" id="coefficientNote">F<sub>L</sub> lies above 0 and at most 1; x<sub>T</sub> above 0 and below 1. These two are the entire choking and cavitation apparatus, so a value outside its definition is refused. Sizing with the checks quietly disabled is the failure this guards against.</p>
+                </div>
+
+                <div class="panel-header">
+                    <h2>Installed characteristic</h2>
+                    <p>Optional. Leave the system blank and the characteristic reports itself as not computed, with nothing assumed in its place.</p>
+                </div>
+
+                <div class="control-row">
+                    <div class="input-group">
+                        <label for="characteristic">Trim characteristic</label>
+                        <select id="characteristic" class="main-input">
+                            <option value="">Not computed</option>
+                            <option value="linear">Linear</option>
+                            <option value="equal-percentage">Equal percentage</option>
+                            <option value="quick-opening">Quick opening</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label for="crated">Rated C<sub>v</sub> at full open</label>
+                        <input id="crated" class="main-input" type="number" step="any" min="0" value="100">
+                    </div>
+                </div>
+
+                <div class="control-row">
+                    <div class="input-group">
+                        <label for="dpTotal">Total available differential <span class="unit" data-unit="pressure"></span></label>
+                        <input id="dpTotal" class="main-input" type="number" step="any" min="0" value="500"
+                               data-quantity="pressure" aria-describedby="dpTotalNote">
+                        <p class="field-note" id="dpTotalNote">Across the valve and the rest of the system together. A moody-chart result for the piping drops straight in here. It is cross-checked against the differential in the sizing case above, and a disagreement is reported.</p>
+                    </div>
+                    <div class="input-group">
+                        <label for="dpValveOpen">Valve differential at full open <span class="unit" data-unit="pressure"></span></label>
+                        <input id="dpValveOpen" class="main-input" type="number" step="any" min="0" value="300"
+                               data-quantity="pressure">
+                    </div>
+                </div>
+
+                <div class="control-row">
+                    <div class="input-group">
+                        <label for="d">Valve size <span class="unit" data-unit="diameter"></span></label>
+                        <input id="d" class="main-input" type="number" step="any" min="0" value="100"
+                               data-quantity="diameter">
+                    </div>
+                    <div class="input-group">
+                        <label for="d1">Upstream pipe bore <span class="unit" data-unit="diameter"></span></label>
+                        <input id="d1" class="main-input" type="number" step="any" min="0" value="100"
+                               data-quantity="diameter">
+                    </div>
+                    <div class="input-group">
+                        <label for="d2">Downstream pipe bore <span class="unit" data-unit="diameter"></span></label>
+                        <input id="d2" class="main-input" type="number" step="any" min="0" value="100"
+                               data-quantity="diameter">
+                    </div>
+                </div>
+            </div>
+
+            <aside class="sidebar">
+                <div class="result-lead">
+                    <div class="result-lead-label" id="cvLabel">Required flow coefficient</div>
+                    <div class="result-lead-value" id="cvValue">&mdash;</div>
+                    <div class="result-lead-sub" id="kvValue"></div>
+                    <div class="regime-badge" id="regimeBadge" data-severity="info">
+                        <span class="regime-icon" id="regimeIcon" aria-hidden="true"></span>
+                        <span id="regimeWord">&mdash;</span>
+                    </div>
+                </div>
+
+                <!-- The one line a screen reader hears when anything changes.
+                     The panel itself is deliberately not a live region: it
+                     rebuilds on every keystroke and would be re-read whole.
+                     Before this existed the only live element was the refusal
+                     text, which is emptied on success, so a correct answer
+                     announced nothing at all. -->
+                <p id="resultSummary" class="visually-hidden" role="status" aria-live="polite"></p>
+
+                <div class="result-status" id="resultStatus"></div>
+
+                <div id="advisories" class="advisories"></div>
+
+                <details class="result-fold">
+                    <summary>Regime detail</summary>
+                    <div class="result-box" id="regimeDetail"></div>
+                </details>
+
+                <details class="result-fold">
+                    <summary>Cavitation and flashing</summary>
+                    <div class="result-box" id="cavitationDetail"></div>
+                </details>
+
+                <details class="result-fold">
+                    <summary>Installed characteristic and authority</summary>
+                    <div class="result-box" id="characteristicDetail"></div>
+                    <svg id="characteristicChart" class="characteristic-chart" viewBox="0 0 320 200"
+                         preserveAspectRatio="xMidYMid meet" role="img"
+                         aria-labelledby="chartTitle chartDesc">
+                        <title id="chartTitle">Inherent and installed characteristic</title>
+                        <desc id="chartDesc">Coefficient and flow against fractional valve travel, both normalised to their value at full open.</desc>
+                    </svg>
+                </details>
+
+                <details class="result-fold">
+                    <summary>Coefficients used</summary>
+                    <div class="result-box" id="coefficientDetail"></div>
+                </details>
+            </aside>
+        </div>
+    </main>
+
+    <footer data-footer></footer>
+</div>
+
+<script src="../js/shared.js"></script>
+<script type="module" src="../js/footer.js"></script>
+<script type="module" src="../js/control_valve_sizing/control-valve-sizing.js"></script>
+</body>
+</html>

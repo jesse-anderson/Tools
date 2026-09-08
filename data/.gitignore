@@ -22,3 +22,7 @@
 !beam_deflection_materials/README.md
 !beam_deflection_materials/*.csv
 !beam_deflection_materials/*.json
+!control_valve_coefficients/
+!control_valve_coefficients/README.md
+!control_valve_coefficients/*.csv
+!control_valve_coefficients/*.json

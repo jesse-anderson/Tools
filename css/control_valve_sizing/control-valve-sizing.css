@@ -1,0 +1,169 @@
+/* Control valve sizing tool.
+ *
+ * shared.css supplies theme variables, resets, header/footer and base input
+ * styling, but NOT the layout component classes, so they are defined here.
+ *
+ * --text-muted is deliberately never used: it measures 2.6:1 on the light card
+ * and 3.7:1 on the dark one, failing WCAG AA in both themes. --text-secondary
+ * is used throughout instead.
+ */
+
+.container { max-width: 1200px; margin: 0 auto; padding: 24px 16px 48px; }
+
+/* Carries the one-line spoken result summary. The results panel itself is not a
+ * live region, because it rebuilds on every keystroke and would be re-read
+ * whole. */
+.visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+}
+
+header { margin-bottom: 20px; }
+.back-link { color: var(--accent-engineering); text-decoration: none; font-size: 0.875rem; }
+.back-link:hover { text-decoration: underline; }
+header h1 { font-family: 'Space Grotesk', system-ui, sans-serif; font-size: 2rem; margin: 8px 0 4px; }
+.subtitle { color: var(--text-secondary); margin: 0; }
+
+/* --- scope disclaimer -----------------------------------------------------
+ * The same treatment as beam-deflection and linear-thermal-expansion: the
+ * theme warning colour tinted through color-mix rather than a solid error slab,
+ * and the headline sentence inside the summary so it reads without opening
+ * anything. Native details, so it is keyboard operable with no JavaScript.
+ */
+.disclaimer-card {
+    border: 1px solid color-mix(in srgb, var(--accent-warning) 45%, transparent);
+    background: color-mix(in srgb, var(--accent-warning) 9%, transparent);
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 20px;
+}
+/* min-height plus vertical padding takes the hit area to the 44px touch target
+ * guideline. Measured at 26px before, which is a hard tap on a phone and the
+ * only control on the page that opens the scope limits. */
+.disclaimer-card > summary {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    cursor: pointer;
+    list-style: none;
+    font-weight: 600;
+    color: var(--text-primary);
+    min-height: 44px;
+    padding: 10px 0;
+    box-sizing: border-box;
+}
+.disclaimer-card > summary::-webkit-details-marker { display: none; }
+.disclaimer-icon { color: var(--accent-warning); flex: 0 0 auto; }
+.disclaimer-chevron { margin-left: auto; transition: transform 0.15s ease; color: var(--text-secondary); }
+.disclaimer-card[open] .disclaimer-chevron { transform: rotate(180deg); }
+.disclaimer-body { margin-top: 10px; color: var(--text-secondary); font-size: 0.9rem; }
+.disclaimer-body ul { margin: 8px 0 0; padding-left: 20px; }
+.disclaimer-body li { margin-bottom: 4px; }
+
+/* --- layout --------------------------------------------------------------- */
+.calculator-layout { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+.calculator-panel, .sidebar { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 18px; }
+.panel-header { margin: 4px 0 14px; }
+.panel-header h2 { font-family: 'Space Grotesk', system-ui, sans-serif; font-size: 1.25rem; margin: 0 0 4px; }
+.panel-header p { margin: 0; color: var(--text-secondary); font-size: 0.875rem; }
+
+.control-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 14px; }
+.input-group { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.input-group label { font-size: 0.8125rem; color: var(--text-secondary); font-weight: 500; }
+.unit { color: var(--text-secondary); font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; }
+.main-input { width: 100%; box-sizing: border-box; }
+.field-note { margin: 0; font-size: 0.75rem; color: var(--text-secondary); line-height: 1.4; }
+
+/* --- the answer, and the regime beside it ---------------------------------
+ * The regime is never hidden and never absent. A coefficient without its regime
+ * is the thing this tool exists to stop shipping, so the badge sits inside the
+ * lead block rather than folded away with the detail.
+ */
+.result-lead { text-align: center; padding: 8px 0 16px; border-bottom: 1px solid var(--border-color); margin-bottom: 14px; }
+.result-lead-label { font-size: 0.8125rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.06em; }
+/* The one number on the page a user copies. On the light card the theme accent
+ * measures 3.19:1 against white, which passes AA only because 40px counts as
+ * large text, with 0.19 to spare. Darkening the accent for this element alone in
+ * light theme takes it to 5.26:1, clearing AA for NORMAL text so the margin no
+ * longer depends on the font size surviving a future layout change. Dark theme
+ * already measures 8.25:1 and is left exactly as it was. */
+.result-lead-value { font-family: 'JetBrains Mono', monospace; font-size: 2.5rem; font-weight: 700; color: var(--accent-engineering); line-height: 1.1; margin: 6px 0 2px; }
+[data-theme="light"] .result-lead-value { color: color-mix(in srgb, var(--accent-engineering) 75%, #000); }
+.result-lead-sub { font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 12px; }
+
+.regime-badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 6px 14px; border-radius: 999px;
+    font-family: 'JetBrains Mono', monospace; font-size: 0.875rem; font-weight: 600;
+    border: 1px solid currentColor;
+}
+.regime-badge[data-severity="info"] { color: var(--accent-success); background: color-mix(in srgb, var(--accent-success) 12%, transparent); }
+.regime-badge[data-severity="warn"] { color: var(--accent-warning); background: color-mix(in srgb, var(--accent-warning) 14%, transparent); }
+.regime-badge[data-severity="error"] { color: var(--accent-error); background: color-mix(in srgb, var(--accent-error) 14%, transparent); }
+/* The icon differs in SHAPE between severities, not only in tint. */
+.regime-icon { font-size: 0.75rem; }
+
+.result-status { font-size: 0.875rem; margin-bottom: 12px; line-height: 1.45; }
+.result-status[data-state="error"] { color: var(--accent-error); }
+
+.advisories { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+.advisory { display: flex; gap: 8px; align-items: flex-start; font-size: 0.8125rem; line-height: 1.45; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border-color); color: var(--text-secondary); }
+.advisory[data-severity="warn"] { border-color: color-mix(in srgb, var(--accent-warning) 45%, transparent); background: color-mix(in srgb, var(--accent-warning) 8%, transparent); }
+.advisory[data-severity="error"] { border-color: color-mix(in srgb, var(--accent-error) 45%, transparent); background: color-mix(in srgb, var(--accent-error) 8%, transparent); }
+.advisory-icon { flex: 0 0 auto; font-size: 0.6875rem; padding-top: 2px; }
+
+.result-fold { border-top: 1px solid var(--border-color); padding: 2px 0 4px; }
+/* Same 44px hit area as the disclaimer. These four measured 22px, which is half
+ * the guideline and they are the only way to reach the regime detail. */
+.result-fold > summary {
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.875rem;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+}
+.result-box { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; }
+.result-row { display: flex; justify-content: space-between; gap: 12px; font-size: 0.8125rem; }
+.result-label { color: var(--text-secondary); }
+.result-value { font-family: 'JetBrains Mono', monospace; text-align: right; word-break: break-word; }
+
+@media (max-width: 900px) {
+    .calculator-layout { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 768px) {
+    .control-row { grid-template-columns: minmax(0, 1fr); }
+    .result-lead-value { font-size: 2rem; }
+}
+
+/* --- installed characteristic plot ----------------------------------------
+ * Fixed viewBox with preserveAspectRatio, so the figure scales with its
+ * container rather than needing a responsive redraw. The two curves are
+ * separated by dash pattern as well as colour, for the same reason the regime
+ * badge carries an icon shape.
+ */
+/* min-width matters as much as the type size below. The labels are sized in
+ * viewBox units, so they shrink with the figure: at 9 units in a 320-unit box
+ * they rendered under 9 CSS px in a narrow sidebar. 11 units in a box that
+ * cannot go below 280px keeps them at roughly 11px on the smallest layout. */
+.characteristic-chart { width: 100%; min-width: 280px; height: auto; margin-top: 12px; overflow: visible; }
+.chart-axis { stroke: var(--border-color); stroke-width: 1; }
+.chart-line { fill: none; stroke-width: 2; stroke-linejoin: round; }
+.chart-inherent { stroke: var(--text-secondary); stroke-dasharray: 5 4; }
+.chart-installed { stroke: var(--accent-engineering); }
+.chart-travel { stroke: var(--accent-warning); stroke-width: 1; stroke-dasharray: 2 3; }
+.chart-label, .chart-tick, .chart-legend {
+    fill: var(--text-secondary);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+}
+.chart-label { text-anchor: middle; }
+.chart-tick { text-anchor: end; }

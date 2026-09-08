@@ -39,7 +39,8 @@ module.exports = defineConfig({
     'simple-unit-converter.spec.cjs',
     'ohms-law.spec.cjs',
     'sensors-reference.spec.cjs',
-    'beam-deflection.spec.cjs'
+    'beam-deflection.spec.cjs',
+    'control-valve-sizing.spec.cjs'
   ],
   timeout: 60_000,
   // The specs are independent (each navigates its own page or drives a pure

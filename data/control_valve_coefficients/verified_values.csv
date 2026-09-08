@@ -1,0 +1,53 @@
+library,id,property,source_value,stored_value,locator,source
+style,globe-cage-linear-1,FL,0.84,0.84,"5.10.1 NPS 1 cage-guided linear",fisher_cvh_5ed
+style,globe-cage-linear-1,xT,0.64,0.64,"5.10.1 NPS 1 cage-guided linear",fisher_cvh_5ed
+style,globe-cage-linear-1,Fd,0.34,0.34,"5.10.1 NPS 1 cage-guided linear",fisher_cvh_5ed
+style,globe-cage-eqpct-1,FL,0.88,0.88,"5.10.1 NPS 1 cage-guided equal-percentage",fisher_cvh_5ed
+style,globe-cage-eqpct-1,xT,0.67,0.67,"5.10.1 NPS 1 cage-guided equal-percentage",fisher_cvh_5ed
+style,globe-cage-linear-2,FL,0.77,0.77,"5.10.1 NPS 2 cage-guided linear",fisher_cvh_5ed
+style,globe-cage-linear-2,xT,0.64,0.64,"5.10.1 NPS 2 cage-guided linear",fisher_cvh_5ed
+style,globe-cage-eqpct-2,FL,0.85,0.85,"5.10.1 NPS 2 cage-guided equal-percentage",fisher_cvh_5ed
+style,globe-cage-eqpct-2,xT,0.69,0.69,"5.10.1 NPS 2 cage-guided equal-percentage",fisher_cvh_5ed
+style,globe-cage-linear-3,FL,0.82,0.82,"5.10.1 NPS 3 cage-guided linear",fisher_cvh_5ed
+style,globe-cage-linear-3,xT,0.62,0.62,"5.10.1 NPS 3 cage-guided linear",fisher_cvh_5ed
+style,globe-cage-eqpct-3,xT,0.68,0.68,"5.10.1 NPS 3 cage-guided equal-percentage",fisher_cvh_5ed
+style,globe-cage-linear-4,Cv,236,236,"5.10.1 NPS 4 cage-guided linear",fisher_cvh_5ed
+style,globe-cage-linear-4,FL,0.82,0.82,"5.10.1 NPS 4 cage-guided linear",fisher_cvh_5ed
+style,globe-cage-linear-4,xT,0.69,0.69,"5.10.1 NPS 4 cage-guided linear",fisher_cvh_5ed
+style,globe-post-eqpct-0p5,FL,0.9,0.9,"5.10.1 NPS 1/2 post-guided equal-percentage",fisher_cvh_5ed
+style,globe-post-eqpct-0p75,Fd,0.61,0.61,"5.10.1 NPS 3/4 post-guided equal-percentage",fisher_cvh_5ed
+style,ball-vnotch-1-60,Cv,15.6,15.6,"5.10.2 NPS 1 V-notch ball, 60 degrees",fisher_cvh_5ed
+style,ball-vnotch-1-60,FL,0.86,0.86,"5.10.2 NPS 1 V-notch ball, 60 degrees",fisher_cvh_5ed
+style,ball-vnotch-1-90,xT,0.42,0.42,"5.10.2 NPS 1 V-notch ball, 90 degrees",fisher_cvh_5ed
+style,ball-vnotch-3-90,Cv,321,321,"5.10.2 NPS 3 V-notch ball, 90 degrees",fisher_cvh_5ed
+style,ball-vnotch-4-90,FL,0.62,0.62,"5.10.2 NPS 4 V-notch ball, 90 degrees",fisher_cvh_5ed
+style,butterfly-hp-3-60,FL,0.81,0.81,"5.10.2 NPS 3 high-performance butterfly, 60 degrees",fisher_cvh_5ed
+style,butterfly-hp-3-90,FL,0.64,0.64,"5.10.2 NPS 3 high-performance butterfly, 90 degrees",fisher_cvh_5ed
+style,butterfly-hp-4-90,FL,0.53,0.53,"5.10.2 NPS 4 high-performance butterfly, 90 degrees",fisher_cvh_5ed
+style,butterfly-hp-4-90,xT,0.19,0.19,"5.10.2 NPS 4 high-performance butterfly, 90 degrees",fisher_cvh_5ed
+style,butterfly-hp-8-90,FL,0.48,0.48,"5.10.2 NPS 8 high-performance butterfly, 90 degrees",fisher_cvh_5ed
+gas,air,gamma,1.4,1.4,"13.4 Air",fisher_cvh_5ed
+gas,nitrogen,gamma,1.4,1.4,"13.4 Nitrogen",fisher_cvh_5ed
+gas,oxygen,gamma,1.4,1.4,"13.4 Oxygen",fisher_cvh_5ed
+gas,carbon-dioxide,gamma,1.29,1.29,"13.4 Carbon Dioxide",fisher_cvh_5ed
+gas,carbon-monoxide,gamma,1.4,1.4,"13.4 Carbon Monoxide",fisher_cvh_5ed
+gas,hydrogen,gamma,1.4,1.4,"13.4 Hydrogen",fisher_cvh_5ed
+gas,helium,gamma,1.66,1.66,"13.4 Helium",fisher_cvh_5ed
+gas,argon,gamma,1.67,1.67,"13.4 Argon",fisher_cvh_5ed
+gas,methane,gamma,1.26,1.26,"13.4 Methane",fisher_cvh_5ed
+gas,steam,gamma,1.33,1.33,"13.4 Steam",fisher_cvh_5ed
+constant,N1,value,0.0865,0.0865,"5.7 q m3/h, P kPa",fisher_cvh_5ed
+constant,N2,value,0.00214,0.00214,"5.7 d mm",fisher_cvh_5ed
+constant,N5,value,0.00241,0.00241,"5.7 d mm",fisher_cvh_5ed
+constant,N6,value,2.73,2.73,"5.7 w kg/h, P kPa, rho kg/m3",fisher_cvh_5ed
+constant,N8,value,0.948,0.948,"5.7 w kg/h, P kPa, T K",fisher_cvh_5ed
+constant,N9,value,22.5,22.5,"5.7 q m3/h at 15 C standard, P kPa, T K",fisher_cvh_5ed
+gas,nitrogen,MW,28.0140,28.014,"sum of standard atomic weights",first principles
+gas,oxygen,MW,31.9980,31.998,"sum of standard atomic weights",first principles
+gas,carbon-dioxide,MW,44.0090,44.009,"sum of standard atomic weights",first principles
+gas,carbon-monoxide,MW,28.0100,28.01,"sum of standard atomic weights",first principles
+gas,hydrogen,MW,2.0160,2.016,"sum of standard atomic weights",first principles
+gas,helium,MW,4.0026,4.003,"sum of standard atomic weights",first principles
+gas,argon,MW,39.9480,39.948,"sum of standard atomic weights",first principles
+gas,methane,MW,16.0430,16.043,"sum of standard atomic weights",first principles
+gas,steam,MW,18.0150,18.015,"sum of standard atomic weights",first principles
