@@ -1509,11 +1509,111 @@ test.describe('the page', () => {
     test('the scope disclaimer is present with nothing to dismiss', async ({ page }) => {
         const card = page.locator('.disclaimer-card');
         await expect(card).toBeVisible();
-        // The headline reads without opening anything.
-        await expect(card.locator('summary')).toContainText('manufacturer');
+        // The headline reads without opening anything, and it says what the tool
+        // is not before it says anything about what it does.
+        await expect(page.locator('.disclaimer-title')).toContainText('Not a valve selection or process safety tool');
+        await expect(page.locator('.disclaimer-lead')).toContainText('not engineering advice');
         await expect(card.locator('.disclaimer-body')).toBeHidden();
         await card.locator('summary').click();
         await expect(card.locator('.disclaimer-body')).toBeVisible();
+        // Nothing to dismiss and nothing blocking the page.
+        await expect(page.locator('.modal-overlay')).toHaveCount(0);
+    });
+
+    test('the disclaimer names specific omissions and carries the legal clauses', async ({ page }) => {
+        // The beam tool set the bar here: a disclaimer that waves at risk is
+        // worth nothing, so this one enumerates what is not checked and what the
+        // tool must never be used for. These assertions exist so a future edit
+        // cannot quietly thin it back down to a sentence.
+        await page.locator('.disclaimer-card summary').click();
+        const body = page.locator('.disclaimer-body');
+
+        for (const omission of [
+            'acoustically induced vibration',   // fails piping by fatigue
+            'thrust or torque',                 // the actuator
+            'seat leakage class',
+            'sour service',
+            'body outlet velocity',
+            'cavitation damage rate',
+            'Reynolds number factor is not computed',
+            'stiction',
+            'B16.34',
+        ]) {
+            await expect(body, omission).toContainText(omission);
+        }
+
+        // The sentence the whole section exists to land.
+        await expect(body).toContainText('still be the wrong valve for the service');
+
+        // The uses that would be dangerous, named individually.
+        for (const forbidden of ['API 520', 'IEC 61511', 'PE stamp', 'rupture disc']) {
+            await expect(body, forbidden).toContainText(forbidden);
+        }
+
+        // Warranty, liability, and whose word beats this page.
+        const footer = page.locator('.disclaimer-footer');
+        await expect(footer).toContainText('without warranty of any kind');
+        await expect(footer).toContainText('no liability');
+        await expect(footer).toContainText('this page is wrong');
+    });
+
+    test('every line of the disclaimer clears AA in both themes', async ({ page }) => {
+        // The card is tinted and translucent, so the effective background is the
+        // tint composited over the page. Reading backgroundColor off the nearest
+        // painted ancestor gets this wrong and reports a mid amber as 20:1.
+        //
+        // shared.css also transitions background-color, so a computed read taken
+        // immediately after switching themes returns the mid-animation value.
+        await page.locator('.disclaimer-card summary').click();
+        const SELS = ['.disclaimer-title', '.disclaimer-lead', '.disclaimer-note',
+            '.disclaimer-footer p', '.disclaimer-body li', 'p.disclaimer', '.disclaimer-section h3'];
+        for (const theme of ['dark', 'light']) {
+            await page.evaluate((t) => document.documentElement.setAttribute('data-theme', t), theme);
+            await page.waitForTimeout(700);
+            const measured = await page.evaluate((sels) => {
+                const parse = (c) => {
+                    const v = c.match(/[\d.]+/g).map(Number);
+                    return c.startsWith('color(')
+                        ? [v[0], v[1], v[2], v.length > 3 ? v[3] : 1]
+                        : [v[0] / 255, v[1] / 255, v[2] / 255, v.length > 3 ? v[3] : 1];
+                };
+                const effBg = (el) => {
+                    const stack = [];
+                    for (let n = el; n; n = n.parentElement) stack.push(parse(getComputedStyle(n).backgroundColor));
+                    let out = [1, 1, 1];
+                    for (let i = stack.length - 1; i >= 0; i--) {
+                        const [r, g, b, a] = stack[i];
+                        if (!a) continue;
+                        out = [r * a + out[0] * (1 - a), g * a + out[1] * (1 - a), b * a + out[2] * (1 - a)];
+                    }
+                    return out;
+                };
+                const lum = ([r, g, b]) => {
+                    const f = (v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
+                    return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
+                };
+                const out = {};
+                for (const sel of sels) {
+                    const el = document.querySelector(sel);
+                    const [x, y] = [lum(parse(getComputedStyle(el).color)), lum(effBg(el))].sort((p, q) => q - p);
+                    out[sel] = (x + 0.05) / (y + 0.05);
+                }
+                return out;
+            }, SELS);
+            for (const [sel, ratio] of Object.entries(measured)) {
+                expect(ratio, `${sel} in ${theme}`).toBeGreaterThanOrEqual(4.5);
+            }
+        }
+    });
+
+    test('the scope limit is also readable beside the answer', async ({ page }) => {
+        // A reader who never opens the card still has to meet it. Same second
+        // touchpoint the beam tool puts next to its results.
+        const note = page.locator('p.disclaimer');
+        await expect(note).toBeVisible();
+        await expect(note).toContainText('not a valve specification');
+        await expect(note).toContainText('safety function');
+        await expect(note).toContainText("manufacturer's sizing");
     });
 
     test('no horizontal overflow at four widths', async ({ page }) => {

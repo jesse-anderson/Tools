@@ -8,6 +8,17 @@ procedure, for incompressible and compressible service, with the choked-flow,
 cavitation and flashing regime checks that the widely quoted one-line formula
 omits.
 
+SCOPE AND LIABILITY: Teaching and first-pass screening only. This is not a
+valve selection tool, not a process safety tool, and not engineering advice.
+It computes one flow coefficient for steady single-phase flow at one operating
+point from typical style coefficients. It does not evaluate noise, acoustically
+induced vibration, actuator thrust, seat leakage, materials, pressure rating,
+velocity limits or trim life, it does not verify turbulence, and it claims no
+code compliance. Never use it for relief, blowdown or any safety instrumented
+function. Provided as-is with no warranty and no liability; the manufacturer's
+sizing for the specific trim and a competent engineer govern. See the full
+disclaimer on the page.
+
 Dependencies: None (Vanilla JavaScript)
 
 Data: Representative sizing coefficients and the equation constants are
@@ -58,22 +69,68 @@ Last Updated: September 2026
     </header>
 
     <main>
-        <details class="disclaimer-card">
+        <details class="disclaimer-card" id="scopeDisclaimer" aria-label="Scope and liability disclaimer">
             <summary>
                 <span class="disclaimer-icon" aria-hidden="true">&#9888;</span>
-                <span>Screening tool. Sizes to the standard with published typical coefficients; the manufacturer's data for the specific trim always governs.</span>
+                <span class="disclaimer-summary-text">
+                    <span class="disclaimer-title">Not a valve selection or process safety tool</span>
+                    <span class="disclaimer-lead">Teaching and first-pass screening only, and not engineering advice. Do not use it to select, specify, verify or approve a valve for any real service. Open for the full scope limits.</span>
+                </span>
                 <span class="disclaimer-chevron" aria-hidden="true">&#9662;</span>
             </summary>
             <div class="disclaimer-body">
-                <p><strong>What this claims.</strong> A faithful implementation of the published sizing procedure. Predicting the flow through your actual valve is a different thing, and this does not do it: the sizing equations are empirical correlations and the coefficients are flow-test measurements per trim, so ground truth for a real valve is a flow test.</p>
-                <p><strong>What that is checked against.</strong> Seven worked examples from three independent publishers: the four annex examples in IEC 60534-2-1 itself, and three from the Fisher handbook, covering liquid and gas, choked and not, with and without reducers. The reducer loss coefficients reproduce the standard's printed values to the digit.</p>
-                <ul>
-                    <li>Noise, actuator thrust and seat leakage class are not evaluated.</li>
-                    <li>Two-phase and flashing service is detected and refused; the tool will not size it.</li>
-                    <li>Cavitation assessment is a screening indication and says nothing about trim life. A quiet result is not a clean bill of health; see the note beside it.</li>
-                    <li>The Reynolds number factor is not computed, so turbulence is not verified.</li>
-                    <li>No code or specification compliance is claimed.</li>
-                </ul>
+                <div class="disclaimer-section">
+                    <h3>What this tool actually solves</h3>
+                    <p>One flow coefficient, for steady single-phase flow of a clean Newtonian fluid through one valve at one operating point, by the published ISA-75.01.01 / IEC 60534-2-1 equations, using typical style coefficients rather than the coefficients of your valve.</p>
+                    <p class="disclaimer-note">Every one of those words is a restriction, and real services routinely break several of them at once.</p>
+                </div>
+
+                <div class="disclaimer-section">
+                    <h3>Not checked, at all</h3>
+                    <ul>
+                        <li><strong>Noise and vibration:</strong> aerodynamic and hydrodynamic noise, sound power level, hearing exposure, and acoustically induced vibration, which fails piping by fatigue at welds and small-bore connections.</li>
+                        <li><strong>The actuator:</strong> thrust or torque, shutoff and unbalance forces, spring rate, air supply, stroking speed, and the fail position on loss of signal or air.</li>
+                        <li><strong>Shutoff:</strong> seat leakage class, tightness in service, and whether this valve is permitted to be an isolation point at all.</li>
+                        <li><strong>Materials and mechanical rating:</strong> body and trim material, pressure and temperature rating, flange class, sour service, erosion, corrosion, galling and thermal shock.</li>
+                        <li><strong>Velocity and energy limits:</strong> body outlet velocity, mass flux, trim energy limits, outlet erosion and pipe headloss.</li>
+                        <li><strong>Trim life:</strong> cavitation damage rate, flashing erosion, and the difference between a service that runs for twenty years and one that destroys a plug in a month.</li>
+                        <li><strong>Turbulence:</strong> the Reynolds number factor is not computed, so the turbulent regime every equation here assumes is never verified.</li>
+                        <li><strong>The control loop:</strong> stability, tuning, dead band, hysteresis, stiction, resolution and dynamic response. The installed characteristic here is a teaching curve.</li>
+                        <li><strong>Compliance:</strong> ASME B31.3, B16.34, PED, ATEX and hazardous area, fugitive emissions, and every code requirement of every jurisdiction.</li>
+                    </ul>
+                    <p class="disclaimer-note">A valve can satisfy every number on this page and still be the wrong valve for the service, and <strong>still fail in it</strong>.</p>
+                </div>
+
+                <div class="disclaimer-section">
+                    <h3>Never use this for</h3>
+                    <ul>
+                        <li>Sizing a pressure relief device, rupture disc, blowdown or depressuring path. That is API 520 / 521 work and this tool does not do it.</li>
+                        <li>Any safety instrumented function, protective layer or IEC 61511 SIL claim.</li>
+                        <li>Final valve selection or a purchase specification without the manufacturer's own sizing for the specific trim.</li>
+                        <li>Two-phase, flashing, slurry, polymerising or erosive service. Flashing is detected and refused; the rest are outside scope and are not detected.</li>
+                        <li>Anything needing a certified calculation or a PE stamp.</li>
+                    </ul>
+                </div>
+
+                <div class="disclaimer-section">
+                    <h3>What it is checked against, and what that is worth</h3>
+                    <p>Seven worked examples from three independent publishers: the four annex examples in IEC 60534-2-1 itself and three from the Fisher handbook, covering liquid and gas, choked and unchoked, with and without reducers. The reducer loss coefficients reproduce the standard's printed values to the digit.</p>
+                    <p class="disclaimer-note">That establishes conformance to the published procedure. It does not establish that the procedure predicts the flow through your valve: the sizing equations are empirical correlations and the coefficients are flow-test measurements per trim, so ground truth for a real valve is a flow test.</p>
+                </div>
+
+                <div class="disclaimer-section">
+                    <h3>Get a professional involved for</h3>
+                    <ul>
+                        <li>Any service where failure means loss of containment, fire, explosion, toxic release or injury.</li>
+                        <li>Cavitating, flashing, high pressure drop, cryogenic, high temperature or lethal service.</li>
+                        <li>Anything a regulator, insurer or client will ask you to defend.</li>
+                    </ul>
+                </div>
+
+                <div class="disclaimer-footer">
+                    <p><strong>No warranty. No liability. You assume all risk.</strong> This page, its numbers, its coefficient library and its advisories are provided as-is and as-available, without warranty of any kind, express or implied, including accuracy, completeness, timeliness, reliability, fitness for a particular purpose, merchantability, engineering or professional suitability, regulatory or code acceptability, or non-infringement. To the maximum extent permitted by law, the author accepts no liability for any loss, injury, damage, cost or claim arising from use of or reliance on this page.</p>
+                    <p><strong>Independent verification required.</strong> Check every value against the governing standard, the manufacturer's sizing for the specific valve and trim, and a competent process or control engineer before acting on anything. The standard, the manufacturer's data and professional judgement control; where this page disagrees with them, this page is wrong.</p>
+                </div>
             </div>
         </details>
 
@@ -328,6 +385,15 @@ Last Updated: September 2026
                 <p id="resultSummary" class="visually-hidden" role="status" aria-live="polite"></p>
 
                 <div class="result-status" id="resultStatus"></div>
+
+                <p class="disclaimer">
+                    <strong>Screening figure, not a valve specification.</strong>
+                    Typical style coefficients, one operating point, no noise, actuator,
+                    shutoff, material, velocity or trim-life check, and turbulence
+                    unverified. Never use it for relief, blowdown or any safety function.
+                    The manufacturer's sizing for the specific trim governs. See the full
+                    disclaimer at the top of the page.
+                </p>
 
                 <div id="advisories" class="advisories"></div>
 
