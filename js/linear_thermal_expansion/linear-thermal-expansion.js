@@ -224,7 +224,6 @@ function init() {
     });
 
     bindCollapsible('referencesHeader', 'referencesContent', 'referencesChevron');
-    bindCollapsible('disclaimerHeader', 'disclaimerContent', 'disclaimerChevron');
 
     calculate();
 }

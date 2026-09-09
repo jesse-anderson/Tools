@@ -44,6 +44,7 @@ module.exports = defineConfig({
     'pid-playground.spec.cjs',
     'face-blur.spec.cjs',
     'hed-calculator.spec.cjs',
+    'linear-thermal-expansion.spec.cjs',
     'legal-clauses.spec.cjs',
     'disclaimer-contrast.spec.cjs'
   ],

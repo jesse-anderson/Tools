@@ -214,39 +214,6 @@ tr:hover td {
     display: none;
 }
 
-/* Disclaimer Card */
-.disclaimer-card {
-    border: 1px solid #f59e0b;
-    background: rgba(245, 158, 11, 0.05);
-}
-
-.disclaimer-title {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    color: #d97706;
-    font-size: 0.75rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    margin-bottom: 12px;
-    font-family: 'JetBrains Mono', monospace;
-    border-bottom: 1px solid rgba(217, 119, 6, 0.2);
-    padding-bottom: 8px;
-}
-
-.disclaimer-content {
-    font-size: 0.6875rem;
-    line-height: 1.4;
-    color: var(--text-secondary);
-    font-family: sans-serif;
-}
-
-.disclaimer-intro { margin-bottom: 8px; }
-.disclaimer-list { margin: 8px 0; padding-left: 16px; }
-.disclaimer-list li { margin-bottom: 6px; }
-.disclaimer-list strong { color: var(--text-primary); font-weight: 600; }
-.disclaimer-footer { margin-top: 12px; font-style: italic; opacity: 0.8; border-top: 1px solid rgba(217, 119, 6, 0.2); padding-top: 8px; }
-
 /* Category Header Row */
 tr.category-row td {
     background: var(--bg-secondary);

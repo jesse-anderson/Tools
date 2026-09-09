@@ -25,6 +25,10 @@ const CLAUSE_PAGES = [
   '/tools/oral-multidose.html',
   '/tools/beam-deflection.html',
   '/tools/control-valve-sizing.html',
+  '/tools/moody-chart.html',
+  '/tools/psychrometric-calculator.html',
+  '/tools/linear-thermal-expansion.html',
+  '/tools/sensors.html',
 ];
 
 const REQUIRED = [

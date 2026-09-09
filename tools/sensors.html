@@ -80,6 +80,71 @@ Last Updated: August 2026
         </header>
 
         <main class="db-layout">
+            <details class="disclaimer-card" id="scopeDisclaimer" aria-label="Scope and liability disclaimer">
+                <summary>
+                    <span class="disclaimer-icon" aria-hidden="true">&#9888;</span>
+                    <span class="disclaimer-summary-text">
+                        <span class="disclaimer-title">A hand-compiled shortlist for reference. Not a datasheet, not a qualified parts list, and not a gas detector.</span>
+                        <span class="disclaimer-lead">Every row here is a summary that can be out of date the day you read it, and pricing and availability are estimates current as of December 2025. The manufacturer datasheet for the exact part number and revision is the only authority. Open for the full scope limits.</span>
+                    </span>
+                    <span class="disclaimer-chevron" aria-hidden="true">&#9662;</span>
+                </summary>
+
+                <div class="disclaimer-body">
+                    <div class="disclaimer-section">
+                        <h3>What this table actually is</h3>
+                        <p>A curated reference list of common sensors across gas and air quality, pressure and flow, thermal, motion and position, and vibration and condition monitoring, with logic level, supply voltage and an estimated cost band per part. It exists to shorten a search, not to end one.</p>
+                        <p class="disclaimer-note">Reference use only. This database does not replace official documentation.</p>
+                    </div>
+
+                    <div class="disclaimer-section">
+                        <h3>Be aware of</h3>
+                        <ul>
+                            <li><strong>Revisions and end of life:</strong> manufacturers update silicon revisions, change specifications and discontinue parts without notice. A part that matches this table today may not match it, or exist, next quarter.</li>
+                            <li><strong>Implementation safety:</strong> logic levels, absolute maximum ratings, supply tolerances, ESD ratings and isolation requirements must be verified against the manufacturer's datasheet before anything is wired. A 5 V part on a 3.3 V bus is a silent failure or a dead part.</li>
+                            <li><strong>Environment and rating:</strong> the sensors listed may not be suitable for life-safety, medical, automotive, marine, aerospace or hazardous-area use unless explicitly rated for it by the vendor.</li>
+                            <li><strong>Pricing and availability drift:</strong> the cost bands are order-of-magnitude guidance from December 2025, not quotes. Distributor stock, minimum quantities, lead times and regional pricing are outside this page entirely.</li>
+                            <li><strong>Specifications are typical values.</strong> Accuracy, range, drift and response time are quoted at reference conditions. Real performance depends on calibration, mounting, temperature, supply noise and the age of the part.</li>
+                        </ul>
+                    </div>
+
+                    <div class="disclaimer-section">
+                        <h3>Gas and air quality sensors specifically</h3>
+                        <ul>
+                            <li>Low-cost metal-oxide and electrochemical sensing elements are <strong>indicative</strong>. They cross-respond to gases other than the one named, drift with humidity and temperature, need periodic calibration against a known reference, and have a finite service life measured in months to a few years.</li>
+                            <li>A sensing element on a breakout board is not a gas detector. A detector is a certified instrument with alarm logic, fault detection, a calibration record and a service regime behind it.</li>
+                            <li>Air quality index and equivalent CO<sub>2</sub> outputs from volatile-organic-compound sensors are derived estimates, not measurements of the quantity they are named after.</li>
+                        </ul>
+                        <p class="disclaimer-note">Combustible or toxic gas detection, oxygen deficiency monitoring and confined space entry require certified instruments meeting the applicable standards, for example IEC 60079-29-1 or ISA-92 for flammable gas, together with a documented calibration and bump-test programme. Never rely on anything from this list to tell you an atmosphere is safe to breathe or safe to enter.</p>
+                    </div>
+
+                    <div class="disclaimer-section">
+                        <h3>Never use this table for</h3>
+                        <ul>
+                            <li>Life-safety detection of any kind: gas, smoke, flame, oxygen, or occupancy in an emergency system.</li>
+                            <li>Medical devices, patient monitoring or any diagnostic use, which require regulatory qualification.</li>
+                            <li>Automotive functional safety, which requires AEC-Q100 qualified parts and an ISO 26262 process.</li>
+                            <li>Hazardous or explosive atmospheres, which require certified intrinsically safe or explosion-proof equipment.</li>
+                            <li>Machinery safety functions, interlocks or emergency stops under ISO 13849 or IEC 62061.</li>
+                            <li>Regulatory, environmental compliance or emissions monitoring, custody transfer, or any reported measurement of record.</li>
+                            <li>Final part selection, a bill of materials, or a purchase decision without reading the current datasheet.</li>
+                        </ul>
+                    </div>
+
+                    <div class="disclaimer-section">
+                        <h3>Before you commit to a part</h3>
+                        <p>Download the current datasheet from the manufacturer for the exact part number, revision and package. Check the absolute maximum ratings, the supply and logic levels, the calibration requirement and the expected life. Confirm lifecycle status and stock with an authorised distributor. For anything safety-related, regulated or certified, involve a qualified engineer and select parts against the governing standard rather than against a summary table.</p>
+                    </div>
+
+                    <div class="disclaimer-footer">
+                        <p><strong>No warranty. No liability. You assume all risk.</strong> This page and its data are provided as-is and as-available, without warranty of any kind, express or implied, including accuracy, completeness, timeliness, reliability, fitness for a particular purpose, merchantability, engineering or professional suitability, regulatory or certification acceptability, or non-infringement. To the maximum extent permitted by law, the author accepts no liability for any loss, injury, death, damage, cost or claim arising from use of or reliance on this page.</p>
+                        <p><strong>Independent verification required.</strong> Verify every specification against the manufacturer's current datasheet for the exact part, and verify availability and pricing with an authorised distributor, before any selection, design or purchase. The datasheet and the governing standard control; where this page disagrees with them, this page is wrong.</p>
+                        <p><strong>Consequential damages excluded.</strong> To the maximum extent permitted by law, in no event will the author or maintainers be liable for any direct, indirect, incidental, special, exemplary, punitive or consequential damages, including loss of use, data, profits or business interruption, however caused and on any theory of liability, whether in contract, strict liability or tort including negligence, arising out of or in connection with this page, even if advised of the possibility of such damage.</p>
+                        <p><strong>Indemnity.</strong> By using this page you agree to indemnify and hold harmless the author and maintainers against any claim, demand, loss or expense arising out of your use of it or of anything derived from it.</p>
+                        <p><strong>Severability.</strong> If any part of this notice is held unenforceable, the remainder continues to apply, and the unenforceable part is limited to the least extent necessary rather than struck out.</p>
+                    </div>
+                </div>
+            </details>
             <div class="controls-card">
                 <div class="search-group">
                     <input type="text" id="searchInput" placeholder="Search sensors (type, model, manufacturer, voltage...)" aria-label="Search sensors">
@@ -495,27 +560,7 @@ Last Updated: August 2026
                     No sensors match that search. Try a model number, manufacturer, or interface.
                 </p>
             </div>
-            <div class="disclaimer-card">
-                <div class="disclaimer-title">
-                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5">
-                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-                        <line x1="12" y1="9" x2="12" y2="13"/>
-                        <line x1="12" y1="17" x2="12.01" y2="17"/>
-                    </svg>
-                    CRITICAL ENGINEERING DISCLAIMER
-                </div>
-                <div class="disclaimer-content">
-                    <p class="disclaimer-intro"><strong>Reference Use Only.</strong> Pricing and availability data are estimates current as of <strong>December 2025</strong>. This database does not replace official documentation. Be aware of:</p>
-                    <ul class="disclaimer-list">
-                        <li><strong>Revisions & EOL:</strong> Manufacturers frequently update silicon revisions or End-of-Life (EOL) parts without notice.</li>
-                        <li><strong>Implementation Safety:</strong> Logic levels, absolute maximum ratings, and isolation requirements must be verified against the manufacturer's datasheet.</li>
-                        <li><strong>Environment:</strong> Sensors listed may not be suitable for life-safety, medical, or automotive applications unless explicitly rated by the vendor.</li>
-                    </ul>
-                    <p class="disclaimer-footer">
-                        THE INFORMATION IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE. IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY ARISING FROM THE USE OF THIS DATA.
-                    </p>
-                </div>
-            </div>
+            <p class="disclaimer"><strong>Reference use only. The datasheet is the authority.</strong> Specifications, pricing and availability are summaries estimated as of December 2025, and manufacturers revise and discontinue parts without notice. Verify logic levels, absolute maximum ratings and isolation against the manufacturer's current datasheet before wiring anything, and never rely on a sensing element from this list for life-safety, medical, automotive or hazardous-area use.</p>
         </main>
 
         <footer data-footer></footer>

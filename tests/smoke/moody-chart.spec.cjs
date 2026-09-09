@@ -79,3 +79,59 @@ test('material helper fills ε/D from roughness and diameter', async ({ page }) 
   expect(parseFloat(out.filled)).toBeCloseTo(0.0009, 8);
   expect(out.hasSteelPreset).toBe(true);
 });
+
+// --- scope disclaimer -----------------------------------------------------
+// The page previously carried one grey paragraph under the footer, on
+// --text-muted, saying the tool was educational and unwarranted. It named no
+// limit of the correlation and nothing the tool must not be used for.
+
+test('scope disclaimer is visible, closed, and spans the layout', async ({ page }) => {
+  await openTool(page);
+  const card = page.locator('details#scopeDisclaimer.disclaimer-card');
+  await expect(card).toBeVisible();
+  await expect(card).not.toHaveAttribute('open', /.*/);
+
+  // The card sits above the layout, not inside a column of it.
+  const box = await card.boundingBox();
+  const layout = await page.locator('.main-layout').boundingBox();
+  expect(box.width).toBeGreaterThan(layout.width * 0.9);
+  expect(box.y).toBeLessThan(layout.y);
+
+  // The headline reads without opening anything.
+  await expect(card.locator('.disclaimer-title')).toContainText('Not a piping design');
+  await expect(card.locator('.disclaimer-lead')).toContainText('15%');
+});
+
+test('scope disclaimer names the correlation limits and the forbidden uses', async ({ page }) => {
+  await openTool(page);
+  const card = page.locator('details#scopeDisclaimer');
+  await card.evaluate((el) => { el.open = true; });
+  const body = card.locator('.disclaimer-body');
+
+  // The four things a friction-factor reader gets wrong, named individually.
+  await expect(body).toContainText('Roughness in service is unknown');
+  await expect(body).toContainText('Equivalent sand-grain roughness is not a surface finish');
+  await expect(body).toContainText('transition region is not predictable');
+  await expect(body).toContainText('Minor losses');
+
+  // Darcy against Fanning is the factor-of-four error this page can cause.
+  await expect(body).toContainText('Darcy, not Fanning');
+
+  // Codes named by number, not "consult the applicable standards".
+  await expect(body).toContainText('ASME B31.1');
+  await expect(body).toContainText('API 520');
+  await expect(body).toContainText('NFPA 13');
+});
+
+test('scope disclaimer opens by keyboard and carries a second touchpoint', async ({ page }) => {
+  await openTool(page);
+  const card = page.locator('details#scopeDisclaimer');
+  await card.locator('summary').focus();
+  await page.keyboard.press('Enter');
+  await expect(card).toHaveAttribute('open', '');
+
+  // Beside the answer, for readers who never open the card.
+  const touch = page.locator('p.disclaimer');
+  await expect(touch).toBeVisible();
+  await expect(touch).toContainText('Colebrook is a data fit, not a law');
+});

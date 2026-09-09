@@ -48,6 +48,21 @@
     --accent-error-dim: rgba(239, 68, 68, 0.1);
     --accent-info-dim: rgba(139, 92, 246, 0.1);
     --shadow-lg: 0 10px 40px rgba(0, 0, 0, 0.1);
+
+    /* This file pins --accent-warning to #eab308, lighter than the shared
+       #ca8a04, so shared.css's 60% darkening lands the scope disclaimer title
+       at 4.47:1 on the light card and misses AA by 0.03. A tool declaring its
+       own [data-theme="light"] value wins on load order; 45% takes it clear. */
+    --disclaimer-accent: color-mix(in srgb, var(--accent-warning) 45%, #000);
+}
+
+/* --text-secondary here is #64748b, one step lighter than the shared #475569.
+   It clears AA on this page's white cards and measures 4.3:1 on the tinted
+   disclaimer card, so the variable is redefined on the component rather than
+   restyling the whole page. */
+[data-theme="light"] .disclaimer-card,
+[data-theme="light"] p.disclaimer {
+    --text-secondary: #475569;
 }
 
 *, *::before, *::after { box-sizing: border-box; }

@@ -85,6 +85,77 @@ Last Updated: July 2026
         </header>
 
         <main>
+            <details class="disclaimer-card" id="scopeDisclaimer" aria-label="Scope and liability disclaimer">
+                <summary>
+                    <span class="disclaimer-icon" aria-hidden="true">&#9888;</span>
+                    <span class="disclaimer-summary-text">
+                        <span class="disclaimer-title">A one-line estimate with a generic coefficient. Not a thermal stress analysis and not a design allowance.</span>
+                        <span class="disclaimer-lead">&Delta;L = &alpha; &times; L<sub>0</sub> &times; &Delta;T assumes the coefficient is constant over the range, the material is isotropic, and nothing is holding the part. All three are usually false, and a constrained part does not expand, it loads. Open for the full scope limits.</span>
+                    </span>
+                    <span class="disclaimer-chevron" aria-hidden="true">&#9662;</span>
+                </summary>
+
+                <div class="disclaimer-body">
+                    <div class="disclaimer-section">
+                        <h3>What this tool actually does</h3>
+                        <p><strong>Educational and estimation purposes only.</strong> This page produces a first-pass number, not a design figure.</p>
+                        <p>Applies the linear thermal expansion formula to one dimension of one material over one temperature change, using a typical published coefficient of thermal expansion.</p>
+                        <p class="formula">&Delta;L = &alpha; &times; L<sub>0</sub> &times; &Delta;T</p>
+                        <p class="disclaimer-note">The model assumes a constant CTE across the whole temperature range, which is <strong>not always accurate</strong>, and it assumes the part is free to move.</p>
+                    </div>
+
+                    <div class="disclaimer-section">
+                        <h3>Key factors not accounted for</h3>
+                        <ul>
+                            <li><strong>Non-linearity:</strong> CTE varies with temperature. Plastics change dramatically near the glass transition (T<sub>g</sub>), and every material behaves differently near a melting point or other phase transition.</li>
+                            <li><strong>Material variance:</strong> The listed values are generic and typical. Specific alloys, tempers, additives, fillers, reinforcements and processing methods all shift expansion behaviour, and the datasheet for the grade you actually bought governs.</li>
+                            <li><strong>Anisotropy:</strong> many materials expand differently in different directions:
+                                <ul>
+                                    <li>Wood: radial against tangential against longitudinal grain</li>
+                                    <li>Composites: along the fibres against across them</li>
+                                    <li>3D prints: layer adhesion direction effects</li>
+                                    <li>Metals: rolling and extrusion direction effects</li>
+                                </ul>
+                            </li>
+                            <li><strong>Thermal hysteresis:</strong> some materials do not return to their original dimensions after temperature cycling.</li>
+                            <li><strong>Constraint effects:</strong> a real assembly is usually restrained, so the temperature change produces stress rather than free movement. That stress is the number that breaks things, and this tool does not compute it.</li>
+                            <li><strong>Moisture and environment:</strong> hygroscopic materials such as wood and several plastics expand and contract with humidity independently of temperature.</li>
+                            <li><strong>Time-dependent effects:</strong> creep, stress relaxation and viscoelastic behaviour change dimensions over time under load and temperature.</li>
+                        </ul>
+                    </div>
+
+                    <div class="disclaimer-section">
+                        <h3>Application-specific considerations</h3>
+                        <ul>
+                            <li><strong>Pressure vessels and piping:</strong> must follow the ASME Boiler and Pressure Vessel Code, ASME B31 piping codes, the applicable ASTM material standards and local regulations.</li>
+                            <li><strong>Structural components:</strong> expansion joints, flexible connections and movement allowances require professional engineering analysis, not a single length change.</li>
+                            <li><strong>Precision assemblies:</strong> tolerance stack-up must include thermal variation across the whole operating range, not the nominal condition.</li>
+                            <li><strong>Dissimilar materials:</strong> bimetallic effects can generate significant stress at joints and interfaces even when each part is free on its own.</li>
+                            <li><strong>Extreme temperatures:</strong> CTE at cryogenic or elevated temperatures can differ substantially from room-temperature data, which is what most published tables report.</li>
+                        </ul>
+                    </div>
+
+                    <div class="disclaimer-section">
+                        <h3>Never use this as the design allowance for</h3>
+                        <ul>
+                            <li>Pressure equipment, load-bearing structures, aerospace hardware or medical devices.</li>
+                            <li>Any case where the failure carries property damage, injury or a regulatory consequence.</li>
+                            <li>Complex geometries, or assemblies combining several materials.</li>
+                            <li>Environments outside normal atmospheric conditions.</li>
+                            <li>Anything requiring a certified calculation or a professional engineer's stamp.</li>
+                        </ul>
+                        <p class="disclaimer-note">Consult a qualified professional engineer for all of the above. Verify every value against the specific material datasheet and the applicable industry standard before it informs a tolerance, a gap or a joint.</p>
+                    </div>
+
+                    <div class="disclaimer-footer">
+                        <p><strong>No warranty. No liability. You assume all risk.</strong> This page, its coefficient table and its outputs are provided as-is and as-available, without warranty of any kind, express or implied, including accuracy, completeness, timeliness, reliability, fitness for a particular purpose, merchantability, engineering or professional suitability, regulatory or code acceptability, or non-infringement. To the maximum extent permitted by law, the author accepts no liability for any loss, injury, death, damage, cost or claim arising from use of or reliance on this page.</p>
+                        <p><strong>Independent verification required.</strong> Check every coefficient against the datasheet for the exact grade and condition you are using, and have the result reviewed by a qualified engineer before it informs any design, tolerance or purchase. Local building codes, industry standards and professional engineering judgement take precedence; where this page disagrees with them, this page is wrong.</p>
+                        <p><strong>Consequential damages excluded.</strong> To the maximum extent permitted by law, in no event will the author or maintainers be liable for any direct, indirect, incidental, special, exemplary, punitive or consequential damages, including loss of use, data, profits or business interruption, however caused and on any theory of liability, whether in contract, strict liability or tort including negligence, arising out of or in connection with this page, even if advised of the possibility of such damage.</p>
+                        <p><strong>Indemnity.</strong> By using this page you agree to indemnify and hold harmless the author and maintainers against any claim, demand, loss or expense arising out of your use of it or of anything derived from it.</p>
+                        <p><strong>Severability.</strong> If any part of this notice is held unenforceable, the remainder continues to apply, and the unenforceable part is limited to the least extent necessary rather than struck out.</p>
+                    </div>
+                </div>
+            </details>
             <div class="calculator-layout">
                 <div class="calc-card">
                     <div class="input-group">
@@ -185,6 +256,8 @@ Last Updated: July 2026
                         </div>
                     </div>
 
+                    <p class="disclaimer"><strong>A free length change, not a design allowance.</strong> The coefficient is a typical published value for a generic material, held constant across the range; a restrained part turns this movement into stress instead. Check the datasheet for the grade you are actually using, and get a professional engineer involved for pressure equipment, structures, precision assemblies and anything requiring a stamped calculation.</p>
+
                     <div class="expansion-viz">
                         <div class="viz-track">
                             <div class="viz-bar" id="vizBarBase">
@@ -223,75 +296,6 @@ Last Updated: July 2026
                         </div>
                     </div>
                     
-                    <div class="disclaimer-card">
-                        <div class="disclaimer-header" id="disclaimerHeader" role="button" tabindex="0" aria-expanded="false" aria-controls="disclaimerContent">
-                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5">
-                                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-                                <line x1="12" y1="9" x2="12" y2="13"/>
-                                <line x1="12" y1="17" x2="12.01" y2="17"/>
-                            </svg>
-                            <span>Critical Engineering Disclaimer</span>
-                            <svg class="chevron collapsed" id="disclaimerChevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <polyline points="6 9 12 15 18 9"/>
-                            </svg>
-                        </div>
-                        <div class="disclaimer-content collapsed" id="disclaimerContent">
-                            <div class="disclaimer-section">
-                                <h4>Simplified Model Limitations</h4>
-                                <p>This tool uses the linear thermal expansion formula:</p>
-                                <p class="formula">&Delta;L = &alpha; &times; L<sub>0</sub> &times; &Delta;T</p>
-                                <p class="disclaimer-note">This model assumes constant CTE across the temperature range, which is <strong>not always accurate</strong>.</p>
-                            </div>
-
-                            <div class="disclaimer-section">
-                                <h4>Key Factors Not Accounted For</h4>
-                                <ul class="disclaimer-list">
-                                    <li><strong>Non-Linearity:</strong> CTE varies with temperature. Plastics especially show dramatic changes near glass transition (T<sub>g</sub>), melting point, or other phase transitions.</li>
-                                    <li><strong>Material Variance:</strong> Values are generic/typical. Specific alloys, additives, fillers, reinforcements, and processing methods significantly affect expansion behavior.</li>
-                                    <li><strong>Anisotropy:</strong> Many materials expand differently in different directions:
-                                        <ul class="disclaimer-nested">
-                                            <li>Wood: radial vs tangential vs longitudinal grain</li>
-                                            <li>Composites: along fibers vs across fibers</li>
-                                            <li>3D prints: layer adhesion direction effects</li>
-                                            <li>Metals: rolling/extrusion direction effects</li>
-                                        </ul>
-                                    </li>
-                                    <li><strong>Thermal Hysteresis:</strong> Some materials don't return to original dimensions after temperature cycling.</li>
-                                    <li><strong>Constraint Effects:</strong> Real-world assemblies may be constrained, causing stress instead of free expansion.</li>
-                                    <li><strong>Moisture & Environment:</strong> Hygroscopic materials (wood, some plastics) expand/contract with humidity changes independent of temperature.</li>
-                                    <li><strong>Time-Dependent Effects:</strong> Creep, stress relaxation, and viscoelastic behavior can affect dimensional stability over time under load and temperature.</li>
-                                </ul>
-                            </div>
-
-                            <div class="disclaimer-section">
-                                <h4>Application-Specific Considerations</h4>
-                                <ul class="disclaimer-list">
-                                    <li><strong>Pressure Vessels & Piping:</strong> Must follow ASME Boiler and Pressure Vessel Code, ASTM standards, and local regulations.</li>
-                                    <li><strong>Structural Components:</strong> Expansion joints, flexible connections, and allowance calculations require professional engineering analysis.</li>
-                                    <li><strong>Precision Assemblies:</strong> Tolerance stack-up analysis must include thermal expansion variations across operating temperature range.</li>
-                                    <li><strong>Dissimilar Materials:</strong> Bimetallic effects can cause significant stresses at joints and interfaces.</li>
-                                    <li><strong>Extreme Temperatures:</strong> CTE values at cryogenic or elevated temperatures may differ substantially from room-temperature data.</li>
-                                </ul>
-                            </div>
-
-                            <div class="disclaimer-section">
-                                <h4>Professional Engineering:</h4>
-                                <p>Consult a qualified professional engineer for:</p>
-                                <ul class="disclaimer-list">
-                                    <li>Safety-critical applications (pressure equipment, load-bearing structures, aerospace, medical devices)</li>
-                                    <li>High-consequence failures (property damage, injury, regulatory compliance)</li>
-                                    <li>Complex geometries or assemblies with multiple materials</li>
-                                    <li>Environments outside normal atmospheric conditions</li>
-                                    <li>Applications requiring certified calculations or PE stamps</li>
-                                </ul>
-                            </div>
-
-                            <div class="disclaimer-footer">
-                                <p><strong>Always verify calculations against specific material datasheets and applicable industry standards.</strong></p>
-                                <p>This tool is provided for educational and estimation purposes only. The authors assume no liability for errors, omissions, or damages resulting from use of this information. Local building codes, industry standards, and professional engineering judgment take precedence over these calculations.</p>
-                            </div>
-                        </div>
-                    </div>
                 </aside>
             </div>
 

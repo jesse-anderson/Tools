@@ -53,6 +53,7 @@ const TOOLS_WITH_DISCLAIMER_HEADINGS = [
   'json-formatter',
   'linear-thermal-expansion',
   'local-llm-opex',
+  'moody-chart',
   'ohms-law',
   'pdf-diff',
   'oral-multidose',

@@ -188,3 +188,55 @@ test('psychrometric calculator keeps unit paths and Tdb plus W wet bulb consiste
   expect(reportCsv).toContain('Reference Source: PsychroLib v2.5.0');
   expect(reportCsv).toContain('Tdb + W: Comfort Room Conditions');
 });
+
+// --- scope disclaimer -----------------------------------------------------
+// The page carried a warranty/risk/verification box in the controls sidebar
+// and a grey paragraph under the footer. Both said the calculation might be
+// wrong; neither said what the tool must not be used for, and neither named
+// the input people actually get wrong, which is barometric pressure.
+
+test('scope disclaimer is visible, closed, and spans the layout', async ({ page }) => {
+  await openTool(page);
+  const card = page.locator('details#scopeDisclaimer.disclaimer-card');
+  await expect(card).toBeVisible();
+  await expect(card).not.toHaveAttribute('open', /.*/);
+
+  const box = await card.boundingBox();
+  const layout = await page.locator('.main-layout').boundingBox();
+  expect(box.width).toBeGreaterThan(layout.width * 0.9);
+  expect(box.y).toBeLessThan(layout.y);
+
+  await expect(card.locator('.disclaimer-title')).toContainText('Not an HVAC design');
+  await expect(card.locator('.disclaimer-lead')).toContainText('barometric pressure');
+});
+
+test('scope disclaimer names the measurement traps and the forbidden uses', async ({ page }) => {
+  await openTool(page);
+  const card = page.locator('details#scopeDisclaimer');
+  await card.evaluate((el) => { el.open = true; });
+  const body = card.locator('.disclaimer-body');
+
+  // Station pressure against sea-level-corrected pressure is the error this
+  // tool is most likely to be a party to, so it is named with a worked case.
+  await expect(body).toContainText('Barometric pressure is an input, not a constant');
+  await expect(body).toContainText('Denver is not at 101.325 kPa');
+  await expect(body).toContainText('Relative humidity sensors drift');
+  await expect(body).toContainText('Wet bulb needs aspiration');
+
+  // Standards named by number rather than "the applicable standards".
+  await expect(body).toContainText('ASHRAE Standard 160');
+  await expect(body).toContainText('ASHRAE Standard 55');
+  await expect(body).toContainText('ASHRAE Standard 62.1');
+});
+
+test('scope disclaimer opens by keyboard and carries a second touchpoint', async ({ page }) => {
+  await openTool(page);
+  const card = page.locator('details#scopeDisclaimer');
+  await card.locator('summary').focus();
+  await page.keyboard.press('Enter');
+  await expect(card).toHaveAttribute('open', '');
+
+  const touch = page.locator('p.disclaimer');
+  await expect(touch).toBeVisible();
+  await expect(touch).toContainText('Station pressure, not sea-level-corrected pressure');
+});

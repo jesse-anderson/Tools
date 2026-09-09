@@ -177,3 +177,64 @@ test('vibration section is generic to rotating equipment, not one application do
   expect(byModel('ROS-W').vin).toBe('3.3V - 15V');
   expect(byModel('VVB001').reading).toContain('2–10k Hz');
 });
+
+// --- scope disclaimer -----------------------------------------------------
+// The page's old card was reference-use-only plus three bullets and a warranty
+// sentence. It never said what the table must not be used for, and it never
+// addressed the specific risk this list carries: a person treating a low-cost
+// metal-oxide or electrochemical element as a gas detector.
+
+test('scope disclaimer is visible, closed, and spans the layout', async ({ page, baseURL }) => {
+  await expectPageToLoadCleanly(page, baseURL, PAGE);
+  const card = page.locator('details#scopeDisclaimer.disclaimer-card');
+  await expect(card).toBeVisible();
+  await expect(card).not.toHaveAttribute('open', /.*/);
+
+  // Above the controls, spanning the layout rather than sitting in a column.
+  const box = await card.boundingBox();
+  const layout = await page.locator('main.db-layout').boundingBox();
+  const controls = await page.locator('.controls-card').boundingBox();
+  expect(box.width).toBeGreaterThan(layout.width * 0.9);
+  expect(box.y).toBeLessThan(controls.y);
+
+  await expect(card.locator('.disclaimer-title')).toContainText('not a gas detector');
+  await expect(card.locator('.disclaimer-lead')).toContainText('December 2025');
+});
+
+test('scope disclaimer keeps the original three cautions and names the forbidden uses', async ({ page, baseURL }) => {
+  await expectPageToLoadCleanly(page, baseURL, PAGE);
+  const card = page.locator('details#scopeDisclaimer');
+  await card.evaluate((el) => { el.open = true; });
+  const body = card.locator('.disclaimer-body');
+
+  // Carried over from the card this replaced.
+  await expect(body).toContainText('Revisions and end of life');
+  await expect(body).toContainText('Implementation safety');
+  await expect(body).toContainText('Environment and rating');
+
+  // The gas-sensing risk, which the old card did not address at all.
+  await expect(body).toContainText('A sensing element on a breakout board is not a gas detector');
+  await expect(body).toContainText('cross-respond to gases other than the one named');
+  await expect(body).toContainText('IEC 60079-29-1');
+
+  // Qualification regimes named by standard rather than by hand-wave.
+  await expect(body).toContainText('AEC-Q100');
+  await expect(body).toContainText('ISO 26262');
+  await expect(body).toContainText('ISO 13849');
+});
+
+test('scope disclaimer opens by keyboard and carries a second touchpoint below the table', async ({ page, baseURL }) => {
+  await expectPageToLoadCleanly(page, baseURL, PAGE);
+  const card = page.locator('details#scopeDisclaimer');
+  await card.locator('summary').focus();
+  await page.keyboard.press('Enter');
+  await expect(card).toHaveAttribute('open', '');
+
+  const touch = page.locator('p.disclaimer');
+  await expect(touch).toBeVisible();
+  await expect(touch).toContainText('The datasheet is the authority');
+  // It sits after the table, where a reader who scrolled the list ends up.
+  const table = await page.locator('#sensorTable').boundingBox();
+  const box = await touch.boundingBox();
+  expect(box.y).toBeGreaterThan(table.y);
+});
