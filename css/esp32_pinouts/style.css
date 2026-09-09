@@ -670,28 +670,10 @@ body > .modal.open {
     background: rgba(36, 198, 220, 0.12);
 }
 
-/* Disclaimers */
-.disclaimer {
-    margin-top: var(--esp-space-5);
-    border: 1px dashed var(--border-color);
-    border-radius: var(--esp-radius-md);
-    padding: var(--esp-space-4);
-    background: rgba(255,255,255,0.03);
-}
-
-.disclaimer .title {
-    font-family: "JetBrains Mono", monospace;
-    color: var(--text-primary);
-    font-size: 0.8rem;
-    margin: 0 0 var(--esp-space-2) 0;
-}
-
-.disclaimer .body {
-    color: var(--text-secondary);
-    font-size: 0.85rem;
-    line-height: 1.45;
-    margin: 0;
-}
+/* The scope disclaimer card and the p.disclaimer touchpoint are both defined
+   in css/shared.css. The bare .disclaimer block this file used to style was
+   replaced by that component in September 2026. It was a dashed grey box at the
+   bottom of the sidebar, below the tag chips, carrying 53 words. */
 
 /* Toast */
 .toast {

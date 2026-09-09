@@ -96,3 +96,81 @@ test('stoichiometry calculator rejects zero-count formulas and parses alternate 
   await expect(page.locator('#equationError')).toHaveClass(/hidden/);
   await expect(page.locator('#stoichTableBody tr').first().locator('td').nth(2)).toHaveText('249.6770');
 });
+
+// --- scope disclaimer -----------------------------------------------------
+// The old block had two defects beyond its wording. Its heading measured
+// 2.49:1 on the light card, and it lived inside #sidebarPanel, which carries
+// .hidden until a balance succeeds: the scope limits were invisible to anyone
+// who had not already used the tool. Both tests below exist for that.
+
+const PAGE = '/tools/stoichiometry-calculator.html';
+
+test('scope disclaimer is visible before any equation is entered', async ({ page, baseURL }) => {
+  await expectPageToLoadCleanly(page, baseURL, PAGE);
+
+  // The sidebar that used to hold the disclaimer is still hidden at this point.
+  await expect(page.locator('#sidebarPanel')).toHaveClass(/hidden/);
+
+  const card = page.locator('details#scopeDisclaimer.disclaimer-card');
+  await expect(card).toBeVisible();
+  await expect(card).not.toHaveAttribute('open', /.*/);
+
+  const box = await card.boundingBox();
+  const layout = await page.locator('main.main-layout').boundingBox();
+  const panel = await page.locator('.calculator-panel').boundingBox();
+  expect(box.width).toBeGreaterThan(layout.width * 0.9);
+  expect(box.y).toBeLessThan(panel.y);
+
+  await expect(card.locator('.disclaimer-title')).toContainText('Not a procedure');
+  await expect(card.locator('.disclaimer-lead')).toContainText('to completion');
+});
+
+test('scope disclaimer keeps every chemistry caveat the old block named', async ({ page, baseURL }) => {
+  await expectPageToLoadCleanly(page, baseURL, PAGE);
+  const card = page.locator('details#scopeDisclaimer');
+  await card.evaluate((el) => { el.open = true; });
+  const body = card.locator('.disclaimer-body');
+
+  for (const caveat of [
+    'purity',
+    'hydration state',
+    'Solvent effects',
+    'side reactions',
+    'Catalyst requirements',
+    'thermodynamic feasibility',
+    'kinetics',
+    'Waste disposal',
+    'Analytical measurement uncertainty',
+  ]) {
+    await expect(body, `lost the ${caveat} caveat`).toContainText(caveat);
+  }
+
+  // The two caveats about the balance itself, which are the ones a chemist
+  // would notice missing.
+  await expect(body).toContainText('null-space solution is mathematically valid and may not be the chemically preferred pathway');
+  await expect(body).toContainText('infinitely many valid balances');
+
+  // The line the whole card exists to land.
+  await expect(body).toContainText('A balanced equation is a bookkeeping statement about atoms');
+});
+
+test('scope disclaimer opens by keyboard, and the touchpoint appears with the results', async ({ page, baseURL }) => {
+  await expectPageToLoadCleanly(page, baseURL, PAGE);
+  const card = page.locator('details#scopeDisclaimer');
+  await card.locator('summary').focus();
+  await page.keyboard.press('Enter');
+  await expect(card).toHaveAttribute('open', '');
+
+  // The touchpoint lives in the results panel, so it is hidden until there is
+  // an answer to sit beside, and visible whenever there is one.
+  const touch = page.locator('p.disclaimer');
+  await expect(touch).toHaveCount(1);
+  await expect(touch).toBeHidden();
+
+  await page.fill('#equationInput', 'C3H8 + O2 -> CO2 + H2O');
+  await page.click('#balanceBtn');
+  await expect(page.locator('#resultsPanel')).toBeVisible();
+  await expect(touch).toBeVisible();
+  await expect(touch).toContainText('A balance is not a reaction');
+  await expect(touch).toContainText('Safety Data Sheet');
+});

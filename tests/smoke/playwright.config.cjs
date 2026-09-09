@@ -45,6 +45,9 @@ module.exports = defineConfig({
     'face-blur.spec.cjs',
     'hed-calculator.spec.cjs',
     'linear-thermal-expansion.spec.cjs',
+    'pinout-references.spec.cjs',
+    'yogurt-cfu-estimator.spec.cjs',
+    'linear-regression.spec.cjs',
     'legal-clauses.spec.cjs',
     'disclaimer-contrast.spec.cjs'
   ],

@@ -2302,13 +2302,6 @@ document.addEventListener('DOMContentLoaded', () => {
         this.setAttribute('aria-expanded', this.classList.contains('collapsed') ? 'false' : 'true');
     });
 
-    // Disclaimer toggle
-    document.getElementById('disclaimerToggle').addEventListener('click', function() {
-        this.classList.toggle('collapsed');
-        document.getElementById('disclaimerContent').classList.toggle('collapsed');
-        this.setAttribute('aria-expanded', this.classList.contains('collapsed') ? 'false' : 'true');
-    });
-
     // Export buttons
     document.getElementById('exportPngBtn').addEventListener('click', exportChartsAsPNG);
     document.getElementById('exportCsvBtn').addEventListener('click', exportResultsAsCSV);

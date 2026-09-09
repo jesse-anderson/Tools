@@ -229,3 +229,87 @@ test('battery capacity saved scenario remains usable when local storage writes f
   await expect(page.locator('#savedScenarioSelect')).toHaveText('No saved scenarios');
   await expect(page.locator('#loadScenarioBtn')).toBeDisabled();
 });
+
+// --- scope disclaimer -----------------------------------------------------
+// The old block was a good 198 words buried at the bottom of the sidebar,
+// below "How To Use This", and its heading measured 2.61:1 on the light card.
+// The content it named is worth keeping intact, so most of these assertions
+// are that the enumeration survived the move.
+
+const PAGE = '/tools/battery-capacity.html';
+
+test('scope disclaimer is visible, closed, and spans the layout', async ({ page, baseURL }) => {
+  await expectPageToLoadCleanly(page, baseURL, PAGE);
+  const card = page.locator('details#scopeDisclaimer.disclaimer-card');
+  await expect(card).toBeVisible();
+  await expect(card).not.toHaveAttribute('open', /.*/);
+
+  // calculator-layout is a grid, so the card has to span it rather than
+  // becoming a column of the tool.
+  const box = await card.boundingBox();
+  const layout = await page.locator('main.calculator-layout').boundingBox();
+  const panel = await page.locator('section.calculator-panel').boundingBox();
+  expect(box.width).toBeGreaterThan(layout.width * 0.9);
+  expect(box.y).toBeLessThan(panel.y);
+
+  await expect(card.locator('.disclaimer-title')).toContainText('not a battery safety assessment');
+  await expect(card.locator('.disclaimer-lead')).toContainText('at your own risk');
+});
+
+test('scope disclaimer keeps every unmodelled effect the old block named', async ({ page, baseURL }) => {
+  await expectPageToLoadCleanly(page, baseURL, PAGE);
+  const card = page.locator('details#scopeDisclaimer');
+  await card.evaluate((el) => { el.open = true; });
+  const body = card.locator('.disclaimer-body');
+
+  for (const effect of [
+    'discharge curves',
+    'voltage sag under load',
+    'Cell aging',
+    'Temperature derating',
+    'self-discharge',
+    'inrush',
+    'Parasitic load',
+    'charger losses',
+    'BMS overhead',
+  ]) {
+    await expect(body, `lost the ${effect} limitation`).toContainText(effect);
+  }
+
+  // The one that is a safety statement rather than an accuracy statement.
+  await expect(body).toContainText('safety, fire or thermal-runaway behaviour of any chemistry');
+
+  // The simplifications are named individually; "it is a simplification" is
+  // not the same warning as saying where the error lives.
+  await expect(body).toContainText('Usable fraction');
+  await expect(body).toContainText('LDO mode');
+});
+
+test('scope disclaimer names certification regimes by number', async ({ page, baseURL }) => {
+  await expectPageToLoadCleanly(page, baseURL, PAGE);
+  const card = page.locator('details#scopeDisclaimer');
+  await card.evaluate((el) => { el.open = true; });
+  const body = card.locator('.disclaimer-body');
+
+  await expect(body).toContainText('UN 38.3');
+  await expect(body).toContainText('IEC 62133');
+  await expect(body).toContainText('IEC 60601');
+  await expect(body).toContainText('NFPA 111');
+});
+
+test('scope disclaimer opens by keyboard and carries a touchpoint beside the results', async ({ page, baseURL }) => {
+  await expectPageToLoadCleanly(page, baseURL, PAGE);
+  const card = page.locator('details#scopeDisclaimer');
+  await card.locator('summary').focus();
+  await page.keyboard.press('Enter');
+  await expect(card).toHaveAttribute('open', '');
+
+  const touch = page.locator('p.disclaimer');
+  await expect(touch).toHaveCount(1);
+  await expect(touch).toBeVisible();
+  await expect(touch).toContainText('Estimates only, used at your own risk');
+  // It sits with the answer, not at the top of the page.
+  const results = await page.locator('.results-section').boundingBox();
+  const box = await touch.boundingBox();
+  expect(box.y).toBeGreaterThanOrEqual(results.y);
+});

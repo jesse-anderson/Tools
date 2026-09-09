@@ -554,37 +554,10 @@ header {
   line-height: 1.55;
 }
 
-.liability-disclaimer {
-  margin-top: 20px;
-  padding: 14px 16px;
-  border-radius: 12px;
-  border: 1px solid var(--accent-warning);
-  background-color: var(--accent-warning-dim);
-  color: var(--text-primary);
-}
-
-.liability-disclaimer strong {
-  display: block;
-  margin-bottom: 6px;
-  color: var(--accent-warning);
-}
-
-.liability-disclaimer p {
-  margin: 0;
-  font-size: 0.85rem;
-  line-height: 1.5;
-  color: var(--text-secondary);
-}
-
-.liability-disclaimer p + p {
-  margin-top: 8px;
-}
-
-.liability-disclaimer p strong {
-  display: inline;
-  margin: 0;
-  color: var(--text-primary);
-}
+/* The scope disclaimer card and the p.disclaimer touchpoint are both defined
+   in css/shared.css. The .liability-disclaimer block this file used to style
+   was replaced by that component in September 2026; its heading measured
+   2.61:1 on the light card and failed WCAG AA. */
 
 .error-message {
   color: var(--accent-error);

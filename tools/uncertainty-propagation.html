@@ -88,6 +88,60 @@ Last Updated: July 2026
         </header>
 
         <main class="calculator-layout">
+            <details class="disclaimer-card" id="scopeDisclaimer" aria-label="Scope and liability disclaimer">
+                <summary>
+                    <span class="disclaimer-icon" aria-hidden="true">&#9888;</span>
+                    <span class="disclaimer-summary-text">
+                        <span class="disclaimer-title">First-order propagation for independent inputs. Not a measurement uncertainty budget.</span>
+                        <span class="disclaimer-lead">The headline figure is a 1&sigma; Taylor result that assumes your variables are uncorrelated and your uncertainties are small enough for the formula to be roughly linear across &plusmn;&sigma;. The hard part of an uncertainty analysis is the numbers you typed in, and this page cannot check any of them. Estimates only, verify before you rely on them. Open for the full scope limits.</span>
+                    </span>
+                    <span class="disclaimer-chevron" aria-hidden="true">&#9662;</span>
+                </summary>
+
+                <div class="disclaimer-body">
+                    <div class="disclaimer-section">
+                        <h3>What this tool actually does</h3>
+                        <p>Parses the formula, differentiates it symbolically, and combines each variable's contribution in quadrature as first-order propagation for independent variables. It also runs an optional Monte Carlo sample of the same formula as a cross-check, and reports which variable dominates the total.</p>
+                        <p class="disclaimer-note">Propagation is the easy half. Deciding what each input's uncertainty actually is, and whether it is Type A from repeated observation or Type B from a datasheet, a calibration certificate or judgement, is the half that decides whether the answer means anything.</p>
+                    </div>
+
+                    <div class="disclaimer-section">
+                        <h3>The assumptions, and where they break</h3>
+                        <ul>
+                            <li><strong>Independence.</strong> Correlated inputs are not modelled. If two variables come from the same instrument, the same calibration, the same reference or the same operator, they are correlated, and the quadrature sum is wrong in a direction this page cannot tell you.</li>
+                            <li><strong>Linearity across &plusmn;&sigma;.</strong> First order is accurate when uncertainties are small relative to the values. For a strongly nonlinear formula or a large uncertainty, enable the Monte Carlo check; where it disagrees with the Taylor result, trust the sampled spread.</li>
+                            <li><strong>Coverage factor.</strong> The expanded figure is the 1&sigma; result multiplied by the k you selected. Reading k = 2 as 95% assumes the output is approximately normal and the effective degrees of freedom are large. With few observations or one dominant Type B contribution, neither holds, and the honest route is a Welch-Satterthwaite effective degrees of freedom and a Student t coverage factor, which this page does not compute.</li>
+                            <li><strong>Uncertainty is not error.</strong> A systematic bias, a miscalibration, a wrong reference value or a mistake in the formula is not an uncertainty and does not propagate this way. A tight &plusmn; on a wrong number is still a wrong number.</li>
+                            <li><strong>Distribution shape.</strong> Entering a half-width from a datasheet as though it were a standard uncertainty overstates it by roughly &radic;3 for a rectangular distribution, which is one of the most common mistakes in an uncertainty budget.</li>
+                        </ul>
+                    </div>
+
+                    <div class="disclaimer-section">
+                        <h3>Never use this for</h3>
+                        <ul>
+                            <li>An accredited measurement uncertainty budget or a calibration certificate under ISO/IEC 17025 or the GUM (JCGM 100:2008), which require a documented model, stated coverage, effective degrees of freedom and traceability this page has none of.</li>
+                            <li>Conformity decisions against a specification or a regulatory limit, which need an agreed decision rule such as those in ISO/IEC 17025 clause 7.1.3 and ILAC-G8.</li>
+                            <li>Clinical laboratory result reporting, or any measurement a diagnosis or treatment rests on.</li>
+                            <li>Safety margins, tolerance stack-ups or acceptance criteria that a design or a purchase depends on.</li>
+                            <li>Published results, submissions or test reports, without an independent recalculation.</li>
+                        </ul>
+                    </div>
+
+                    <div class="disclaimer-section">
+                        <h3>What it is checked against</h3>
+                        <p>The parser, the symbolic derivatives, the quadrature and the Monte Carlo path are pinned by the test suite against hand calculations, including a worked density example. That proves the arithmetic reproduces first-order propagation. It proves nothing about your model, your input uncertainties, or whether the variables you combined are independent.</p>
+                    </div>
+
+                    <div class="disclaimer-footer">
+                        <p><strong>No warranty. No liability. You assume all risk.</strong> This page and its outputs are provided as-is and as-available, without warranty of any kind, express or implied, including accuracy, completeness, timeliness, reliability, fitness for a particular purpose, merchantability, scientific, metrological or professional suitability, regulatory or accreditation acceptability, or non-infringement. To the maximum extent permitted by law, the author accepts no liability for any loss, injury, death, damage, cost or claim arising from use of or reliance on this page.</p>
+                        <p><strong>Independent verification required.</strong> Verify any result you depend on against an independent method and qualified engineering judgement before acting on it. The GUM, the accreditation requirement and professional judgement control; where this page disagrees with them, this page is wrong.</p>
+                        <p><strong>Consequential damages excluded.</strong> To the maximum extent permitted by law, in no event will the author or maintainers be liable for any direct, indirect, incidental, special, exemplary, punitive or consequential damages, including loss of use, data, profits or business interruption, however caused and on any theory of liability, whether in contract, strict liability or tort including negligence, arising out of or in connection with this page, even if advised of the possibility of such damage.</p>
+                        <p><strong>Indemnity.</strong> By using this page you agree to indemnify and hold harmless the author and maintainers against any claim, demand, loss or expense arising out of your use of it or of anything derived from it.</p>
+                        <p><strong>Severability.</strong> If any part of this notice is held unenforceable, the remainder continues to apply, and the unenforceable part is limited to the least extent necessary rather than struck out.</p>
+                    </div>
+                </div>
+            </details>
+
             <section class="calculator-panel">
                 <div class="panel-header">
                     <h2>Propagate ± Through a Formula</h2>
@@ -177,6 +231,8 @@ Last Updated: July 2026
                     </div>
                 </div>
 
+                <p class="disclaimer"><strong>First order, independent inputs, 1&sigma;.</strong> This assumes the variables are uncorrelated and the formula is roughly linear across &plusmn;&sigma;. Correlated inputs are not modelled, and a coverage factor of 2 only means 95% if the output is approximately normal with large effective degrees of freedom. For a nonlinear formula or a large uncertainty, run the Monte Carlo check and trust the sampled spread where the two disagree.</p>
+
                 <!-- FOLDABLE STEPS -->
                 <details class="steps" id="stepsDetails">
                     <summary>Show the calculation steps</summary>
@@ -212,13 +268,6 @@ Last Updated: July 2026
                     <p class="mono" style="padding:8px 0;">σ_f = √( Σ (∂f/∂xᵢ · σᵢ)² )</p>
                     <p>Each term <span class="mono">∂f/∂xᵢ · σᵢ</span> is that variable's share of the total error, added in quadrature.</p>
 
-                    <h3>Scope &amp; Limits</h3>
-                    <div class="disclaimer" role="note" aria-label="Scope, accuracy, and liability disclaimer">
-                        <p><strong>Estimates only - verify before you rely on them</strong></p>
-                        <p>This uses <strong>first-order</strong> propagation and assumes variables are <strong>independent</strong> (uncorrelated). It is accurate when uncertainties are small relative to the values, so the formula is roughly linear across ±σ.</p>
-                        <p style="margin-top:8px;">For strongly nonlinear formulas or large uncertainties, enable the <strong>Monte Carlo check</strong>. When it disagrees with the Taylor result, trust the sampled spread. Correlated inputs are not modeled.</p>
-                        <p style="margin-top:8px;">Provided as-is with no warranty of accuracy or fitness. Verify any result you depend on against an independent method and qualified engineering judgment before acting on it.</p>
-                    </div>
                 </div>
             </aside>
         </main>

@@ -74,6 +74,71 @@ Features:
         </header>
 
         <main class="main-layout">
+            <details class="disclaimer-card" id="scopeDisclaimer" aria-label="Scope and liability disclaimer">
+                <summary>
+                    <span class="disclaimer-icon" aria-hidden="true">&#9888;</span>
+                    <span class="disclaimer-summary-text">
+                        <span class="disclaimer-title">Equation balancing and mass arithmetic. Not a procedure, not a safety assessment, and not a prediction that the reaction works.</span>
+                        <span class="disclaimer-lead">Every figure assumes the reaction goes exactly as written, to completion, with pure dry reagents and no side products. Nothing here checks whether it is thermodynamically possible, kinetically reasonable, or safe to attempt. Reference calculation only, verify before use. Open for the full scope limits.</span>
+                    </span>
+                    <span class="disclaimer-chevron" aria-hidden="true">&#9662;</span>
+                </summary>
+
+                <div class="disclaimer-body">
+                    <div class="disclaimer-section">
+                        <h3>What this tool actually does</h3>
+                        <p>Parses formulas, balances the equation by null-space linear algebra, and computes molar masses, mole ratios, limiting reactant and theoretical yield from the masses you enter. It is arithmetic on the equation you typed.</p>
+                        <p class="disclaimer-note">A balanced equation is a bookkeeping statement about atoms. It is not evidence that the reaction proceeds, that those are the products, or that the mixture is safe to make.</p>
+                    </div>
+
+                    <div class="disclaimer-section">
+                        <h3>Not accounted for, at all</h3>
+                        <ul>
+                            <li>Reagent purity, assay and hydration state. Weighing a hydrate as the anhydrous formula is a silent error this page cannot see.</li>
+                            <li>Solvent effects, incomplete reactions and side reactions.</li>
+                            <li>Catalyst requirements, thermodynamic feasibility and kinetics. An equation that balances may be impossible, or take a century.</li>
+                            <li>Safety hazards, incompatibilities, exotherms, pressure generation and gas evolution.</li>
+                            <li>Waste disposal, neutralisation and regulatory handling.</li>
+                            <li>Analytical measurement uncertainty, balance calibration and transfer losses.</li>
+                        </ul>
+                    </div>
+
+                    <div class="disclaimer-section">
+                        <h3>Where the balance itself is not the answer</h3>
+                        <ul>
+                            <li><strong>Redox and multi-step reactions.</strong> The null-space solution is mathematically valid and may not be the chemically preferred pathway.</li>
+                            <li><strong>Under-determined systems</strong> have infinitely many valid balances, and the tool shows one of them. The page flags this when it happens; the flag is the important output, not the coefficients.</li>
+                            <li><strong>Theoretical yield is a ceiling,</strong> not an expectation. Real yield is lower, sometimes by a lot, and the gap is where the chemistry actually is.</li>
+                        </ul>
+                    </div>
+
+                    <div class="disclaimer-section">
+                        <h3>Never use this for</h3>
+                        <ul>
+                            <li>Planning or scaling up a reaction you have not run and reviewed, particularly anything exothermic, energetic or gas-evolving.</li>
+                            <li>Preparation of anything to be eaten, drunk, inhaled, injected or applied to a person or animal.</li>
+                            <li>Deciding that a mixture is safe, or that two reagents are compatible.</li>
+                            <li>Waste treatment, neutralisation or disposal quantities without the relevant Safety Data Sheets and local regulations.</li>
+                            <li>Analytical reporting, certificates of analysis, or any regulatory or compliance submission.</li>
+                            <li>Teaching material presented as authoritative without an instructor checking it.</li>
+                        </ul>
+                    </div>
+
+                    <div class="disclaimer-section">
+                        <h3>Before you weigh anything</h3>
+                        <p>Verify all calculations against peer-reviewed references and analytical data, and read the Safety Data Sheet for every reagent and every product before use in any laboratory, production or compliance context. Work under a competent chemist and the safety regime of your institution, at a scale you have justified, with the hazard controls the SDS calls for.</p>
+                    </div>
+
+                    <div class="disclaimer-footer">
+                        <p><strong>No warranty. No liability. You assume all risk.</strong> This page and its outputs are provided as-is and as-available, without warranty of any kind, express or implied, including accuracy, completeness, timeliness, reliability, fitness for a particular purpose, merchantability, scientific or professional suitability, regulatory acceptability, or non-infringement. To the maximum extent permitted by law, the author accepts no liability for any loss, injury, death, damage, cost or claim arising from use of or reliance on this page.</p>
+                        <p><strong>Independent verification required.</strong> Check every formula, coefficient and mass against peer-reviewed references, analytical data and the Safety Data Sheets before acting on it. Those sources and qualified professional judgement control; where this page disagrees with them, this page is wrong.</p>
+                        <p><strong>Consequential damages excluded.</strong> To the maximum extent permitted by law, in no event will the author or maintainers be liable for any direct, indirect, incidental, special, exemplary, punitive or consequential damages, including unsafe preparation, wasted reagents, failed experiments, regulatory exposure, or loss of use, data, profits or business interruption, however caused and on any theory of liability, whether in contract, strict liability or tort including negligence, arising out of or in connection with this page, even if advised of the possibility of such damage.</p>
+                        <p><strong>Indemnity.</strong> By using this page you agree to indemnify and hold harmless the author and maintainers against any claim, demand, loss or expense arising out of your use of it or of anything derived from it.</p>
+                        <p><strong>Severability.</strong> If any part of this notice is held unenforceable, the remainder continues to apply, and the unenforceable part is limited to the least extent necessary rather than struck out.</p>
+                    </div>
+                </div>
+            </details>
+
             <div class="calculator-panel">
                 <div class="panel">
                     <div class="panel-header">
@@ -112,6 +177,7 @@ Features:
                 </div>
 
                 <div class="results-area hidden" id="resultsPanel">
+                    <p class="disclaimer"><strong>A balance is not a reaction.</strong> These coefficients and masses assume the reaction goes as written, to completion, with pure dry reagents. Purity, hydration state, side reactions, kinetics, thermodynamic feasibility and every safety hazard are outside this calculation. Check the Safety Data Sheet for each reagent and product before you weigh anything.</p>
                     <div class="equation-readout animate-in" role="region" aria-label="Balanced Equation Result">
                         <button id="copyBtn" class="status-badge copy-pill" title="Copy equation to clipboard">
                             <svg class="copy-icon" viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="3"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
@@ -184,12 +250,6 @@ Features:
                     </div>
                 </div>
 
-                <div class="liability-disclaimer" role="note" aria-label="Scope, accuracy, and liability disclaimer">
-                    <strong>Reference calculation only - verify before use</strong>
-                    <p>This calculator produces stoichiometric estimates from the formulas and masses you enter. It does <strong>not</strong> account for reagent purity, hydration state, solvent effects, incomplete reactions, side reactions, catalyst requirements, thermodynamic feasibility, kinetics, safety hazards, waste disposal, or analytical measurement uncertainty.</p>
-                    <p>Balanced equations are computed by null-space linear algebra and may not reflect the chemically preferred pathway for redox or multi-step reactions. Under-determined systems yield one valid balance out of infinitely many.</p>
-                    <p><strong>No warranty or liability.</strong> The tool is provided as-is. The author and maintainers accept no responsibility or liability for any error, miscalculation, unsafe preparation, wasted reagents, failed experiment, regulatory exposure, injury, or other consequence arising from use of this tool or its output. Verify all calculations against peer-reviewed references, analytical data, and Safety Data Sheets before use in any laboratory, production, or compliance context.</p>
-                </div>
             </aside>
         </main>
 

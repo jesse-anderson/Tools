@@ -29,6 +29,14 @@ const CLAUSE_PAGES = [
   '/tools/psychrometric-calculator.html',
   '/tools/linear-thermal-expansion.html',
   '/tools/sensors.html',
+  '/tools/battery-capacity.html',
+  '/tools/stoichiometry-calculator.html',
+  '/tools/uncertainty-propagation.html',
+  '/tools/visual-integration.html',
+  '/tools/esp32-pinout.html',
+  '/tools/rpi-pinout.html',
+  '/tools/yogurt-cfu-estimator.html',
+  '/tools/linear-regression.html',
 ];
 
 const REQUIRED = [

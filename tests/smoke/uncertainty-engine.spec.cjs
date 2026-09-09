@@ -179,3 +179,88 @@ test.describe('monte carlo', () => {
     expect(Math.abs(mc.sigma - 1e-3) / 1e-3).toBeLessThan(0.25);
   });
 });
+
+// --- scope disclaimer -----------------------------------------------------
+// The old block sat under a "Scope & Limits" heading at the very bottom of the
+// sidebar, below the syntax help and the maths notes. Its content was good and
+// short; what it lacked was the legal boilerplate and any statement of what the
+// tool must not be used for, which for an uncertainty calculator is specific:
+// an accredited budget, and a conformity decision against a limit.
+
+test.describe('scope disclaimer', () => {
+  test('is visible, closed, and spans the layout', async ({ page }) => {
+    await openTool(page);
+    const card = page.locator('details#scopeDisclaimer.disclaimer-card');
+    await expect(card).toBeVisible();
+    await expect(card).not.toHaveAttribute('open', /.*/);
+
+    const box = await card.boundingBox();
+    const layout = await page.locator('main.calculator-layout').boundingBox();
+    const panel = await page.locator('section.calculator-panel').boundingBox();
+    expect(box.width).toBeGreaterThan(layout.width * 0.9);
+    expect(box.y).toBeLessThan(panel.y);
+
+    await expect(card.locator('.disclaimer-title')).toContainText('Not a measurement uncertainty budget');
+    await expect(card.locator('.disclaimer-lead')).toContainText('uncorrelated');
+  });
+
+  test('keeps the four assumptions the old block named', async ({ page }) => {
+    await openTool(page);
+    const card = page.locator('details#scopeDisclaimer');
+    await card.evaluate((el) => { el.open = true; });
+    const body = card.locator('.disclaimer-body');
+
+    await expect(body).toContainText('first-order propagation for independent variables');
+    await expect(body).toContainText('Correlated inputs are not modelled');
+    await expect(body).toContainText('accurate when uncertainties are small relative to the values');
+    await expect(body).toContainText('trust the sampled spread');
+    // The lead has to carry the linearity condition too, since it is the one
+    // assumption a reader needs before deciding whether to open the card.
+    await expect(card.locator('.disclaimer-lead')).toContainText('roughly linear across');
+  });
+
+  test('addresses the coverage factor the tool actually offers', async ({ page }) => {
+    await openTool(page);
+    // The page has a k selector and reports an expanded uncertainty, so the
+    // card has to say what k = 2 does and does not mean.
+    await expect(page.locator('#coverage')).toHaveCount(1);
+
+    const card = page.locator('details#scopeDisclaimer');
+    await card.evaluate((el) => { el.open = true; });
+    const body = card.locator('.disclaimer-body');
+
+    await expect(body).toContainText('Reading k = 2 as 95% assumes the output is approximately normal');
+    await expect(body).toContainText('Welch-Satterthwaite');
+    // Bias is not uncertainty, which is the misreading that makes a tight
+    // sigma on a wrong number look like a good answer.
+    await expect(body).toContainText('A tight');
+    await expect(body).toContainText('is still a wrong number');
+  });
+
+  test('names the accreditation and conformity regimes it is not', async ({ page }) => {
+    await openTool(page);
+    const card = page.locator('details#scopeDisclaimer');
+    await card.evaluate((el) => { el.open = true; });
+    const body = card.locator('.disclaimer-body');
+
+    await expect(body).toContainText('ISO/IEC 17025');
+    await expect(body).toContainText('JCGM 100:2008');
+    await expect(body).toContainText('ILAC-G8');
+  });
+
+  test('opens by keyboard and carries a touchpoint beside the result', async ({ page }) => {
+    await openTool(page);
+    const card = page.locator('details#scopeDisclaimer');
+    await card.locator('summary').focus();
+    await page.keyboard.press('Enter');
+    await expect(card).toHaveAttribute('open', '');
+
+    const touch = page.locator('p.disclaimer');
+    await expect(touch).toHaveCount(1);
+    await expect(touch).toBeVisible();
+    await expect(touch).toContainText('First order, independent inputs');
+    const hero = await page.locator('#resultHero').boundingBox();
+    const box = await touch.boundingBox();
+    expect(box.y).toBeGreaterThan(hero.y);
+  });
+});

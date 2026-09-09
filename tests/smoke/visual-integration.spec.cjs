@@ -200,3 +200,81 @@ test('visual integration clamps PDF page controls while rendering uploads', asyn
   await expect(page.locator('#pdfPage')).toHaveValue('1');
   await expect(page.locator('#pdfPageMeta')).toHaveText('1 / 2');
 });
+
+// --- scope disclaimer -----------------------------------------------------
+// The old block already wore the .disclaimer-card class while being a plain
+// div with a panel header, which is exactly the drift the shared component
+// exists to end. Its content was strong on what could go wrong and silent on
+// what the tool must not be used for.
+
+const DISCLAIMER_PAGE = '/tools/visual-integration.html';
+
+test('scope disclaimer is visible, closed, and above the layout', async ({ page, baseURL }) => {
+  await expectPageToLoadCleanly(page, baseURL, DISCLAIMER_PAGE);
+  const card = page.locator('details#scopeDisclaimer.disclaimer-card');
+  await expect(card).toBeVisible();
+  await expect(card).not.toHaveAttribute('open', /.*/);
+
+  const box = await card.boundingBox();
+  const layout = await page.locator('.integration-layout').boundingBox();
+  expect(box.width).toBeGreaterThan(layout.width * 0.9);
+  expect(box.y).toBeLessThan(layout.y);
+
+  await expect(card.locator('.disclaimer-title')).toContainText('Not laboratory instrumentation');
+  // The linear-axis limit is the one that turns a wrong answer into a
+  // meaningless one, so it has to read without opening the card.
+  await expect(card.locator('.disclaimer-lead')).toContainText('linear X and Y axes');
+});
+
+test('scope disclaimer keeps the linear-axis rule and every named error source', async ({ page, baseURL }) => {
+  await expectPageToLoadCleanly(page, baseURL, DISCLAIMER_PAGE);
+  const card = page.locator('details#scopeDisclaimer');
+  await card.evaluate((el) => { el.open = true; });
+  const body = card.locator('.disclaimer-body');
+
+  await expect(body).toContainText('Do not use this tool for logarithmic, categorical, distorted, perspective or transformed plots');
+
+  for (const source of [
+    'point placement',
+    'image scaling',
+    'PDF rendering',
+    'axis interpretation',
+    'browser rendering',
+    'implementation defects',
+  ]) {
+    await expect(body, `lost the ${source} error source`).toContainText(source);
+  }
+
+  // The trapezoid bias is directional, which is worth stating rather than
+  // waving at "numerical error".
+  await expect(body).toContainText('convex stretch is systematically over-estimated and a concave stretch under-estimated');
+  await expect(body).toContainText('a figure is a picture of a dataset, not the dataset');
+});
+
+test('scope disclaimer names the uses it is not for', async ({ page, baseURL }) => {
+  await expectPageToLoadCleanly(page, baseURL, DISCLAIMER_PAGE);
+  const card = page.locator('details#scopeDisclaimer');
+  await card.evaluate((el) => { el.open = true; });
+  const body = card.locator('.disclaimer-body');
+
+  await expect(body).toContainText('Pharmacokinetic AUC');
+  await expect(body).toContainText('Regulatory submissions');
+  await expect(body).toContainText('Legal, forensic or financial evidence');
+});
+
+test('scope disclaimer opens by keyboard and carries a touchpoint in the results panel', async ({ page, baseURL }) => {
+  await expectPageToLoadCleanly(page, baseURL, DISCLAIMER_PAGE);
+  const card = page.locator('details#scopeDisclaimer');
+  await card.locator('summary').focus();
+  await page.keyboard.press('Enter');
+  await expect(card).toHaveAttribute('open', '');
+
+  const touch = page.locator('p.disclaimer');
+  await expect(touch).toHaveCount(1);
+  await expect(touch).toBeVisible();
+  await expect(touch).toContainText('A measurement of your clicks, not of the curve');
+  // Above the results list, so it is read before the number rather than after.
+  const list = await page.locator('#resultsContainer').boundingBox();
+  const box = await touch.boundingBox();
+  expect(box.y).toBeLessThanOrEqual(list.y);
+});

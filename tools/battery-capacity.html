@@ -76,6 +76,69 @@ Features:
         </header>
 
         <main class="calculator-layout">
+            <details class="disclaimer-card" id="scopeDisclaimer" aria-label="Scope and liability disclaimer">
+                <summary>
+                    <span class="disclaimer-icon" aria-hidden="true">&#9888;</span>
+                    <span class="disclaimer-summary-text">
+                        <span class="disclaimer-title">First-pass runtime arithmetic. Not a discharge model, and not a battery safety assessment.</span>
+                        <span class="disclaimer-lead">Capacity divided by average current, adjusted for a regulator and a reserve fraction. Real packs sag under load, age, derate with temperature, and fail in ways nothing on this page models, including thermally. Estimates only, used at your own risk. Open for the full scope limits.</span>
+                    </span>
+                    <span class="disclaimer-chevron" aria-hidden="true">&#9662;</span>
+                </summary>
+
+                <div class="disclaimer-body">
+                    <div class="disclaimer-section">
+                        <h3>What this tool actually does</h3>
+                        <p><strong>Runtime estimation and first-pass power budgeting only.</strong> It produces estimates from the values you enter and a small set of simplifying assumptions. It is not a replacement for discharge testing, regulator thermal review, or oscilloscope and current-probe validation of transient behaviour.</p>
+                        <ul>
+                            <li><strong>Usable fraction</strong> is a design reserve you choose, not a chemistry model. Nothing here knows where your cell's knee is.</li>
+                            <li><strong>Fixed-efficiency regulator mode</strong> is a simplification: a real converter's efficiency moves with input voltage, load current and temperature, and is worst exactly where a low battery leaves it.</li>
+                            <li><strong>LDO mode</strong> treats input current as roughly equal to load current, which is the point of the mode and also its whole error term.</li>
+                            <li><strong>Peak current and current limits</strong> are checks against the average-current estimate, not a transient analysis.</li>
+                        </ul>
+                    </div>
+
+                    <div class="disclaimer-section">
+                        <h3>Not modelled at all</h3>
+                        <ul>
+                            <li>Detailed discharge curves and voltage sag under load.</li>
+                            <li>Cell aging, cycle life and capacity fade.</li>
+                            <li>Temperature derating and self-discharge.</li>
+                            <li>Regulator transient response and inrush behaviour.</li>
+                            <li>Parasitic load, charger losses and BMS overhead.</li>
+                            <li>Cell-to-cell variation, manufacturing tolerance and ambient conditions.</li>
+                            <li><strong>The safety, fire or thermal-runaway behaviour of any chemistry.</strong></li>
+                        </ul>
+                        <p class="disclaimer-note">Battery and regulator datasheets, cell-to-cell variation, real load profiles and ambient conditions can shift actual runtime substantially in either direction. A runtime that comes out comfortable here can still be short in the field, and a pack that runs long enough can still be unsafe.</p>
+                    </div>
+
+                    <div class="disclaimer-section">
+                        <h3>Never use this for</h3>
+                        <ul>
+                            <li>Battery safety, thermal runaway or fire risk assessment of any kind.</li>
+                            <li>Cell or pack certification and transport qualification, including UN 38.3, IEC 62133, UL 2054 and UL 1642.</li>
+                            <li>Flight endurance, range or reserve calculations for any aircraft or unmanned vehicle.</li>
+                            <li>Medical device battery life or end-of-service indication under IEC 60601.</li>
+                            <li>Emergency lighting, alarm or life-safety backup runtime under NFPA 111, NFPA 72 or an equivalent code.</li>
+                            <li>Production sign-off, warranty terms, or any contractual or advertised runtime claim.</li>
+                        </ul>
+                    </div>
+
+                    <div class="disclaimer-section">
+                        <h3>Validate before you build</h3>
+                        <p>Confirm every design with measured discharge data on the actual cell, calibrated current probes on the actual load, thermal testing at the temperature extremes you expect, and the chemistry-specific safety guidance from the cell vendor, before committing to a build, a flight envelope, a deployment or a production run. For lithium chemistries in a sealed enclosure or anywhere near people, involve an engineer who does battery packs for a living, and design the protection around the failure rather than the runtime.</p>
+                    </div>
+
+                    <div class="disclaimer-footer">
+                        <p><strong>No warranty. No liability. You assume all risk.</strong> This page and its estimates are provided as-is and as-available, without warranty of any kind, express or implied, including accuracy, completeness, timeliness, reliability, fitness for a particular purpose, merchantability, engineering or professional suitability, regulatory or certification acceptability, or non-infringement. To the maximum extent permitted by law, the author accepts no liability for any loss, injury, death, damage, cost or claim arising from use of or reliance on this page.</p>
+                        <p><strong>Independent verification required.</strong> Verify every figure against vendor datasheets, measured behaviour and qualified engineering judgement before acting on it. The datasheet, the governing standard and professional judgement control; where this page disagrees with them, this page is wrong.</p>
+                        <p><strong>Consequential damages excluded.</strong> To the maximum extent permitted by law, in no event will the author or maintainers be liable for any direct, indirect, incidental, special, exemplary, punitive or consequential damages, including fire, equipment failure, mission failure, downtime, regulatory exposure, certification outcome, business decision, or loss of use, data, profits or business interruption, however caused and on any theory of liability, whether in contract, strict liability or tort including negligence, arising out of or in connection with this page, even if advised of the possibility of such damage.</p>
+                        <p><strong>Indemnity.</strong> By using this page you agree to indemnify and hold harmless the author and maintainers against any claim, demand, loss or expense arising out of your use of it or of anything derived from it.</p>
+                        <p><strong>Severability.</strong> If any part of this notice is held unenforceable, the remainder continues to apply, and the unenforceable part is limited to the least extent necessary rather than struck out.</p>
+                    </div>
+                </div>
+            </details>
+
             <section class="calculator-panel">
                 <div class="panel-header">
                     <div>
@@ -421,6 +484,7 @@ Features:
 
                     <div class="results-section">
                         <h3>Estimate Results</h3>
+                        <p class="disclaimer"><strong>Estimates only, used at your own risk.</strong> These figures come from nominal pack values and average currents. Voltage sag, cell aging, temperature derating, self-discharge, inrush and BMS overhead are not modelled, and nothing here assesses fire or thermal-runaway risk. Confirm with measured discharge data and a calibrated current probe before you commit to a build, a flight envelope or a deployment.</p>
                         <div id="resultContainer" class="result-container" aria-live="polite" aria-atomic="false">
                             <div class="results-grid">
                                 <div class="metric-card">
@@ -523,12 +587,6 @@ Features:
                     <h3>Scope</h3>
                     <p>This tool is intended for runtime estimation and first-pass power budgeting. It is not a replacement for discharge testing, regulator thermal review, or oscilloscope/current-probe validation of transient behavior.</p>
 
-                    <div class="liability-disclaimer" role="note" aria-label="Scope, accuracy, and liability disclaimer">
-                        <strong>Estimates only - use at your own risk</strong>
-                        <p>This calculator produces first-pass runtime and power-budget estimates from the values you enter and a small set of simplifying assumptions. It does <strong>not</strong> model detailed discharge curves, voltage sag under load, cell aging or cycle life, temperature derating, self-discharge, regulator transient response, inrush behavior, parasitic load, charger losses, BMS overhead, or the safety, fire, or thermal-runaway behavior of any chemistry.</p>
-                        <p>Battery and regulator data sheets, cell-to-cell variation, manufacturing tolerance, real-world load profiles, and ambient conditions can shift actual runtime substantially in either direction. Validate every design with measured discharge data, calibrated current probes, thermal testing, and the chemistry-specific safety guidance from the cell vendor before committing to a build, a flight envelope, a deployment, or a production run.</p>
-                        <p><strong>No warranty or liability.</strong> The tool is provided as-is, with no warranty of accuracy, fitness, or merchantability. The author and maintainers accept no responsibility or liability for any loss, damage, injury, fire, equipment failure, mission failure, downtime, regulatory exposure, certification outcome, business decision, or other consequence arising from use of this tool or its output. Independently verify all figures against vendor data sheets, measured behavior, and qualified engineering judgment before acting on them.</p>
-                    </div>
                 </div>
             </aside>
         </main>

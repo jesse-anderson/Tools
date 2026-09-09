@@ -399,38 +399,12 @@
 
 .formula-label.product { color: var(--accent-it); }
 
-/* Liability disclaimer */
-.liability-disclaimer {
-    margin-top: 24px;
-    padding: 14px 16px;
-    border-radius: 12px;
-    border: 1px solid var(--accent-warning);
-    background-color: var(--accent-warning-dim);
-    color: var(--text-primary);
-}
-
-.liability-disclaimer strong {
-    display: block;
-    margin-bottom: 6px;
-    color: var(--accent-warning);
-}
-
-.liability-disclaimer p {
-    margin: 0;
-    font-size: 0.85rem;
-    line-height: 1.5;
-    color: var(--text-secondary);
-}
-
-.liability-disclaimer p + p {
-    margin-top: 8px;
-}
-
-.liability-disclaimer p strong {
-    display: inline;
-    margin: 0;
-    color: var(--text-primary);
-}
+/* The scope disclaimer card and the p.disclaimer touchpoint are both defined
+   in css/shared.css. The .liability-disclaimer block this file used to style
+   was replaced by that component in September 2026. Two defects went with it:
+   its heading measured 2.49:1 on the light card, failing WCAG AA, and it lived
+   inside #sidebarPanel, which carries .hidden until a balance succeeds, so the
+   scope limits were invisible to anyone who had not already run the tool. */
 
 /* Sidebar metric cards (extracted from inline styles) */
 .metric-card + .metric-card {
