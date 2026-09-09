@@ -630,3 +630,11 @@ footer {
 }
 .checkbox-toggle input { width: 16px; height: 16px; accent-color: var(--accent-pk); }
 .checkbox-toggle span { font-size: 0.8rem; font-weight: 600; }
+
+/* This tool pins --accent-warning to #ea4008, which measures 3.87:1 against
+   the dark card at 12px, under AA. Lightening it for dark theme keeps the
+   hue. The :not([data-theme="light"]) form also covers the default state
+   before ThemeManager stamps an attribute. */
+:root:not([data-theme="light"]) .disclaimer-title {
+    color: color-mix(in srgb, var(--accent-warning) 62%, #fff);
+}

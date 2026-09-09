@@ -981,3 +981,148 @@ footer {
         padding: 16px;
     }
 }
+
+/* ============================================================
+   SCOPE DISCLAIMER CARD
+   ============================================================
+   The one component that lives here rather than in a per-tool file.
+   shared.css otherwise carries theme variables and base styles only, and
+   deliberately not layout component classes; this is the documented
+   exception. The reasons are specific to this component: it has to look and
+   behave identically on every tool, its divergence is a legal and
+   accessibility risk rather than a cosmetic one, and it exists on every
+   page. Ten per-tool copies had already drifted from 1 rule to 29, and the
+   contrast defect below was present in some copies and absent from others.
+
+   A tool that needs a different look still overrides these rules from its own
+   stylesheet, which loads afterwards.
+
+   Reference implementations: control-valve-sizing, beam-deflection.
+   ------------------------------------------------------------ */
+
+:root {
+    /* Dark theme can use the raw accent for the heading: it measures about
+       9:1 against the tinted card. */
+    --disclaimer-accent: var(--accent-warning);
+    --disclaimer-accent-strong: var(--accent-error);
+}
+
+/* Light theme cannot. --accent-warning resolves to #ca8a04, which measures
+   2.9:1 on a white card, and disclaimer headings are 12-16px, well under the
+   18.66px the WCAG large-text exemption needs. Darkening the accent for light
+   theme alone takes it to roughly 6:1 and leaves dark theme untouched.
+   These mix from var(--accent-*), so a tool that themes its own accents keeps
+   its hue and still gets a readable heading. */
+[data-theme="light"] {
+    --disclaimer-accent: color-mix(in srgb, var(--accent-warning) 60%, #000);
+    --disclaimer-accent-strong: color-mix(in srgb, var(--accent-error) 80%, #000);
+}
+
+/* Legacy heading classes, corrected in place.
+   These carry [data-theme="light"] so they outrank a plain `.disclaimer-title`
+   rule in a tool stylesheet on specificity (0,2,0 against 0,1,0) regardless of
+   load order, which is what lets this fix reach tools without editing each of
+   them. A tool that wants a different light-theme colour declares its own
+   [data-theme="light"] rule and wins on load order. */
+[data-theme="light"] .disclaimer-title {
+    color: var(--disclaimer-accent);
+}
+[data-theme="light"] .warning-title {
+    color: var(--disclaimer-accent-strong);
+}
+
+/* --- the card itself --------------------------------------------------- */
+.disclaimer-card {
+    border: 1px solid color-mix(in srgb, var(--accent-warning) 45%, transparent);
+    background: color-mix(in srgb, var(--accent-warning) 9%, transparent);
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 20px;
+}
+
+/* min-height plus vertical padding takes the hit area to the 44px touch
+   target guideline. These measured 26px before, which is a hard tap on a
+   phone and the only control that opens the scope limits. */
+.disclaimer-card > summary {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    cursor: pointer;
+    list-style: none;
+    font-weight: 600;
+    color: var(--text-primary);
+    min-height: 44px;
+    padding: 10px 0;
+    box-sizing: border-box;
+}
+.disclaimer-card > summary::-webkit-details-marker { display: none; }
+
+.disclaimer-icon { color: var(--accent-warning); flex: 0 0 auto; }
+.disclaimer-chevron {
+    margin-left: auto;
+    transition: transform 0.15s ease;
+    color: var(--text-secondary);
+}
+.disclaimer-card[open] .disclaimer-chevron { transform: rotate(180deg); }
+
+.disclaimer-summary-text { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.disclaimer-title { font-size: 1rem; font-weight: 700; color: var(--disclaimer-accent); }
+.disclaimer-lead {
+    font-weight: 400;
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    line-height: 1.45;
+}
+
+.disclaimer-body { margin-top: 14px; color: var(--text-secondary); font-size: 0.9rem; }
+.disclaimer-section {
+    padding: 12px 0;
+    border-top: 1px solid color-mix(in srgb, var(--accent-warning) 25%, transparent);
+}
+.disclaimer-section h3 {
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+    font-size: 0.9375rem;
+    color: var(--text-primary);
+    margin: 0 0 6px;
+}
+.disclaimer-section p { margin: 0 0 8px; line-height: 1.55; }
+.disclaimer-body ul { margin: 8px 0 0; padding-left: 20px; }
+.disclaimer-body li { margin-bottom: 6px; line-height: 1.5; }
+.disclaimer-body li strong, .disclaimer-section p strong { color: var(--text-primary); }
+
+/* The sentence each section exists to land. --text-muted is deliberately not
+   used anywhere in this component: it measures 2.6:1 light and 3.7:1 dark and
+   fails WCAG AA in both themes. */
+.disclaimer-note { margin-top: 10px; color: var(--text-primary); font-weight: 500; }
+
+.disclaimer-footer {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid color-mix(in srgb, var(--accent-warning) 45%, transparent);
+    font-size: 0.8125rem;
+    line-height: 1.55;
+}
+.disclaimer-footer p { margin: 0 0 8px; }
+.disclaimer-footer p:last-child { margin-bottom: 0; }
+
+/* The second touchpoint, beside the answer, so the scope limit is readable
+   without opening anything at the top of the page. */
+p.disclaimer {
+    margin: 0 0 14px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid color-mix(in srgb, var(--accent-warning) 40%, transparent);
+    background: color-mix(in srgb, var(--accent-warning) 8%, transparent);
+    color: var(--text-secondary);
+    font-size: 0.8125rem;
+    line-height: 1.5;
+}
+p.disclaimer strong { color: var(--text-primary); }
+
+/* `.liability-disclaimer > strong` is the heading in battery-capacity,
+   local-llm-opex and stoichiometry-calculator. Direct child only: the
+   `p strong` inside the body is ordinary emphasis on --text-primary and
+   must keep it. */
+[data-theme="light"] .liability-disclaimer > strong {
+    color: var(--disclaimer-accent);
+}

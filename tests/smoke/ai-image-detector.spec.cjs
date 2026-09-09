@@ -15,6 +15,7 @@
 // legitimately detects as periodic.
 
 const { test, expect } = require('@playwright/test');
+const { expectContrastAA } = require('./helpers.cjs');
 
 const TOOL_PATH = '/tools/ai-image-detector.html';
 
@@ -316,4 +317,133 @@ test.describe('AI Image Detector', () => {
     await page.keyboard.press('Escape');
     await expect(modal).not.toBeVisible();
   });
+});
+
+// --- scope disclaimer --------------------------------------------------------
+// This tool outputs a number a reader can mistake for an accusation about a real
+// person's work, so its disclaimer carries a heavier burden than a calculator's.
+// The measured fact it has to lead with: on the bundled templates a real
+// photograph and the modern diffusion outputs all sit under 2x while a flatbed
+// scan scores about 23x, so the highest score in the set belongs to the one
+// image that is definitely not AI.
+
+test('the scope disclaimer is above the tool, readable while collapsed, and keyboard operable', async ({ page }) => {
+  await page.goto('/tools/ai-image-detector.html', { waitUntil: 'domcontentloaded' });
+
+  const card = page.locator('#scopeDisclaimer');
+  await expect(card).toBeVisible();
+  expect(await card.evaluate((el) => el.tagName)).toBe('DETAILS');
+  expect(await card.evaluate((el) => el.open)).toBe(false);
+
+  // The headline has to land without opening anything.
+  const summary = card.locator('summary');
+  await expect(summary).toContainText('not an AI detector');
+  await expect(summary).toContainText('not evidence about a person');
+
+  // Above the tool itself and in the first viewport.
+  const cardBox = await card.boundingBox();
+  const layoutBox = await page.locator('.calculator-layout').boundingBox();
+  expect(cardBox.y).toBeLessThan(layoutBox.y);
+  expect(cardBox.y).toBeLessThan(900);
+
+  // 44px touch target on the only control that opens it.
+  expect((await summary.boundingBox()).height).toBeGreaterThanOrEqual(44);
+
+  // Native details: keyboard operable with no JavaScript of its own.
+  await summary.focus();
+  await page.keyboard.press('Enter');
+  expect(await card.evaluate((el) => el.open)).toBe(true);
+});
+
+test('the disclaimer names the measured limits rather than gesturing at uncertainty', async ({ page }) => {
+  await page.goto('/tools/ai-image-detector.html', { waitUntil: 'domcontentloaded' });
+  await page.locator('#scopeDisclaimer').evaluate((el) => { el.open = true; });
+  const body = page.locator('#scopeDisclaimer .disclaimer-body');
+
+  // The central admission, in numbers rather than adjectives.
+  await expect(body).toContainText('1.1x to 1.4x');
+  await expect(body).toContainText('23x');
+  await expect(body).toContainText('Midjourney v6');
+
+  // The false positives, which are all more common than AI generation.
+  for (const cause of ['Flatbed and drum scans', 'screenshot', 'JPEG block', 'moir', 'demosaic', 'brick']) {
+    await expect(body).toContainText(cause);
+  }
+
+  // What it does not look at, including the mechanism that would actually answer
+  // the question the user came here with.
+  await expect(body).toContainText('C2PA');
+  await expect(body).toContainText('blue channel');
+
+  // Its own history of being confidently wrong.
+  await expect(body).toContainText('19,800x');
+});
+
+test('the disclaimer forbids the uses that would harm a person', async ({ page }) => {
+  await page.goto('/tools/ai-image-detector.html', { waitUntil: 'domcontentloaded' });
+  await page.locator('#scopeDisclaimer').evaluate((el) => { el.open = true; });
+  const body = page.locator('#scopeDisclaimer .disclaimer-body');
+
+  for (const forbidden of [
+    'Academic integrity',
+    'Employment, contracting, admissions, grading',
+    'Journalism, fact-checking',
+    'Legal, forensic, or insurance',
+    'Accusing any person of anything',
+  ]) {
+    await expect(body).toContainText(forbidden);
+  }
+
+  await expect(body).toContainText('not a statement about the person who made it');
+});
+
+test('the disclaimer carries all five legal elements', async ({ page }) => {
+  await page.goto('/tools/ai-image-detector.html', { waitUntil: 'domcontentloaded' });
+  await page.locator('#scopeDisclaimer').evaluate((el) => { el.open = true; });
+  const footer = page.locator('#scopeDisclaimer .disclaimer-footer');
+
+  await expect(footer).toContainText('No warranty');                    // warranty
+  await expect(footer).toContainText('accepts no liability');           // liability
+  await expect(footer).toContainText('You assume all risk');            // assumption of risk
+  await expect(footer).toContainText('this page is wrong');             // precedence
+  await expect(footer).toContainText('Independent verification required');
+  await expect(footer).toContainText('reputational harm');
+});
+
+test('the score carries a second touchpoint for readers who never open the card', async ({ page }) => {
+  await page.goto('/tools/ai-image-detector.html', { waitUntil: 'domcontentloaded' });
+
+  // Visible with the card still collapsed, and beside the number itself.
+  expect(await page.locator('#scopeDisclaimer').evaluate((el) => el.open)).toBe(false);
+  const touchpoint = page.locator('p.disclaimer');
+  await expect(touchpoint).toBeVisible();
+  await expect(touchpoint).toContainText('Periodic structure, not AI');
+  await expect(touchpoint).toContainText('Never use it to make a claim about a person');
+
+  const scoreBox = await page.locator('#scoreBox').boundingBox();
+  const touchBox = await touchpoint.boundingBox();
+  expect(Math.abs(touchBox.y - scoreBox.y)).toBeLessThan(300);
+});
+
+test('the model-effectiveness note no longer implies the tool can determine AI origin', async ({ page }) => {
+  await page.goto('/tools/ai-image-detector.html', { waitUntil: 'domcontentloaded' });
+  const html = await page.content();
+
+  // "with certainty" implied it could answer the question less certainly. It
+  // cannot answer it at all for modern diffusion, and hedging in that direction
+  // is what makes a reader treat the score as weak evidence rather than none.
+  expect(html).not.toContain('AI-generated with certainty');
+  await expect(page.locator('.info-modal, body')).toContainText(
+    'Determining whether an image is AI-generated, at all'
+  );
+});
+
+test('the disclaimer text clears WCAG AA in both themes', async ({ page }) => {
+  await page.goto('/tools/ai-image-detector.html', { waitUntil: 'domcontentloaded' });
+  await expectContrastAA(
+    page,
+    '#scopeDisclaimer .disclaimer-title, #scopeDisclaimer .disclaimer-lead, ' +
+      '#scopeDisclaimer .disclaimer-note, #scopeDisclaimer .disclaimer-section h3, ' +
+      '#scopeDisclaimer .disclaimer-footer, p.disclaimer'
+  );
 });

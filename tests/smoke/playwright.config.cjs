@@ -40,7 +40,8 @@ module.exports = defineConfig({
     'ohms-law.spec.cjs',
     'sensors-reference.spec.cjs',
     'beam-deflection.spec.cjs',
-    'control-valve-sizing.spec.cjs'
+    'control-valve-sizing.spec.cjs',
+    'disclaimer-contrast.spec.cjs'
   ],
   timeout: 60_000,
   // The specs are independent (each navigates its own page or drives a pure

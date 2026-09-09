@@ -838,3 +838,10 @@ a.source-chip:focus-visible {
         padding: 18px;
     }
 }
+
+/* --hormone-red measures 2.51:1 against the light card. Same treatment as
+   creatine-lab: darken for light theme only, keep the hue. */
+[data-theme="light"] .scope-warning-block summary,
+[data-theme="light"] .scope-warning-block strong {
+    color: color-mix(in srgb, var(--hormone-red) 62%, #000);
+}

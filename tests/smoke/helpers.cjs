@@ -57,13 +57,18 @@ function extractToolHrefsFromSection(sectionMarkup) {
 
 const toolPaths = extractToolPaths(toolsIndexMarkup);
 
-// Temporarily excluded from the aggregate page-load check. linear-regression.html
-// references tools/WASM_Example_linreg-core/* (styles.css, logic.js) which is parked
-// in historical/ pending a linreg-core rework, so those requests 404 by design.
-// Remove this entry once linreg-core is reworked and re-vendored.
-const KNOWN_FAILING_TOOL_PATHS = new Set([
-  '/tools/linear-regression.html'
-]);
+// Tool pages excluded from the aggregate page-load check.
+//
+// Empty as of September 2026. linear-regression.html sat here because it
+// referenced tools/WASM_Example_linreg-core/* (styles.css, logic.js), which is
+// parked in historical/, so those requests 404d by design. The page no longer
+// references that folder: it loads css/linear_regression/styles.css and
+// js/linear_regression/logic.js, both present. Lifting the exclusion was
+// verified against the real page, not assumed, and all 54 linked tool pages
+// now load clean.
+//
+// Add a path here only with a comment saying why and what removes it.
+const KNOWN_FAILING_TOOL_PATHS = new Set([]);
 
 function normalizeText(text) {
   return String(text || '').replace(/\s+/g, ' ').trim();
@@ -182,6 +187,114 @@ async function readDownloadText(download) {
   return Buffer.concat(chunks).toString('utf8');
 }
 
+/**
+ * Measure WCAG contrast for elements, in a chosen theme, from the rendered page.
+ *
+ * Three things make a naive version of this report confidently wrong, and all
+ * three were hit while auditing the disclaimer cards:
+ *
+ *  1. getComputedStyle returns a color-mix() value as `color(srgb 0-1 ...)`,
+ *     not `rgb(0-255)`. Parsing one as the other makes a mid amber measure
+ *     20.96:1 instead of 2.56:1.
+ *  2. The warning cards are translucent tints, so the effective background has
+ *     to be composited up the ancestor chain. Reading only the nearest painted
+ *     ancestor reports a failing heading as passing.
+ *  3. shared.css transitions background-color, so a read taken immediately
+ *     after switching themes returns the mid-animation colour. Hence the wait.
+ *
+ * Every `details` on the page is opened first, because innerText on a collapsed
+ * details returns only the summary and getComputedStyle on its hidden body is
+ * not what the reader sees.
+ *
+ * Returns one entry per matched element: { text, cls, ratio, px, weight, need,
+ * pass }, where `need` is 3 for WCAG large text (24px and up, or 18.66px and up
+ * at weight 700+) and 4.5 otherwise.
+ */
+async function measureContrast(page, selector, theme = 'light') {
+  await page.evaluate((t) => {
+    document.documentElement.setAttribute('data-theme', t);
+    for (const d of document.querySelectorAll('details')) d.open = true;
+  }, theme);
+  await page.waitForTimeout(800);
+
+  return page.evaluate((sel) => {
+    function parse(c) {
+      let m = c.match(/color\(srgb ([\d.]+) ([\d.]+) ([\d.]+)(?: \/ ([\d.]+))?\)/);
+      if (m) return [+m[1] * 255, +m[2] * 255, +m[3] * 255, m[4] === undefined ? 1 : +m[4]];
+      m = c.match(/rgba?\(([\d.]+),\s*([\d.]+),\s*([\d.]+)(?:,\s*([\d.]+))?\)/);
+      if (m) return [+m[1], +m[2], +m[3], m[4] === undefined ? 1 : +m[4]];
+      if (c === 'transparent') return [0, 0, 0, 0];
+      return null;
+    }
+    const lum = (r, g, b) => {
+      const f = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+      return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
+    };
+    function bgOf(el) {
+      const stack = [];
+      for (let n = el; n; n = n.parentElement) {
+        const c = parse(getComputedStyle(n).backgroundColor);
+        if (c && c[3] > 0) stack.push(c);
+      }
+      stack.push([255, 255, 255, 1]);
+      let out = stack[stack.length - 1].slice(0, 3);
+      for (let i = stack.length - 2; i >= 0; i--) {
+        const [r, g, b, a] = stack[i];
+        out = [r * a + out[0] * (1 - a), g * a + out[1] * (1 - a), b * a + out[2] * (1 - a)];
+      }
+      return out;
+    }
+    const out = [];
+    for (const el of document.querySelectorAll(sel)) {
+      const text = (el.innerText || '').trim();
+      if (!text) continue;
+      const cs = getComputedStyle(el);
+      const fg = parse(cs.color);
+      if (!fg) continue;
+      const bg = bgOf(el);
+      const comp = [
+        fg[0] * fg[3] + bg[0] * (1 - fg[3]),
+        fg[1] * fg[3] + bg[1] * (1 - fg[3]),
+        fg[2] * fg[3] + bg[2] * (1 - fg[3]),
+      ];
+      const l1 = lum(comp[0], comp[1], comp[2]);
+      const l2 = lum(bg[0], bg[1], bg[2]);
+      const ratio = (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
+      const px = parseFloat(cs.fontSize);
+      const weight = parseInt(cs.fontWeight, 10) || 400;
+      const large = px >= 24 || (px >= 18.66 && weight >= 700);
+      out.push({
+        text: text.slice(0, 60),
+        cls: String(el.className || el.tagName),
+        ratio: Math.round(ratio * 100) / 100,
+        px: Math.round(px * 10) / 10,
+        weight,
+        need: large ? 3 : 4.5,
+        pass: ratio >= (large ? 3 : 4.5),
+      });
+    }
+    return out;
+  }, selector);
+}
+
+/**
+ * Assert every element matching `selector` clears WCAG AA in both themes.
+ * Fails with the measured ratio and the element text, so a regression names
+ * itself instead of just going red.
+ */
+async function expectContrastAA(page, selector) {
+  for (const theme of ['dark', 'light']) {
+    const measured = await measureContrast(page, selector, theme);
+    expect(measured.length, `no elements matched ${selector} in ${theme} theme`).toBeGreaterThan(0);
+    for (const m of measured) {
+      expect(
+        m.pass,
+        `${theme} theme: "${m.text}" (${m.cls}) measures ${m.ratio}:1, needs ${m.need}:1 at ${m.px}px/${m.weight}`
+      ).toBe(true);
+    }
+  }
+}
+
 module.exports = {
   repoRoot,
   toolsIndexMarkup,
@@ -197,5 +310,7 @@ module.exports = {
   attachDiagnostics,
   formatDiagnostics,
   expectPageToLoadCleanly,
-  readDownloadText
+  readDownloadText,
+  measureContrast,
+  expectContrastAA
 };

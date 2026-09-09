@@ -454,7 +454,9 @@
 
 .disclaimer-note {
     font-style: italic;
-    color: var(--text-muted);
+    /* --text-muted measures 2.6:1 light and 3.7:1 dark and fails WCAG AA in
+       both themes. --text-secondary is the readable equivalent. */
+    color: var(--text-secondary);
 }
 
 .disclaimer-list {

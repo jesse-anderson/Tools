@@ -1249,3 +1249,11 @@ td {
         grid-column: auto;
     }
 }
+
+/* --creatine-orange measures 1.99:1 against the light card, failing WCAG AA
+   on the one sentence the block exists to deliver. Darkening it for light
+   theme alone keeps the brand hue and clears AA. Dark theme is untouched. */
+[data-theme="light"] .scope-warning-block summary,
+[data-theme="light"] .scope-warning-block strong {
+    color: color-mix(in srgb, var(--creatine-orange) 62%, #000);
+}

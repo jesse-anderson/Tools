@@ -470,6 +470,67 @@
         </header>
 
         <main>
+            <!-- Site-wide scope and liability notice. Uses the shared
+                 .disclaimer-card component from css/shared.css, the same one
+                 every tool page carries, so this reads as the baseline the
+                 per-tool cards build on rather than as a separate thing.
+
+                 Deliberately not an acceptance gate. Tools here are reached by
+                 direct link far more often than through this page, so a gate on
+                 the catalog would guard the one door almost nobody uses while
+                 every tool stayed open. See docs/SOW/disclaimer_rework_sow.md. -->
+            <details class="disclaimer-card" id="siteDisclaimer" aria-label="Site-wide scope and liability notice">
+                <summary>
+                    <span class="disclaimer-icon" aria-hidden="true">&#9888;</span>
+                    <span class="disclaimer-summary-text">
+                        <span class="disclaimer-title">Screening tools. None of these is a substitute for professional judgement.</span>
+                        <span class="disclaimer-lead">Every tool here is a first-pass aid, built and maintained by one person, and none of it is certified, validated or independently reviewed software. Each tool carries its own scope limits; this is what applies to all of them. Open for the full notice.</span>
+                    </span>
+                    <span class="disclaimer-chevron" aria-hidden="true">&#9662;</span>
+                </summary>
+
+                <div class="disclaimer-body">
+                    <div class="disclaimer-section">
+                        <h3>What these are</h3>
+                        <p>Browser-side calculators, converters and reference tables. They run locally, they cost nothing, and they are built to be open about their method and their sources rather than authoritative about their answers. Several show their working, cite what they were checked against, and say plainly where a check was <strong>not</strong> performed.</p>
+                    </div>
+
+                    <div class="disclaimer-section">
+                        <h3>What none of them is</h3>
+                        <ul>
+                            <li>A design, clinical, safety or compliance tool.</li>
+                            <li>A substitute for a licensed professional, the governing standard or code, a manufacturer's data, a product label, or a measurement.</li>
+                            <li>Validated software. Nothing here has been through independent verification, qualification, or a quality system.</li>
+                            <li>Complete. A tool that reports no problem has usually not checked for every problem, and several say so explicitly.</li>
+                        </ul>
+                        <p class="disclaimer-note">Status labels in the catalog are literal. <strong>Under Review</strong>, <strong>Prototypical</strong> and <strong>Experimental</strong> mean the tool has not finished being checked.</p>
+                    </div>
+
+                    <div class="disclaimer-section">
+                        <h3>Never use anything here for</h3>
+                        <ul>
+                            <li>Safety-critical, life-safety or life-support decisions, or any protective or safety instrumented function.</li>
+                            <li>Clinical diagnosis, treatment, or dosing for any person or animal.</li>
+                            <li>Relief, blowdown, overpressure or emergency-system sizing.</li>
+                            <li>Structural, electrical or pressure work that a person could be hurt by.</li>
+                            <li>Regulatory submissions, certification, or anything requiring a professional stamp.</li>
+                            <li>Legal, forensic, employment, academic-integrity or financial determinations about another person.</li>
+                        </ul>
+                    </div>
+
+                    <div class="disclaimer-section">
+                        <h3>Before you act on any number here</h3>
+                        <p>Check it against the governing standard, the manufacturer's data, the datasheet or the label. Reproduce it by an independent method. Have a qualified professional review it. A result that agrees with what you expected is not verification.</p>
+                    </div>
+
+                    <div class="disclaimer-footer">
+                        <p><strong>No warranty. No liability. You assume all risk.</strong> These pages, their numbers, their data and their advisories are provided as-is and as-available, without warranty of any kind, express or implied, including accuracy, completeness, timeliness, reliability, fitness for a particular purpose, merchantability, engineering, medical or professional suitability, regulatory or code acceptability, or non-infringement. To the maximum extent permitted by law, the author accepts no liability for any loss, injury, damage, cost or claim arising from use of or reliance on anything on this site.</p>
+                        <p><strong>Independent verification required, and the real authority controls.</strong> The governing standard, the manufacturer's data, the product label, the measurement and professional judgement control; where a page on this site disagrees with them, the page is wrong.</p>
+                        <p><strong>Each tool's own notice adds to this one.</strong> Where a tool states a narrower limit than this page does, that narrower limit applies.</p>
+                    </div>
+                </div>
+            </details>
+
             <!-- Controls Bar -->
             <div class="controls-bar">
                 <div class="controls-left">

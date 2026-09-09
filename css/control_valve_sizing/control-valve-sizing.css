@@ -33,83 +33,14 @@ header h1 { font-family: 'Space Grotesk', system-ui, sans-serif; font-size: 2rem
 .subtitle { color: var(--text-secondary); margin: 0; }
 
 /* --- scope disclaimer -----------------------------------------------------
- * The same treatment as beam-deflection and linear-thermal-expansion: the
- * theme warning colour tinted through color-mix rather than a solid error slab,
- * and the headline sentence inside the summary so it reads without opening
- * anything. Native details, so it is keyboard operable with no JavaScript.
+ * The card, its summary, sections, note and footer, the light-theme heading
+ * contrast correction and the p.disclaimer touchpoint beside the results all
+ * live in css/shared.css now. This tool is one of the two reference
+ * implementations, so its copy was the source of that component and carrying
+ * a second copy here would be the drift the move exists to stop.
+ *
+ * Anything this tool needs to differ on goes below, and wins on load order.
  */
-.disclaimer-card {
-    border: 1px solid color-mix(in srgb, var(--accent-warning) 45%, transparent);
-    background: color-mix(in srgb, var(--accent-warning) 9%, transparent);
-    border-radius: 10px;
-    padding: 12px 14px;
-    margin-bottom: 20px;
-}
-/* min-height plus vertical padding takes the hit area to the 44px touch target
- * guideline. Measured at 26px before, which is a hard tap on a phone and the
- * only control on the page that opens the scope limits. */
-.disclaimer-card > summary {
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
-    cursor: pointer;
-    list-style: none;
-    font-weight: 600;
-    color: var(--text-primary);
-    min-height: 44px;
-    padding: 10px 0;
-    box-sizing: border-box;
-}
-.disclaimer-card > summary::-webkit-details-marker { display: none; }
-.disclaimer-icon { color: var(--accent-warning); flex: 0 0 auto; }
-.disclaimer-chevron { margin-left: auto; transition: transform 0.15s ease; color: var(--text-secondary); }
-.disclaimer-card[open] .disclaimer-chevron { transform: rotate(180deg); }
-.disclaimer-summary-text { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
-/* The headline of the whole page. On the light card the theme warning colour
- * measures 2.56:1 against the tint, which fails AA: 16px bold is under the
- * 18.66px the large-text exemption needs. Darkening it for light theme alone
- * takes it to 6.01:1. Dark theme measures 9.12:1 already and is untouched. */
-.disclaimer-title { font-size: 1rem; font-weight: 700; color: var(--accent-warning); }
-[data-theme="light"] .disclaimer-title { color: color-mix(in srgb, var(--accent-warning) 60%, #000); }
-.disclaimer-lead { font-weight: 400; color: var(--text-secondary); font-size: 0.875rem; line-height: 1.45; }
-
-.disclaimer-body { margin-top: 14px; color: var(--text-secondary); font-size: 0.9rem; }
-.disclaimer-section { padding: 12px 0; border-top: 1px solid color-mix(in srgb, var(--accent-warning) 25%, transparent); }
-.disclaimer-section h3 {
-    font-family: 'Space Grotesk', system-ui, sans-serif;
-    font-size: 0.9375rem;
-    color: var(--text-primary);
-    margin: 0 0 6px;
-}
-.disclaimer-section p { margin: 0 0 8px; line-height: 1.55; }
-.disclaimer-body ul { margin: 8px 0 0; padding-left: 20px; }
-.disclaimer-body li { margin-bottom: 6px; line-height: 1.5; }
-.disclaimer-body li strong, .disclaimer-section p strong { color: var(--text-primary); }
-/* The sentence each section exists to land. */
-.disclaimer-note { margin-top: 10px; color: var(--text-primary); font-weight: 500; }
-.disclaimer-footer {
-    margin-top: 12px;
-    padding-top: 12px;
-    border-top: 1px solid color-mix(in srgb, var(--accent-warning) 45%, transparent);
-    font-size: 0.8125rem;
-    line-height: 1.55;
-}
-.disclaimer-footer p { margin: 0 0 8px; }
-.disclaimer-footer p:last-child { margin-bottom: 0; }
-
-/* The second touchpoint, beside the answer, so the scope limit is readable
- * without opening anything at the top of the page. */
-.disclaimer {
-    margin: 0 0 14px;
-    padding: 10px 12px;
-    border-radius: 8px;
-    border: 1px solid color-mix(in srgb, var(--accent-warning) 40%, transparent);
-    background: color-mix(in srgb, var(--accent-warning) 8%, transparent);
-    color: var(--text-secondary);
-    font-size: 0.8125rem;
-    line-height: 1.5;
-}
-.disclaimer strong { color: var(--text-primary); }
 
 /* --- layout --------------------------------------------------------------- */
 .calculator-layout { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 20px; align-items: start; }
