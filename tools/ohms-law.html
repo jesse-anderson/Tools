@@ -76,6 +76,66 @@ Last Updated: July 2026
         </header>
 
         <main>
+            <details class="disclaimer-card" id="scopeDisclaimer" aria-label="Scope and liability disclaimer">
+                <summary>
+                    <span class="disclaimer-icon" aria-hidden="true">&#9888;</span>
+                    <span class="disclaimer-summary-text">
+                        <span class="disclaimer-title">Four numbers on an ideal DC resistor. Not a circuit design or electrical safety tool.</span>
+                        <span class="disclaimer-lead">It solves V = IR and P = VI and stops there. It does not check whether your resistor can survive the power it is about to dissipate, whether your wire can carry the current, or whether the voltage you typed can kill you. Open for the full scope limits.</span>
+                    </span>
+                    <span class="disclaimer-chevron" aria-hidden="true">&#9662;</span>
+                </summary>
+
+                <div class="disclaimer-body">
+                    <div class="disclaimer-section">
+                        <h3>What this tool actually solves</h3>
+                        <p>Ohm's law and the DC power relationships for a single ideal resistive element in steady state, given any two of voltage, current, resistance and power. The arithmetic is exact and there is not much to get wrong in it.</p>
+                        <p>Everything that makes a circuit work, or fail, is outside that.</p>
+                    </div>
+
+                    <div class="disclaimer-section">
+                        <h3>Not checked, at all</h3>
+                        <ul>
+                            <li><strong>Resistor power rating.</strong> This is the one that burns things. The tool will hand you a resistance without a word about the wattage it must dissipate, and a quarter-watt part asked for two watts becomes a smoke source. Real parts also need derating above roughly 70&deg;C ambient, and derating to zero well before their rated maximum.</li>
+                            <li><strong>Wire ampacity and insulation temperature.</strong> A current figure here says nothing about the conductor size that can carry it, in the bundle and ambient it will actually sit in.</li>
+                            <li><strong>Fusing and overcurrent protection.</strong> Nothing here sizes a fuse, a breaker, or a current limit, and nothing here computes the fault current a short would draw. A small lithium cell can deliver tens of amps into a short.</li>
+                            <li><strong>Anything AC.</strong> No reactance, impedance, phase, power factor, harmonics, or RMS against peak against average. Substituting an AC value into a DC relationship gives a confident wrong answer.</li>
+                            <li><strong>Anything non-ohmic.</strong> LEDs, diodes, transistors, lamps, motors, batteries and thermistors do not have a fixed resistance, and dividing voltage by current for one of them gives a number that is only true at that instant. An LED is not a resistor.</li>
+                            <li><strong>Temperature coefficient.</strong> Copper rises about 0.39% per &deg;C; a hot winding is not the resistance you measured cold.</li>
+                            <li><strong>Source behaviour.</strong> No supply impedance, sag under load, regulation, inrush, or transient. The tool assumes an ideal source that does not exist.</li>
+                            <li><strong>Tolerance.</strong> Nominal values only. A 5% resistor and a 5% supply stack.</li>
+                        </ul>
+                    </div>
+
+                    <div class="disclaimer-section">
+                        <h3>Electricity is the hazard, not the arithmetic</h3>
+                        <p>Roughly 50 V AC or 120 V DC is enough to be lethal through intact skin, and far less through broken skin or a wet contact. Current across the chest at mains frequency causes fibrillation in the tens of milliamps, which is a fraction of what a phone charger delivers. Arc flash and the fault current available from a mains circuit, a car battery or a lithium pack will cause serious burns without any shock at all.</p>
+                        <p class="disclaimer-note">A number on this page being correct tells you nothing about whether the circuit it describes is safe to build, touch, or energise.</p>
+                    </div>
+
+                    <div class="disclaimer-section">
+                        <h3>Never use this for</h3>
+                        <ul>
+                            <li>Mains, building or fixed wiring, or anything a licensed electrician signs off.</li>
+                            <li>Sizing conductors, fuses, breakers, or any protective device.</li>
+                            <li>Battery pack, charger, or lithium-cell design, where a wrong current is a fire.</li>
+                            <li>Medical, automotive, aviation, marine or industrial equipment, or anything with an isolation or creepage requirement.</li>
+                            <li>Any installation that has to satisfy a wiring code, a standard, or an inspection.</li>
+                        </ul>
+                    </div>
+
+                    <div class="disclaimer-section">
+                        <h3>Before you build the circuit</h3>
+                        <p>Check the datasheet for every part, at the temperature it will actually run at. Confirm the power rating and derating of each resistor and the ampacity of each conductor. Have anything mains-connected or life-adjacent designed and inspected by a qualified electrician or electrical engineer under the governing wiring code.</p>
+                    </div>
+
+                    <div class="disclaimer-footer">
+                        <p><strong>No warranty. No liability. You assume all risk.</strong> This page and its numbers are provided as-is and as-available, without warranty of any kind, express or implied, including accuracy, completeness, timeliness, reliability, fitness for a particular purpose, merchantability, engineering or professional suitability, regulatory or code acceptability, or non-infringement. To the maximum extent permitted by law, the author accepts no liability for any loss, injury, death, fire, damage, cost or claim arising from use of or reliance on this page.</p>
+                        <p><strong>Independent verification required.</strong> Check every value against the component datasheets, the governing wiring code, and a qualified electrician or electrical engineer before energising anything. The datasheet, the code and professional judgement control; where this page disagrees with them, this page is wrong.</p>
+                    </div>
+                </div>
+            </details>
+
             <div class="calculator-layout">
                 <!-- Main Calculator -->
                 <div class="calculator-panel">
@@ -247,6 +307,7 @@ Last Updated: July 2026
                             </svg>
                             <h3>Calculated Relationships</h3>
                         </div>
+                        <p class="disclaimer"><strong>Ideal DC resistor only.</strong> No power rating, wire ampacity, fusing, AC behaviour, temperature drift or tolerance is checked, and nothing here tells you whether the circuit is safe to touch. See the full disclaimer at the top of the page.</p>
                         <div class="formula-display" aria-live="polite">
                             <div class="formula-item" id="formula-vir">
                                 <span class="formula-left">V = I × R</span>

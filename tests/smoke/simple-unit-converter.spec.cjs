@@ -8,6 +8,7 @@
 // units (Torr vs conventional mmHg, acre-feet), and check that the DOM wiring
 // (unit selects, quick-reference chips, swap button) matches the pure engine.
 const { test, expect } = require('@playwright/test');
+const { expectContrastAA } = require('./helpers.cjs');
 
 const TOOL_PATH = '/tools/unit-converter.html';
 
@@ -326,4 +327,97 @@ test.describe('Unit converter DOM', () => {
     await page.fill('#uc-fromValue', '25');
     await expect(note).toBeHidden();
   });
+});
+
+// --- scope disclaimer --------------------------------------------------------
+// Unit conversion sits upstream of every other calculation, so an error here is
+// inherited by everything downstream and is invisible once it gets there. The
+// conversion factors are the easy part and are already covered above; the
+// disclaimer covers the four category errors no factor can catch, and these
+// tests pin each of them by name.
+
+test('unit converter scope disclaimer sits above the converter and reads while collapsed', async ({ page }) => {
+  await page.goto('/tools/unit-converter.html', { waitUntil: 'domcontentloaded' });
+
+  const card = page.locator('#scopeDisclaimer');
+  await expect(card).toBeVisible();
+  expect(await card.evaluate((el) => el.tagName)).toBe('DETAILS');
+  expect(await card.evaluate((el) => el.open)).toBe(false);
+
+  const summary = card.locator('summary');
+  await expect(summary).toContainText('not the quantity you meant');
+  expect((await summary.boundingBox()).height).toBeGreaterThanOrEqual(44);
+
+  // Above the layout grid, and full width rather than trapped in the sidebar
+  // column: injecting it inside .converter-layout made it a grid child.
+  const cardBox = await card.boundingBox();
+  const layoutBox = await page.locator('.converter-layout').boundingBox();
+  expect(cardBox.y).toBeLessThan(layoutBox.y);
+  expect(cardBox.y).toBeLessThan(900);
+  expect(cardBox.width).toBeGreaterThan(layoutBox.width * 0.9);
+
+  await summary.focus();
+  await page.keyboard.press('Enter');
+  expect(await card.evaluate((el) => el.open)).toBe(true);
+});
+
+test('unit converter disclaimer names the four errors a conversion factor cannot catch', async ({ page }) => {
+  await page.goto('/tools/unit-converter.html', { waitUntil: 'domcontentloaded' });
+  await page.locator('#scopeDisclaimer').evaluate((el) => { el.open = true; });
+  const body = page.locator('#scopeDisclaimer .disclaimer-body');
+
+  await expect(body).toContainText('Mass is not force');
+  await expect(body).toContainText('9.80665');
+  await expect(body).toContainText('Gauge is not absolute');
+  await expect(body).toContainText('A temperature is not a temperature difference');
+  await expect(body).toContainText('18');            // 10C is 50F as a temperature, 18F as a difference
+  await expect(body).toContainText('Torque is not energy');
+
+  // The point of the section: all four produce a plausible number and no error.
+  await expect(body).toContainText('None of them produces an error message');
+
+  // Same-name-different-quantity traps that exist in this tool's own unit lists.
+  await expect(body).toContainText('imperial gallons');
+  await expect(body).toContainText('short, long and metric tons');
+
+  await expect(body).toContainText('Significant figures');
+  await expect(body).toContainText('Medication dosing');
+  await expect(body).toContainText('custody transfer');
+});
+
+test('unit converter disclaimer carries the five legal elements', async ({ page }) => {
+  await page.goto('/tools/unit-converter.html', { waitUntil: 'domcontentloaded' });
+  await page.locator('#scopeDisclaimer').evaluate((el) => { el.open = true; });
+  const footer = page.locator('#scopeDisclaimer .disclaimer-footer');
+
+  await expect(footer).toContainText('No warranty');
+  await expect(footer).toContainText('accepts no liability');
+  await expect(footer).toContainText('You assume all risk');
+  await expect(footer).toContainText('this page is wrong');
+  await expect(footer).toContainText('Independent verification required');
+  await expect(footer).toContainText('NIST SP 811');
+});
+
+test('unit converter result carries a second touchpoint without displacing the live note', async ({ page }) => {
+  await page.goto('/tools/unit-converter.html', { waitUntil: 'domcontentloaded' });
+
+  expect(await page.locator('#scopeDisclaimer').evaluate((el) => el.open)).toBe(false);
+  const touchpoint = page.locator('p.disclaimer');
+  await expect(touchpoint).toBeVisible();
+  await expect(touchpoint).toContainText('Check the quantity, not just the unit');
+
+  // The tool's own per-unit definition notes still work. mmHg is one it emits.
+  await page.locator('.category-item[data-category="pressure"]').click();
+  await page.selectOption('#uc-fromUnit', 'mmHg');
+  await expect(page.locator('#uc-resultNote')).toContainText('mmHg');
+});
+
+test('unit converter disclaimer text clears WCAG AA in both themes', async ({ page }) => {
+  await page.goto('/tools/unit-converter.html', { waitUntil: 'domcontentloaded' });
+  await expectContrastAA(
+    page,
+    '#scopeDisclaimer .disclaimer-title, #scopeDisclaimer .disclaimer-lead, ' +
+      '#scopeDisclaimer .disclaimer-note, #scopeDisclaimer .disclaimer-section h3, ' +
+      '#scopeDisclaimer .disclaimer-footer, p.disclaimer'
+  );
 });

@@ -41,6 +41,8 @@ module.exports = defineConfig({
     'sensors-reference.spec.cjs',
     'beam-deflection.spec.cjs',
     'control-valve-sizing.spec.cjs',
+    'pid-playground.spec.cjs',
+    'face-blur.spec.cjs',
     'disclaimer-contrast.spec.cjs'
   ],
   timeout: 60_000,

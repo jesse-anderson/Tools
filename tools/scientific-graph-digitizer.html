@@ -94,6 +94,59 @@
     </header>
 
     <main>
+            <details class="disclaimer-card" id="scopeDisclaimer" aria-label="Scope and liability disclaimer">
+                <summary>
+                    <span class="disclaimer-icon" aria-hidden="true">&#9888;</span>
+                    <span class="disclaimer-summary-text">
+                        <span class="disclaimer-title">Digitised points are estimates read off a picture, not measurements</span>
+                        <span class="disclaimer-lead">Everything here inherits the error already baked into the published figure, plus your calibration clicks on top. Values taken this way are an approximation of what a plot shows, never a substitute for the author's underlying data. Open for the full scope limits.</span>
+                    </span>
+                    <span class="disclaimer-chevron" aria-hidden="true">&#9662;</span>
+                </summary>
+
+                <div class="disclaimer-body">
+                    <div class="disclaimer-section">
+                        <h3>What this tool actually does</h3>
+                        <p>Maps pixel positions to data coordinates using the axis calibration you provide, on a linear or log10 scale, and exports the points you place. The pixel-to-data transform itself is tested against known references.</p>
+                        <p>The transform being right is not the same as the numbers being right.</p>
+                    </div>
+
+                    <div class="disclaimer-section">
+                        <h3>Where the error comes from</h3>
+                        <ul>
+                            <li><strong>Your calibration clicks.</strong> Every point inherits the error in the two axis references you set. Placing them close together magnifies it across the whole plot; place them as far apart as the axes allow.</li>
+                            <li><strong>Log axes are not forgiving.</strong> On a log scale a fixed pixel error is a constant <em>relative</em> error, so a click near the low end of a decade carries far more absolute error than the same click near the top. Choosing linear when the axis is logarithmic, or the reverse, produces smooth, plausible, completely wrong values.</li>
+                            <li><strong>The marker is not the datum.</strong> A symbol has width. Its centroid, its edge and the value it represents are three different points, and thick lines, overlapping series and anti-aliasing all move your click.</li>
+                            <li><strong>The figure is already lossy.</strong> A published plot has been rounded to its axis resolution, rasterised, compressed and possibly rescaled before you ever saw it. Digitising cannot recover precision the figure does not contain.</li>
+                            <li><strong>Not captured at all:</strong> error bars, uncertainties, sample sizes, censored or excluded points, axis breaks, secondary axes, and any footnote that changes what the plot means.</li>
+                            <li><strong>Distortion.</strong> Photographed, scanned, skewed or perspective-shifted figures need rectifying first, and a plot that is not square-on will read consistently wrong.</li>
+                        </ul>
+                        <p class="disclaimer-note">Report digitised values as approximate, say they were digitised, and cite the original figure. Presenting them as measured data misrepresents both their precision and their provenance.</p>
+                    </div>
+
+                    <div class="disclaimer-section">
+                        <h3>Copyright and attribution</h3>
+                        <p>Digitising a figure does not grant you rights in it. The figure, and often the underlying data, belong to the authors and publisher. Extracting numbers may be fair use or fair dealing for research, and republishing a reconstructed dataset may not be. Ask the authors for the source data first; it is frequently available and always better than anything read off a picture.</p>
+                    </div>
+
+                    <div class="disclaimer-section">
+                        <h3>Never use digitised values for</h3>
+                        <ul>
+                            <li>Clinical, dosing, toxicological or exposure decisions.</li>
+                            <li>Engineering design values, material properties, or anything load bearing.</li>
+                            <li>Regulatory submissions, safety cases, or certification records.</li>
+                            <li>Meta-analysis or published reanalysis without stating the digitisation method and its uncertainty.</li>
+                            <li>Any claim of measurement precision the source figure does not support.</li>
+                        </ul>
+                    </div>
+
+                    <div class="disclaimer-footer">
+                        <p><strong>No warranty. No liability. You assume all risk.</strong> This page, its calibration, its extracted values and its exports are provided as-is and as-available, without warranty of any kind, express or implied, including accuracy, completeness, timeliness, reliability, fitness for a particular purpose, merchantability, scientific, engineering or professional suitability, regulatory acceptability, or non-infringement. To the maximum extent permitted by law, the author accepts no liability for any loss, damage, cost or claim arising from use of or reliance on this page, including any conclusion drawn from digitised values.</p>
+                        <p><strong>Independent verification required.</strong> Obtain the underlying data from the original authors wherever possible, verify your calibration by re-reading known points on the figure, and state that values were digitised. The source data, the publication and professional judgement control; where this page disagrees with them, this page is wrong.</p>
+                    </div>
+                </div>
+            </details>
+
         <div class="layout">
             <aside class="sidebar">
                 <section class="panel">
@@ -111,6 +164,7 @@
                         </select>
                     </div>
                     <div class="hint" id="workflowHint">Compare mode is the original bar/segment workflow. Series mode lets you capture many points into one or more labeled traces and export raw/calibrated X/Y data.</div>
+                    <p class="disclaimer"><strong>Digitised, not measured.</strong> Values inherit the published figure's own error plus your calibration clicks, error bars are not captured, and log axes magnify a click near the bottom of a decade. Cite the figure and say the values were digitised. See the full disclaimer at the top of the page.</p>
                 </section>
 
                 <section class="panel">

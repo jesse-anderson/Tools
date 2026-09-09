@@ -49,6 +49,62 @@
         </header>
 
         <main class="pid-workbench">
+            <details class="disclaimer-card" id="scopeDisclaimer" aria-label="Scope and liability disclaimer">
+                <summary>
+                    <span class="disclaimer-icon" aria-hidden="true">&#9888;</span>
+                    <span class="disclaimer-summary-text">
+                        <span class="disclaimer-title">A tuning that is stable here can be unstable on the plant</span>
+                        <span class="disclaimer-lead">This simulates an ideal first-order-plus-dead-time process against an ideal controller. Real loops have valve stiction, actuator limits, measurement noise, drifting gain and neighbours that fight back, and none of that is modelled here. Never carry a gain set from this page to a live loop. Open for the full scope limits.</span>
+                    </span>
+                    <span class="disclaimer-chevron" aria-hidden="true">&#9662;</span>
+                </summary>
+
+                <div class="disclaimer-body">
+                    <div class="disclaimer-section">
+                        <h3>What this tool actually simulates</h3>
+                        <p>A first-order-plus-dead-time process driven by a parallel-form PID controller with zero-order hold and anti-windup, plus the classical tuning rules: Ziegler-Nichols, Cohen-Coon, AMIGO and lambda. It is a faithful simulation of that model, and it is a good way to build intuition for what each term does.</p>
+                        <p>FOPDT is a deliberate idealisation. It is a useful caricature of a real process, not a description of one.</p>
+                    </div>
+
+                    <div class="disclaimer-section">
+                        <h3>Not modelled, at all</h3>
+                        <ul>
+                            <li><strong>The valve.</strong> Stiction, backlash, dead band, hysteresis and non-linear installed characteristic are absent. Stiction in particular produces a sustained limit cycle that no amount of retuning fixes, and it is the most common cause of a loop that oscillates in service and behaves in simulation.</li>
+                            <li><strong>Actuator limits.</strong> No stroke time, slew rate, or saturation beyond the anti-windup path. A controller that asks for a step the actuator cannot deliver is a different loop.</li>
+                            <li><strong>Measurement reality.</strong> No sensor noise, no filter lag, no transmitter span or calibration error, no aliasing from a sample rate that is slow relative to the dynamics. Derivative action amplifies noise, and there is no noise here for it to amplify.</li>
+                            <li><strong>A process that changes.</strong> Real gain and dead time move with throughput, composition, fouling and ambient. A tuning that is optimal at one operating point can be marginal at another.</li>
+                            <li><strong>Non-linearity.</strong> No pH curves, no heat-transfer non-linearity, no split range, no integrating or open-loop-unstable processes.</li>
+                            <li><strong>Interaction.</strong> One loop in isolation. Real plants have coupled loops, cascades, feedforward and constraint controllers that fight each other.</li>
+                            <li><strong>Everything around the loop.</strong> No bumpless transfer, no mode handling, no output tracking, no failure or fallback behaviour, no interlocks.</li>
+                        </ul>
+                        <p class="disclaimer-note">The classical tuning rules are starting points, not answers. Ziegler-Nichols in particular is deliberately aggressive and is a poor choice for most real loops as published.</p>
+                    </div>
+
+                    <div class="disclaimer-section">
+                        <h3>Never use this for</h3>
+                        <ul>
+                            <li>Tuning, retuning or commissioning a live control loop.</li>
+                            <li>Any safety instrumented function or protective layer under IEC 61511 or IEC 61508.</li>
+                            <li>Process safety decisions, HAZOP or LOPA inputs, or alarm rationalisation.</li>
+                            <li>Sizing or selecting a valve, actuator or transmitter.</li>
+                            <li>Acceptance testing, validation, or any regulated qualification record.</li>
+                        </ul>
+                        <p class="disclaimer-note">A loop that is unstable on a running plant does not produce a bad graph. It produces a process excursion, and on the wrong unit that is a safety event.</p>
+                    </div>
+
+                    <div class="disclaimer-section">
+                        <h3>Before touching a real controller</h3>
+                        <p>Identify the process from plant data rather than assuming a model. Detune from any classical rule and verify gain and phase margin. Test in manual and step cautiously, with the operator informed and an abort plan. Have the change reviewed by a control engineer who knows the unit, under the site's management of change process.</p>
+                    </div>
+
+                    <div class="disclaimer-footer">
+                        <p><strong>No warranty. No liability. You assume all risk.</strong> This page, its simulation, its tuning suggestions and its plots are provided as-is and as-available, without warranty of any kind, express or implied, including accuracy, completeness, timeliness, reliability, fitness for a particular purpose, merchantability, engineering or professional suitability, regulatory or code acceptability, or non-infringement. To the maximum extent permitted by law, the author accepts no liability for any loss, injury, damage, downtime, product loss, cost or claim arising from use of or reliance on this page.</p>
+                        <p><strong>Independent verification required.</strong> Validate any tuning against plant data, the control narrative and the site's management of change process, and against a competent control engineer. Plant data, the governing standard and professional judgement control; where this page disagrees with them, this page is wrong.</p>
+                    </div>
+                </div>
+            </details>
+
+
             <div class="workbench-toolbar" role="toolbar" aria-label="Panel layout">
                 <button type="button" class="action-btn" id="expandAllBtn" title="Expand every collapsible panel">Expand all</button>
                 <button type="button" class="action-btn" id="collapseAllBtn" title="Collapse every panel except the active step">Collapse all</button>
@@ -275,6 +331,7 @@
 
             <section class="pid-results" aria-label="PID simulation results">
                 <div id="statusBanner" class="status-banner" role="status" aria-live="polite">Loading WASM simulation engine...</div>
+                <p class="disclaimer"><strong>Ideal FOPDT model.</strong> No valve stiction, actuator limits, measurement noise, changing process gain or loop interaction. A tuning that is stable here can be unstable on the plant, so never carry these gains to a live loop. See the full disclaimer at the top of the page.</p>
                 <div id="actionWarning" class="status-banner warning" role="status" aria-live="polite" hidden>
                     Controller direction warning: sign(Kp) and sign(process gain) disagree. Loop will run with positive feedback.
                 </div>

@@ -5,6 +5,7 @@
 // The calibration transforms are the tool's correctness core (a miscalibrated
 // axis silently yields wrong extracted data) and previously had no coverage.
 const { test, expect } = require('@playwright/test');
+const { expectContrastAA } = require('./helpers.cjs');
 
 const TOOL_PATH = '/tools/scientific-graph-digitizer.html';
 
@@ -197,4 +198,74 @@ test.describe('helpers: percent, series order, rect', () => {
     expect(out.unordered).toEqual({ x: 50, y: 100, w: 200, h: 300 });
     expect(out.degenerate).toEqual({ x: 10, y: 10, w: 1, h: 1 });
   });
+});
+
+// --- scope disclaimer --------------------------------------------------------
+// Digitised values get cited as if they were measured. The disclaimer covers where
+// the error comes from, what is never captured, and the copyright position, which
+// no other tool in this repo needs.
+
+test('scientific-graph-digitizer scope disclaimer sits above the tool and reads while collapsed', async ({ page }) => {
+  await page.goto('/tools/scientific-graph-digitizer.html', { waitUntil: 'domcontentloaded' });
+
+  const card = page.locator('#scopeDisclaimer');
+  await expect(card).toBeVisible();
+  expect(await card.evaluate((el) => el.tagName)).toBe('DETAILS');
+  expect(await card.evaluate((el) => el.open)).toBe(false);
+
+  const summary = card.locator('summary');
+  await expect(summary).toContainText('not measurements');
+  expect((await summary.boundingBox()).height).toBeGreaterThanOrEqual(44);
+
+  // In the first viewport, and spanning the layout rather than sitting in one
+  // column of it. Several of these tools use a CSS grid as their layout root,
+  // where a card without grid-column: 1 / -1 becomes a sidebar.
+  const cardBox = await card.boundingBox();
+  expect(cardBox.y).toBeLessThan(900);
+  const layoutBox = await page.locator('.layout').boundingBox();
+  expect(cardBox.width).toBeGreaterThan(layoutBox.width * 0.9);
+
+  await summary.focus();
+  await page.keyboard.press('Enter');
+  expect(await card.evaluate((el) => el.open)).toBe(true);
+});
+
+test('scientific-graph-digitizer disclaimer names its specific omissions', async ({ page }) => {
+  await page.goto('/tools/scientific-graph-digitizer.html', { waitUntil: 'domcontentloaded' });
+  await page.locator('#scopeDisclaimer').evaluate((el) => { el.open = true; });
+  const body = page.locator('#scopeDisclaimer .disclaimer-body');
+
+  for (const phrase of ['calibration clicks', 'log scale a fixed pixel error', 'marker is not the datum', 'already lossy', 'error bars', 'does not grant you rights', 'Ask the authors for the source data']) {
+    await expect(body).toContainText(phrase);
+  }
+});
+
+test('scientific-graph-digitizer disclaimer carries the five legal elements', async ({ page }) => {
+  await page.goto('/tools/scientific-graph-digitizer.html', { waitUntil: 'domcontentloaded' });
+  await page.locator('#scopeDisclaimer').evaluate((el) => { el.open = true; });
+  const footer = page.locator('#scopeDisclaimer .disclaimer-footer');
+
+  await expect(footer).toContainText('No warranty');
+  await expect(footer).toContainText('accepts no liability');
+  await expect(footer).toContainText('You assume all risk');
+  await expect(footer).toContainText('this page is wrong');
+  await expect(footer).toContainText('Independent verification required');
+});
+
+test('scientific-graph-digitizer carries a second touchpoint beside the output', async ({ page }) => {
+  await page.goto('/tools/scientific-graph-digitizer.html', { waitUntil: 'domcontentloaded' });
+  const touchpoint = page.locator('p.disclaimer');
+  await expect(touchpoint).toHaveCount(1);
+  await expect(touchpoint).toContainText('Digitised, not measured');
+  await expect(touchpoint).toBeVisible();
+});
+
+test('scientific-graph-digitizer disclaimer text clears WCAG AA in both themes', async ({ page }) => {
+  await page.goto('/tools/scientific-graph-digitizer.html', { waitUntil: 'domcontentloaded' });
+  await expectContrastAA(
+    page,
+    '#scopeDisclaimer .disclaimer-title, #scopeDisclaimer .disclaimer-lead, ' +
+      '#scopeDisclaimer .disclaimer-note, #scopeDisclaimer .disclaimer-section h3, ' +
+      '#scopeDisclaimer .disclaimer-footer'
+  );
 });

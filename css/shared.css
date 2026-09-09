@@ -1032,7 +1032,13 @@ footer {
 }
 
 /* --- the card itself --------------------------------------------------- */
+/* Several tools use a CSS grid as the layout root, so a card dropped straight
+   into one becomes a column of the tool instead of a banner across it. That
+   happened on unit-converter during this rollout. grid-column is ignored on a
+   non-grid child, so declaring it here is free everywhere else and makes the
+   component safe to drop into any layout. */
 .disclaimer-card {
+    grid-column: 1 / -1;
     border: 1px solid color-mix(in srgb, var(--accent-warning) 45%, transparent);
     background: color-mix(in srgb, var(--accent-warning) 9%, transparent);
     border-radius: 10px;

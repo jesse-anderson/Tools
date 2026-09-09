@@ -85,8 +85,71 @@ Last Updated: July 2026
         </header>
 
         <main>
+            <details class="disclaimer-card" id="scopeDisclaimer" aria-label="Scope and liability disclaimer">
+                <summary>
+                    <span class="disclaimer-icon" aria-hidden="true">&#9888;</span>
+                    <span class="disclaimer-summary-text">
+                        <span class="disclaimer-title">It converts the unit you typed, not the quantity you meant</span>
+                        <span class="disclaimer-lead">The arithmetic here is exact. Real unit errors are almost never arithmetic: they are mass used as force, gauge pressure converted as absolute, or a temperature difference converted as a temperature. This page cannot see any of those, because nothing you enter tells it which one you have. Open for the full scope limits.</span>
+                    </span>
+                    <span class="disclaimer-chevron" aria-hidden="true">&#9662;</span>
+                </summary>
+
+                <div class="disclaimer-body">
+                    <div class="disclaimer-section">
+                        <h3>What this tool actually does</h3>
+                        <p>Applies a stored conversion factor between two units in the same category, and for temperature applies the correct affine conversion rather than a factor. Where a unit has more than one accepted definition it says so beside the result: thermochemical against International Table calories, conventional mmHg against Torr, and an entry below absolute zero.</p>
+                        <p>That is the whole of it. The factors are the easy part.</p>
+                    </div>
+
+                    <div class="disclaimer-section">
+                        <h3>The four errors this cannot catch</h3>
+                        <ul>
+                            <li><strong>Mass is not force.</strong> Mass and Force are separate categories here, correctly, and the tool will convert within either without ever asking which one your problem needs. A pound mass weighs a pound force at standard gravity, which is exactly why the two get substituted for each other, and why the mistake survives a sanity check. In SI the same slip changes the number by 9.80665.</li>
+                            <li><strong>Gauge is not absolute.</strong> Pressure conversion here is pure scaling. Gauge to absolute is not a scaling, it is an offset by local atmospheric pressure, and no field on this page records which datum your number is on. Converting psig as though it were psia is the most common pressure error there is.</li>
+                            <li><strong>A temperature is not a temperature difference.</strong> 10&deg;C converts to 50&deg;F as a temperature and to 18&deg;F as a difference. This page converts temperatures. If your number is a delta, a rise, a span, or a tolerance, the answer here is wrong.</li>
+                            <li><strong>Torque is not energy.</strong> A newton metre is dimensionally identical to a joule and physically a different thing. The categories are separate here; the units will not stop you putting one where the other belongs.</li>
+                        </ul>
+                        <p class="disclaimer-note">Every one of these produces a plausible number. None of them produces an error message.</p>
+                    </div>
+
+                    <div class="disclaimer-section">
+                        <h3>Also not handled</h3>
+                        <ul>
+                            <li><strong>Significant figures.</strong> Output precision reflects the arithmetic, not the precision of your measurement. Nothing here tracks uncertainty, and a converted value can look far more precise than the number it came from.</li>
+                            <li><strong>Which gallon, which ton, which mile.</strong> US and imperial gallons differ by about 20%; short, long and metric tons are three different masses; statute and nautical miles are both present. The names are similar and the tool assumes you picked the one you meant.</li>
+                            <li><strong>Anything needing a material property.</strong> Volume to mass needs density. Mass to moles needs molar mass. Parts per million to mg/L needs the density of the solution. The tool converts within a category and will not silently bridge two.</li>
+                            <li><strong>Context that changes a definition.</strong> Nutritional calories, troy against avoirdupois weight, and the several definitions of the barrel all depend on a field of use this page does not know.</li>
+                        </ul>
+                    </div>
+
+                    <div class="disclaimer-section">
+                        <h3>Never use this for</h3>
+                        <ul>
+                            <li>Medication dosing, compounding, or any clinical calculation.</li>
+                            <li>Structural, pressure, electrical or process design values that are not independently checked.</li>
+                            <li>Trade measurement, custody transfer, dispensing, or anything legally metrological.</li>
+                            <li>Regulatory submissions, test reports, or certification records.</li>
+                            <li>Navigation, flight planning, or fuel quantity.</li>
+                        </ul>
+                        <p class="disclaimer-note">Unit conversion sits upstream of every other calculation, which is what makes a quiet error here expensive: it is inherited by everything downstream and is invisible once it gets there.</p>
+                    </div>
+
+                    <div class="disclaimer-section">
+                        <h3>Before you rely on a converted number</h3>
+                        <p>State the quantity, not just the unit: absolute or gauge, mass or force, value or difference. Convert it a second time by an independent route and check the two agree. Carry the units through the whole calculation rather than converting at the end, which is what makes a dimensional error visible while it is still cheap.</p>
+                    </div>
+
+                    <div class="disclaimer-footer">
+                        <p><strong>No warranty. No liability. You assume all risk.</strong> This page and its conversions are provided as-is and as-available, without warranty of any kind, express or implied, including accuracy, completeness, timeliness, reliability, fitness for a particular purpose, merchantability, engineering, medical or professional suitability, regulatory, metrological or code acceptability, or non-infringement. To the maximum extent permitted by law, the author accepts no liability for any loss, injury, damage, cost or claim arising from use of or reliance on this page.</p>
+                        <p><strong>Independent verification required.</strong> Check any value that matters against an authoritative reference such as NIST SP 811 or the governing standard for your field, and against a qualified professional. The standard and professional judgement control; where this page disagrees with them, this page is wrong.</p>
+                    </div>
+                </div>
+            </details>
+
             <div class="converter-layout">
                 <!-- Category Sidebar -->
+
                 <aside class="category-sidebar" aria-label="Unit categories">
                     <div class="sidebar-title">Categories</div>
                     <ul class="category-list" id="uc-categoryList" role="listbox" aria-label="Select unit category">
@@ -169,6 +232,7 @@ Last Updated: July 2026
                         <div class="result-formula" id="uc-resultFormula">1 × 0.001 = 0.001</div>
 
                         <div class="result-note" id="uc-resultNote" role="status"></div>
+                        <p class="disclaimer"><strong>Check the quantity, not just the unit.</strong> Mass is not force, gauge is not absolute, and a temperature difference does not convert like a temperature. This page cannot tell which one you have. See the full disclaimer at the top of the page.</p>
                     </div>
 
                     <div class="quick-reference" role="region" aria-label="Quick reference conversions">

@@ -7,6 +7,7 @@
 // results. Sentinels cannot cross page.evaluate, so tests encode them to
 // strings inside the browser.
 const { test, expect } = require('@playwright/test');
+const { expectContrastAA } = require('./helpers.cjs');
 
 const TOOL_PATH = '/tools/ohms-law.html';
 
@@ -253,4 +254,104 @@ test.describe('Ohm\'s Law DOM', () => {
     await page.keyboard.press('Enter');
     await expect(page.locator('#current')).toBeFocused();
   });
+});
+
+// --- scope disclaimer --------------------------------------------------------
+// The arithmetic on this page is trivially correct and that is exactly the
+// problem: the tool hands back a resistance with no mention of the wattage the
+// part must dissipate, no conductor sizing, and no hint that the voltage in the
+// field can kill. All of that lives in the disclaimer, so these tests pin the
+// specific omissions rather than the presence of a warning-shaped box.
+
+test('ohms law scope disclaimer sits above the calculator and reads while collapsed', async ({ page }) => {
+  await page.goto('/tools/ohms-law.html', { waitUntil: 'domcontentloaded' });
+
+  const card = page.locator('#scopeDisclaimer');
+  await expect(card).toBeVisible();
+  expect(await card.evaluate((el) => el.tagName)).toBe('DETAILS');
+  expect(await card.evaluate((el) => el.open)).toBe(false);
+
+  const summary = card.locator('summary');
+  await expect(summary).toContainText('Not a circuit design or electrical safety tool');
+  expect((await summary.boundingBox()).height).toBeGreaterThanOrEqual(44);
+
+  // Above the calculator, not beside or below it.
+  const cardBox = await card.boundingBox();
+  const layoutBox = await page.locator('.calculator-layout').boundingBox();
+  expect(cardBox.y).toBeLessThan(layoutBox.y);
+  expect(cardBox.y).toBeLessThan(900);
+
+  await summary.focus();
+  await page.keyboard.press('Enter');
+  expect(await card.evaluate((el) => el.open)).toBe(true);
+});
+
+test('ohms law disclaimer names the omissions that actually burn things', async ({ page }) => {
+  await page.goto('/tools/ohms-law.html', { waitUntil: 'domcontentloaded' });
+  await page.locator('#scopeDisclaimer').evaluate((el) => { el.open = true; });
+  const body = page.locator('#scopeDisclaimer .disclaimer-body');
+
+  // The headline omission: a resistance with no power rating behind it.
+  await expect(body).toContainText('Resistor power rating');
+  await expect(body).toContainText('quarter-watt');
+
+  for (const omission of [
+    'Wire ampacity',
+    'Fusing and overcurrent protection',
+    'Anything AC',
+    'Anything non-ohmic',
+    'Temperature coefficient',
+    'Tolerance',
+  ]) {
+    await expect(body).toContainText(omission);
+  }
+
+  // Non-ohmic devices, named, because substituting one is the common misuse.
+  await expect(body).toContainText('An LED is not a resistor');
+
+  // Real shock and arc numbers rather than a generic caution.
+  await expect(body).toContainText('50 V AC or 120 V DC');
+  await expect(body).toContainText('fibrillation');
+  await expect(body).toContainText('Arc flash');
+
+  for (const forbidden of [
+    'licensed electrician',
+    'Sizing conductors, fuses, breakers',
+    'lithium-cell design',
+    'wiring code',
+  ]) {
+    await expect(body).toContainText(forbidden);
+  }
+});
+
+test('ohms law disclaimer carries the five legal elements', async ({ page }) => {
+  await page.goto('/tools/ohms-law.html', { waitUntil: 'domcontentloaded' });
+  await page.locator('#scopeDisclaimer').evaluate((el) => { el.open = true; });
+  const footer = page.locator('#scopeDisclaimer .disclaimer-footer');
+
+  await expect(footer).toContainText('No warranty');
+  await expect(footer).toContainText('accepts no liability');
+  await expect(footer).toContainText('You assume all risk');
+  await expect(footer).toContainText('this page is wrong');
+  await expect(footer).toContainText('Independent verification required');
+});
+
+test('ohms law results carry a second touchpoint', async ({ page }) => {
+  await page.goto('/tools/ohms-law.html', { waitUntil: 'domcontentloaded' });
+
+  expect(await page.locator('#scopeDisclaimer').evaluate((el) => el.open)).toBe(false);
+  const touchpoint = page.locator('p.disclaimer');
+  await expect(touchpoint).toBeVisible();
+  await expect(touchpoint).toContainText('Ideal DC resistor only');
+  await expect(touchpoint).toContainText('safe to touch');
+});
+
+test('ohms law disclaimer text clears WCAG AA in both themes', async ({ page }) => {
+  await page.goto('/tools/ohms-law.html', { waitUntil: 'domcontentloaded' });
+  await expectContrastAA(
+    page,
+    '#scopeDisclaimer .disclaimer-title, #scopeDisclaimer .disclaimer-lead, ' +
+      '#scopeDisclaimer .disclaimer-note, #scopeDisclaimer .disclaimer-section h3, ' +
+      '#scopeDisclaimer .disclaimer-footer, p.disclaimer'
+  );
 });

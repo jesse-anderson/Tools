@@ -6,6 +6,7 @@
 // granularity, ignore-case and page-break options, change navigation,
 // visual pixel diff, and TXT/JSON export.
 const { test, expect } = require('@playwright/test');
+const { expectContrastAA } = require('./helpers.cjs');
 
 const TOOL_PATH = '/tools/pdf-diff.html';
 
@@ -325,4 +326,77 @@ test('multi-page compare: diffs on both pages, change navigation, exports', asyn
   expect(body.summary.modifications).toBeGreaterThanOrEqual(1);
   expect(body.summary).toHaveProperty('insertedChars');
   expect(body.changes.pdfA.length + body.changes.pdfB.length).toBeGreaterThan(0);
+});
+
+// --- scope disclaimer --------------------------------------------------------
+// The dangerous failure of a diff tool is the difference it does not report, which
+// looks exactly like agreement. The touchpoint lives inside the summary section so
+// it appears with the result rather than before there is one.
+
+test('pdf-diff scope disclaimer sits above the tool and reads while collapsed', async ({ page }) => {
+  await page.goto('/tools/pdf-diff.html', { waitUntil: 'domcontentloaded' });
+
+  const card = page.locator('#scopeDisclaimer');
+  await expect(card).toBeVisible();
+  expect(await card.evaluate((el) => el.tagName)).toBe('DETAILS');
+  expect(await card.evaluate((el) => el.open)).toBe(false);
+
+  const summary = card.locator('summary');
+  await expect(summary).toContainText('not that the documents match');
+  expect((await summary.boundingBox()).height).toBeGreaterThanOrEqual(44);
+
+  // In the first viewport, and spanning the layout rather than sitting in one
+  // column of it. Several of these tools use a CSS grid as their layout root,
+  // where a card without grid-column: 1 / -1 becomes a sidebar.
+  const cardBox = await card.boundingBox();
+  expect(cardBox.y).toBeLessThan(900);
+  const layoutBox = await page.locator('.diff-layout').boundingBox();
+  expect(cardBox.width).toBeGreaterThan(layoutBox.width * 0.9);
+
+  await summary.focus();
+  await page.keyboard.press('Enter');
+  expect(await card.evaluate((el) => el.open)).toBe(true);
+});
+
+test('pdf-diff disclaimer names its specific omissions', async ({ page }) => {
+  await page.goto('/tools/pdf-diff.html', { waitUntil: 'domcontentloaded' });
+  await page.locator('#scopeDisclaimer').evaluate((el) => { el.open = true; });
+  const body = page.locator('#scopeDisclaimer .disclaimer-body');
+
+  for (const phrase of ['without a text layer', 'no OCR', 'Vector drawing content', 'Annotations', 'Form field values', 'Digital signatures', 'redaction', 'looks exactly like agreement']) {
+    await expect(body).toContainText(phrase);
+  }
+});
+
+test('pdf-diff disclaimer carries the five legal elements', async ({ page }) => {
+  await page.goto('/tools/pdf-diff.html', { waitUntil: 'domcontentloaded' });
+  await page.locator('#scopeDisclaimer').evaluate((el) => { el.open = true; });
+  const footer = page.locator('#scopeDisclaimer .disclaimer-footer');
+
+  await expect(footer).toContainText('No warranty');
+  await expect(footer).toContainText('accepts no liability');
+  await expect(footer).toContainText('You assume all risk');
+  await expect(footer).toContainText('this page is wrong');
+  await expect(footer).toContainText('Independent verification required');
+});
+
+test('pdf-diff carries a second touchpoint beside the output', async ({ page }) => {
+  await page.goto('/tools/pdf-diff.html', { waitUntil: 'domcontentloaded' });
+  const touchpoint = page.locator('p.disclaimer');
+  await expect(touchpoint).toHaveCount(1);
+  await expect(touchpoint).toContainText('Text layer only');
+  // The summary section is hidden until a comparison runs, so the touchpoint
+  // appears with the result rather than before there is one.
+  const inSummary = await touchpoint.evaluate((el) => !!el.closest('#summarySection'));
+  expect(inSummary).toBe(true);
+});
+
+test('pdf-diff disclaimer text clears WCAG AA in both themes', async ({ page }) => {
+  await page.goto('/tools/pdf-diff.html', { waitUntil: 'domcontentloaded' });
+  await expectContrastAA(
+    page,
+    '#scopeDisclaimer .disclaimer-title, #scopeDisclaimer .disclaimer-lead, ' +
+      '#scopeDisclaimer .disclaimer-note, #scopeDisclaimer .disclaimer-section h3, ' +
+      '#scopeDisclaimer .disclaimer-footer'
+  );
 });

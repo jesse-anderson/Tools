@@ -93,6 +93,61 @@ Last Updated: July 2026
         </header>
 
         <main>
+            <details class="disclaimer-card" id="scopeDisclaimer" aria-label="Scope and liability disclaimer">
+                <summary>
+                    <span class="disclaimer-icon" aria-hidden="true">&#9888;</span>
+                    <span class="disclaimer-summary-text">
+                        <span class="disclaimer-title">A clean result means nothing was found in the extracted text, not that the documents match</span>
+                        <span class="disclaimer-lead">This compares the text layer. Scanned pages, drawing geometry, form values, annotations and attachments are not compared at all, and a page with no text layer compares as empty. Silence here is not evidence that two revisions are the same. Open for the full scope limits.</span>
+                    </span>
+                    <span class="disclaimer-chevron" aria-hidden="true">&#9662;</span>
+                </summary>
+
+                <div class="disclaimer-body">
+                    <div class="disclaimer-section">
+                        <h3>What this tool actually compares</h3>
+                        <p>The text extracted from each PDF, aligned and diffed at word or character granularity, with an optional pixel comparison of the rendered pages. Everything is local, and the diff engine itself is tested.</p>
+                        <p>What it compares is the text layer. That is not the same as the document.</p>
+                    </div>
+
+                    <div class="disclaimer-section">
+                        <h3>Not compared, at all</h3>
+                        <ul>
+                            <li><strong>Anything without a text layer.</strong> Scans and image-only PDFs extract nothing, so two entirely different scanned pages can both compare as empty and report no differences. There is no OCR here.</li>
+                            <li><strong>Vector drawing content.</strong> Lines, dimensions, hatching, symbols and geometry on an engineering drawing carry the change, and none of it is text. A revised drawing frequently differs only in geometry.</li>
+                            <li><strong>Annotations, comments, stamps and markups</strong>, which is where review changes usually live.</li>
+                            <li><strong>Form field values,</strong> including filled AcroForm and XFA data.</li>
+                            <li><strong>Embedded attachments, layers and hidden content</strong> such as optional content groups turned off in the view.</li>
+                            <li><strong>Digital signatures and certification.</strong> Nothing here tells you whether a document is signed, whether the signature is valid, or whether it was altered after signing.</li>
+                            <li><strong>Redaction quality.</strong> A black rectangle over live text is not a redaction, and this tool does not flag one.</li>
+                        </ul>
+                        <p class="disclaimer-note">Text extraction is also imperfect where it works: reading order, ligatures, hyphenation, columns, tables, superscripts and embedded subset fonts can all shift or drop characters, which shows up as a difference that is not there or hides one that is.</p>
+                    </div>
+
+                    <div class="disclaimer-section">
+                        <h3>Never rely on this alone for</h3>
+                        <ul>
+                            <li>Contract, legal or regulatory review, or confirming an executed version.</li>
+                            <li>Engineering drawing revision control, or approving an issued-for-construction change.</li>
+                            <li>Specification, standard or procedure revision control in a quality system.</li>
+                            <li>Confirming a document has not been tampered with, which is a signature and hash question, not a diff question.</li>
+                            <li>Clinical, safety or financial documents where a missed change carries consequences.</li>
+                        </ul>
+                        <p class="disclaimer-note">The dangerous failure mode of a diff tool is not a wrong difference, which you will notice. It is a missed one, which looks exactly like agreement.</p>
+                    </div>
+
+                    <div class="disclaimer-section">
+                        <h3>Before you conclude two documents match</h3>
+                        <p>Check the revision block, the change log and the issuing authority. Compare hashes if you need to know the files are identical. Read the pixel comparison as well as the text diff, and put a human on anything that matters. For drawings, compare the revision clouds and the drawing register, not the text.</p>
+                    </div>
+
+                    <div class="disclaimer-footer">
+                        <p><strong>No warranty. No liability. You assume all risk.</strong> This page, its comparisons, its reports and its exports are provided as-is and as-available, without warranty of any kind, express or implied, including accuracy, completeness, detection of any or all differences, fitness for a particular purpose, merchantability, legal, engineering or professional suitability, regulatory acceptability, or non-infringement. To the maximum extent permitted by law, the author accepts no liability for any loss, damage, cost or claim arising from use of or reliance on this page, including any difference it failed to report.</p>
+                        <p><strong>Independent verification required.</strong> Confirm document identity and revision through the issuing authority, the revision record, signatures or file hashes, and human review. Those controls and professional judgement govern; where this page disagrees with them, this page is wrong.</p>
+                    </div>
+                </div>
+            </details>
+
             <div class="diff-layout">
                 <!-- Upload Section -->
                 <section class="upload-section">
@@ -257,6 +312,7 @@ Last Updated: July 2026
 
                 <!-- Diff Summary -->
                 <section class="summary-section" id="summarySection" style="display: none;">
+                <p class="disclaimer"><strong>Text layer only.</strong> Scans, drawing geometry, annotations, form values and attachments are not compared, so no reported difference does not mean the documents match. See the full disclaimer at the top of the page.</p>
                     <h3>Diff Summary</h3>
                     <div class="summary-stats">
                         <div class="stat-item insertions">
