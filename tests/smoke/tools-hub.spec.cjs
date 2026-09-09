@@ -234,3 +234,12 @@ test('tools.html notice text clears WCAG AA in both themes', async ({ page, base
       '#siteDisclaimer .disclaimer-footer'
   );
 });
+
+test('tools.html notice carries the damages and indemnity clauses', async ({ page, baseURL }) => {
+  await expectPageToLoadCleanly(page, baseURL, '/tools.html');
+  await page.locator('#siteDisclaimer').evaluate((el) => { el.open = true; });
+  const footer = page.locator('#siteDisclaimer .disclaimer-footer');
+  await expect(footer).toContainText('Consequential damages excluded');
+  await expect(footer).toContainText('even if advised of the possibility');
+  await expect(footer).toContainText('indemnify and hold');
+});

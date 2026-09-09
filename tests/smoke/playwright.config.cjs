@@ -43,6 +43,8 @@ module.exports = defineConfig({
     'control-valve-sizing.spec.cjs',
     'pid-playground.spec.cjs',
     'face-blur.spec.cjs',
+    'hed-calculator.spec.cjs',
+    'legal-clauses.spec.cjs',
     'disclaimer-contrast.spec.cjs'
   ],
   timeout: 60_000,

@@ -63,6 +63,7 @@ const TOOLS_WITH_DISCLAIMER_HEADINGS = [
   'seed-storage-lab',
   'sensors',
   'sqlite-viewer',
+  'steam-tables',
   'stoichiometry-calculator',
   'timestamp-converter',
   'unit-converter',

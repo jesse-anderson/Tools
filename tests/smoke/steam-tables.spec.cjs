@@ -5,7 +5,7 @@
 // close after picking an item.
 const fs = require('fs');
 const { test, expect } = require('@playwright/test');
-const { expectPageToLoadCleanly } = require('./helpers.cjs');
+const { expectPageToLoadCleanly, expectContrastAA } = require('./helpers.cjs');
 
 const TOOL_PATH = '/tools/steam-tables.html';
 
@@ -313,5 +313,80 @@ test('steam tables lookup computes states and passes internal consistency checks
   await expect(page.locator('#testPanel .test-summary'), 'Steam internal tests should complete').toContainText('0 failed', { timeout: 15000 });
   await page.locator('#testPanel .test-row').first().click();
   await expect(page.locator('#testPanel .test-row').first()).toContainText('Confirms the parser loaded');
-  await expect(page.locator('details.foldable-card').filter({ hasText: 'Engineering Disclaimer' })).toHaveCount(1);
+  // The engineering disclaimer moved out of the sidebar foldable and into the
+  // shared scope-disclaimer card above the layout, so it reads without opening
+  // anything and carries the five legal elements.
+  await expect(page.locator('details#scopeDisclaimer')).toHaveCount(1);
+  await expect(page.locator('#scopeDisclaimer summary')).toContainText('Not a design basis for pressure equipment');
+});
+
+// --- scope disclaimer --------------------------------------------------------
+// The only disclaimer-classed element on this page used to be an MIT licence
+// notice for the vendored CSVs, which trips every legal keyword and is not a
+// disclaimer. The real caveat was a p.trace-note in a sidebar foldable. Both the
+// caveat and its placement are now the shared card.
+
+test('steam-tables scope disclaimer sits above the tool and reads while collapsed', async ({ page }) => {
+  await page.goto('/tools/steam-tables.html', { waitUntil: 'domcontentloaded' });
+
+  const card = page.locator('#scopeDisclaimer');
+  await expect(card).toBeVisible();
+  expect(await card.evaluate((el) => el.tagName)).toBe('DETAILS');
+  expect(await card.evaluate((el) => el.open)).toBe(false);
+
+  const summary = card.locator('summary');
+  await expect(summary).toContainText('Not a design basis for pressure equipment');
+  expect((await summary.boundingBox()).height).toBeGreaterThanOrEqual(44);
+
+  // In the first viewport, and spanning the layout rather than sitting in one
+  // column of it. Several of these tools use a CSS grid as their layout root,
+  // where a card without grid-column: 1 / -1 becomes a sidebar.
+  const cardBox = await card.boundingBox();
+  expect(cardBox.y).toBeLessThan(900);
+  const layoutBox = await page.locator('main').boundingBox();
+  expect(cardBox.width).toBeGreaterThan(layoutBox.width * 0.9);
+
+  await summary.focus();
+  await page.keyboard.press('Enter');
+  expect(await card.evaluate((el) => el.open)).toBe(true);
+});
+
+test('steam-tables disclaimer names its specific omissions', async ({ page }) => {
+  await page.goto('/tools/steam-tables.html', { waitUntil: 'domcontentloaded' });
+  await page.locator('#scopeDisclaimer').evaluate((el) => { el.open = true; });
+  const body = page.locator('#scopeDisclaimer .disclaimer-body');
+
+  for (const phrase of ['Near the critical point', 'Across a phase boundary', 'table gaps', 'ASME BPVC', 'Relief valve', 'B31.1', 'IAPWS-IF97']) {
+    await expect(body).toContainText(phrase);
+  }
+});
+
+test('steam-tables disclaimer carries the five legal elements', async ({ page }) => {
+  await page.goto('/tools/steam-tables.html', { waitUntil: 'domcontentloaded' });
+  await page.locator('#scopeDisclaimer').evaluate((el) => { el.open = true; });
+  const footer = page.locator('#scopeDisclaimer .disclaimer-footer');
+
+  await expect(footer).toContainText('No warranty');
+  await expect(footer).toContainText('accepts no liability');
+  await expect(footer).toContainText('You assume all risk');
+  await expect(footer).toContainText('this page is wrong');
+  await expect(footer).toContainText('Independent verification required');
+});
+
+test('steam-tables carries a second touchpoint beside the output', async ({ page }) => {
+  await page.goto('/tools/steam-tables.html', { waitUntil: 'domcontentloaded' });
+  const touchpoint = page.locator('p.disclaimer');
+  await expect(touchpoint).toHaveCount(1);
+  await expect(touchpoint).toContainText('Interpolated between table rows');
+  await expect(touchpoint).toBeVisible();
+});
+
+test('steam-tables disclaimer text clears WCAG AA in both themes', async ({ page }) => {
+  await page.goto('/tools/steam-tables.html', { waitUntil: 'domcontentloaded' });
+  await expectContrastAA(
+    page,
+    '#scopeDisclaimer .disclaimer-title, #scopeDisclaimer .disclaimer-lead, ' +
+      '#scopeDisclaimer .disclaimer-note, #scopeDisclaimer .disclaimer-section h3, ' +
+      '#scopeDisclaimer .disclaimer-footer'
+  );
 });

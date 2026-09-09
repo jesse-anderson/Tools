@@ -6,6 +6,7 @@
 // Reference values are computed independently (by hand / basic PK identities), not
 // scraped from the tool, so this spec is an actual correctness check.
 const { test, expect } = require('@playwright/test');
+const { expectContrastAA } = require('./helpers.cjs');
 
 const TOOL_PATH = '/tools/toxicology-and-body-burden.html';
 
@@ -259,4 +260,95 @@ test.describe('end-to-end DOM', () => {
     await expect(page.locator('#resT97')).toHaveText('20');
     await expect(page.locator('#resT99')).toHaveText('∞');
   });
+});
+
+// --- scope disclaimer --------------------------------------------------------
+// The old block had strong content including an indemnification clause, but it
+// sat in the sidebar, was not collapsible and failed AA at 3.76:1. The card
+// leads with the fact that decides whether any of it means anything: Vd is a
+// modelling construct, not a volume.
+
+test('toxicology-and-body-burden scope disclaimer sits above the tool and reads while collapsed', async ({ page }) => {
+  await page.goto('/tools/toxicology-and-body-burden.html', { waitUntil: 'domcontentloaded' });
+
+  const card = page.locator('#scopeDisclaimer');
+  await expect(card).toBeVisible();
+  expect(await card.evaluate((el) => el.tagName)).toBe('DETAILS');
+  expect(await card.evaluate((el) => el.open)).toBe(false);
+
+  const summary = card.locator('summary');
+  await expect(summary).toContainText('not a measurement of anyone');
+  expect((await summary.boundingBox()).height).toBeGreaterThanOrEqual(44);
+
+  // In the first viewport, and spanning the layout rather than sitting in one
+  // column of it. Several of these tools use a CSS grid as their layout root,
+  // where a card without grid-column: 1 / -1 becomes a sidebar.
+  const cardBox = await card.boundingBox();
+  expect(cardBox.y).toBeLessThan(900);
+  const layoutBox = await page.locator('main').boundingBox();
+  expect(cardBox.width).toBeGreaterThan(layoutBox.width * 0.9);
+
+  await summary.focus();
+  await page.keyboard.press('Enter');
+  expect(await card.evaluate((el) => el.open)).toBe(true);
+});
+
+test('toxicology-and-body-burden disclaimer names its specific omissions', async ({ page }) => {
+  await page.goto('/tools/toxicology-and-body-burden.html', { waitUntil: 'domcontentloaded' });
+  await page.locator('#scopeDisclaimer').evaluate((el) => { el.open = true; });
+  const body = page.locator('#scopeDisclaimer .disclaimer-body');
+
+  for (const phrase of ['Vd is not a volume', 'population means', 'One compartment', 'First-order elimination only', 'Post-mortem redistribution', 'poisons information centre']) {
+    await expect(body).toContainText(phrase);
+  }
+});
+
+test('toxicology-and-body-burden disclaimer carries the five legal elements', async ({ page }) => {
+  await page.goto('/tools/toxicology-and-body-burden.html', { waitUntil: 'domcontentloaded' });
+  await page.locator('#scopeDisclaimer').evaluate((el) => { el.open = true; });
+  const footer = page.locator('#scopeDisclaimer .disclaimer-footer');
+
+  await expect(footer).toContainText('No warranty');
+  await expect(footer).toContainText('accepts no liability');
+  await expect(footer).toContainText('You assume all risk');
+  await expect(footer).toContainText('this page is wrong');
+  await expect(footer).toContainText('Independent verification required');
+});
+
+test('toxicology-and-body-burden carries a second touchpoint beside the output', async ({ page }) => {
+  await page.goto('/tools/toxicology-and-body-burden.html', { waitUntil: 'domcontentloaded' });
+  const touchpoint = page.locator('p.disclaimer');
+  await expect(touchpoint).toHaveCount(1);
+  await expect(touchpoint).toContainText('Population averages, not this person');
+  await expect(touchpoint).toBeVisible();
+});
+
+test('toxicology-and-body-burden disclaimer text clears WCAG AA in both themes', async ({ page }) => {
+  await page.goto('/tools/toxicology-and-body-burden.html', { waitUntil: 'domcontentloaded' });
+  await expectContrastAA(
+    page,
+    '#scopeDisclaimer .disclaimer-title, #scopeDisclaimer .disclaimer-lead, ' +
+      '#scopeDisclaimer .disclaimer-note, #scopeDisclaimer .disclaimer-section h3, ' +
+      '#scopeDisclaimer .disclaimer-footer'
+  );
+});
+
+test('toxicology-and-body-burden disclaimer keeps the clauses the old block carried', async ({ page }) => {
+  await page.goto('/tools/toxicology-and-body-burden.html', { waitUntil: 'domcontentloaded' });
+  await page.locator('#scopeDisclaimer').evaluate((el) => { el.open = true; });
+  const footer = page.locator('#scopeDisclaimer .disclaimer-footer');
+
+  // Enumerated damages plus the "even if advised" tail, which the pre-rebuild
+  // oral-multidose block had and the first version of this card lost.
+  await expect(footer).toContainText('Consequential damages excluded');
+  await expect(footer).toContainText('even if advised of the possibility');
+  await expect(footer).toContainText('strict liability or tort including negligence');
+
+  // Indemnity, which the pre-rebuild toxicology block had and which had
+  // disappeared from every page in the repo.
+  await expect(footer).toContainText('indemnify and hold');
+
+  // Medical tools additionally disclaim any professional relationship.
+  await expect(footer).toContainText('does not create a');
+  await expect(footer).toContainText('nothing on it is medical, clinical, toxicological or professional advice');
 });
