@@ -120,6 +120,70 @@
             </div>
         </header>
 
+        <details class="disclaimer-card" id="scopeDisclaimer" aria-label="Scope, data handling and liability disclaimer">
+            <summary>
+                <span class="disclaimer-icon" aria-hidden="true">&#9888;</span>
+                <span class="disclaimer-summary-text">
+                    <span class="disclaimer-title">A scratchpad for exploring data. Not an analytics platform, not a data warehouse, and not a controlled environment.</span>
+                    <span class="disclaimer-lead">Files you import are read and queried in this browser tab and are not uploaded. That covers your data and not the code: this page pulls DuckDB, Chart.js, SheetJS and fflate from third-party CDNs at load time. Anything you compute here is exploratory until you reproduce it somewhere accountable. Open for the full scope limits.</span>
+                </span>
+                <span class="disclaimer-chevron" aria-hidden="true">&#9662;</span>
+            </summary>
+
+            <div class="disclaimer-body">
+                <div class="disclaimer-section">
+                    <h3>What this tool actually does</h3>
+                    <p>Runs DuckDB compiled to WebAssembly inside this tab. Files you add are parsed in the browser and registered as tables, queries execute locally, and results are rendered and exported from the same page. There is no account, no server-side query engine and no telemetry.</p>
+                </div>
+
+                <div class="disclaimer-section">
+                    <h3>What "runs in your browser" does not cover</h3>
+                    <ul>
+                        <li><strong>The code arrives over the network.</strong> DuckDB-WASM, Chart.js, SheetJS and fflate are loaded from third-party CDNs on every visit. Your data stays in the tab; the software operating on it does not come from you, and a substituted script would run with full access to whatever you imported.</li>
+                        <li><strong>Anything inside the browser is inside the boundary.</strong> Extensions with host access, devtools, and page state recovered by a session restore can all see the tab.</li>
+                        <li><strong>Exports leave it.</strong> A downloaded CSV, Excel or Parquet file lands unencrypted in your downloads folder, and from there it is an ordinary file subject to sync, backup and search indexing.</li>
+                        <li><strong>Local is about transmission, not permission.</strong> It says nothing about whether you are allowed to open, join or export the data you just loaded.</li>
+                    </ul>
+                </div>
+
+                <div class="disclaimer-section">
+                    <h3>Where the answers go wrong</h3>
+                    <ul>
+                        <li><strong>Type inference is a guess.</strong> Column types are inferred from a sample when a file is imported. A postcode, an account number or a leading-zero identifier read as a number is silently altered before you write a single query.</li>
+                        <li><strong>Precision.</strong> Large integers and high-precision decimals can lose exactness passing through JavaScript, and a sum that looks right can be off in the last digits.</li>
+                        <li><strong>Nulls, blanks and encodings.</strong> An empty string, a null and the literal text "NULL" are three different things, and which one you get depends on the file and the parser, not on your query.</li>
+                        <li><strong>Silent truncation.</strong> Previews and charts show a subset. A result that fits on screen is not evidence the query returned what you think.</li>
+                        <li><strong>Memory limits.</strong> The whole dataset lives in the tab. A join or an aggregate that exceeds available memory fails, or degrades, in ways a server-side engine would not.</li>
+                    </ul>
+                    <p class="disclaimer-note">A query that runs is not a query that is correct. Nothing here validates your joins, your grain, your filters or your assumptions about the data.</p>
+                </div>
+
+                <div class="disclaimer-section">
+                    <h3>Never use this for</h3>
+                    <ul>
+                        <li>Regulated data on a machine or browser you do not control, including protected health information under HIPAA, cardholder data under PCI DSS, and personal data under GDPR.</li>
+                        <li>Financial reporting, reconciliation, tax, audit or any figure that ends up in a statement of record.</li>
+                        <li>Regulatory, clinical or compliance submissions, and any analysis that must be reproducible on demand.</li>
+                        <li>Production pipelines, scheduled jobs or anything another system depends on.</li>
+                        <li>Decisions about people, where a query result becomes a rule.</li>
+                        <li>A system of record or a backup. Everything here is gone when the tab closes.</li>
+                    </ul>
+                </div>
+
+                <div class="disclaimer-section">
+                    <h3>Before an answer leaves this page</h3>
+                    <p>Reproduce it against the source system, in a query someone else can run, with the types declared rather than inferred. Check the row counts at each step and confirm the grain of every join. For anything that matters, have the query and the result reviewed by someone who knows the data.</p>
+                </div>
+
+                <div class="disclaimer-footer">
+                    <p><strong>No warranty. No liability. You assume all risk.</strong> This page and its outputs are provided as-is and as-available, without warranty of any kind, express or implied, including accuracy, completeness, reliability, data integrity, security, confidentiality, fitness for a particular purpose, merchantability, regulatory acceptability, or non-infringement. To the maximum extent permitted by law, the author accepts no liability for any loss, damage, cost or claim arising from use of or reliance on this page.</p>
+                    <p><strong>Independent verification required.</strong> Reproduce every result against the source system before acting on it, and keep the source data somewhere you control. The source system and professional judgement control; where this page disagrees with them, this page is wrong.</p>
+                    <p><strong>Consequential damages excluded.</strong> To the maximum extent permitted by law, in no event will the author or maintainers be liable for any direct, indirect, incidental, special, exemplary, punitive or consequential damages, including wrong conclusions, lost or corrupted data, disclosure of confidential information, regulatory exposure, or loss of use, profits or business interruption, however caused and on any theory of liability, whether in contract, strict liability or tort including negligence, arising out of or in connection with this page, even if advised of the possibility of such damage.</p>
+                    <p><strong>Indemnity.</strong> By using this page you agree to indemnify and hold harmless the author and maintainers against any claim, demand, loss or expense arising out of your use of it or of anything derived from it.</p>
+                    <p><strong>Severability.</strong> If any part of this notice is held unenforceable, the remainder continues to apply, and the unenforceable part is limited to the least extent necessary rather than struck out.</p>
+                </div>
+            </div>
+        </details>
         <!-- Main Layout -->
         <div class="main-layout">
             <!-- Sidebar -->
@@ -355,6 +419,7 @@
                             <button data-view="chart" onclick="switchView('chart')">Chart</button>
                         </div>
                     </div>
+                    <p class="disclaimer"><strong>Exploratory results.</strong> Column types were inferred from a sample when the file was imported, previews and charts show a subset, and a query that runs is not a query that is correct. Reproduce anything that matters against the source system before it leaves this page.</p>
                     <div class="results-content" id="resultsContent">
                         <div class="empty-state" id="resultsEmptyState">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

@@ -48,6 +48,10 @@ module.exports = defineConfig({
     'pinout-references.spec.cjs',
     'yogurt-cfu-estimator.spec.cjs',
     'linear-regression.spec.cjs',
+    'crypto-lab.spec.cjs',
+    'meeting-planner-disclaimer.spec.cjs',
+    'sqlite-viewer.spec.cjs',
+    'duckdb-playground.spec.cjs',
     'legal-clauses.spec.cjs',
     'disclaimer-contrast.spec.cjs'
   ],

@@ -149,3 +149,88 @@ test.describe('column aggregation across row groups', () => {
     expect(out.nullCandidate).toBe(3);
   });
 });
+
+// --- scope disclaimer -----------------------------------------------------
+// The page carried an 18-word green box in the sidebar reading "Local only.
+// Parsing happens entirely in your browser. Files and their contents are never
+// sent to any server." True of a dropped file, and not of the URL loader
+// sitting on the same screen: pasting a URL is a network fetch the remote host
+// sees, along with your IP and anything embedded in the URL.
+
+const DISCLAIMER_PAGE = '/tools/parquet-viewer.html';
+
+test('scope disclaimer is visible, closed, and above the panel', async ({ page }) => {
+  await page.goto(DISCLAIMER_PAGE, { waitUntil: 'domcontentloaded' });
+  const card = page.locator('details#scopeDisclaimer.disclaimer-card');
+  await expect(card).toBeVisible();
+  await expect(card).not.toHaveAttribute('open', /.*/);
+
+  const box = await card.boundingBox();
+  const panel = await page.locator('.pv-panel').boundingBox();
+  expect(box.y).toBeLessThan(panel.y);
+
+  await expect(card.locator('.disclaimer-title')).toContainText('Not a query engine');
+  // Both halves of the correction have to read without opening the card.
+  await expect(card.locator('.disclaimer-lead')).toContainText('not measured from your data');
+  await expect(card.locator('.disclaimer-lead')).toContainText('a pasted URL is fetched from that host');
+});
+
+test('scope disclaimer says footer statistics are the writer claims', async ({ page }) => {
+  await page.goto(DISCLAIMER_PAGE, { waitUntil: 'domcontentloaded' });
+  const card = page.locator('details#scopeDisclaimer');
+  await card.evaluate((el) => { el.open = true; });
+  const body = card.locator('.disclaimer-body');
+
+  await expect(body).toContainText('This tool repeats it; it does not verify it');
+  // The specific wrong conclusion the Columns tab invites.
+  await expect(body).toContainText('An absent null count is not a null count of zero');
+  await expect(body).toContainText('collation and can be truncated');
+});
+
+test('scope disclaimer separates the drop path from the URL path', async ({ page }) => {
+  await page.goto(DISCLAIMER_PAGE, { waitUntil: 'domcontentloaded' });
+
+  // Both loaders are on the page, which is why the card distinguishes them.
+  await expect(page.locator('#dropZone')).toHaveCount(1);
+  await expect(page.locator('#urlInput')).toHaveCount(1);
+
+  const card = page.locator('details#scopeDisclaimer');
+  await card.evaluate((el) => { el.open = true; });
+  const body = card.locator('.disclaimer-body');
+
+  await expect(body).toContainText('Dropped files stay put');
+  await expect(body).toContainText('file contents are never sent to any server');
+  await expect(body).toContainText('A pasted URL is different');
+  await expect(body).toContainText('your IP address and the full URL, including any token embedded in it');
+  await expect(body).toContainText('hyparquet and its compressors are loaded from a CDN');
+  await expect(body).toContainText('Loading a URL that carries a credential or a signed token');
+});
+
+test('scope disclaimer names what the reader does not do', async ({ page }) => {
+  await page.goto(DISCLAIMER_PAGE, { waitUntil: 'domcontentloaded' });
+  const card = page.locator('details#scopeDisclaimer');
+  await card.evaluate((el) => { el.open = true; });
+  const body = card.locator('.disclaimer-body');
+
+  await expect(body).toContainText('No queries, filters, joins or aggregation');
+  await expect(body).toContainText('no checksum or page-level integrity verification');
+  await expect(body).toContainText('the first rows of the file, not a random sample');
+  await expect(body).toContainText('Where the footer and a full scan disagree, the scan is right');
+});
+
+test('scope disclaimer opens by keyboard and carries a touchpoint by the summary bar', async ({ page }) => {
+  await page.goto(DISCLAIMER_PAGE, { waitUntil: 'domcontentloaded' });
+  const card = page.locator('details#scopeDisclaimer');
+  await card.locator('summary').focus();
+  await page.keyboard.press('Enter');
+  await expect(card).toHaveAttribute('open', '');
+
+  const touch = page.locator('p.disclaimer');
+  await expect(touch).toHaveCount(1);
+  await expect(touch).toContainText('Footer metadata, repeated not verified');
+  await expect(touch).toContainText('an absent null count is not zero');
+  // It lives in #results, which is hidden until a file loads, so it appears
+  // with the metadata it qualifies.
+  const inResults = await touch.evaluate((el) => Boolean(el.closest('#results')));
+  expect(inResults).toBe(true);
+});

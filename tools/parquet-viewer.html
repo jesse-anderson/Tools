@@ -81,6 +81,80 @@ Last Updated: July 2026
         </header>
 
         <main class="pv-main">
+            <details class="disclaimer-card" id="scopeDisclaimer" aria-label="Scope, data handling and liability disclaimer">
+                <summary>
+                    <span class="disclaimer-icon" aria-hidden="true">&#9888;</span>
+                    <span class="disclaimer-summary-text">
+                        <span class="disclaimer-title">A metadata and preview inspector. Not a query engine, and not a check that the data is sound.</span>
+                        <span class="disclaimer-lead">The statistics here are read from the file footer as the writer recorded them, not measured from your data, so they are exactly as trustworthy as whatever produced the file. A dropped file never leaves the browser; a pasted URL is fetched from that host, which sees the request. Open for the full scope limits.</span>
+                    </span>
+                    <span class="disclaimer-chevron" aria-hidden="true">&#9662;</span>
+                </summary>
+
+                <div class="disclaimer-body">
+                    <div class="disclaimer-section">
+                        <h3>What this tool actually does</h3>
+                        <p>Reads the Parquet footer and reports the schema, row groups, column chunks, compression codecs, encodings and the statistics recorded there, then renders a page of rows as a preview. Statistics load instantly for any file size because they are read from the footer, not by scanning the data.</p>
+                    </div>
+
+                    <div class="disclaimer-section">
+                        <h3>Footer statistics are claims, not measurements</h3>
+                        <p>Everything under min, max and null counts is what the <strong>writer</strong> put there. This tool repeats it; it does not verify it.</p>
+                        <ul>
+                            <li>A writer with a bug, or an older writer, can record statistics that do not match the data it wrote.</li>
+                            <li>Many writers omit statistics entirely. <strong>An absent null count is not a null count of zero</strong>, and reading it that way is the most likely wrong conclusion this page enables.</li>
+                            <li>String minimum and maximum values depend on the writer's collation and can be truncated, so they order differently from how your query engine would.</li>
+                            <li>Row counts and sizes describe what the footer says the file contains, not what a full read would return.</li>
+                        </ul>
+                    </div>
+
+                    <div class="disclaimer-section">
+                        <h3>What "local only" covers, and what it does not</h3>
+                        <ul>
+                            <li><strong>Dropped files stay put.</strong> Parsing happens entirely in your browser, and file contents are never sent to any server.</li>
+                            <li><strong>A pasted URL is different.</strong> Your browser fetches it from that host, which sees the request, your IP address and the full URL, including any token embedded in it. That is a network operation you initiated, and this page cannot make it private.</li>
+                            <li><strong>The parser arrives over the network.</strong> hyparquet and its compressors are loaded from a CDN on first use, as are the sample files. Your data stays in the tab; the code operating on it does not come from you.</li>
+                            <li><strong>The browser boundary is wide.</strong> Extensions with host access, devtools, exports landing unencrypted in your downloads folder, and page state recovered by a session restore are all inside it.</li>
+                        </ul>
+                    </div>
+
+                    <div class="disclaimer-section">
+                        <h3>What it does not do</h3>
+                        <ul>
+                            <li>No queries, filters, joins or aggregation. There is no engine here, only a reader.</li>
+                            <li>No validation of data against the schema, no checksum or page-level integrity verification, no repair, and no writing.</li>
+                            <li>The preview is the first rows of the file, not a random sample. Nothing statistical should be inferred from it.</li>
+                            <li>Nested and complex types are rendered so you can read them, not so you can analyse them.</li>
+                            <li>Encrypted Parquet, and any file whose codec is unsupported, will fail rather than degrade.</li>
+                        </ul>
+                    </div>
+
+                    <div class="disclaimer-section">
+                        <h3>Never use this for</h3>
+                        <ul>
+                            <li>Data quality sign-off, or concluding that a file is complete, correct or uncorrupted.</li>
+                            <li>Audit, regulatory or compliance evidence about the contents of a dataset.</li>
+                            <li>Regulated data on a machine or browser you do not control, including protected health information under HIPAA, cardholder data under PCI DSS, and personal data under GDPR.</li>
+                            <li>Loading a URL that carries a credential or a signed token in the query string.</li>
+                            <li>Production pipelines, or any automated decision downstream of what you read here.</li>
+                        </ul>
+                    </div>
+
+                    <div class="disclaimer-section">
+                        <h3>Before you act on what you see</h3>
+                        <p>Confirm anything that matters by reading the data with a proper engine, DuckDB, Spark, pyarrow or your warehouse, which will compute the statistics rather than repeat them. Where the footer and a full scan disagree, the scan is right.</p>
+                    </div>
+
+                    <div class="disclaimer-footer">
+                        <p><strong>No warranty. No liability. You assume all risk.</strong> This page and its outputs are provided as-is and as-available, without warranty of any kind, express or implied, including accuracy, completeness, reliability, data integrity, security, confidentiality, fitness for a particular purpose, merchantability, regulatory acceptability, or non-infringement. To the maximum extent permitted by law, the author accepts no liability for any loss, damage, cost or claim arising from use of or reliance on this page.</p>
+                        <p><strong>Independent verification required.</strong> Verify every figure by reading the data with a query engine before acting on it. That engine and the source system control; where this page disagrees with them, this page is wrong.</p>
+                        <p><strong>Consequential damages excluded.</strong> To the maximum extent permitted by law, in no event will the author or maintainers be liable for any direct, indirect, incidental, special, exemplary, punitive or consequential damages, including wrong conclusions, lost or corrupted data, disclosure of confidential information, regulatory exposure, or loss of use, profits or business interruption, however caused and on any theory of liability, whether in contract, strict liability or tort including negligence, arising out of or in connection with this page, even if advised of the possibility of such damage.</p>
+                        <p><strong>Indemnity.</strong> By using this page you agree to indemnify and hold harmless the author and maintainers against any claim, demand, loss or expense arising out of your use of it or of anything derived from it.</p>
+                        <p><strong>Severability.</strong> If any part of this notice is held unenforceable, the remainder continues to apply, and the unenforceable part is limited to the least extent necessary rather than struck out.</p>
+                    </div>
+                </div>
+            </details>
+
             <section class="pv-panel">
                 <!-- LOADER -->
                 <div id="loader">
@@ -112,6 +186,7 @@ Last Updated: July 2026
                 <!-- RESULTS -->
                 <div id="results" hidden>
                     <div id="summaryBar" class="summary-bar"></div>
+                    <p class="disclaimer"><strong>Footer metadata, repeated not verified.</strong> Minimum, maximum and null counts are what the writer recorded, and an absent null count is not zero. The preview is the first rows of the file, not a sample. Confirm anything that matters by reading the data with a query engine.</p>
 
                     <div id="tabs" class="tabs" role="tablist">
                         <button class="tab-btn active" data-tab="overview" type="button">Overview</button>
@@ -149,10 +224,6 @@ Last Updated: July 2026
                         <li>Snappy and uncompressed files work immediately; gzip/zstd/brotli/lz4 load a small extra decoder on first preview.</li>
                         <li>URL loading needs the host to allow cross-origin requests. If it fails, download the file and drop it in.</li>
                     </ul>
-
-                    <div class="privacy-note" role="note">
-                        <strong>Local only.</strong> Parsing happens entirely in your browser. Files and their contents are never sent to any server.
-                    </div>
 
                     <h3>Licenses</h3>
                     <button id="viewLicenses" class="tool-btn" type="button">

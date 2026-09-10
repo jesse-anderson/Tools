@@ -37,6 +37,12 @@ const CLAUSE_PAGES = [
   '/tools/rpi-pinout.html',
   '/tools/yogurt-cfu-estimator.html',
   '/tools/linear-regression.html',
+  '/tools/crypto-lab.html',
+  '/tools/meeting-planner.html',
+  '/tools/sqlite-viewer.html',
+  '/tools/duckdb-playground.html',
+  '/tools/parquet-viewer.html',
+  '/tools/csv-profiler.html',
 ];
 
 const REQUIRED = [

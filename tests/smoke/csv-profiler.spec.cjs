@@ -2,6 +2,7 @@
 // classification, delimiter detection, quote-aware parsing, and end-to-end
 // type/SQL inference. This tool previously had no automated coverage.
 const { test, expect } = require('@playwright/test');
+const { expectPageToLoadCleanly } = require('./helpers.cjs');
 
 const TOOL_PATH = '/tools/csv-profiler.html';
 
@@ -136,4 +137,91 @@ test.describe('end-to-end profiling', () => {
     expect(by.joined).toMatchObject({ type: 'date', sql: 'DATE' });
     expect(by.note.type).toBe('text');
   });
+});
+
+// --- scope disclaimer -----------------------------------------------------
+// The old block was five good paragraphs in a red sidebar box whose heading
+// measured 3.76:1 on the light card. It scored 4 of 5 legal elements, missing
+// only precedence, and it never named the hard limits that turn a partial
+// profile into one that looks complete.
+
+const DISCLAIMER_PAGE = '/tools/csv-profiler.html';
+
+test('scope disclaimer is visible, closed, and above the layout', async ({ page, baseURL }) => {
+  await expectPageToLoadCleanly(page, baseURL, DISCLAIMER_PAGE);
+  const card = page.locator('details#scopeDisclaimer.disclaimer-card');
+  await expect(card).toBeVisible();
+  await expect(card).not.toHaveAttribute('open', /.*/);
+
+  const box = await card.boundingBox();
+  const layout = await page.locator('.calculator-layout').boundingBox();
+  expect(box.width).toBeGreaterThan(layout.width * 0.9);
+  expect(box.y).toBeLessThan(layout.y);
+
+  await expect(card.locator('.disclaimer-title')).toContainText('Not ETL validation');
+  await expect(card.locator('.disclaimer-lead')).toContainText('least reliable on exactly the files worth profiling');
+});
+
+test('scope disclaimer keeps all five paragraphs of the old block', async ({ page, baseURL }) => {
+  await expectPageToLoadCleanly(page, baseURL, DISCLAIMER_PAGE);
+  const card = page.locator('details#scopeDisclaimer');
+  await card.evaluate((el) => { el.open = true; });
+  const body = card.locator('.disclaimer-body');
+
+  await expect(body).toContainText('not a substitute for database administration, ETL validation, compliance review, backup verification, or production data quality controls');
+  await expect(body).toContainText('malformed, encoded, truncated, very wide or domain-specific files');
+  await expect(body).toContainText('not intentionally uploaded by this page');
+  await expect(body).toContainText('Browser extensions, local policies, crashes, memory pressure');
+  await expect(body).toContainText('validate the source data, schema, row counts, encodings, delimiters and generated SQL');
+
+  // Every heuristic named individually, as the old block did.
+  for (const h of ['Type inference', 'delimiter detection', 'duplicate counts', 'histograms', 'schema output', 'quality notes']) {
+    await expect(body, `lost the ${h} heuristic`).toContainText(h);
+  }
+});
+
+test('scope disclaimer names the limits that truncate a profile', async ({ page, baseURL }) => {
+  await expectPageToLoadCleanly(page, baseURL, DISCLAIMER_PAGE);
+  const card = page.locator('details#scopeDisclaimer');
+  await card.evaluate((el) => { el.open = true; });
+  const body = card.locator('.disclaimer-body');
+
+  // These figures also appear in the sidebar limits panel; the card exists to
+  // say what they mean, which is that a partial profile looks complete.
+  await expect(body).toContainText('20 MB');
+  await expect(body).toContainText('200,000 data rows');
+  await expect(body).toContainText('20,000 values per column');
+  await expect(body).toContainText('turns a full profile into a partial one that looks identical');
+
+  // The two readings this tool most invites.
+  await expect(body).toContainText('Generated SQL is a starting point to read and edit, not DDL to run');
+  await expect(body).toContainText('The absence of a warning means no heuristic fired');
+});
+
+test('scope disclaimer names the uses it is not for', async ({ page, baseURL }) => {
+  await expectPageToLoadCleanly(page, baseURL, DISCLAIMER_PAGE);
+  const card = page.locator('details#scopeDisclaimer');
+  await card.evaluate((el) => { el.open = true; });
+  const body = card.locator('.disclaimer-body');
+
+  await expect(body).toContainText('Data quality attestation');
+  await expect(body).toContainText('HIPAA');
+  await expect(body).toContainText('PCI DSS');
+  await expect(body).toContainText('GDPR');
+  await expect(body).toContainText('Local is about transmission, not permission');
+});
+
+test('scope disclaimer opens by keyboard and carries a touchpoint above the tabs', async ({ page, baseURL }) => {
+  await expectPageToLoadCleanly(page, baseURL, DISCLAIMER_PAGE);
+  const card = page.locator('details#scopeDisclaimer');
+  await card.locator('summary').focus();
+  await page.keyboard.press('Enter');
+  await expect(card).toHaveAttribute('open', '');
+
+  const touch = page.locator('p.disclaimer');
+  await expect(touch).toHaveCount(1);
+  await expect(touch).toContainText('Heuristics, and a profile that may have stopped early');
+  await expect(touch).toContainText('A missing warning means no heuristic fired, not that the file is clean');
+  const inAnalysis = await touch.evaluate((el) => Boolean(el.closest('#analysisContent')));
+  expect(inAnalysis).toBe(true);
 });
