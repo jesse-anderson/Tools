@@ -9,10 +9,10 @@ test('creatine lab default bottle and small-glass presets compute solubility', a
 
   await expect(page.locator('h1')).toContainText('Creatine Lab');
   await expect(page.locator('#storageMode')).toHaveValue('premixed');
-  await expect(page.locator('.scope-warning-block summary')).toContainText('Model Scope / Use At Your Own Risk');
-  await expect(page.locator('.scope-warning-block')).not.toHaveAttribute('open', '');
-  await page.locator('.scope-warning-block summary').click();
-  await expect(page.locator('.scope-warning-block')).toContainText('No warranty. No liability. No suitability claim. You assume all risk.');
+  await expect(page.locator('details#scopeDisclaimer .disclaimer-title')).toContainText('Not medical advice, not a dose');
+  await expect(page.locator('details#scopeDisclaimer')).not.toHaveAttribute('open', '');
+  await page.locator('details#scopeDisclaimer .disclaimer-title').click();
+  await expect(page.locator('details#scopeDisclaimer')).toContainText('No warranty. No liability. No suitability claim. You assume all risk.');
   await expect(page.locator('.tutorial-card summary')).toContainText('How To Use This Tool');
   await expect(page.locator('.tutorial-card')).not.toHaveAttribute('open', '');
   await page.locator('.tutorial-card summary').click();
@@ -382,4 +382,93 @@ test('creatine lab renders new mass-balance and creatinine charts', async ({ pag
   await page.click('#exportCumulativePlotBtn');
   const cumulativeDownload = await cumulativeDownloadPromise;
   expect(cumulativeDownload.suggestedFilename()).toBe('creatine-lab-cumulative-dose-vs-retained.svg');
+});
+
+// --- scope disclaimer -----------------------------------------------------
+// The old block was already a native details element with strong medical
+// content, 179 words and 4 of 5 legal elements. What it lacked was the
+// enumerated-damages tail, indemnity, severability and a no-professional-
+// relationship clause, and it never named the specific way this tool can
+// mislead: creatine raises serum creatinine without kidney injury.
+
+const DISCLAIMER_PAGE = '/tools/creatine-lab.html';
+
+test('scope disclaimer is visible, closed, and spans the layout', async ({ page, baseURL }) => {
+  await expectPageToLoadCleanly(page, baseURL, DISCLAIMER_PAGE);
+  const card = page.locator('details#scopeDisclaimer.disclaimer-card');
+  await expect(card).toBeVisible();
+  await expect(card).not.toHaveAttribute('open', /.*/);
+
+  const box = await card.boundingBox();
+  const layout = await page.locator('main.creatine-layout').boundingBox();
+  expect(box.width).toBeGreaterThan(layout.width * 0.9);
+
+  await expect(card.locator('.disclaimer-title')).toContainText('Not medical advice, not a dose');
+  await expect(card.locator('.disclaimer-lead')).toContainText('Ask a clinician');
+});
+
+test('scope disclaimer keeps the do-not-use list and the clinician triggers', async ({ page, baseURL }) => {
+  await expectPageToLoadCleanly(page, baseURL, DISCLAIMER_PAGE);
+  const card = page.locator('details#scopeDisclaimer');
+  await card.evaluate((el) => { el.open = true; });
+  const body = card.locator('.disclaimer-body');
+
+  for (const item of [
+    'Diagnose kidney function',
+    'Interpret creatinine or eGFR labs',
+    'Choose a dose',
+    'Decide whether creatine is safe for you',
+    'Replace clinical care',
+  ]) {
+    await expect(body, `lost "${item}"`).toContainText(item);
+  }
+
+  for (const trigger of ['kidney disease', 'pregnant', 'kidneys or fluid balance', 'abnormal labs']) {
+    await expect(body, `lost the ${trigger} trigger`).toContainText(trigger);
+  }
+});
+
+test('scope disclaimer explains the serum creatinine trap', async ({ page, baseURL }) => {
+  await expectPageToLoadCleanly(page, baseURL, DISCLAIMER_PAGE);
+  const card = page.locator('details#scopeDisclaimer');
+  await card.evaluate((el) => { el.open = true; });
+  const body = card.locator('.disclaimer-body');
+
+  // The one way a creatine tool can lead someone to misread a real lab result.
+  await expect(body).toContainText('can raise');
+  await expect(body).toContainText('serum creatinine');
+  await expect(body).toContainText('without any kidney injury');
+  await expect(body).toContainText('can look like reduced kidney function when it is not');
+  await expect(body).toContainText('only a clinician who knows you are supplementing can tell the difference');
+});
+
+test('scope disclaimer says the numbers are not measurements of you', async ({ page, baseURL }) => {
+  await expectPageToLoadCleanly(page, baseURL, DISCLAIMER_PAGE);
+  const card = page.locator('details#scopeDisclaimer');
+  await card.evaluate((el) => { el.open = true; });
+  const body = card.locator('.disclaimer-body');
+
+  await expect(body).toContainText('A real drink has other solutes');
+  await expect(body).toContainText('Body-pool figures are population estimates');
+  await expect(body).toContainText('not your bottle in your kitchen');
+  await expect(body).toContainText('These are not personal lab values');
+
+  // The medical-tool clause, which this page did not previously carry.
+  await expect(card.locator('.disclaimer-footer')).toContainText('does not create any medical, clinical, nutritional or professional relationship');
+});
+
+test('scope disclaimer opens by keyboard and carries a touchpoint by the results', async ({ page, baseURL }) => {
+  await expectPageToLoadCleanly(page, baseURL, DISCLAIMER_PAGE);
+  const card = page.locator('details#scopeDisclaimer');
+  await card.locator('summary').focus();
+  await page.keyboard.press('Enter');
+  await expect(card).toHaveAttribute('open', '');
+
+  const touch = page.locator('p.disclaimer');
+  await expect(touch).toHaveCount(1);
+  await expect(touch).toBeVisible();
+  await expect(touch).toContainText('Estimates, not measurements of you');
+  await expect(touch).toContainText('tell your clinician you are supplementing');
+  const inResults = await touch.evaluate((el) => Boolean(el.closest('.results-panel')));
+  expect(inResults).toBe(true);
 });

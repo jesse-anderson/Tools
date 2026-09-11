@@ -90,6 +90,82 @@ Last Updated: April 2026
         </header>
 
         <main>
+            <details class="disclaimer-card" id="scopeDisclaimer" aria-label="Scope, data handling and liability disclaimer">
+                <summary>
+                    <span class="disclaimer-icon" aria-hidden="true">&#9888;</span>
+                    <span class="disclaimer-summary-text">
+                        <span class="disclaimer-title">An inventory of what a workbook declares. Not an audit, not a dependency analysis, and not proof that a spreadsheet is correct.</span>
+                        <span class="disclaimer-lead">It lists formulas, defined names, hidden sheets and external links as SheetJS reads them. Your file is parsed in this browser and not uploaded, though the parser itself is fetched from a CDN. A clean inventory says nothing about whether the spreadsheet computes the right answer. Open for the full scope limits.</span>
+                    </span>
+                    <span class="disclaimer-chevron" aria-hidden="true">&#9662;</span>
+                </summary>
+
+                <div class="disclaimer-body">
+                    <div class="disclaimer-section">
+                        <h3>What this tool actually does</h3>
+                        <p>Opens a workbook with SheetJS in your browser and reports what the file declares: formulas per sheet, defined names, sheet visibility, and references to other workbooks. It is an inventory and a search aid, for review and for orientation in a file you did not write.</p>
+                        <p class="disclaimer-note">Finding nothing is not a result. An empty list can mean the workbook is clean, or that the feature was stored in a way this parser does not surface.</p>
+                    </div>
+
+                    <div class="disclaimer-section">
+                        <h3>What it does not see</h3>
+                        <ul>
+                            <li><strong>VBA macros, add-ins and custom functions.</strong> A macro-enabled workbook can do anything at all, and none of it appears here.</li>
+                            <li><strong>Power Query, data model, Power Pivot and connection strings.</strong> Modern workbooks move logic out of cells, and this tool reads cells.</li>
+                            <li><strong>Conditional formatting rules, data validation, and array or dynamic-spill behaviour</strong>, all of which change what a sheet means without being a formula you can list.</li>
+                            <li><strong>Very hidden sheets, protection, and anything the file format hides deliberately.</strong> Sheet visibility is read as declared; a workbook can be built to mislead about it.</li>
+                            <li><strong>Values against formulas.</strong> A cached value in the file can disagree with the formula beside it, and nothing here recalculates to find out.</li>
+                            <li><strong>Whether a formula is right.</strong> There is no dependency graph, no circular reference detection, no range checking, and no evaluation.</li>
+                        </ul>
+                    </div>
+
+                    <div class="disclaimer-section">
+                        <h3>Parsing limits</h3>
+                        <ul>
+                            <li>Support varies by format. XLS is a different container from XLSX, XLSB is compiled, and what survives the round trip through a third-party parser is not identical to what Excel would show you.</li>
+                            <li>Large workbooks are held in the tab's memory and can be slow or fail outright.</li>
+                            <li>Encrypted or password-protected workbooks will not open.</li>
+                            <li>A file that opens without error has not been validated. SheetJS reporting no problem is not the same as the workbook having none.</li>
+                        </ul>
+                    </div>
+
+                    <div class="disclaimer-section">
+                        <h3>What "100% local" covers</h3>
+                        <ul>
+                            <li><strong>Your workbook stays in the browser.</strong> Parsing happens in this tab and the file is never uploaded.</li>
+                            <li><strong>The parser does not.</strong> SheetJS is fetched from a CDN on every visit. Your data stays put; the code reading it arrives from a third party.</li>
+                            <li><strong>The browser boundary is wide.</strong> Extensions with host access, devtools and a session restore can all reach the tab, and exports land unencrypted in your downloads folder.</li>
+                            <li><strong>Local is about transmission, not permission.</strong> It says nothing about whether you are allowed to open the workbook you just opened.</li>
+                        </ul>
+                    </div>
+
+                    <div class="disclaimer-section">
+                        <h3>Never use this for</h3>
+                        <ul>
+                            <li>Spreadsheet audit, model review or assurance work of the kind that carries a professional opinion.</li>
+                            <li>Financial reporting, valuation, tax or any figure that ends up in a statement of record.</li>
+                            <li>Regulatory or compliance evidence, including model documentation and change control under a validated-systems regime.</li>
+                            <li>Security review of an untrusted workbook. This is not a malware scanner and it does not inspect macros.</li>
+                            <li>Concluding that a workbook is safe, correct, complete or free of external dependencies.</li>
+                            <li>Regulated data on a machine or browser you do not control, including personal data under GDPR and health or payment data under their own regimes.</li>
+                        </ul>
+                    </div>
+
+                    <div class="disclaimer-section">
+                        <h3>Before you rely on the inventory</h3>
+                        <p>Open the workbook in Excel and check the same things there: the name manager, sheet visibility including very hidden sheets, the trust centre for macros and connections, and Edit Links for external references. Where Excel and this page disagree, Excel is describing the file you actually have.</p>
+                    </div>
+
+                    <div class="disclaimer-footer">
+                        <p><strong>No warranty. No liability. You assume all risk.</strong> This page and its outputs are provided as-is and as-available, without warranty of any kind, express or implied, including accuracy, completeness, reliability, security, confidentiality, fitness for a particular purpose, merchantability, professional or audit suitability, regulatory acceptability, or non-infringement. To the maximum extent permitted by law, the author accepts no liability for any loss, damage, cost or claim arising from use of or reliance on this page.</p>
+                        <p><strong>Independent verification required.</strong> Confirm every finding in Excel against the workbook itself before acting on it. Excel and professional judgement control; where this page disagrees with them, this page is wrong.</p>
+                        <p><strong>Consequential damages excluded.</strong> To the maximum extent permitted by law, in no event will the author or maintainers be liable for any direct, indirect, incidental, special, exemplary, punitive or consequential damages, including missed dependencies, wrong conclusions, lost or corrupted data, disclosure of confidential information, regulatory exposure, or loss of use, profits or business interruption, however caused and on any theory of liability, whether in contract, strict liability or tort including negligence, arising out of or in connection with this page, even if advised of the possibility of such damage.</p>
+                        <p><strong>Indemnity.</strong> By using this page you agree to indemnify and hold harmless the author and maintainers against any claim, demand, loss or expense arising out of your use of it or of anything derived from it.</p>
+                        <p><strong>Severability.</strong> If any part of this notice is held unenforceable, the remainder continues to apply, and the unenforceable part is limited to the least extent necessary rather than struck out.</p>
+                    </div>
+                </div>
+            </details>
+
             <div class="extractor-layout">
                 <aside class="sidebar">
                     <section class="panel">
@@ -228,6 +304,7 @@ Last Updated: April 2026
                     </div>
 
                     <div class="results-content" id="resultsContent" hidden>
+                        <p class="disclaimer"><strong>An inventory, not an audit.</strong> This lists what the file declares as SheetJS reads it. VBA macros, Power Query, connections, conditional formatting and very hidden sheets are not shown, cached values are not recalculated, and an empty list can mean the feature was stored in a way this parser does not surface. Confirm anything that matters in Excel.</p>
                         <section class="section-block">
                             <div class="section-heading">
                                 <div>

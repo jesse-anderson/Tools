@@ -74,6 +74,64 @@ License: GPL-3.0
         </header>
 
         <main class="seed-layout">
+            <details class="disclaimer-card" id="scopeDisclaimer" aria-label="Model scope, limitations and liability disclaimer">
+                <summary>
+                    <span class="disclaimer-icon" aria-hidden="true">&#9888;</span>
+                    <span class="disclaimer-summary-text">
+                        <span class="disclaimer-title">Rules-of-thumb projections for orthodox seed. Not a test of your seed, and not a germination result.</span>
+                        <span class="disclaimer-lead">It applies published seed-count tables and Harrington's storage rules to estimate how long dry-stored orthodox seed stays viable. It does not know your seed lot and cannot tell you whether a specific packet will germinate. <strong>Only a germination test can.</strong> Use at your own risk. Open for the full scope limits.</span>
+                    </span>
+                    <span class="disclaimer-chevron" aria-hidden="true">&#9662;</span>
+                </summary>
+
+                <div class="disclaimer-body">
+                    <div class="disclaimer-section">
+                        <h3>Model scope</h3>
+                        <p>This calculator applies published seed-count tables and Harrington's storage rules of thumb. It estimates how long <strong>orthodox</strong> seed stays viable under dry storage. It does not test your seed, does not know your seed lot, and cannot tell you whether a specific packet will germinate.</p>
+                    </div>
+
+                    <div class="disclaimer-section">
+                        <h3>A projection is not a measurement</h3>
+                        <ul>
+                            <li>Storage-life figures are projections from thumb-rules, fitted across species and conditions. They describe a tendency, not your packet.</li>
+                            <li><strong>The only way to know whether seed is still good is a germination test:</strong> 20 to 100 seeds on damp paper towel at the species' optimum temperature.</li>
+                            <li>Starting viability matters more than storage time and is invisible here. Seed harvested immature, dried too fast, or damaged in threshing begins below par, and the model assumes it did not.</li>
+                            <li>Harrington's rules assume steady conditions. Real storage cycles in temperature and humidity, and cycling is worse than a steady average at the same mean.</li>
+                            <li>Nothing here models disease, insect damage, rodents, or a container that was not actually airtight.</li>
+                        </ul>
+                    </div>
+
+                    <div class="disclaimer-section">
+                        <h3>Recalcitrant and intermediate species are refused</h3>
+                        <p>Refused by design, because dry-storage models do not apply to them. <strong>A refusal is an answer</strong>, and the right response is to look up the storage behaviour of that species rather than to find a tool that will return a number.</p>
+                    </div>
+
+                    <div class="disclaimer-section">
+                        <h3>Never use this for</h3>
+                        <ul>
+                            <li>Deciding a seed lot is viable, or that it is not, without testing it.</li>
+                            <li>Seed bank accession, deaccession or regeneration scheduling.</li>
+                            <li>Commercial seed sale, labelling, certification or a germination claim, all of which are regulated and require assay data.</li>
+                            <li>Planting or crop planning where a failed stand is expensive or a season is lost.</li>
+                            <li>Anything about a species whose storage behaviour is not orthodox.</li>
+                        </ul>
+                    </div>
+
+                    <div class="disclaimer-section">
+                        <h3>Verify independently</h3>
+                        <p>Check the cited sources and run a germination test before relying on any result for a planting, a seed bank, or a commercial decision. A test on the actual lot settles the question; nothing on this page does.</p>
+                    </div>
+
+                    <div class="disclaimer-footer">
+                        <p><strong>No warranty. No liability. No suitability claim. You assume all risk.</strong> Provided as-is and as-available, without warranty of accuracy, completeness, merchantability, fitness for a particular purpose, agricultural suitability, regulatory acceptability, or commercial value. To the maximum extent permitted by law, the author accepts no liability for any loss, damage, cost or claim arising from use of or reliance on this page, and the author and maintainers disclaim responsibility for crop failure, germination loss, seed-bank decisions, commercial losses, or any other consequence arising from use or misuse of this page.</p>
+                        <p><strong>Independent verification required.</strong> Check every figure against the cited sources and against a germination test on the actual lot before acting on it. The test and qualified agronomic judgement control; where this page disagrees with them, this page is wrong.</p>
+                        <p><strong>Consequential damages excluded.</strong> To the maximum extent permitted by law, in no event will the author or maintainers be liable for any direct, indirect, incidental, special, exemplary, punitive or consequential damages, including crop failure, lost seasons, germination loss, seed-bank decisions, regulatory exposure, or loss of use, data, profits or business interruption, however caused and on any theory of liability, whether in contract, strict liability or tort including negligence, arising out of or in connection with this page, even if advised of the possibility of such damage.</p>
+                        <p><strong>Indemnity.</strong> By using this page you agree to indemnify and hold harmless the author and maintainers against any claim, demand, loss or expense arising out of your use of it or of anything derived from it.</p>
+                        <p><strong>Severability.</strong> If any part of this notice is held unenforceable, the remainder continues to apply, and the unenforceable part is limited to the least extent necessary rather than struck out.</p>
+                    </div>
+                </div>
+            </details>
+
             <section class="panel control-panel" aria-labelledby="input-title">
                 <div class="panel-header">
                     <div>
@@ -88,15 +146,6 @@ License: GPL-3.0
                 <p class="settings-line" id="settingsStatus" aria-live="polite">Settings auto-save to this browser as you type.</p>
 
                 <div class="status-line" id="statusLine" aria-live="polite">Ready.</div>
-
-                <details class="scope-warning-block" role="note" aria-label="Model scope and limitations">
-                    <summary>Model Scope / Use At Your Own Risk</summary>
-                    <p>This calculator applies published seed-count tables and Harrington's storage rules of thumb. It estimates how long <strong>orthodox</strong> seed stays viable under dry storage. It does not test your seed, does not know your seed lot, and cannot tell you whether a specific packet will germinate.</p>
-                    <p>Storage-life figures are projections from thumb-rules. The only way to know whether seed is still good is a germination test: 20 to 100 seeds on damp paper towel at the species' optimum temperature.</p>
-                    <p>Recalcitrant and intermediate species are refused by design, because dry-storage models do not apply to them. A refusal is an answer.</p>
-                    <p><strong>No warranty. No liability. No suitability claim. You assume all risk.</strong> Provided as-is without warranty of accuracy, completeness, merchantability, fitness for a particular purpose, agricultural suitability, or commercial value. The creators and maintainers disclaim responsibility for crop failure, germination loss, seed-bank decisions, commercial losses, or any other consequence arising from use or misuse of this page.</p>
-                    <p><strong>Verify independently.</strong> Check the cited sources and run a germination test before relying on any result for a planting, a seed bank, or a commercial decision.</p>
-                </details>
 
                 <details class="tutorial-card">
                     <summary>How To Use This Tool</summary>
@@ -269,6 +318,7 @@ License: GPL-3.0
                     </div>
                 </div>
 
+                <p class="disclaimer"><strong>A projection, not a test.</strong> Storage life here comes from thumb-rules fitted across species and conditions, and it cannot see your lot: starting viability, drying history, cycling temperature and humidity, and whether the container was really airtight are all invisible to it. Run a germination test before you rely on any of this.</p>
                 <div class="result-grid">
                     <article class="result-card">
                         <span class="result-label">Seeds per ounce</span>

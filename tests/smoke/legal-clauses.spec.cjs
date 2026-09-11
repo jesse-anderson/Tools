@@ -43,6 +43,14 @@ const CLAUSE_PAGES = [
   '/tools/duckdb-playground.html',
   '/tools/parquet-viewer.html',
   '/tools/csv-profiler.html',
+  '/tools/excel-formula-extractor.html',
+  '/tools/screenshot-tool.html',
+  '/tools/markdown-exporter.html',
+  '/tools/dbscan-visualizer.html',
+  '/tools/local-llm-opex.html',
+  '/tools/creatine-lab.html',
+  '/tools/seed-storage-lab.html',
+  '/tools/species-doubling-reference.html',
 ];
 
 const REQUIRED = [

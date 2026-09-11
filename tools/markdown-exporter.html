@@ -95,6 +95,72 @@ License: GPL-3.0 - https://github.com/jesse-anderson/Tools/blob/main/LICENSE
         </header>
 
         <main>
+            <details class="disclaimer-card" id="scopeDisclaimer" aria-label="Scope, data handling and liability disclaimer">
+                <summary>
+                    <span class="disclaimer-icon" aria-hidden="true">&#9888;</span>
+                    <span class="disclaimer-summary-text">
+                        <span class="disclaimer-title">An editor with export. Not a publishing pipeline, not a document store, and not a backup.</span>
+                        <span class="disclaimer-lead">Your draft is autosaved into this browser's local storage and stays there until you clear it, unencrypted and readable by anything with access to the profile. Export fidelity varies by path, so the preview is not what lands in the PDF or the DOCX. <strong>Open the exported file before you send it.</strong> Open for the full scope limits.</span>
+                    </span>
+                    <span class="disclaimer-chevron" aria-hidden="true">&#9662;</span>
+                </summary>
+
+                <div class="disclaimer-body">
+                    <div class="disclaimer-section">
+                        <h3>What this tool actually does</h3>
+                        <p>Parses Markdown in your browser, sanitises the resulting HTML, renders a preview, and converts that to PDF, DOCX or standalone HTML. Parsing, rendering and export all happen in this tab, and nothing is uploaded.</p>
+                        <p class="disclaimer-note">The typography fonts used by the direct PDF download are fetched over the network at build time. Everything else is vendored locally.</p>
+                    </div>
+
+                    <div class="disclaimer-section">
+                        <h3>Your draft persists in this browser</h3>
+                        <ul>
+                            <li>Autosave writes your text to <strong>local storage</strong>. It survives closing the tab and reopening the page later.</li>
+                            <li>It is stored unencrypted and is readable by anything with access to the browser profile, including other people using the same account on the machine and extensions with storage access.</li>
+                            <li>Use <strong>Clear</strong> when you are finished on a shared or borrowed machine. Closing the tab is not the same thing.</li>
+                            <li>It is also not a backup. Clearing site data, a browser reset, or a private window ending takes the draft with it, and there is no copy anywhere else.</li>
+                        </ul>
+                    </div>
+
+                    <div class="disclaimer-section">
+                        <h3>Export fidelity is not guaranteed</h3>
+                        <p>The preview is HTML laid out with CSS. A PDF and a DOCX are different rendering models, and each export path makes its own compromises.</p>
+                        <ul>
+                            <li><strong>Page breaks land where the renderer puts them</strong>, not where you would put them. Headings, tables and code blocks can split across pages.</li>
+                            <li><strong>Wide tables and long code lines</strong> can overflow, wrap or be clipped, differently in each path.</li>
+                            <li><strong>Fonts substitute.</strong> A font that is not embedded is replaced by whatever the reader's system offers, which changes line breaks and pagination.</li>
+                            <li><strong>The two DOCX paths differ.</strong> A structured build is attempted first, with a Word altchunk conversion as the fallback, and those produce documents that are not identical.</li>
+                            <li><strong>Images that cannot be embedded</strong> raise a warning in the status line rather than failing silently, so read the status line.</li>
+                        </ul>
+                        <p class="disclaimer-note">Open every export in the application that will actually read it, at the page size you intend, before you send it anywhere.</p>
+                    </div>
+
+                    <div class="disclaimer-section">
+                        <h3>Sanitisation protects this page, not your reader</h3>
+                        <p>Raw HTML in your Markdown is sanitised before rendering, which is what keeps the preview in this tab safe. It is not a guarantee about the exported document, it does not vet anything you pasted in from elsewhere, and it can silently drop markup you meant to keep. Check the output for what is missing as well as what is wrong.</p>
+                    </div>
+
+                    <div class="disclaimer-section">
+                        <h3>Never use this for</h3>
+                        <ul>
+                            <li>Contracts, filings, submissions or any document where exact pagination, a mandated template or a signature block has to be right.</li>
+                            <li>Accessibility-conforming output. These exports are not tagged PDF and make no claim against PDF/UA or WCAG.</li>
+                            <li>Archival deposit. Nothing here produces PDF/A or any format with a preservation guarantee.</li>
+                            <li>Confidential drafting on a shared, borrowed or public machine, where autosave outlives your session.</li>
+                            <li>Storing the only copy of anything you would mind losing.</li>
+                        </ul>
+                    </div>
+
+                    <div class="disclaimer-footer">
+                        <p><strong>No warranty. No liability. You assume all risk.</strong> This page and its outputs are provided as-is and as-available, without warranty of any kind, express or implied, including accuracy, completeness, fidelity, reliability, durability, security, confidentiality, fitness for a particular purpose, merchantability, accessibility or archival conformance, regulatory acceptability, or non-infringement. To the maximum extent permitted by law, the author accepts no liability for any loss, damage, cost or claim arising from use of or reliance on this page.</p>
+                        <p><strong>Independent verification required.</strong> Open every exported file in its target application and check it in full before sending, printing or filing it, and keep your own copy of anything that matters. That application and your own review control; where this page disagrees with them, this page is wrong.</p>
+                        <p><strong>Consequential damages excluded.</strong> To the maximum extent permitted by law, in no event will the author or maintainers be liable for any direct, indirect, incidental, special, exemplary, punitive or consequential damages, including lost drafts, misrendered or misdelivered documents, disclosure of confidential information, missed deadlines, or loss of use, data, profits or business interruption, however caused and on any theory of liability, whether in contract, strict liability or tort including negligence, arising out of or in connection with this page, even if advised of the possibility of such damage.</p>
+                        <p><strong>Indemnity.</strong> By using this page you agree to indemnify and hold harmless the author and maintainers against any claim, demand, loss or expense arising out of your use of it or of anything derived from it.</p>
+                        <p><strong>Severability.</strong> If any part of this notice is held unenforceable, the remainder continues to apply, and the unenforceable part is limited to the least extent necessary rather than struck out.</p>
+                    </div>
+                </div>
+            </details>
+
             <div class="exporter-layout">
                 <section class="panel control-panel">
                     <div class="panel-top">
@@ -144,6 +210,7 @@ License: GPL-3.0 - https://github.com/jesse-anderson/Tools/blob/main/LICENSE
                         </div>
                     </div>
 
+                    <p class="disclaimer"><strong>Open the export before you send it.</strong> The preview is HTML; a PDF and a DOCX are different rendering models, so page breaks, wide tables, long code lines and substituted fonts can all land differently. Read the status line for image warnings, and check the file in the application that will actually read it.</p>
                     <div class="status-line" id="statusLine" aria-live="polite">Ready.</div>
                 </section>
 

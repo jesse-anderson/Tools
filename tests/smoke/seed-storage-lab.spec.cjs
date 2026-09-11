@@ -19,11 +19,13 @@ test('seed storage lab loads with disclaimers, tutorial and help chips', async (
 
   await expect(page.locator('h1')).toContainText('Seed Storage Lab');
 
-  await expect(page.locator('.scope-warning-block summary')).toContainText('Model Scope / Use At Your Own Risk');
-  await expect(page.locator('.scope-warning-block')).not.toHaveAttribute('open', '');
-  await page.locator('.scope-warning-block summary').click();
-  await expect(page.locator('.scope-warning-block')).toContainText('No warranty. No liability. No suitability claim. You assume all risk.');
-  await expect(page.locator('.scope-warning-block')).toContainText('germination test');
+  // Repointed at the shared scope disclaimer card in September 2026; the
+  // .scope-warning-block it replaced is gone.
+  await expect(page.locator('#scopeDisclaimer .disclaimer-title')).toContainText('Not a test of your seed');
+  await expect(page.locator('#scopeDisclaimer')).not.toHaveAttribute('open', '');
+  await page.locator('#scopeDisclaimer summary').click();
+  await expect(page.locator('#scopeDisclaimer')).toContainText('No warranty. No liability. No suitability claim. You assume all risk.');
+  await expect(page.locator('#scopeDisclaimer')).toContainText('germination test');
 
   await expect(page.locator('.tutorial-card summary')).toContainText('How To Use This Tool');
   await page.locator('.tutorial-card summary').click();
@@ -353,4 +355,45 @@ test('settings survive a reload and reset restores the defaults', async ({ page,
   await expect(page.locator('#speciesSearch')).toHaveValue('lettuce');
   await page.locator('[data-tab-target="storage"]').click();
   await expect(page.locator('#storageMoisture')).toHaveValue('6');
+});
+
+// --- scope disclaimer -----------------------------------------------------
+// The old block was already a native details element with good content, 186
+// words and 4 of 5 legal elements. The rebuild moves it onto the shared card,
+// adds the missing clauses, and names the variables the model cannot see.
+
+test('scope disclaimer spans the layout and names what the model cannot see', async ({ page, baseURL }) => {
+  await expectPageToLoadCleanly(page, baseURL, '/tools/seed-storage-lab.html');
+  const card = page.locator('details#scopeDisclaimer.disclaimer-card');
+  await expect(card).toBeVisible();
+
+  const box = await card.boundingBox();
+  const layout = await page.locator('main.seed-layout').boundingBox();
+  expect(box.width).toBeGreaterThan(layout.width * 0.9);
+
+  await card.evaluate((el) => { el.open = true; });
+  const body = card.locator('.disclaimer-body');
+
+  // Kept from the old block.
+  await expect(body).toContainText("Harrington's storage rules of thumb");
+  await expect(body).toContainText('20 to 100 seeds on damp paper towel');
+  await expect(body).toContainText('A refusal is an answer');
+
+  // Added: the variables a thumb-rule projection cannot see.
+  await expect(body).toContainText('Starting viability matters more than storage time and is invisible here');
+  await expect(body).toContainText('cycling is worse than a steady average at the same mean');
+  await expect(body).toContainText('a container that was not actually airtight');
+});
+
+test('scope disclaimer carries a touchpoint outside the results header', async ({ page, baseURL }) => {
+  await expectPageToLoadCleanly(page, baseURL, '/tools/seed-storage-lab.html');
+  const touch = page.locator('p.disclaimer');
+  await expect(touch).toHaveCount(1);
+  await expect(touch).toBeVisible();
+  await expect(touch).toContainText('A projection, not a test');
+  // It first landed between the inner and outer divs of .panel-header.
+  const inHeader = await touch.evaluate((el) => Boolean(el.closest('.panel-header')));
+  expect(inHeader).toBe(false);
+  const inResults = await touch.evaluate((el) => Boolean(el.closest('.result-panel')));
+  expect(inResults).toBe(true);
 });

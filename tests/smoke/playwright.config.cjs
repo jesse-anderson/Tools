@@ -52,6 +52,9 @@ module.exports = defineConfig({
     'meeting-planner-disclaimer.spec.cjs',
     'sqlite-viewer.spec.cjs',
     'duckdb-playground.spec.cjs',
+    'screenshot-tool.spec.cjs',
+    'dbscan-visualizer.spec.cjs',
+    'local-llm-opex.spec.cjs',
     'legal-clauses.spec.cjs',
     'disclaimer-contrast.spec.cjs'
   ],

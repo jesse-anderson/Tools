@@ -359,3 +359,105 @@ test('excel formula extractor limits large output sections to ten rows until exp
   await expect(page.locator('#formulaDumpMeta')).toHaveText('24 shown of 24 lines');
   await expect.poll(() => page.locator('#formulaDump').inputValue().then((value) => value.split('\n').filter(Boolean).length)).toBe(24);
 });
+
+// --- scope disclaimer -----------------------------------------------------
+// The page had no caveat at all while carrying a "100% Local | No Uploads"
+// badge in the header. The claim is true of the workbook and not of SheetJS,
+// which is fetched from cdn.sheetjs.com on every visit. The larger gap was that
+// the tool reads cells, and a modern workbook keeps most of its behaviour
+// somewhere else: macros, Power Query, connections, conditional formatting.
+
+const DISCLAIMER_PAGE = '/tools/excel-formula-extractor.html';
+
+test('scope disclaimer is visible, closed, and above the layout', async ({ page, baseURL }) => {
+  await expectPageToLoadCleanly(page, baseURL, DISCLAIMER_PAGE);
+  const card = page.locator('details#scopeDisclaimer.disclaimer-card');
+  await expect(card).toBeVisible();
+  await expect(card).not.toHaveAttribute('open', /.*/);
+
+  const box = await card.boundingBox();
+  const layout = await page.locator('.extractor-layout').boundingBox();
+  expect(box.width).toBeGreaterThan(layout.width * 0.9);
+  expect(box.y).toBeLessThan(layout.y);
+
+  await expect(card.locator('.disclaimer-title')).toContainText('Not an audit');
+  await expect(card.locator('.disclaimer-lead')).toContainText('parser itself is fetched from a CDN');
+});
+
+test('scope disclaimer names what the parser cannot see', async ({ page, baseURL }) => {
+  await expectPageToLoadCleanly(page, baseURL, DISCLAIMER_PAGE);
+  const card = page.locator('details#scopeDisclaimer');
+  await card.evaluate((el) => { el.open = true; });
+  const body = card.locator('.disclaimer-body');
+
+  // Each of these is somewhere a modern workbook keeps behaviour that this
+  // tool, which reads cells, will never list. Assert the consequence rather
+  // than the bold label: a mutation that gutted the sentence after "VBA
+  // macros, add-ins and custom functions" left a label-only assertion green.
+  await expect(body).toContainText('VBA macros, add-ins and custom functions');
+  await expect(body).toContainText('A macro-enabled workbook can do anything at all, and none of it appears here');
+  await expect(body).toContainText('Power Query, data model, Power Pivot and connection strings');
+  await expect(body).toContainText('Modern workbooks move logic out of cells, and this tool reads cells');
+  await expect(body).toContainText('Conditional formatting rules, data validation');
+  await expect(body).toContainText('Very hidden sheets');
+  await expect(body).toContainText('a workbook can be built to mislead about it');
+  await expect(body).toContainText('A cached value in the file can disagree with the formula beside it');
+
+  // The reading an inventory tool most invites, stated as its own note.
+  await expect(body).toContainText('Finding nothing is not a result');
+});
+
+test('scope disclaimer qualifies the 100% local badge in the header', async ({ page, baseURL }) => {
+  await expectPageToLoadCleanly(page, baseURL, DISCLAIMER_PAGE);
+  await expect(page.locator('.privacy-badge').first()).toContainText('100% Local');
+
+  const card = page.locator('details#scopeDisclaimer');
+  await card.evaluate((el) => { el.open = true; });
+  const body = card.locator('.disclaimer-body');
+
+  await expect(body).toContainText('Your workbook stays in the browser');
+  await expect(body).toContainText('The parser does not');
+  await expect(body).toContainText('SheetJS is fetched from a CDN');
+  await expect(body).toContainText('Local is about transmission, not permission');
+});
+
+test('the CDN caveat matches how the page actually loads SheetJS', async ({ page, baseURL }) => {
+  const requests = [];
+  page.on('request', (r) => requests.push(r.url()));
+  await expectPageToLoadCleanly(page, baseURL, DISCLAIMER_PAGE);
+  await page.waitForTimeout(500);
+
+  const xlsx = requests.filter((u) => /xlsx/i.test(u));
+  expect(xlsx.length, 'no SheetJS request observed').toBeGreaterThan(0);
+  expect(xlsx.some((u) => /^https:\/\/cdn\.sheetjs\.com/.test(u)),
+    `SheetJS no longer comes from cdn.sheetjs.com: ${xlsx.join(', ')}`).toBe(true);
+});
+
+test('scope disclaimer names the uses it is not for', async ({ page, baseURL }) => {
+  await expectPageToLoadCleanly(page, baseURL, DISCLAIMER_PAGE);
+  const card = page.locator('details#scopeDisclaimer');
+  await card.evaluate((el) => { el.open = true; });
+  const body = card.locator('.disclaimer-body');
+
+  await expect(body).toContainText('Spreadsheet audit, model review or assurance work');
+  // Not a malware scanner is worth saying on a tool people point at files they
+  // were emailed.
+  await expect(body).toContainText('This is not a malware scanner and it does not inspect macros');
+  await expect(body).toContainText('the name manager, sheet visibility including very hidden sheets');
+  await expect(body).toContainText('Edit Links for external references');
+});
+
+test('scope disclaimer opens by keyboard and carries a touchpoint in the results', async ({ page, baseURL }) => {
+  await expectPageToLoadCleanly(page, baseURL, DISCLAIMER_PAGE);
+  const card = page.locator('details#scopeDisclaimer');
+  await card.locator('summary').focus();
+  await page.keyboard.press('Enter');
+  await expect(card).toHaveAttribute('open', '');
+
+  const touch = page.locator('p.disclaimer');
+  await expect(touch).toHaveCount(1);
+  await expect(touch).toContainText('An inventory, not an audit');
+  await expect(touch).toContainText('cached values are not recalculated');
+  const inResults = await touch.evaluate((el) => Boolean(el.closest('#resultsContent')));
+  expect(inResults).toBe(true);
+});

@@ -147,3 +147,79 @@ test('species doubling reference renders B. coagulans search and compare option'
   await expect(page.locator('[data-results-count]')).toHaveText('Showing 1 of 12 species');
   await expect(page.locator('[data-species-card]:not([hidden]) .species-name')).toHaveText('B. coagulans');
 });
+
+// --- scope disclaimer -----------------------------------------------------
+// The old block was a plain div with 258 words and 4 of 5 legal elements, and
+// its content was already the sharpest in the biochem group: monoculture only,
+// not food safety, not a release criterion, and the cofermentation caveat. The
+// rebuild moves it onto the shared collapsible card and adds the missing
+// clauses. The cofermentation point is the one that matters most, because the
+// comparison chart on this page overlays independent mono-culture curves and
+// looks exactly like a model of a mixed starter.
+
+const { expectPageToLoadCleanly: loadCleanly } = require('./helpers.cjs');
+const DISCLAIMER_PAGE = '/tools/species-doubling-reference.html';
+
+test('scope disclaimer spans the layout and leads with the mono-culture limit', async ({ page, baseURL }) => {
+  await loadCleanly(page, baseURL, DISCLAIMER_PAGE);
+  const card = page.locator('details#scopeDisclaimer.disclaimer-card');
+  await expect(card).toBeVisible();
+  await expect(card).not.toHaveAttribute('open', /.*/);
+
+  const box = await card.boundingBox();
+  const layout = await page.locator('main.reference-layout').boundingBox();
+  expect(box.width).toBeGreaterThan(layout.width * 0.9);
+
+  await expect(card.locator('.disclaimer-title')).toContainText('not a release criterion, and not a mixed-culture rate');
+  await expect(card.locator('.disclaimer-lead')).toContainText('protocooperation between starter pairs can beat these numbers');
+});
+
+test('scope disclaimer keeps every variability source and the release-criterion line', async ({ page, baseURL }) => {
+  await loadCleanly(page, baseURL, DISCLAIMER_PAGE);
+  const card = page.locator('details#scopeDisclaimer');
+  await card.evaluate((el) => { el.open = true; });
+  const body = card.locator('.disclaimer-body');
+
+  for (const v of [
+    'strain lineage',
+    'inoculum age',
+    'oxygen handling',
+    'medium composition',
+    'pH control',
+    'buffering',
+    'milk treatment',
+    'measurement method',
+  ]) {
+    await expect(body, `lost the ${v} variability source`).toContainText(v);
+  }
+
+  await expect(body).toContainText('not a pathogen-safety model, HACCP tool, fermentation process validation');
+  await expect(body).toContainText('Not a release criterion');
+  await expect(body).toContainText('clear product for consumption, sale, labeling, patient use, or manufacturing decisions');
+});
+
+test('scope disclaimer keeps the cofermentation caveat with its named starter pair', async ({ page, baseURL }) => {
+  await loadCleanly(page, baseURL, DISCLAIMER_PAGE);
+  const card = page.locator('details#scopeDisclaimer');
+  await card.evaluate((el) => { el.open = true; });
+  const body = card.locator('.disclaimer-body');
+
+  await expect(body).toContainText('Protocooperation and cofermentation can yield effective doubling behaviour far shorter');
+  await expect(body).toContainText('S. thermophilus');
+  await expect(body).toContainText('L. bulgaricus');
+  await expect(body).toContainText('not a model of what happens in a vat');
+  // The medical-style clause, warranted because a doubling time can be read as
+  // a safety clearance.
+  await expect(card.locator('.disclaimer-footer')).toContainText('does not create any professional, advisory or food-safety relationship');
+});
+
+test('scope disclaimer carries a touchpoint by the comparison chart', async ({ page, baseURL }) => {
+  await loadCleanly(page, baseURL, DISCLAIMER_PAGE);
+  const touch = page.locator('p.disclaimer');
+  await expect(touch).toHaveCount(1);
+  await expect(touch).toBeVisible();
+  await expect(touch).toContainText('Mono-culture benchmarks overlaid, not a cofermentation model');
+  await expect(touch).toContainText('never a release criterion');
+  const inCompare = await touch.evaluate((el) => Boolean(el.closest('.compare-panel')));
+  expect(inCompare).toBe(true);
+});

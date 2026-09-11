@@ -154,39 +154,9 @@ header {
     border-color: rgba(248, 113, 113, 0.45);
 }
 
-.scope-warning-block {
-    margin-top: 14px;
-    padding: 12px;
-    border: 1px solid rgba(245, 158, 11, 0.45);
-    border-radius: 8px;
-    background: rgba(245, 158, 11, 0.10);
-}
-
-.scope-warning-block summary {
-    cursor: pointer;
-    font-weight: 800;
-    margin-bottom: 5px;
-    color: var(--creatine-orange);
-}
-
-.scope-warning-block:not([open]) summary {
-    margin-bottom: 0;
-}
-
-.scope-warning-block strong {
-    color: var(--creatine-orange);
-}
-
-.scope-warning-block p {
-    margin: 0 0 8px;
-    color: var(--creatine-muted);
-    line-height: 1.45;
-    font-size: 0.9rem;
-}
-
-.scope-warning-block p:last-child {
-    margin-bottom: 0;
-}
+/* The scope disclaimer card and the p.disclaimer touchpoint are both defined
+   in css/shared.css. The .scope-warning-block rules that were here were
+   replaced by that component in September 2026. */
 
 .tab-row {
     display: grid;
@@ -1251,9 +1221,14 @@ td {
 }
 
 /* --creatine-orange measures 1.99:1 against the light card, failing WCAG AA
-   on the one sentence the block exists to deliver. Darkening it for light
-   theme alone keeps the brand hue and clears AA. Dark theme is untouched. */
-[data-theme="light"] .scope-warning-block summary,
-[data-theme="light"] .scope-warning-block strong {
-    color: color-mix(in srgb, var(--creatine-orange) 62%, #000);
+   on the one sentence the disclaimer exists to deliver. Darkening it for
+   light theme alone keeps the brand hue and clears AA. 62% cleared the old block's
+   background and measures 4.43:1 on the shared card's lighter tint, so this is
+   52%. Dark theme is
+   untouched. This now points at the shared card rather than the retired
+   .scope-warning-block, and beats shared.css on load order. It targets the
+   title only: the card summary also holds .disclaimer-lead, and colouring
+   the whole summary in the accent measured 4.43:1 on the light card. */
+[data-theme="light"] .disclaimer-card .disclaimer-title {
+    color: color-mix(in srgb, var(--creatine-orange) 52%, #000);
 }

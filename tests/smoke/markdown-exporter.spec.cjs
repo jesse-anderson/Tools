@@ -287,3 +287,92 @@ test.describe('standalone HTML export', () => {
     expect(html).toContain('@page'); // print page rules included
   });
 });
+
+// --- scope disclaimer -----------------------------------------------------
+// The page had no caveat at all. Two things needed saying that its "Export
+// Notes" info card did not: the draft is autosaved into local storage and
+// outlives the tab, and the preview is HTML while the exports are not, so
+// fidelity differs by path.
+
+const DISCLAIMER_PAGE = '/tools/markdown-exporter.html';
+
+test('scope disclaimer is visible, closed, and above the layout', async ({ page }) => {
+  await page.goto(DISCLAIMER_PAGE, { waitUntil: 'domcontentloaded' });
+  const card = page.locator('details#scopeDisclaimer.disclaimer-card');
+  await expect(card).toBeVisible();
+  await expect(card).not.toHaveAttribute('open', /.*/);
+
+  const box = await card.boundingBox();
+  const layout = await page.locator('.exporter-layout').boundingBox();
+  expect(box.width).toBeGreaterThan(layout.width * 0.9);
+  expect(box.y).toBeLessThan(layout.y);
+
+  await expect(card.locator('.disclaimer-title')).toContainText('not a document store, and not a backup');
+  await expect(card.locator('.disclaimer-lead')).toContainText('Open the exported file before you send it');
+});
+
+test('scope disclaimer explains that the draft outlives the tab', async ({ page }) => {
+  await page.goto(DISCLAIMER_PAGE, { waitUntil: 'domcontentloaded' });
+  const card = page.locator('details#scopeDisclaimer');
+  await card.evaluate((el) => { el.open = true; });
+  const body = card.locator('.disclaimer-body');
+
+  await expect(body).toContainText('Autosave writes your text to');
+  await expect(body).toContainText('local storage');
+  await expect(body).toContainText('It survives closing the tab and reopening the page later');
+  await expect(body).toContainText('Closing the tab is not the same thing');
+  // And the other half: persistence is not durability.
+  await expect(body).toContainText('It is also not a backup');
+});
+
+test('scope disclaimer names each way an export diverges from the preview', async ({ page }) => {
+  await page.goto(DISCLAIMER_PAGE, { waitUntil: 'domcontentloaded' });
+  const card = page.locator('details#scopeDisclaimer');
+  await card.evaluate((el) => { el.open = true; });
+  const body = card.locator('.disclaimer-body');
+
+  await expect(body).toContainText('Page breaks land where the renderer puts them');
+  await expect(body).toContainText('Wide tables and long code lines');
+  await expect(body).toContainText('Fonts substitute');
+  // The two DOCX paths are a documented feature of this tool, so the card has
+  // to say they do not produce identical documents.
+  await expect(body).toContainText('The two DOCX paths differ');
+  await expect(body).toContainText('Word altchunk conversion as the fallback');
+  await expect(body).toContainText('Images that cannot be embedded');
+});
+
+test('scope disclaimer is honest about what sanitisation buys', async ({ page }) => {
+  await page.goto(DISCLAIMER_PAGE, { waitUntil: 'domcontentloaded' });
+  const card = page.locator('details#scopeDisclaimer');
+  await card.evaluate((el) => { el.open = true; });
+  const body = card.locator('.disclaimer-body');
+
+  await expect(body).toContainText('Sanitisation protects this page, not your reader');
+  await expect(body).toContainText('it can silently drop markup you meant to keep');
+  // No accessibility or archival conformance is claimed, which matters because
+  // "Export PDF" reads like it might.
+  await expect(body).toContainText('not tagged PDF and make no claim against PDF/UA');
+  await expect(body).toContainText('Nothing here produces PDF/A');
+});
+
+test('scope disclaimer opens by keyboard and carries a touchpoint by the status line', async ({ page }) => {
+  await page.goto(DISCLAIMER_PAGE, { waitUntil: 'domcontentloaded' });
+  const card = page.locator('details#scopeDisclaimer');
+  await card.locator('summary').focus();
+  await page.keyboard.press('Enter');
+  await expect(card).toHaveAttribute('open', '');
+
+  const touch = page.locator('p.disclaimer');
+  await expect(touch).toHaveCount(1);
+  await expect(touch).toBeVisible();
+  await expect(touch).toContainText('Open the export before you send it');
+
+  // Below the export buttons rather than inside the row, which is where it
+  // first landed and broke the flex layout.
+  const group = await page.locator('.action-group').boundingBox();
+  const status = await page.locator('#statusLine').boundingBox();
+  const box = await touch.boundingBox();
+  expect(box.y).toBeGreaterThan(group.y + group.height - 1);
+  expect(box.y).toBeLessThan(status.y);
+  await expect(page.locator('.action-group p.disclaimer')).toHaveCount(0);
+});
