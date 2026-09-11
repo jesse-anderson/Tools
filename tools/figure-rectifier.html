@@ -303,26 +303,9 @@
             display: block;
         }
 
-        /* Disclaimer */
-        .disclaimer {
-            border: 1px solid rgba(239, 68, 68, 0.35);
-            background: rgba(239, 68, 68, 0.08);
-            border-radius: 12px;
-            padding: 14px;
-            color: var(--text-primary);
-        }
-        .disclaimer h3 {
-            margin: 0 0 8px 0;
-            font-size: 0.85rem;
-            letter-spacing: 0.06em;
-            text-transform: uppercase;
-        }
-        .disclaimer p {
-            margin: 0;
-            color: var(--text-secondary);
-            font-size: 0.85rem;
-            line-height: 1.5;
-        }
+        /* The local .disclaimer block lived here: a hardcoded red slab on its own
+           geometry, which is the divergence css/shared.css exists to stop. This page
+           now uses the shared p.disclaimer, so there is nothing to style here. */
 
         @media (max-width: 1100px) {
             .calculator-layout { grid-template-columns: 1fr; }
@@ -630,14 +613,17 @@
                     </div>
                 </div>
 
-                <div class="disclaimer">
-                    <h3>Critical Engineering Disclaimer</h3>
-                    <p>
-                        This tool performs manual geometric correction and optional axis calibration. Results depend strongly on
-                        accurate corner placement and calibration points. Always validate against known reference values. Runs
-                        entirely in your browser (no server processing or storage).
-                    </p>
-                </div>
+                <p class="disclaimer">
+                    <strong>The accuracy of everything here is set by where you clicked, not by the maths.</strong>
+                    Corner placement and calibration points are yours, and a few pixels of error in either
+                    propagates straight through the rectification into every value read off the result. The
+                    transform assumes the original figure was a flat plane photographed or scanned without
+                    lens distortion, which a page from a bound book is not. Validate against a known reference
+                    value on the figure before trusting any measurement taken from it. Runs entirely in your
+                    browser, with no server processing or storage. Provided as-is, without warranty, and used
+                    at your own risk. The <a href="../tools.html#siteDisclaimer">site-wide notice</a> carries
+                    the full terms.
+                </p>
             </div>
 
             <!-- RIGHT: Canvas workspace -->

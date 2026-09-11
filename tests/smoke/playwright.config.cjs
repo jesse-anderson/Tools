@@ -57,6 +57,7 @@ module.exports = defineConfig({
     'local-llm-opex.spec.cjs',
     'legal-clauses.spec.cjs',
     'p3-short-notices.spec.cjs',
+    'tool-surface-conformance.spec.cjs',
     'disclaimer-contrast.spec.cjs'
   ],
   timeout: 60_000,

@@ -60,6 +60,28 @@ for (const [slug, claim] of Object.entries(P3_TOOLS)) {
   });
 }
 
+
+// The two pages that are unlinked from the catalog but legitimately reached from
+// inside another tool. They are served by the static host and reachable by
+// direct URL, so being absent from tools.html is not a reason to carry nothing.
+// They take the same short-notice shape as the P3 band.
+const REACHABLE_SUBPAGES = {
+  'figure-rectifier': 'set by where you clicked, not by the maths',
+  'meeting-planner-privacy': 'not a contract, a certification, or a compliance statement',
+};
+
+for (const [slug, claim] of Object.entries(REACHABLE_SUBPAGES)) {
+  test(`${slug} is reachable by URL and carries a short notice`, async ({ page, baseURL }) => {
+    await expectPageToLoadCleanly(page, baseURL, `/tools/${slug}.html`);
+    const note = page.locator('p.disclaimer');
+    await expect(note).toHaveCount(1);
+    await expect(note).toBeVisible();
+    await expect(note).toContainText(claim);
+    await expect(note).toContainText('used at your own risk');
+    await expect(note.locator('a[href="../tools.html#siteDisclaimer"]')).toHaveCount(1);
+  });
+}
+
 test('the link target exists on tools.html and opens itself when followed', async ({ page, baseURL }) => {
   // A link to a fragment that is a closed <details> only scrolls to it, so the
   // reader lands on a summary line and has to click again. tools.html opens it
