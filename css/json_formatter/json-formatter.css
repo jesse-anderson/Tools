@@ -285,13 +285,8 @@ textarea.json-input {
     gap: 8px;
 }
 
-/* The tool-local .disclaimer-card block lived here: a plain div wearing the
-   shared component's class name, with its .disclaimer-footer on --text-muted,
-   which fails WCAG AA in both themes (2.6:1 light, 3.7:1 dark). json-formatter
-   is a P3 tool, so September 2026 replaced it with the shared p.disclaimer
-   short notice in css/shared.css. All four claims were carried across: the
-   2^53-1 precision loss, BigInt literals not being valid JSON, the credentials
-   and PII warning, and the forbidden uses. */
+/* Tool-local .disclaimer-card removed September 2026: it was a div wearing the
+   shared class name. P3 tool, so the notice is the shared p.disclaimer. */
 
 /* Stats */
 .stat-row {

@@ -155,8 +155,8 @@ header {
 }
 
 /* The scope disclaimer card and the p.disclaimer touchpoint are both defined
-   in css/shared.css. The .scope-warning-block rules that were here were
-   replaced by that component in September 2026. */
+   in css/shared.css. The .scope-warning-block rules that were here were replaced
+   by that component in September 2026. */
 
 .tab-row {
     display: grid;
@@ -1220,15 +1220,9 @@ td {
     }
 }
 
-/* --creatine-orange measures 1.99:1 against the light card, failing WCAG AA
-   on the one sentence the disclaimer exists to deliver. Darkening it for
-   light theme alone keeps the brand hue and clears AA. 62% cleared the old block's
-   background and measures 4.43:1 on the shared card's lighter tint, so this is
-   52%. Dark theme is
-   untouched. This now points at the shared card rather than the retired
-   .scope-warning-block, and beats shared.css on load order. It targets the
-   title only: the card summary also holds .disclaimer-lead, and colouring
-   the whole summary in the accent measured 4.43:1 on the light card. */
+/* --creatine-orange is 1.99:1 on the light card. Darkening to 52% keeps the hue
+   and clears AA on the shared card's tint; dark theme is untouched. Title only,
+   since the summary also holds .disclaimer-lead. */
 [data-theme="light"] .disclaimer-card .disclaimer-title {
     color: color-mix(in srgb, var(--creatine-orange) 52%, #000);
 }

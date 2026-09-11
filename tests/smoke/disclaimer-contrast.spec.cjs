@@ -1,19 +1,7 @@
-// Repo-wide WCAG AA guard for scope-disclaimer headings.
-//
-// Every tool listed here carries a disclaimer heading in an accent colour on a
-// tinted card. In September 2026, 19 of those heading/theme pairs across 17
-// tools failed AA, almost all of them in light theme and almost all from the
-// same cause: --accent-warning or a hardcoded #ef4444 painted on a light card,
-// with no light-theme override. The most important sentence on each page was
-// its least readable text.
-//
-// The fix lives mostly in css/shared.css (--disclaimer-accent, plus
-// [data-theme="light"] corrections that outrank a tool's own plain class rule
-// on specificity), with per-tool overrides where a tool themes its own brand
-// hue. This spec is what stops it coming back.
-//
-// One test per tool so the ~21 page loads fan out across workers, following
-// tool-pages-load.spec.cjs.
+// Repo-wide WCAG AA guard for scope-disclaimer headings, measured in both themes.
+// 19 heading/theme pairs across 17 tools failed AA in September 2026, almost all
+// from an accent painted on a light card with no light-theme override. One test
+// per tool so the page loads fan out across workers.
 const { test, expect } = require('@playwright/test');
 const { measureContrast } = require('./helpers.cjs');
 

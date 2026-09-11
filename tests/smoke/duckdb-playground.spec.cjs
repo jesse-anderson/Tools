@@ -1,10 +1,6 @@
-// DuckDB playground: the scope disclaimer.
-//
-// The tool is Active, had no spec, and had no user-visible caveat of any kind:
-// 0 words, 0 of 5 legal elements. It invites you to load a file and query it,
-// which makes the two things worth saying specific rather than generic: what
-// "runs in your browser" covers, and that column types were guessed from a
-// sample before you wrote a single query.
+// DuckDB playground: the scope disclaimer. The two points it has to make are
+// what "runs in your browser" covers, and that column types were guessed from a
+// sample before the first query.
 const { test, expect } = require('@playwright/test');
 const { expectPageToLoadCleanly } = require('./helpers.cjs');
 

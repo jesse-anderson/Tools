@@ -570,13 +570,8 @@
     color: var(--text-secondary);
 }
 
-/* The tool-local .disclaimer-card block lived here: a plain div wearing the
-   shared component's class name, with a hardcoded #ef4444 title measuring
-   3.76:1 on the light card and a .disclaimer-footer on --text-muted, which
-   fails AA in both themes. regex-tester is a P3 tool, so September 2026
-   replaced it with the shared p.disclaimer short notice in css/shared.css.
-   Every claim was carried across: the two engines, Pyodide's download, the
-   g-flag behaviour, the per-engine flags, and the local-only Python run. */
+/* Tool-local .disclaimer-card removed September 2026: it was a div wearing the
+   shared class name. P3 tool, so the notice is the shared p.disclaimer. */
 
 /* License Button */
 .license-btn {

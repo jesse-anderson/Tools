@@ -1,12 +1,7 @@
-// The two GPIO pinout references, esp32-pinout and rpi-pinout.
-//
-// One spec for both because they are the same tool with different data: same
-// layout, same sidebar, same board grid, and until September 2026 the same
-// 53-word dashed grey disclaimer box at the bottom of the sidebar. Neither had
-// a spec of any kind. The shared parts are parameterised and the board-specific
-// warnings are asserted per tool, since those are the whole point of the
-// rebuild: a pin map that does not mention 5 V tolerance or strapping pins is
-// the kind of reference that costs someone a board.
+// The two GPIO pinout references, esp32-pinout and rpi-pinout: the same tool with
+// different data, so one spec parameterises the shared parts and asserts the
+// board-specific warnings per tool. A pin map that omits 5 V tolerance or
+// strapping pins costs someone a board.
 const { test, expect } = require('@playwright/test');
 const { expectPageToLoadCleanly } = require('./helpers.cjs');
 

@@ -1,12 +1,8 @@
-// Linear regression: the scope disclaimer.
-//
-// The tool is Active and had no spec. Its disclaimer was a hand-rolled
-// .collapsible-header pair with a JavaScript toggle, collapsed by default, at
-// the bottom of the sidebar under "Run Regression". The content named the five
-// unchecked assumptions, which is the right list; what it lacked was the legal
-// boilerplate, any statement of what the tool must not be used for, and any
-// mention of the two misreadings a regression page invites: that a high R-squared
-// means the model is right, and that a coefficient is a causal effect.
+// Linear regression: the scope disclaimer. It names the five unchecked
+// assumptions and the two misreadings a regression page invites, that a high
+// R-squared means the model is right and that a coefficient is a causal effect.
+// The old hand-rolled collapsible bound neither Enter nor Space; the card is
+// native details/summary.
 const { test, expect } = require('@playwright/test');
 const { expectPageToLoadCleanly } = require('./helpers.cjs');
 

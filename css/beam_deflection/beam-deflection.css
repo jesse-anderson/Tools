@@ -754,11 +754,8 @@
 }
 
 /* --- Scope disclaimer ------------------------------------------------------
-   Same treatment as the linear-thermal-expansion card: the theme warning
-   colour, tinted through color-mix rather than painted on as a solid slab, so
-   it reads as a caution rather than an error. Native details/summary, so it
-   needs no JavaScript, and the summary carries the headline warning where it
-   is visible without opening anything. */
+   Warning colour tinted through color-mix so it reads as a caution. Native
+   details/summary, with the headline warning in the summary. */
 
 .disclaimer-card {
     margin-bottom: 20px;

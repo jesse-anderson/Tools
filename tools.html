@@ -2197,11 +2197,8 @@
             }
         });
 
-        // The 14 short-notice tools link here with #siteDisclaimer rather than
-        // repeating the warranty, liability and indemnity clauses on a page whose
-        // whole job is counting words. Navigating to a fragment that IS a closed
-        // <details> only scrolls to it, so the reader would land on a summary line
-        // and have to click again; open it for them.
+        // A fragment link to a closed <details> only scrolls to it, leaving the
+        // reader on a summary line to click again. Open it for them.
         function openSiteDisclaimerFromHash() {
             if (window.location.hash !== '#siteDisclaimer') return;
             const card = document.getElementById('siteDisclaimer');

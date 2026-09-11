@@ -1,15 +1,8 @@
-// Meeting Planner: the scope disclaimer.
-//
-// Separate from meeting-planner-smoke.spec.cjs, which is excluded from
-// testMatch because it needs a local Worker and a Turnstile bypass. This spec
-// runs against the static page with no backend, which is also the point: the
-// card sits outside both view sections, so it renders whether or not the
-// service is reachable and whether or not an event has loaded.
-//
-// This is the only tool in the repo with a server, the only one that collects
-// other people's data, and its notice scored 0/5 on the legal elements: it was
-// an accurate data-flow description with no warranty, liability, risk,
-// precedence or verification language anywhere in it.
+// Meeting Planner: the scope disclaimer. Separate from meeting-planner-smoke,
+// which is out of testMatch because it needs a local Worker and a Turnstile
+// bypass. This runs against the static page with no backend, which is the point:
+// the card sits outside both view sections, so it renders whether or not the
+// service is reachable. This is the only tool in the repo with a server.
 const { test, expect } = require('@playwright/test');
 
 const PAGE = '/tools/meeting-planner.html';

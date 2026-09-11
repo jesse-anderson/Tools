@@ -1,10 +1,6 @@
-// Screenshot tool: the scope disclaimer.
-//
-// The tool had no spec. It carried two small red boxes at the bottom of the
-// control column, 58 words between them, covering local processing, the 20 MP
-// export hint, and the three things it does not do to an image. What neither
-// said is the thing a screenshot tool is actually risky for: the frame contains
-// whatever was on screen, and there is no redaction feature on the page.
+// Screenshot tool: the scope disclaimer. What a screenshot tool is risky for is
+// that the frame contains whatever was on screen, and there is no redaction
+// feature on the page.
 const { test, expect } = require('@playwright/test');
 const { expectPageToLoadCleanly } = require('./helpers.cjs');
 

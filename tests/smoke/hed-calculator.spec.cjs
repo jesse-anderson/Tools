@@ -1,10 +1,6 @@
-// Human Equivalent Dose scope disclaimer.
-//
-// The tool had no spec at all before September 2026, and it is the highest
-// clinical stakes in the repo: it scales an animal no-effect dose to a human
-// figure. The old sidebar waiver was real but set at 0.7rem, below the inputs,
-// not collapsible, and scored 2 of 5 legal elements. It is now the shared card
-// above the calculator.
+// Human Equivalent Dose scope disclaimer. Highest clinical stakes in the repo:
+// it scales an animal no-effect dose to a human figure, so the card sits above
+// the calculator rather than in the sidebar.
 const { test, expect } = require('@playwright/test');
 const { expectContrastAA } = require('./helpers.cjs');
 

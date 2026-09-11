@@ -43,12 +43,9 @@
       --border-color: #cbd5e1;
       --overlay-bg: rgba(255, 255, 255, 0.9);
 
-      /* This page pins --accent-warning to #eab308 and --text-secondary to
-         #64748b, both one step lighter than the shared #ca8a04 and #475569.
-         On the tinted disclaimer card that lands the title at 4.47:1 and the
-         body at 4.3:1, either side of the 4.5 AA threshold. Correct the
-         accent here and scope --text-secondary to the component below, so
-         the rest of the page keeps its palette. */
+      /* This page's lighter --accent-warning and --text-secondary land the card
+         at 4.47:1 and 4.3:1, just under AA. Correct the accent here and scope
+         --text-secondary to the component below, leaving the page palette alone. */
       --disclaimer-accent: color-mix(in srgb, var(--accent-warning) 45%, #000);
     }
 

@@ -1,9 +1,6 @@
-// PID Playground scope disclaimer.
-//
-// The tool had no spec at all before September 2026. FOPDT is a caricature of
-// a real process, and the omissions that matter are the ones that make a loop
-// oscillate in service while behaving perfectly here, stiction above all, so
-// the disclaimer names them individually and these tests pin them.
+// PID Playground scope disclaimer. FOPDT is a caricature of a real process, and
+// the omissions that matter make a loop oscillate in service while behaving
+// perfectly here, stiction above all. The notice names them; these tests pin them.
 const { test, expect } = require('@playwright/test');
 const { expectContrastAA } = require('./helpers.cjs');
 

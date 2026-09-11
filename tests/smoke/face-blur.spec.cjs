@@ -1,9 +1,7 @@
-// Face Blur scope disclaimer.
-//
-// The tool had no spec at all before September 2026. Its whole purpose is a
-// privacy claim, so the disclaimer has to disclaim the claim rather than an
-// answer: blur is reversible by reconstruction, a missed face is never
-// reported, and a face is not the only identifier in a photograph.
+// Face Blur scope disclaimer. The tool's whole purpose is a privacy claim, so the
+// notice disclaims the claim rather than an answer: blur is reversible by
+// reconstruction, a missed face is never reported, and a face is not the only
+// identifier in a photograph.
 const { test, expect } = require('@playwright/test');
 const { expectContrastAA } = require('./helpers.cjs');
 

@@ -282,10 +282,9 @@
 .info-panel ul, .info-panel ol { padding-left: 18px; }
 .info-panel li { margin-bottom: 5px; }
 /* The scope disclaimer card and the p.disclaimer touchpoint are both defined
-   in css/shared.css. The .privacy-note this file used to style was replaced by
-   that component in September 2026. It was an 18-word green box in the sidebar
-   saying "Local only", which is true of a dropped file and not of the URL
-   loader: pasting a URL is a network fetch the remote host sees. */
+   in css/shared.css. The .privacy-note that was here was replaced by that
+   component in September 2026. It claimed "Local only", which holds for a dropped
+   file but not for the URL loader, where the remote host sees the fetch. */
 
 /* ---- license modal (uses shared .modal-overlay/.modal) ---- */
 .library-entry { margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--border-color); }

@@ -1,11 +1,6 @@
-// DBSCAN visualizer: the scope disclaimer.
-//
-// The tool is Active, had no spec, and had no user-visible caveat of any kind
-// while producing cluster assignments people screenshot into reports. The
-// specific problem with a clustering tool is not that the arithmetic might be
-// wrong. It is that the arithmetic is right and the output is still not a
-// finding: DBSCAN partitions any data at any parameters, and a picture of
-// coloured groups is persuasive whether or not the structure exists.
+// DBSCAN visualizer: the scope disclaimer. The risk here is not bad arithmetic.
+// DBSCAN partitions any data at any parameters, so coloured groups are
+// persuasive whether or not the structure exists.
 const { test, expect } = require('@playwright/test');
 const { expectPageToLoadCleanly } = require('./helpers.cjs');
 

@@ -1,10 +1,7 @@
-// Yogurt CFU estimator: the scope disclaimer.
-//
-// The tool is Prototypical and had no spec. Its old .scope-warning-block sat
-// inside the control panel between the status line and the recipe inputs, so it
-// scrolled out of view as soon as anyone started entering a batch, and it said
-// nothing about the specific hazard a home fermentation tool carries: that the
-// model represents the starter culture and not the things that make food unsafe.
+// Yogurt CFU estimator: the scope disclaimer. The hazard a home fermentation tool
+// carries is that the model represents the starter culture and not the things
+// that make food unsafe. The card sits above the inputs, not inside the panel
+// that scrolls away once a batch is entered.
 const { test, expect } = require('@playwright/test');
 const { expectPageToLoadCleanly } = require('./helpers.cjs');
 

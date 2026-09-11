@@ -985,19 +985,10 @@ footer {
 /* ============================================================
    SCOPE DISCLAIMER CARD
    ============================================================
-   The one component that lives here rather than in a per-tool file.
-   shared.css otherwise carries theme variables and base styles only, and
-   deliberately not layout component classes; this is the documented
-   exception. The reasons are specific to this component: it has to look and
-   behave identically on every tool, its divergence is a legal and
-   accessibility risk rather than a cosmetic one, and it exists on every
-   page. Ten per-tool copies had already drifted from 1 rule to 29, and the
-   contrast defect below was present in some copies and absent from others.
-
-   A tool that needs a different look still overrides these rules from its own
-   stylesheet, which loads afterwards.
-
-   Reference implementations: control-valve-sizing, beam-deflection.
+   The one component defined here rather than per tool, because ten copies had
+   drifted from 1 rule to 29 and the contrast defect below was in some and not
+   others. A tool still overrides these from its own stylesheet, which loads
+   afterwards. Reference implementations: control-valve-sizing, beam-deflection.
    ------------------------------------------------------------ */
 
 :root {
@@ -1007,23 +998,18 @@ footer {
     --disclaimer-accent-strong: var(--accent-error);
 }
 
-/* Light theme cannot. --accent-warning resolves to #ca8a04, which measures
-   2.9:1 on a white card, and disclaimer headings are 12-16px, well under the
-   18.66px the WCAG large-text exemption needs. Darkening the accent for light
-   theme alone takes it to roughly 6:1 and leaves dark theme untouched.
-   These mix from var(--accent-*), so a tool that themes its own accents keeps
-   its hue and still gets a readable heading. */
+/* Light theme cannot: #ca8a04 measures 2.9:1 on a white card and these headings
+   are 12-16px, under the 18.66px large-text exemption. Darkening for light theme
+   gives about 6:1 and leaves dark untouched. Mixing from var(--accent-*) keeps a
+   tool's own hue. */
 [data-theme="light"] {
     --disclaimer-accent: color-mix(in srgb, var(--accent-warning) 60%, #000);
     --disclaimer-accent-strong: color-mix(in srgb, var(--accent-error) 80%, #000);
 }
 
-/* Legacy heading classes, corrected in place.
-   These carry [data-theme="light"] so they outrank a plain `.disclaimer-title`
-   rule in a tool stylesheet on specificity (0,2,0 against 0,1,0) regardless of
-   load order, which is what lets this fix reach tools without editing each of
-   them. A tool that wants a different light-theme colour declares its own
-   [data-theme="light"] rule and wins on load order. */
+/* Legacy heading classes, corrected in place. The [data-theme="light"] prefix is
+   0,2,0 against a tool's plain .disclaimer-title at 0,1,0, so this reaches tools
+   without editing each one. A tool declaring its own light rule wins on load order. */
 [data-theme="light"] .disclaimer-title {
     color: var(--disclaimer-accent);
 }
@@ -1032,11 +1018,8 @@ footer {
 }
 
 /* --- the card itself --------------------------------------------------- */
-/* Several tools use a CSS grid as the layout root, so a card dropped straight
-   into one becomes a column of the tool instead of a banner across it. That
-   happened on unit-converter during this rollout. grid-column is ignored on a
-   non-grid child, so declaring it here is free everywhere else and makes the
-   component safe to drop into any layout. */
+/* grid-column keeps the card a banner instead of a column when the layout root is
+   a grid. Ignored on a non-grid child, so it costs nothing elsewhere. */
 .disclaimer-card {
     grid-column: 1 / -1;
     border: 1px solid color-mix(in srgb, var(--accent-warning) 45%, transparent);
@@ -1125,10 +1108,8 @@ p.disclaimer {
 }
 p.disclaimer strong { color: var(--text-primary); }
 
-/* The P3 short notices link to the site-wide clauses on tools.html rather than
-   repeating them. A default UA link colour on the amber-tinted note measures
-   badly in light theme, and --accent-warning on it is worse, so the link takes
-   the body colour and is carried by the underline instead. */
+/* Link colour on the amber tint measures badly in light theme, so the link takes
+   the body colour and is carried by the underline. */
 p.disclaimer a {
     color: var(--text-primary);
     text-decoration: underline;
@@ -1136,10 +1117,8 @@ p.disclaimer a {
 }
 p.disclaimer a:hover, p.disclaimer a:focus-visible { color: var(--disclaimer-accent-strong); }
 
-/* `.liability-disclaimer > strong` is the heading in battery-capacity,
-   local-llm-opex and stoichiometry-calculator. Direct child only: the
-   `p strong` inside the body is ordinary emphasis on --text-primary and
-   must keep it. */
+/* The heading in battery-capacity, local-llm-opex and stoichiometry-calculator.
+   Direct child only, so body `p strong` keeps --text-primary. */
 [data-theme="light"] .liability-disclaimer > strong {
     color: var(--disclaimer-accent);
 }

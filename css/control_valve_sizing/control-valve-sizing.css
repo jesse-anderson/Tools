@@ -33,13 +33,8 @@ header h1 { font-family: 'Space Grotesk', system-ui, sans-serif; font-size: 2rem
 .subtitle { color: var(--text-secondary); margin: 0; }
 
 /* --- scope disclaimer -----------------------------------------------------
- * The card, its summary, sections, note and footer, the light-theme heading
- * contrast correction and the p.disclaimer touchpoint beside the results all
- * live in css/shared.css now. This tool is one of the two reference
- * implementations, so its copy was the source of that component and carrying
- * a second copy here would be the drift the move exists to stop.
- *
- * Anything this tool needs to differ on goes below, and wins on load order.
+ * The whole component lives in css/shared.css; this tool's copy was its source.
+ * Anything that needs to differ goes below and wins on load order.
  */
 
 /* --- layout --------------------------------------------------------------- */

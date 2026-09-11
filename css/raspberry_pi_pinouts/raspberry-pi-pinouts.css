@@ -567,9 +567,8 @@
 }
 
 /* The scope disclaimer card and the p.disclaimer touchpoint are both defined
-   in css/shared.css. The bare .disclaimer block this file used to style was
-   replaced by that component in September 2026. It was a dashed grey box at the
-   bottom of the sidebar, below the tag chips, carrying 53 words. */
+   in css/shared.css. The bare .disclaimer block that was here was replaced by
+   that component in September 2026. */
 
 /* Warning Banner */
 .warning-banner {

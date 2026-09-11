@@ -670,13 +670,8 @@ input[type=range]::-moz-range-track {
     color: var(--text-secondary);
 }
 
-/* The tool-local .disclaimer-card block lived here: a plain div wearing the
-   shared component's class name, with a .disclaimer-footer on --text-muted,
-   which measures 2.6:1 in light theme and 3.7:1 in dark and fails WCAG AA in
-   both. color-picker is a P3 tool, so September 2026 replaced the whole block
-   with the shared p.disclaimer short notice in css/shared.css. All four of its
-   claims were carried across: sRGB assumption, CMYK without ICC profiles, the
-   Delta-E of an uncalibrated display, and the forbidden uses. */
+/* Tool-local .disclaimer-card removed September 2026: it was a div wearing the
+   shared class name. P3 tool, so the notice is the shared p.disclaimer. */
 
 /* Visually Hidden (for screen readers) */
 .sr-only {

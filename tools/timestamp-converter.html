@@ -196,11 +196,8 @@
         .stat-label { color: var(--text-secondary); }
         .stat-val { font-family: 'JetBrains Mono', monospace; font-weight: 600; color: var(--accent-engineering); }
 
-        /* The tool-local .disclaimer-card here was a plain div wearing the shared
-           component's class name: a hardcoded #f59e0b title measuring 2.15:1 on the
-           light card, and none of the component's structure. September 2026 replaced
-           it with the shared p.disclaimer short notice from css/shared.css. This tool
-           is P3, so it gets one notice and no sectioned card. */
+        /* Tool-local .disclaimer-card removed September 2026: it was a div wearing
+           the shared class name. P3 tool, so the notice is the shared p.disclaimer. */
 
         @media (max-width: 1024px) {
             .calculator-layout { grid-template-columns: 1fr; }

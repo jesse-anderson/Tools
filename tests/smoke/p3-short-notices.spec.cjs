@@ -1,24 +1,10 @@
-// The P3 band: 14 tools that carry a short scope notice and deliberately do NOT
-// carry a sectioned disclaimer card.
-//
-// This spec exists to pin a decision that is easy to undo by accident. Phases 2
-// to 4 gave 40 tools a sectioned `.disclaimer-card` with eight legal clauses in
-// its footer, and the obvious next move is to finish the job by giving the other
-// 14 the same treatment. That would be wrong. A word counter carrying an
-// indemnity clause teaches readers that the cards are decoration, which is what
-// costs the beam-deflection and control-valve-sizing cards their credibility on
-// the pages where the warning is load-bearing. So these pages get one paragraph
-// naming the one thing the tool genuinely does not do, and reach the warranty,
-// liability and indemnity clauses by link to the site-wide notice on tools.html.
-//
-// Three things are asserted for every tool: exactly one notice, the risk
-// sentence, and the working link. Then one claim per tool, so the notice cannot
-// decay into "this tool has limitations", which is worth nothing.
+// The P3 band: 14 low-consequence tools that carry a short scope notice and no
+// sectioned disclaimer card. The zero-card assertion pins that decision, which is
+// easy to undo by accident; the reasoning is in docs/SOW/disclaimer_rework_sow.md.
 const { test, expect } = require('@playwright/test');
 const { expectPageToLoadCleanly } = require('./helpers.cjs');
 
-// slug -> a phrase from that tool's specific claim. Each is a fact about the
-// implementation that a reader could not guess, not a genre sentence.
+// slug -> a phrase from that tool's claim, specific enough that a generic notice fails.
 const P3_TOOLS = {
   'word-count': 'Sentences are split on',
   'productivity-timer': 'throttled to',
@@ -44,8 +30,7 @@ for (const [slug, claim] of Object.entries(P3_TOOLS)) {
     await expect(note, `${slug} should carry exactly one short notice`).toHaveCount(1);
     await expect(note).toBeVisible();
 
-    // The decision this spec exists to hold. A card appearing here means someone
-    // finished the rollout past where it was supposed to stop.
+    // A card appearing here means the rollout ran past where it was supposed to stop.
     await expect(
       page.locator('.disclaimer-card'),
       `${slug} is P3 and must NOT grow a sectioned disclaimer card`
@@ -61,10 +46,8 @@ for (const [slug, claim] of Object.entries(P3_TOOLS)) {
 }
 
 
-// The two pages that are unlinked from the catalog but legitimately reached from
-// inside another tool. They are served by the static host and reachable by
-// direct URL, so being absent from tools.html is not a reason to carry nothing.
-// They take the same short-notice shape as the P3 band.
+// Unlinked from the catalog, reachable by direct URL from inside another tool.
+// Same short-notice shape as the P3 band.
 const REACHABLE_SUBPAGES = {
   'figure-rectifier': 'set by where you clicked, not by the maths',
   'meeting-planner-privacy': 'not a contract, a certification, or a compliance statement',
@@ -83,9 +66,8 @@ for (const [slug, claim] of Object.entries(REACHABLE_SUBPAGES)) {
 }
 
 test('the link target exists on tools.html and opens itself when followed', async ({ page, baseURL }) => {
-  // A link to a fragment that is a closed <details> only scrolls to it, so the
-  // reader lands on a summary line and has to click again. tools.html opens it
-  // from the hash. If that handler is removed, these 14 links quietly degrade.
+  // A fragment link to a closed <details> only scrolls to it, so tools.html opens
+  // it from the hash. Without this, all 14 links degrade silently.
   await expectPageToLoadCleanly(page, baseURL, '/tools.html');
   const card = page.locator('details#siteDisclaimer');
   await expect(card).toHaveCount(1);

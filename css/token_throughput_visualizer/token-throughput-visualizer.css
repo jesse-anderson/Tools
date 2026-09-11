@@ -611,10 +611,8 @@
     line-height: 1.7;
 }
 
-/* The sidebar box here carried .disclaimer-card, which is the shared scope
-   component's class name in css/shared.css, while being an ordinary sidebar
-   card. September 2026 moved the scope notice to the shared p.disclaimer and
-   left this rule with nothing to style, so it is gone. */
+/* A .disclaimer-card rule sat here on an ordinary sidebar card. Removed
+   September 2026; the notice is the shared p.disclaimer. */
 
 .attribution-card {
     border-left: 4px solid rgba(148, 163, 184, 0.75);

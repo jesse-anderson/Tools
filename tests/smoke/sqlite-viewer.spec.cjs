@@ -1,12 +1,6 @@
-// SQLite viewer: the scope disclaimer.
-//
-// The tool had no spec. The page makes a strong claim in three places at once
-// ("100% Local - No Server - Privacy First", "Your data never leaves this
-// device", "You remain in full control of your data"), and the claim is true
-// about the database file and narrower than it reads. The rebuild keeps every
-// technical point the old .critical-warning made and adds the limits of the
-// word "local", starting with the fact that the WebAssembly doing the work is
-// fetched from a CDN.
+// SQLite viewer: the scope disclaimer. The page claims "100% Local" in three
+// places. That holds for the database file and is narrower than it reads: the
+// WebAssembly doing the work is fetched from a CDN.
 const { test, expect } = require('@playwright/test');
 const { expectPageToLoadCleanly } = require('./helpers.cjs');
 

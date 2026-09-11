@@ -1,24 +1,5 @@
-// The uniform tooling surface: the rules a new tool has to satisfy.
-//
-// Written September 2026, at the end of the scope-disclaimer rollout, because
-// the rollout kept finding the same three defects in tools nobody had touched
-// in a year, and every one of them renders a page that looks fine:
-//
-//   1. A page with no scope notice at all. Fourteen tools were in that state
-//      when the rollout started, including Active ones feeding decisions about
-//      real hardware.
-//   2. A plain `div` wearing `.disclaimer-card`, which is the shared
-//      component's class name. Seven tools had one in phase 5 alone, and three
-//      of those were not disclaimers at all but reference boxes. Anything
-//      auditing this repo by class name scores them as covered.
-//   3. A tool stylesheet redefining a shared theme variable in a bare `:root`.
-//      That has the same specificity as shared.css's `[data-theme="light"]`
-//      block and loads after it, so it silently defeats the light-theme
-//      correction. This is the mechanism that produced the original 19 WCAG
-//      failures.
-//
-// These read files from disk rather than loading pages, so the whole file costs
-// nothing and can afford to check every tool rather than a sampled list.
+// The rules a new tool has to satisfy. Reads files from disk, so it loads no pages.
+// Each rule guards a defect this repo shipped; details in docs/SOW/disclaimer_rework_sow.md.
 const fs = require('fs');
 const path = require('path');
 const { test, expect } = require('@playwright/test');
@@ -26,21 +7,12 @@ const { repoRoot, toolPaths } = require('./helpers.cjs');
 
 const read = (rel) => fs.readFileSync(path.join(repoRoot, rel), 'utf8');
 
-// Every linked tool page, plus the two pages that are unlinked from the catalog
-// but legitimately reached from inside another tool. Those two are served by the
-// static host and reachable by direct URL, so "not in the catalog" is not a
-// reason to have no notice on them.
+// The two sub-pages are unlinked from the catalog but served at a guessable URL.
 const REACHABLE_SUBPAGES = ['tools/figure-rectifier.html', 'tools/meeting-planner-privacy.html'];
 const ALL_PAGES = [...toolPaths.map((p) => p.replace(/^\//, '')), ...REACHABLE_SUBPAGES];
 
-// One page predates the shared component and is deliberately left on its own
-// shape: hormone-research-reference gates entry behind an acknowledgement splash
-// and then shows a .liability-banner plus a .scope-warning-block. It is one of
-// the three reference implementations the rollout was modelled on, it is
-// content-complete at 5 of 5 legal elements, and its headings are measured by
-// disclaimer-contrast.spec.cjs through the .scope-warning-block selector. It is
-// listed here rather than matched by a looser regex so that "this page is not on
-// the shared component" stays a visible fact rather than an accident.
+// hormone-research-reference predates the shared component and uses .liability-banner
+// plus .scope-warning-block. Listed here so that stays a visible fact.
 const LEGACY_NOTICE_SHAPES = new Map([
   ['tools/hormone-research-reference.html', 'scope-warning-block'],
 ]);
@@ -65,7 +37,6 @@ test('.disclaimer-card is always the shared component, never a div wearing its n
   for (const rel of ALL_PAGES) {
     const html = read(rel);
     // The component is <details class="disclaimer-card"> with a <summary>.
-    // Anything else carrying the class is borrowing the name.
     const tags = [...html.matchAll(/<(\w+)[^>]*class="[^"]*\bdisclaimer-card\b[^"]*"/g)];
     for (const m of tags) {
       if (m[1] !== 'details') squatters.push(`${rel}: <${m[1]}>`);
@@ -82,18 +53,9 @@ test('.disclaimer-card is always the shared component, never a div wearing its n
   ).toEqual([]);
 });
 
-// A tool stylesheet may legitimately define its own namespaced variables in
-// :root (--json-key, --creatine-orange). What it may not do is redefine a
-// variable shared.css owns, without also correcting it for light theme.
-//
-// Two files are listed as known and unfixed. Both re-declare the three accent
-// colours and their -dim pairs with exactly the values shared.css already gives
-// them in dark theme, which means those pages ship dark accents in light theme
-// everywhere they use them. The fix is to delete the duplicated declarations,
-// which changes nothing in dark theme. It is held pending the maintainer's
-// call, because it changes the appearance of two Active tools in light theme
-// and that is a judgement about the tools, not about the test.
-//
+// Both files re-declare the accents with shared.css's own dark values, so those pages
+// ship dark accents in light theme. Deleting the duplicates fixes it and changes
+// nothing in dark theme; held pending the maintainer's call on two Active tools.
 // Add a file here only with a comment saying why and what removes it.
 const KNOWN_UNCORRECTED_ROOT_OVERRIDES = new Map([
   ['css/duckdb_playground/duckdb-base.css', ['--accent-error', '--accent-error-dim', '--accent-success', '--accent-success-dim', '--accent-warning', '--accent-warning-dim']],
@@ -138,9 +100,8 @@ test('no tool stylesheet defeats the light theme from a bare :root', () => {
     }
     if (!overridden.size) continue;
 
-    // Corrected means the file's own [data-theme="light"] block redefines the
-    // same variable. "Has a light block somewhere" is not enough: the point is
-    // whether THIS variable gets a light value back.
+    // Corrected means this file's own light block gives the same variable a light value.
+    // Having a light block somewhere in the file is not enough.
     const corrected = new Set();
     for (const m of css.matchAll(/\[data-theme="light"\][^{]*{([\s\S]*?)}/g)) {
       for (const v of m[1].matchAll(/(--[\w-]+)\s*:/g)) corrected.add(v[1]);
@@ -162,8 +123,7 @@ test('no tool stylesheet defeats the light theme from a bare :root', () => {
 });
 
 test('the known-offender list stays honest', () => {
-  // A list of known exceptions rots the moment someone fixes one and leaves the
-  // entry behind, at which point the guard is quietly weaker than it reads.
+  // The list rots as soon as someone fixes an entry and leaves it listed.
   const shared = sharedRootVars();
   for (const [rel, vars] of KNOWN_UNCORRECTED_ROOT_OVERRIDES) {
     const css = read(rel);
@@ -187,9 +147,7 @@ test('the known-offender list stays honest', () => {
 });
 
 test('the shared disclaimer component never paints text in --text-muted', () => {
-  // --text-muted measures 2.6:1 in light theme and 3.7:1 in dark, failing WCAG
-  // AA in both. The component avoids it by rule, and the only way that stays
-  // true is if nobody reintroduces it in a tool override.
+  // --text-muted measures 2.6:1 light and 3.7:1 dark, failing WCAG AA in both.
   const offenders = [];
   for (const rel of toolStylesheets().concat(['css/shared.css'])) {
     const css = read(rel);

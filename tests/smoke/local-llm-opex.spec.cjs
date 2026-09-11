@@ -1,11 +1,6 @@
-// Local LLM opex: the scope disclaimer.
-//
-// The tool had no spec. Its old block was 191 words and scored 4 of 5, missing
-// only precedence, and its heading measured 2.49:1 on the light card. The
-// content was already honest about the thing that matters most here: the cloud
-// prices it compares against are defaults captured when the page was written,
-// so the comparison is between a number you measured and a number the page
-// remembered.
+// Local LLM opex: the scope disclaimer. The point that matters is that the cloud
+// prices are defaults captured when the page was written, so the comparison is
+// between a measured number and a remembered one.
 const { test, expect } = require('@playwright/test');
 const { expectPageToLoadCleanly } = require('./helpers.cjs');
 

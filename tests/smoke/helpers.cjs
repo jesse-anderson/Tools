@@ -57,17 +57,9 @@ function extractToolHrefsFromSection(sectionMarkup) {
 
 const toolPaths = extractToolPaths(toolsIndexMarkup);
 
-// Tool pages excluded from the aggregate page-load check.
-//
-// Empty as of September 2026. linear-regression.html sat here because it
-// referenced tools/WASM_Example_linreg-core/* (styles.css, logic.js), which is
-// parked in historical/, so those requests 404d by design. The page no longer
-// references that folder: it loads css/linear_regression/styles.css and
-// js/linear_regression/logic.js, both present. Lifting the exclusion was
-// verified against the real page, not assumed, and all 54 linked tool pages
-// now load clean.
-//
-// Add a path here only with a comment saying why and what removes it.
+// Tool pages excluded from the aggregate page-load check. Empty as of September
+// 2026; all 54 linked pages load clean. Add a path only with a comment saying
+// why and what removes it.
 const KNOWN_FAILING_TOOL_PATHS = new Set([]);
 
 function normalizeText(text) {
@@ -190,21 +182,16 @@ async function readDownloadText(download) {
 /**
  * Measure WCAG contrast for elements, in a chosen theme, from the rendered page.
  *
- * Three things make a naive version of this report confidently wrong, and all
- * three were hit while auditing the disclaimer cards:
+ * Three corrections, each of which returns a confidently wrong number if missed:
  *
- *  1. getComputedStyle returns a color-mix() value as `color(srgb 0-1 ...)`,
- *     not `rgb(0-255)`. Parsing one as the other makes a mid amber measure
- *     20.96:1 instead of 2.56:1.
- *  2. The warning cards are translucent tints, so the effective background has
- *     to be composited up the ancestor chain. Reading only the nearest painted
- *     ancestor reports a failing heading as passing.
- *  3. shared.css transitions background-color, so a read taken immediately
- *     after switching themes returns the mid-animation colour. Hence the wait.
+ *  1. getComputedStyle returns color-mix() as `color(srgb 0-1 ...)`, not
+ *     `rgb(0-255)`. Misparsing makes a mid amber measure 20.96:1, not 2.56:1.
+ *  2. The tinted cards are translucent, so composite up the ancestor chain.
+ *  3. shared.css transitions background-color, so a read straight after a theme
+ *     switch returns the mid-animation colour. Hence the wait.
  *
- * Every `details` on the page is opened first, because innerText on a collapsed
- * details returns only the summary and getComputedStyle on its hidden body is
- * not what the reader sees.
+ * Every `details` is opened first: innerText on a collapsed one returns only the
+ * summary.
  *
  * Returns one entry per matched element: { text, cls, ratio, px, weight, need,
  * pass }, where `need` is 3 for WCAG large text (24px and up, or 18.66px and up

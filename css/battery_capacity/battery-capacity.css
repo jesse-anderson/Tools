@@ -555,9 +555,8 @@ header {
 }
 
 /* The scope disclaimer card and the p.disclaimer touchpoint are both defined
-   in css/shared.css. The .liability-disclaimer block this file used to style
-   was replaced by that component in September 2026; its heading measured
-   2.61:1 on the light card and failed WCAG AA. */
+   in css/shared.css. The .liability-disclaimer block that was here was replaced
+   by that component in September 2026. */
 
 .error-message {
   color: var(--accent-error);

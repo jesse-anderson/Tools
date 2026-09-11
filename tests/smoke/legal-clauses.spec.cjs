@@ -1,13 +1,7 @@
-// Repo-wide guard for the boilerplate legal clauses.
-//
-// September 2026: rebuilding the toxicology and oral-multidose disclaimers
-// silently dropped indemnification and the enumerated consequential-damages
-// clause. Those two pages held the only instances in the repo, so the concepts
-// disappeared entirely and every individual page still looked fine. This spec is
-// the check that would have caught it.
-//
-// Scope is deliberate. P3 tools are not listed: a word counter carrying an
-// indemnity clause trains readers to skip the cards that matter.
+// Repo-wide guard for the boilerplate legal clauses. A rebuild in September 2026
+// dropped indemnification and the enumerated damages clause from the only two
+// pages carrying them, and every page still looked fine. P3 tools are
+// deliberately not listed; see docs/SOW/disclaimer_rework_sow.md.
 const { test, expect } = require('@playwright/test');
 
 const CLAUSE_PAGES = [

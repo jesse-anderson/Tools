@@ -360,10 +360,8 @@ details.steps > summary:hover { background: var(--bg-card-hover); }
 }
 .syntax-help .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
 /* The scope disclaimer card and the p.disclaimer touchpoint are both defined
-   in css/shared.css. The bare .disclaimer block this file used to style was
-   replaced by that component in September 2026. It sat under a "Scope & Limits"
-   heading at the bottom of the sidebar, below the syntax help and the maths
-   notes, which is the last place a reader looks. */
+   in css/shared.css. The bare .disclaimer block that was here was replaced by
+   that component in September 2026. */
 
 /* --- responsive --- */
 @media (max-width: 900px) {

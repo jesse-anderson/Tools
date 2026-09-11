@@ -400,11 +400,9 @@
 .formula-label.product { color: var(--accent-it); }
 
 /* The scope disclaimer card and the p.disclaimer touchpoint are both defined
-   in css/shared.css. The .liability-disclaimer block this file used to style
-   was replaced by that component in September 2026. Two defects went with it:
-   its heading measured 2.49:1 on the light card, failing WCAG AA, and it lived
-   inside #sidebarPanel, which carries .hidden until a balance succeeds, so the
-   scope limits were invisible to anyone who had not already run the tool. */
+   in css/shared.css. The .liability-disclaimer block that was here was replaced
+   by that component in September 2026. It lived inside #sidebarPanel, which is
+   hidden until a balance succeeds, so the card now sits above the inputs. */
 
 /* Sidebar metric cards (extracted from inline styles) */
 .metric-card + .metric-card {
