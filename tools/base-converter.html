@@ -205,28 +205,18 @@ Last Updated: January 2025
 
                     </div>
 
-                    <div class="disclaimer-card">
-                        <div class="disclaimer-title">
-                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5">
-                                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-                                <line x1="12" y1="9" x2="12" y2="13"/>
-                                <line x1="12" y1="17" x2="12.01" y2="17"/>
-                            </svg>
-                            Critical Engineering Disclaimer
-                        </div>
-                        <div class="disclaimer-content">
-                            <p style="margin-bottom: 8px;"><strong>Hardware Simulation.</strong> When "Little Endian" is active, Hex and Binary fields display the byte-swapped memory representation.</p>
-                            <ul class="disclaimer-list">
-                                <li><strong>Word Size:</strong> Endian swapping requires a fixed word size (e.g. 32-bit). In "Auto" mode, Endianness is ignored (defaults to Big Endian).</li>
-                                <li><strong>Signedness:</strong> Negative numbers are supported via Two's Complement when using a fixed word size (16/32/64-bit). In "Auto" mode, only positive values are supported.</li>
-                                <li><strong>Truncation:</strong> Inputting a value larger than the selected Word Size will result in high-byte truncation.</li>
-                                <li><strong>Octal:</strong> Octal representation is not affected by endianness (it represents the abstract value, like Decimal).</li>
-                            </ul>
-                            <p class="disclaimer-footer">
-                                PROVIDED "AS IS" WITH NO WARRANTY. ALWAYS VERIFY MEMORY ALIGNMENT IN DATASHEETS.
-                            </p>
-                        </div>
-                    </div>
+                    <p class="disclaimer">
+                        <strong>The hex and binary fields show a memory representation, not the number.</strong>
+                        With Little Endian active they are byte-swapped, so the digits you read are the bytes
+                        as they would sit in memory at the selected word size. Endianness and two's complement
+                        both need a fixed word size: in Auto mode endianness is ignored and treated as Big
+                        Endian, and only positive values are supported. A value larger than the word size is
+                        truncated at the high byte rather than rejected, and the banner above says so when it
+                        happens. Octal is unaffected by endianness because it shows the abstract value.
+                        Confirm byte order and alignment against the datasheet before you trust any of this
+                        against real hardware. Provided as-is, without warranty, and used at your own risk.
+                        The <a href="../tools.html#siteDisclaimer">site-wide notice</a> carries the full terms.
+                    </p>
                 </div>
 
                 <aside class="sidebar">

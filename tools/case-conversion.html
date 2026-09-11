@@ -342,12 +342,12 @@
                         </div>
                     </div>
 
-                    <div class="disclaimer-card" style="background: var(--bg-card); border: 1px solid rgba(245, 158, 11, 0.4); border-left: 4px solid rgba(245, 158, 11, 0.8); padding: 20px; border-radius: 8px;">
-                        <h4 style="color: #f59e0b; font-size: 0.8rem; text-transform:uppercase; margin-bottom: 8px; font-weight: 700; display:flex; align-items:center; gap:8px;">
+                    <div class="usage-note" style="background: var(--bg-card); border: 1px solid rgba(245, 158, 11, 0.4); border-left: 4px solid rgba(245, 158, 11, 0.8); padding: 20px; border-radius: 8px;">
+                        <h4 style="color: var(--disclaimer-accent); font-size: 0.8rem; text-transform:uppercase; margin-bottom: 8px; font-weight: 700; display:flex; align-items:center; gap:8px;">
                             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
                             Engineering Notes
                         </h4>
-                        <div class="disclaimer-content" style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.5;">
+                        <div class="usage-note-content" style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.5;">
                             <ul style="padding-left: 20px; margin: 0;">
                                 <li style="margin-bottom:6px;"><strong>Custom Undo:</strong> Transformations utilize a custom history stack. Standard browser undo (Ctrl+Z) is intercepted when appropriate.</li>
                                 <li style="margin-bottom:6px;"><strong>Smart Select:</strong> Highlighting text limits the transformation scope to that selection.</li>
@@ -355,6 +355,17 @@
                             </ul>
                         </div>
                     </div>
+
+                    <p class="disclaimer">
+                        <strong>camelCase, PascalCase and the delimited cases silently delete anything outside A-Z, a-z and 0-9.</strong>
+                        "caf&eacute;" comes back as "caf". A string with no Latin letters at all comes back
+                        empty from camelCase and PascalCase, and comes back untouched from snake, kebab and
+                        CONSTANT, so neither result is the conversion you asked for. Upper and lower case are
+                        applied without a locale, so Turkish dotless &#305; and German &szlig; do not
+                        round-trip. Convert a copy, never your only copy, and read the result before you use it.
+                        Provided as-is, without warranty, and used at your own risk. The
+                        <a href="../tools.html#siteDisclaimer">site-wide notice</a> carries the full terms.
+                    </p>
                 </aside>
             </div>
         </main>

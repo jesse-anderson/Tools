@@ -471,53 +471,18 @@ Last Updated: January 2025
 }
 
 /* ============================================
-   Disclaimer Card
-   ============================================ */
-
-.disclaimer-card {
-    background: var(--bg-card);
-    border: 1px solid rgba(239, 68, 68, 0.4);
-    border-left: 4px solid rgba(239, 68, 68, 0.8);
-    border-radius: 8px;
-    padding: 20px;
-    margin-top: 24px;
-}
-
-.disclaimer-title {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-family: 'Space Grotesk', sans-serif;
-    font-weight: 700;
-    color: #ef4444;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    margin-bottom: 12px;
-}
-
-.disclaimer-content {
-    font-size: 0.875rem;
-    color: var(--text-secondary);
-    line-height: 1.6;
-}
-
-.disclaimer-list {
-    margin: 12px 0;
-    padding-left: 20px;
-}
-
-.disclaimer-list li {
-    margin-bottom: 6px;
-}
-
-.disclaimer-footer {
-    margin-top: 16px;
-    font-size: 0.75rem;
-    color: var(--text-muted);
-    border-top: 1px solid var(--border-color);
-    padding-top: 12px;
-    font-family: 'JetBrains Mono', monospace;
-}
+   Disclaimer Card (removed September 2026)
+   ============================================
+   A plain div wearing the shared component's class name, with a hardcoded
+   #ef4444 title measuring 3.76:1 on the light card and a .disclaimer-footer on
+   --text-muted, which fails AA in both themes. base-converter is a P3 tool, so
+   the whole block became the shared p.disclaimer short notice in css/shared.css.
+   All five claims were carried across: the byte-swapped little-endian display,
+   Auto mode ignoring endianness, two's complement needing a fixed word size,
+   high-byte truncation on overflow, and octal being endian-independent.
+   Note for anyone adding an IEEE 754 caveat here: this tool converts with
+   BigInt, not Number, so it has no 2^53-1 precision limit. The SOW suggested
+   otherwise before that was checked. */
 
 /* ============================================
    Responsive Design

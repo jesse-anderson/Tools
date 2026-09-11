@@ -416,28 +416,21 @@ Background: #1e293b
                         </div>
                     </div>
 
-                    <div class="disclaimer-card">
-                        <div class="disclaimer-title">
-                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5">
-                                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-                                <line x1="12" y1="9" x2="12" y2="13"/>
-                                <line x1="12" y1="17" x2="12.01" y2="17"/>
-                            </svg>
-                            Critical Engineering Disclaimer
-                        </div>
-                        <div class="disclaimer-content">
-                            <p style="margin-bottom: 8px;"><strong>Environment Differences.</strong></p>
-                            <ul class="disclaimer-list">
-                                <li><strong>JS Mode:</strong> Uses your browser's native engine. Fast, but lacks advanced features like lookbehinds on older browsers.</li>
-                                <li><strong>Python Mode:</strong> Uses Pyodide (WASM) to run the real CPython `re` module in your browser. This requires downloading ~10MB of data.</li>
-                                <li><strong>Flags:</strong> Both engines now behave identically. Without 'g' flag, only the first match is found. With 'g' flag, all matches are found. Common flags: i (case-insensitive), m (multiline), s (dotall), x (verbose, Py only), a (ASCII, Py only).</li>
-                                <li><strong>JS-only flags:</strong> u, y, d, v are supported in JS mode only.</li>
-                            </ul>
-                            <p class="disclaimer-footer">
-                                PROVIDED "AS IS" WITH NO WARRANTY. PYTHON MODE RUNS LOCALLY IN WASM; NO DATA IS SENT TO SERVER.
-                            </p>
-                        </div>
-                    </div>
+                    <p class="disclaimer">
+                        <strong>A pattern that works here is not a pattern that works everywhere.</strong>
+                        JS mode runs your browser's own engine and Python mode runs the real CPython
+                        <code>re</code> module under Pyodide, which is about a 10 MB download the first time.
+                        The two differ, and both differ again from PCRE, Go's RE2, Java, .NET and grep on
+                        escapes, Unicode handling, named groups and lookbehind, so test against the engine
+                        that will actually run the pattern. Without the <code>g</code> flag only the first
+                        match is returned; <code>x</code> and <code>a</code> are Python only, and
+                        <code>u</code>, <code>y</code>, <code>d</code> and <code>v</code> are JS only. A
+                        pattern that is instant on the short sample you paste here can still backtrack
+                        catastrophically on a longer or hostile input and hang whatever runs it: this page
+                        times nothing and performs no ReDoS check. Python mode runs locally in WASM and sends nothing
+                        anywhere. Provided as-is, without warranty, and used at your own risk. The
+                        <a href="../tools.html#siteDisclaimer">site-wide notice</a> carries the full terms.
+                    </p>
 
                     <button class="license-btn" id="viewLicensesBtn">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

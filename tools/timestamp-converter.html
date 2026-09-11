@@ -196,22 +196,11 @@
         .stat-label { color: var(--text-secondary); }
         .stat-val { font-family: 'JetBrains Mono', monospace; font-weight: 600; color: var(--accent-engineering); }
 
-        /* Disclaimer Card */
-        .disclaimer-card {
-            background: var(--bg-card);
-            border: 1px solid rgba(245, 158, 11, 0.4);
-            border-left: 4px solid rgba(245, 158, 11, 0.8);
-            border-radius: 8px;
-            padding: 20px;
-            margin-top: 24px;
-        }
-        .disclaimer-title {
-            display: flex; align-items: center; gap: 10px;
-            font-family: 'Space Grotesk', sans-serif; font-weight: 700;
-            color: #f59e0b; text-transform: uppercase; letter-spacing: 0.05em;
-            margin-bottom: 12px;
-        }
-        .disclaimer-content { font-size: 0.875rem; color: var(--text-secondary); line-height: 1.6; }
+        /* The tool-local .disclaimer-card here was a plain div wearing the shared
+           component's class name: a hardcoded #f59e0b title measuring 2.15:1 on the
+           light card, and none of the component's structure. September 2026 replaced
+           it with the shared p.disclaimer short notice from css/shared.css. This tool
+           is P3, so it gets one notice and no sectioned card. */
 
         @media (max-width: 1024px) {
             .calculator-layout { grid-template-columns: 1fr; }
@@ -381,23 +370,16 @@
                         </button>
                     </div>
 
-                    <div class="disclaimer-card">
-                        <div class="disclaimer-title">
-                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5">
-                                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-                                <line x1="12" y1="9" x2="12" y2="13"/>
-                                <line x1="12" y1="17" x2="12.01" y2="17"/>
-                            </svg>
-                            Timezone Warning
-                        </div>
-                        <div class="disclaimer-content">
-                            <p style="margin-bottom: 8px;"><strong>Context Matters.</strong> Unix timestamps are always UTC. However:</p>
-                            <ul style="padding-left: 20px; margin: 8px 0;">
-                                <li style="margin-bottom: 4px;"><strong>Local Display:</strong> "Local String" uses your browser's configured timezone (<span id="warnTZ">UTC</span>).</li>
-                                <li style="margin-bottom: 4px;"><strong>Math:</strong> JavaScript Dates do not handle leap seconds.</li>
-                            </ul>
-                        </div>
-                    </div>
+                    <p class="disclaimer">
+                        <strong>Unix time is always UTC; everything readable on this page is not.</strong>
+                        "Local String" is rendered in whatever timezone this browser is configured for
+                        (<span id="warnTZ">UTC</span>), which is the machine's setting and not the one the
+                        timestamp was written in. JavaScript dates do not model leap seconds, so a UTC
+                        instant near one is off by the accumulated offset, and historical dates are
+                        converted with today's rules for that zone rather than the rules in force at the
+                        time. Provided as-is, without warranty, and used at your own risk. The
+                        <a href="../tools.html#siteDisclaimer">site-wide notice</a> carries the full terms.
+                    </p>
                 </aside>
             </div>
         </main>

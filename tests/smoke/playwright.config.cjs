@@ -56,6 +56,7 @@ module.exports = defineConfig({
     'dbscan-visualizer.spec.cjs',
     'local-llm-opex.spec.cjs',
     'legal-clauses.spec.cjs',
+    'p3-short-notices.spec.cjs',
     'disclaimer-contrast.spec.cjs'
   ],
   timeout: 60_000,

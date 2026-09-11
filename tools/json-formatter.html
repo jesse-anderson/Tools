@@ -189,27 +189,17 @@ Last Updated: January 2025
                         </button>
                     </div>
 
-                    <div class="disclaimer-card">
-                        <div class="disclaimer-title">
-                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5">
-                                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-                                <line x1="12" y1="9" x2="12" y2="13"/>
-                                <line x1="12" y1="17" x2="12.01" y2="17"/>
-                            </svg>
-                            Critical Engineering Disclaimer
-                        </div>
-                        <div class="disclaimer-content">
-                            <p style="margin-bottom: 8px;"><strong>Data Integrity Warning.</strong> This tool runs entirely in your browser, but be aware of JavaScript limitations:</p>
-                            <ul class="disclaimer-list">
-                                <li><strong>64-bit Integers:</strong> Standard JS `JSON.parse` treats numbers as IEEE 754 doubles. Integers larger than 2⁵³-1 (e.g. some Database IDs, Twitter Snowflakes) <strong>will lose precision</strong>.</li>
-                                <li><strong>Privacy:</strong> While this does not upload data, avoid pasting production credentials or PII into any web-based clipboard.</li>
-                                <li><strong>BigInt:</strong> Native JSON spec does not support BigInt literals (e.g. `123n`). They will cause parse errors.</li>
-                            </ul>
-                            <p class="disclaimer-footer">
-                                PROVIDED "AS IS" WITH NO WARRANTY. NOT SUITABLE FOR VALIDATING CRITICAL FINANCIAL LEDGERS OR CRYPTOGRAPHIC KEYS.
-                            </p>
-                        </div>
-                    </div>
+                    <p class="disclaimer">
+                        <strong>A JSON round trip through this page is not lossless, and it is not a validator for a ledger or a key.</strong>
+                        Numbers are parsed as IEEE 754 doubles, so any integer above 2<sup>53</sup>-1, which
+                        includes many database IDs and snowflake IDs, comes back changed rather than rejected.
+                        The banner above the editor flags that case; it is a warning, not a repair. BigInt
+                        literals such as <code>123n</code> are not valid JSON and will fail to parse. Nothing
+                        you paste leaves your browser, which is not a reason to paste production credentials
+                        or personal data into any web page. Provided as-is, without warranty, and used at your
+                        own risk. The <a href="../tools.html#siteDisclaimer">site-wide notice</a> carries the
+                        full terms.
+                    </p>
                 </aside>
             </div>
         </main>

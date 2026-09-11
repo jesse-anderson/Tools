@@ -382,16 +382,18 @@
                         <p>This is an offline visualizer. Time to first token controls when visible output begins. Burstiness changes cadence without changing average rate. Share links carry trimmed state and do not require server storage.</p>
                     </div>
 
-                    <div class="sidebar-card disclaimer-card">
-                        <h3>Usage Disclaimer</h3>
-                        <ul class="sidebar-list">
-                            <li>This tool is an approximation and visualization aid, not a tokenizer, billing meter, or provider benchmark.</li>
-                            <li>Throughput, cadence, and character density are modeled inputs. Real model output can differ because of tokenizer choice, server behavior, network latency, safety filters, and provider-side buffering.</li>
-                            <li>Copied reports and share links are for communication convenience only and should not be treated as contractual performance evidence.</li>
-                            <li>Custom sample text is stored locally in your browser and may be embedded in trimmed form in copied share links.</li>
-                            <li>This tool is provided as-is, with no warranty. Verify important measurements against real logs or provider telemetry.</li>
-                        </ul>
-                    </div>
+                    <p class="disclaimer">
+                        <strong>A playback of numbers you typed. Not a tokenizer, not a billing meter, not a benchmark of any provider.</strong>
+                        Throughput, cadence and character density are inputs to an animation, so nothing on
+                        screen measures a model. Real output differs by tokenizer, server load, network
+                        latency, safety filtering and provider-side buffering, and the browser's own frame
+                        timing caps what this page can draw. Copied reports and share links are for
+                        explaining an idea and are not performance evidence for a contract or an SLA. Custom
+                        sample text is kept in this browser and a trimmed copy of it is embedded in share
+                        links you generate. Verify anything that matters against real logs or provider
+                        telemetry. Provided as-is, without warranty, and used at your own risk. The
+                        <a href="../tools.html#siteDisclaimer">site-wide notice</a> carries the full terms.
+                    </p>
 
                     <div class="sidebar-card attribution-card">
                         <h3>Attribution</h3>

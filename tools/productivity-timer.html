@@ -567,6 +567,16 @@
                     </button>
                 </div>
 
+                <p class="disclaimer">
+                    <strong>A browser tab is not a reliable clock, and this is not a time record.</strong>
+                    The deadline is computed from a timestamp, but the countdown and the end-of-phase alarm
+                    only fire when the tab gets a timer callback, and a backgrounded tab is throttled to
+                    roughly one per minute. Expect a late alarm if you switch away, and no alarm at all if
+                    the machine sleeps. Only your durations are saved, in this browser, and clearing site
+                    data clears them. Provided as-is, without warranty, and used at your own risk. The
+                    <a href="../tools.html#siteDisclaimer">site-wide notice</a> carries the full terms.
+                </p>
+
                 <div class="secondary-row">
                     <button class="timer-btn danger small" id="stopAlarmBtn" onclick="stopAlarm()" disabled>
                         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">

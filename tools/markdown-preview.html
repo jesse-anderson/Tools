@@ -344,30 +344,29 @@ Last Updated: January 2025
                         <button class="status-btn" id="clearDraftBtn">Clear Saved Draft</button>
                     </div>
 
-                    <!-- Disclaimer Card -->
-                    <div class="disclaimer-card">
+                    <!-- Usage notes -->
+                    <div class="info-card">
                         <h4>
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
                             Usage Notes
                         </h4>
-                        <div class="disclaimer-content">
+                        <div class="info-card-content">
                             <ul>
                                 <li><strong>MD 1.0:</strong> Original Markdown (Gruber) — pedantic mode matching markdown.pl behavior.</li>
                                 <li><strong>CommonMark:</strong> Strict, unambiguous spec (0.31) — recommended for portability.</li>
                                 <li><strong>GFM:</strong> GitHub Flavored Markdown (0.29) — adds tables, task lists, strikethrough.</li>
                                 <li><strong>Session Images:</strong> Uploaded images are session-only; lost on refresh.</li>
-                                <li><strong>No Warranty:</strong> This tool is provided as-is for convenience.</li>
-                            </ul>
+                                                            </ul>
                         </div>
                     </div>
 
                     <!-- Open Source Licenses -->
-                    <div class="disclaimer-card" style="border-left-color: var(--text-muted); margin-top: 16px;">
+                    <div class="info-card" style="border-left-color: var(--text-muted); margin-top: 16px;">
                         <h4 style="color: var(--text-secondary);">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
                             Open Source Licenses
                         </h4>
-                        <div class="disclaimer-content">
+                        <div class="info-card-content">
                             <ul>
                                 <li><strong><a href="https://github.com/markedjs/marked" target="_blank" rel="noopener" style="color: var(--accent-it);">marked</a></strong> — MIT License<br><span style="font-size: 0.7rem;">© 2018+ MarkedJS, © 2011-2018 Christopher Jeffrey</span></li>
                                 <li><strong><a href="https://github.com/cure53/DOMPurify" target="_blank" rel="noopener" style="color: var(--accent-it);">DOMPurify</a></strong> — Apache 2.0 / MPL 2.0<br><span style="font-size: 0.7rem;">© Dr.-Ing. Mario Heiderich, Cure53</span></li>
@@ -375,6 +374,18 @@ Last Updated: January 2025
                             </ul>
                         </div>
                     </div>
+
+                    <p class="disclaimer">
+                        <strong>A preview is one renderer's reading of your Markdown, not a standard.</strong>
+                        This page runs marked in the flavour you pick; GitHub, GitLab, Pandoc, Obsidian and a
+                        static site generator each differ on tables, footnotes, raw HTML, line breaks inside a
+                        paragraph and what is safe to keep, so the rendering that matters is the one on the
+                        system you publish to. Pasted HTML is sanitised by DOMPurify before display, which is a
+                        protection for this page and not a guarantee about the file you save. Uploaded images
+                        are held in this session only and are gone on refresh. Provided as-is, without
+                        warranty, and used at your own risk. The
+                        <a href="../tools.html#siteDisclaimer">site-wide notice</a> carries the full terms.
+                    </p>
                 </aside>
 
             </div>

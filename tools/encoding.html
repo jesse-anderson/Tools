@@ -288,20 +288,32 @@
                         </button>
                     </div>
 
-                    <div class="disclaimer-card" style="background: var(--bg-card); border: 1px solid rgba(245, 158, 11, 0.4); border-left: 4px solid rgba(245, 158, 11, 0.8); padding: 20px; border-radius: 8px;">
-                        <h4 style="color: #f59e0b; font-size: 0.8rem; text-transform:uppercase; margin-bottom: 8px; font-weight: 700; display:flex; align-items:center; gap:8px;">
+                    <div class="usage-note" style="background: var(--bg-card); border: 1px solid rgba(245, 158, 11, 0.4); border-left: 4px solid rgba(245, 158, 11, 0.8); padding: 20px; border-radius: 8px;">
+                        <h4 style="color: var(--disclaimer-accent); font-size: 0.8rem; text-transform:uppercase; margin-bottom: 8px; font-weight: 700; display:flex; align-items:center; gap:8px;">
                             Engineering Notes
                         </h4>
-                        <div class="disclaimer-content" style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.5;">
+                        <div class="usage-note-content" style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.5;">
                             <ul style="padding-left: 20px; margin: 0;">
                                 <li style="margin-bottom:6px;"><strong>Base64:</strong> Converts binary data to ASCII. Adds ~33% overhead. Used for email attachments and embedding images (Data URIs).</li>
                                 <li style="margin-bottom:6px;"><strong>URL Encoding:</strong> Escapes unsafe ASCII characters (like space to %20) for HTTP requests.</li>
-                                <li style="margin-bottom:6px;"><strong>HTML Entities:</strong> Converts reserved characters (`<` to `&lt;`) to prevent XSS attacks and rendering issues.</li>
+                                <li style="margin-bottom:6px;"><strong>HTML Entities:</strong> Converts reserved characters (`<` to `&lt;`) so they render as text rather than markup.</li>
                                 <li style="margin-bottom:6px;"><strong>Hex (Base16):</strong> Represents binary data using 0-9 and A-F. Each byte is exactly 2 characters.</li>
                                 <li style="margin-bottom:6px;"><strong>File Loader:</strong> Uses the browser's `FileReader` API to convert local files directly into Base64 Data Strings. No data leaves your device.</li>
                             </ul>
                         </div>
                     </div>
+
+                    <p class="disclaimer">
+                        <strong>Encoding is not encryption, and entity-escaping here is not an XSS defence.</strong>
+                        Base64, hex and URL encoding are public, reversible transforms with no key: anyone
+                        holding the output holds the input, so never use them to protect a password, a token or
+                        anything else. HTML-entity escaping is correct for element text and is not sufficient
+                        on its own inside an attribute, a URL, a <code>&lt;script&gt;</code> block or CSS, where
+                        the right escaping differs per context. Base64 decode reads bytes as UTF-8 and replaces
+                        anything invalid with U+FFFD, so a decoded non-UTF-8 payload is changed rather than
+                        recovered. Provided as-is, without warranty, and used at your own risk. The
+                        <a href="../tools.html#siteDisclaimer">site-wide notice</a> carries the full terms.
+                    </p>
                 </aside>
             </div>
         </main>

@@ -1125,6 +1125,17 @@ p.disclaimer {
 }
 p.disclaimer strong { color: var(--text-primary); }
 
+/* The P3 short notices link to the site-wide clauses on tools.html rather than
+   repeating them. A default UA link colour on the amber-tinted note measures
+   badly in light theme, and --accent-warning on it is worse, so the link takes
+   the body colour and is carried by the underline instead. */
+p.disclaimer a {
+    color: var(--text-primary);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+p.disclaimer a:hover, p.disclaimer a:focus-visible { color: var(--disclaimer-accent-strong); }
+
 /* `.liability-disclaimer > strong` is the heading in battery-capacity,
    local-llm-opex and stoichiometry-calculator. Direct child only: the
    `p strong` inside the body is ordinary emphasis on --text-primary and

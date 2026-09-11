@@ -285,51 +285,13 @@ textarea.json-input {
     gap: 8px;
 }
 
-/* Disclaimer Card */
-.disclaimer-card {
-    background: var(--bg-card);
-    border: 1px solid var(--accent-error);
-    border-left: 4px solid var(--accent-error);
-    border-radius: 8px;
-    padding: 20px;
-    margin-top: 24px;
-}
-
-.disclaimer-title {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-family: 'Space Grotesk', sans-serif;
-    font-weight: 700;
-    color: var(--accent-error);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    margin-bottom: 12px;
-}
-
-.disclaimer-content {
-    font-size: 0.875rem;
-    color: var(--text-secondary);
-    line-height: 1.6;
-}
-
-.disclaimer-list {
-    margin: 12px 0;
-    padding-left: 20px;
-}
-
-.disclaimer-list li {
-    margin-bottom: 6px;
-}
-
-.disclaimer-footer {
-    margin-top: 16px;
-    font-size: 0.75rem;
-    color: var(--text-muted);
-    border-top: 1px solid var(--border-color);
-    padding-top: 12px;
-    font-family: 'JetBrains Mono', monospace;
-}
+/* The tool-local .disclaimer-card block lived here: a plain div wearing the
+   shared component's class name, with its .disclaimer-footer on --text-muted,
+   which fails WCAG AA in both themes (2.6:1 light, 3.7:1 dark). json-formatter
+   is a P3 tool, so September 2026 replaced it with the shared p.disclaimer
+   short notice in css/shared.css. All four claims were carried across: the
+   2^53-1 precision loss, BigInt literals not being valid JSON, the credentials
+   and PII warning, and the forbidden uses. */
 
 /* Stats */
 .stat-row {

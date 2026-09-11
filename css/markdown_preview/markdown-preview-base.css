@@ -494,8 +494,13 @@
     color: var(--accent-error);
 }
 
-/* Disclaimer Card */
-.disclaimer-card {
+/* Sidebar info cards. These were named .disclaimer-card and .disclaimer-content,
+   which is the shared scope-disclaimer component's class name in css/shared.css,
+   but neither box is that component: one is usage notes and one is a license
+   list. Renamed September 2026 so the shared rules do not land on them and so a
+   reader of either file is not misled about which is which. The real scope
+   notice on this page is the shared p.disclaimer. */
+.info-card {
     background: var(--bg-card);
     border: 1px solid rgba(6, 182, 212, 0.4);
     border-left: 4px solid var(--accent-it);
@@ -503,7 +508,7 @@
     border-radius: 8px;
 }
 
-.disclaimer-card h4 {
+.info-card h4 {
     color: var(--accent-it);
     font-size: 0.8rem;
     text-transform: uppercase;
@@ -514,27 +519,27 @@
     gap: 8px;
 }
 
-.disclaimer-card h4 svg {
+.info-card h4 svg {
     width: 14px;
     height: 14px;
 }
 
-.disclaimer-content {
+.info-card-content {
     font-size: 0.8rem;
     color: var(--text-secondary);
     line-height: 1.5;
 }
 
-.disclaimer-content ul {
+.info-card-content ul {
     padding-left: 20px;
     margin: 0;
 }
 
-.disclaimer-content li {
+.info-card-content li {
     margin-bottom: 6px;
 }
 
-.disclaimer-content li:last-child {
+.info-card-content li:last-child {
     margin-bottom: 0;
 }
 

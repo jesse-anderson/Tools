@@ -321,6 +321,17 @@ Last Updated: July 2026
                     </div>
                 </div>
 
+                <p class="disclaimer">
+                    <strong>A teaching model of two clock algorithms, not a distributed system.</strong>
+                    Lamport timestamps give a one-way implication only: if a happened before b then
+                    L(a) &lt; L(b), but a smaller timestamp does not mean the event came first, which is
+                    exactly the mistake the vector view exists to show. Messages here are never lost,
+                    duplicated, reordered in flight or delivered after a crash, and no process ever fails,
+                    so the concurrency counts are properties of this simulation and not of any real
+                    deployment. Provided as-is, without warranty, and used at your own risk. The
+                    <a href="../tools.html#siteDisclaimer">site-wide notice</a> carries the full terms.
+                </p>
+
                 <!-- Sequence Log -->
                 <div class="panel log-panel">
                     <div class="panel-header">

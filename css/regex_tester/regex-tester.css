@@ -570,51 +570,13 @@
     color: var(--text-secondary);
 }
 
-/* Disclaimer Card */
-.disclaimer-card {
-    background: var(--bg-card);
-    border: 1px solid rgba(239, 68, 68, 0.4);
-    border-left: 4px solid rgba(239, 68, 68, 0.8);
-    border-radius: 8px;
-    padding: 20px;
-    margin-top: 24px;
-}
-
-.disclaimer-title {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-family: 'Space Grotesk', sans-serif;
-    font-weight: 700;
-    color: #ef4444;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    margin-bottom: 12px;
-}
-
-.disclaimer-content {
-    font-size: 0.875rem;
-    color: var(--text-secondary);
-    line-height: 1.6;
-}
-
-.disclaimer-list {
-    margin: 12px 0;
-    padding-left: 20px;
-}
-
-.disclaimer-list li {
-    margin-bottom: 6px;
-}
-
-.disclaimer-footer {
-    margin-top: 16px;
-    font-size: 0.75rem;
-    color: var(--text-muted);
-    border-top: 1px solid var(--border-color);
-    padding-top: 12px;
-    font-family: 'JetBrains Mono', monospace;
-}
+/* The tool-local .disclaimer-card block lived here: a plain div wearing the
+   shared component's class name, with a hardcoded #ef4444 title measuring
+   3.76:1 on the light card and a .disclaimer-footer on --text-muted, which
+   fails AA in both themes. regex-tester is a P3 tool, so September 2026
+   replaced it with the shared p.disclaimer short notice in css/shared.css.
+   Every claim was carried across: the two engines, Pyodide's download, the
+   g-flag behaviour, the per-engine flags, and the local-only Python run. */
 
 /* License Button */
 .license-btn {

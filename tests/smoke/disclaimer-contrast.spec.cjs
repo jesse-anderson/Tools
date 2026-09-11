@@ -33,6 +33,11 @@ const DISCLAIMER_TEXT = [
   '.liability-disclaimer > strong',
   '.privacy-notice strong',
   '.calc-warning strong',
+  // Added September 2026 with the P3 band, whose tools carry this and nothing
+  // else. It measures on the other 40 tools too, which is free coverage of the
+  // second touchpoint beside the results.
+  'p.disclaimer',
+  'p.disclaimer a',
 ].join(',');
 
 // Tools known to carry a disclaimer heading. A tool that loses its disclaimer
@@ -84,6 +89,17 @@ const TOOLS_WITH_DISCLAIMER_HEADINGS = [
   'visual-integration',
   'yogurt-cfu-estimator',
   'toxicology-and-body-burden',
+  // The P3 band. These carry p.disclaimer and no card, so they were outside
+  // this guard entirely until phase 5.
+  'case-conversion',
+  'encoding',
+  'graph-paper-generator',
+  'lamport-timestamps',
+  'markdown-preview',
+  'productivity-timer',
+  'token-throughput-visualizer',
+  'word-count',
+  'workweek-planner',
 ];
 
 for (const slug of TOOLS_WITH_DISCLAIMER_HEADINGS) {
