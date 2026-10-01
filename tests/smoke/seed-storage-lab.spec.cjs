@@ -397,3 +397,468 @@ test('scope disclaimer carries a touchpoint outside the results header', async (
   const inResults = await touch.evaluate((el) => Boolean(el.closest('.result-panel')));
   expect(inResults).toBe(true);
 });
+
+// ---------------------------------------------------------------------------
+// Ellis-Roberts viability equation. Anchors are read in Node from the archived
+// CSVs, so a generator slip cannot hide in the bundle.
+// ---------------------------------------------------------------------------
+
+const fs = require('fs');
+const path = require('path');
+
+const SEED_DATA_DIR = path.resolve(__dirname, '..', '..', 'data', 'seed_storage_lab');
+const SEED_PAGE = '/tools/seed-storage-lab.html';
+
+function readSeedCsv(name) {
+  const text = fs.readFileSync(path.join(SEED_DATA_DIR, name), 'utf8').replace(/^﻿/, '');
+  const rows = [];
+  let row = [];
+  let field = '';
+  let quoted = false;
+  for (let i = 0; i < text.length; i += 1) {
+    const ch = text[i];
+    if (quoted) {
+      if (ch === '"' && text[i + 1] === '"') { field += '"'; i += 1; }
+      else if (ch === '"') quoted = false;
+      else field += ch;
+    } else if (ch === '"') quoted = true;
+    else if (ch === ',') { row.push(field); field = ''; }
+    else if (ch === '\n') { row.push(field); rows.push(row); row = []; field = ''; }
+    else if (ch !== '\r') field += ch;
+  }
+  if (field !== '' || row.length) { row.push(field); rows.push(row); }
+  const header = rows.shift();
+  return rows.filter((cells) => cells.length > 1)
+    .map((cells) => Object.fromEntries(header.map((key, index) => [key, cells[index] ?? ''])));
+}
+
+const LOT = { initialViabilityPct: 95, targetViabilityPct: 85 };
+const LETTUCE = { KE: 6.895, CW: 4.2, CH: 0.0329, CQ: 0.000478 };
+
+async function openSeedLab(page, baseURL) {
+  await expectPageToLoadCleanly(page, baseURL, SEED_PAGE);
+  await expect.poll(() => page.evaluate(() => typeof window.SeedViability)).toBe('object');
+}
+
+test('Hay worked examples reproduce to the day from the archived anchors', async ({ page, baseURL }) => {
+  await openSeedLab(page, baseURL);
+  const anchors = readSeedCsv('viability_equation_anchors.csv').filter((row) => row.expected_sigma_days);
+  expect(anchors.map((row) => row.anchor_id)).toEqual(['lettuce-genebank', 'lettuce-underdried', 'barley-genebank']);
+
+  const got = await page.evaluate((rows) => rows.map((row) => window.SeedViability.sigmaDays(
+    { KE: Number(row.KE), CW: Number(row.CW), CH: Number(row.CH), CQ: Number(row.CQ) },
+    Number(row.moisture_pct), Number(row.temperature_c))), anchors);
+
+  anchors.forEach((row, index) => {
+    expect(Math.round(got[index]), row.anchor_id).toBe(Number(row.expected_sigma_days));
+  });
+  // Pinned as literals too, so an edit to the CSV cannot move the goalposts.
+  expect(got.map(Math.round)).toEqual([56040, 12404, 244961]);
+});
+
+test('the compendium longevity column reproduces from the raw appendix CSV', async ({ page, baseURL }) => {
+  await openSeedLab(page, baseURL);
+  const rows = readSeedCsv('kew_viability_constants_appendix1.csv')
+    .filter((row) => [row.KE, row.CW, row.CH, row.CQ, row.years_minus20c_5pct].every((value) => value !== ''));
+  expect(rows.length).toBe(66);
+
+  const years = await page.evaluate((sets) => sets.map((row) => window.SeedViability.sigmaDays(
+    { KE: Number(row.KE), CW: Number(row.CW), CH: Number(row.CH), CQ: Number(row.CQ) }, 5, -20)
+    / window.SeedViability.DAYS_PER_YEAR), rows);
+
+  const outside = rows
+    .map((row, index) => ({ species: row.species, error: Math.abs(years[index] / Number(row.years_minus20c_5pct) - 1) }))
+    .filter((entry) => entry.error > 0.03);
+  // Ranunculus is printed as 24 against a computed 25.3, the only row outside 3%.
+  expect(outside.map((entry) => entry.species)).toEqual(['Ranunculus sceleratus']);
+  expect(outside[0].error).toBeLessThan(0.06);
+});
+
+test('the normal distribution matches independent reference values', async ({ page, baseURL }) => {
+  await openSeedLab(page, baseURL);
+  // Python references: 0.5 * math.erfc(-z / sqrt(2)) and NormalDist.inv_cdf.
+  // NormalDist.cdf loses the lower tail to cancellation.
+  const cdf = [[1, 0.8413447460685428], [-2, 0.022750131948179216], [-5, 2.8665157187919455e-07],
+    [3.0902, 0.998999891216793], [0.25, 0.5987063256829237]];
+  const inv = [[0.85, 1.0364333894937894], [0.95, 1.6448536269514715], [0.999, 3.090232306167813],
+    [0.01, -2.3263478740408408]];
+
+  const got = await page.evaluate(({ cdfPoints, invPoints }) => ({
+    cdf: cdfPoints.map(([z]) => window.SeedViability.normalCdf(z)),
+    inv: invPoints.map(([p]) => window.SeedViability.inverseNormalCdf(p)),
+    roundTrip: Math.max(...Array.from({ length: 999 }, (_, i) => (i + 1) / 1000)
+      .map((p) => Math.abs(window.SeedViability.normalCdf(window.SeedViability.inverseNormalCdf(p)) - p))),
+    edges: [0, 1, -0.1, 1.2, NaN].map((p) => window.SeedViability.inverseNormalCdf(p))
+  }), { cdfPoints: cdf, invPoints: inv });
+
+  cdf.forEach(([z, want], index) => {
+    // Relative, so the 3e-7 tail value is held as tightly as the centre.
+    expect(Math.abs(got.cdf[index] / want - 1), `cdf(${z})`).toBeLessThan(1e-11);
+  });
+  inv.forEach(([p, want], index) => {
+    expect(Math.abs(got.inv[index] - want), `inverse(${p})`).toBeLessThan(1e-9);
+  });
+  expect(got.roundTrip).toBeLessThan(1e-12);
+  expect(got.edges.every((value) => Number.isNaN(value))).toBe(true);
+});
+
+test('viability durations come from probit differences times sigma', async ({ page, baseURL }) => {
+  await openSeedLab(page, baseURL);
+  const result = await page.evaluate(({ set, lot }) => {
+    const E = window.SeedViability;
+    const p = E.predictDetermination(set, { scientificName: 'Lactuca sativa', moisturePct: 6, temperatureC: 5, ...lot });
+    return {
+      ok: p.ok, flags: p.flags.map((item) => item.code), sigma: p.sigmaDays,
+      toTarget: p.daysToTarget / E.DAYS_PER_YEAR, toHalf: p.daysToHalf / E.DAYS_PER_YEAR,
+      atTarget: E.viabilityAfterDays(p.sigmaDays, p.initialNed, p.daysToTarget),
+      atHalf: E.viabilityAfterDays(p.sigmaDays, p.initialNed, p.daysToHalf),
+      atStart: E.viabilityAfterDays(p.sigmaDays, p.initialNed, 0),
+      probit: p.initialProbit
+    };
+  }, { set: LETTUCE, lot: LOT });
+
+  expect(result.ok).toBe(true);
+  expect(result.flags).toEqual([]);
+  // Hand-computed outside the engine: sigma 2820.43 d, 4.698 y to 85%, 12.701 y to 50%.
+  expect(result.sigma).toBeCloseTo(2820.43, 1);
+  expect(result.toTarget).toBeCloseTo(4.698, 2);
+  expect(result.toHalf).toBeCloseTo(12.701, 2);
+  // The curve passes through the points the durations claim.
+  expect(result.atStart).toBeCloseTo(95, 9);
+  expect(result.atTarget).toBeCloseTo(85, 9);
+  expect(result.atHalf).toBeCloseTo(50, 9);
+  expect(result.probit).toBeCloseTo(6.6449, 4);
+});
+
+test('a parameter set is held at its turning point, and nothing runs below -20 C', async ({ page, baseURL }) => {
+  await openSeedLab(page, baseURL);
+  const out = await page.evaluate(({ universal, lot }) => {
+    const E = window.SeedViability;
+    // Liquidambar styraciflua as printed in Appendix I: turns over at -2.7 C.
+    const sweetgum = { KE: 6.55309, CW: 3.033052, CH: 0.0081, CQ: 0.00151 };
+    const run = (set, t) => E.predictDetermination(set, { moisturePct: 8, temperatureC: t, ...lot });
+    const codes = (p) => p.flags.map((item) => item.code);
+    return {
+      turnUniversal: E.turningPointC(universal),
+      turnSweetgum: E.turningPointC(sweetgum),
+      rawColderIsWorse: E.sigmaDays(sweetgum, 8, -18) < E.sigmaDays(sweetgum, 8, 0),
+      sweetgumAtTurn: run(sweetgum, E.turningPointC(sweetgum)).sigmaDays,
+      sweetgumFreezer: run(sweetgum, -18).sigmaDays,
+      sweetgumFreezerCodes: codes(run(sweetgum, -18)),
+      sweetgumAppliedT: run(sweetgum, -18).applied.temperatureC,
+      at20: run(universal, -20).sigmaDays,
+      at40: run(universal, -40).sigmaDays,
+      codes40: codes(run(universal, -40)),
+      codes18: codes(run(universal, -18)),
+      codes13: codes(run(universal, -13)),
+      hot: run(universal, 91)
+    };
+  }, { universal: LETTUCE, lot: LOT });
+
+  expect(out.turnUniversal).toBeCloseTo(-34.414, 3);
+  expect(out.turnSweetgum).toBeCloseTo(-2.682, 3);
+  // As published, the equation says a freezer is worse than a fridge for this set.
+  expect(out.rawColderIsWorse).toBe(true);
+  expect(out.sweetgumFreezer).toBe(out.sweetgumAtTurn);
+  expect(out.sweetgumAppliedT).toBeCloseTo(-2.682, 3);
+  expect(out.sweetgumFreezerCodes).toContain('turning-point');
+
+  expect(out.at40).toBe(out.at20);
+  expect(out.codes40).toEqual(['temperature-floor', 'cold-extrapolation']);
+  expect(out.codes18).toEqual(['cold-extrapolation']);
+  expect(out.codes13).toEqual([]);
+  expect(out.hot.ok).toBe(false);
+  expect(out.hot.reason).toContain('90');
+});
+
+test('the moisture limits plateau, flag and refuse', async ({ page, baseURL }) => {
+  await openSeedLab(page, baseURL);
+  const out = await page.evaluate(({ set, lot }) => {
+    const E = window.SeedViability;
+    const run = (name, m, constants = set) => E.predictDetermination(constants,
+      { scientificName: name, moisturePct: m, temperatureC: 5, ...lot });
+    const codes = (p) => (p.flags || []).map((item) => item.code);
+    return {
+      limits: E.SPECIES_MOISTURE_LIMITS,
+      peaAt6: run('Pisum sativum', 6).sigmaDays,
+      peaAt4: run('Pisum sativum', 4).sigmaDays,
+      peaAt4Codes: codes(run('Pisum sativum', 4)),
+      peaAt4Applied: run('Pisum sativum', 4).applied.moisturePct,
+      unknownAt4Codes: codes(run('Unknown species', 4)),
+      unknownAt4: run('Unknown species', 4).sigmaDays,
+      rawAt4: E.sigmaDays(set, 4, 5),
+      unknownAt1: run('Unknown species', 1).sigmaDays,
+      unknownAt2: run('Unknown species', 2).sigmaDays,
+      unknownAt1Codes: codes(run('Unknown species', 1)),
+      unknownAt8Codes: codes(run('Unknown species', 8)),
+      unknownAt20Codes: codes(run('Unknown species', 20)),
+      unknownAt29: run('Unknown species', 29),
+      lettuceAt15: run('Lactuca sativa', 15).ok,
+      lettuceAt16: run('Lactuca sativa', 16),
+      testedRange: codes(run('Capsicum annuum', 6.5, { ...set, moistureRangeTestedPct: '7.0-12.1' })),
+      insideTested: codes(run('Capsicum annuum', 8, { ...set, moistureRangeTestedPct: '7.0-12.1' }))
+    };
+  }, { set: LETTUCE, lot: LOT });
+
+  // The limits as the 1996 compendium states them in section 3.3.
+  expect(out.limits['Pisum sativum'].lowerPct).toBe(6);
+  expect(out.limits['Vigna radiata'].lowerPct).toBe(6);
+  expect(out.limits['Oryza sativa'].lowerPct).toBe(4.5);
+  expect(out.limits['Eragrostis tef']).toEqual({ lowerPct: 4.5, upperPct: 24 });
+  expect(out.limits['Helianthus annuus'].lowerPct).toBe(2);
+  expect(out.limits['Lactuca sativa'].upperPct).toBe(15);
+  expect(out.limits['Allium cepa'].upperPct).toBe(18);
+
+  expect(out.peaAt4).toBe(out.peaAt6);
+  expect(out.peaAt4Applied).toBe(6);
+  expect(out.peaAt4Codes).toEqual(['low-moisture-plateau']);
+
+  // Unrecorded species: computed as entered, but flagged, inside the 2-6% band.
+  expect(out.unknownAt4).toBe(out.rawAt4);
+  expect(out.unknownAt4Codes).toEqual(['low-limit-possible']);
+  expect(out.unknownAt1).toBe(out.unknownAt2);
+  expect(out.unknownAt1Codes).toEqual(['low-moisture-floor']);
+  expect(out.unknownAt8Codes).toEqual([]);
+  expect(out.unknownAt20Codes).toEqual(['upper-limit-possible']);
+  expect(out.unknownAt29.ok).toBe(false);
+
+  expect(out.lettuceAt15).toBe(true);
+  expect(out.lettuceAt16.ok).toBe(false);
+  expect(out.lettuceAt16.reason).toContain('15%');
+
+  expect(out.testedRange).toContain('outside-tested-moisture');
+  expect(out.insideTested).toEqual([]);
+});
+
+test('inputs no seed lot can have are refused', async ({ page, baseURL }) => {
+  await openSeedLab(page, baseURL);
+  const out = await page.evaluate(({ set, lot }) => {
+    const E = window.SeedViability;
+    const base = { scientificName: 'Lactuca sativa', moisturePct: 6, temperatureC: 5, ...lot };
+    const run = (patch, constants = set) => E.predictDetermination(constants, { ...base, ...patch });
+    const refused = (p) => p.ok === false && typeof p.reason === 'string' && p.reason.length > 0;
+    return {
+      refused: {
+        zeroMoisture: refused(run({ moisturePct: 0 })),
+        negativeMoisture: refused(run({ moisturePct: -3 })),
+        nanMoisture: refused(run({ moisturePct: NaN })),
+        blankTemperature: refused(run({ temperatureC: null })),
+        infiniteTemperature: refused(run({ temperatureC: Infinity })),
+        zeroInitial: refused(run({ initialViabilityPct: 0 })),
+        negativeInitial: refused(run({ initialViabilityPct: -10 })),
+        overInitial: refused(run({ initialViabilityPct: 120 })),
+        zeroTarget: refused(run({ targetViabilityPct: 0 })),
+        fullTarget: refused(run({ targetViabilityPct: 100 })),
+        missingConstant: refused(run({}, { KE: 6.895, CW: 4.2, CH: 0.0329 })),
+        stringConstant: refused(run({}, { ...set, CW: '4.2' })),
+        noConstants: refused(run({}, null))
+      },
+      rawBad: [E.sigmaDays(set, 0, 5), E.sigmaDays(set, -1, 5), E.sigmaDays(null, 6, 5), E.sigmaDays(set, 6, NaN)]
+        .every((value) => Number.isNaN(value)),
+      full: (() => { const p = run({ initialViabilityPct: 100 }); return { ok: p.ok, applied: p.applied.initialViabilityPct, codes: p.flags.map((f) => f.code), finite: Number.isFinite(p.daysToTarget) }; })(),
+      spent: (() => { const p = run({ initialViabilityPct: 80 }); return { ok: p.ok, toTarget: p.daysToTarget, toHalf: p.daysToHalf, codes: p.flags.map((f) => f.code) }; })(),
+      belowHalf: (() => { const p = run({ initialViabilityPct: 40, targetViabilityPct: 30 }); return { toTarget: p.daysToTarget, toHalf: p.daysToHalf }; })()
+    };
+  }, { set: LETTUCE, lot: LOT });
+
+  for (const [name, wasRefused] of Object.entries(out.refused)) {
+    expect(wasRefused, name).toBe(true);
+  }
+  expect(out.rawBad).toBe(true);
+
+  // 100% has no probit, so it is taken as 99.9% and flagged.
+  expect(out.full).toEqual({ ok: true, applied: 99.9, codes: ['initial-capped'], finite: true });
+  // A lot already under the floor has zero time left.
+  expect(out.spent.ok).toBe(true);
+  expect(out.spent.toTarget).toBe(0);
+  expect(out.spent.toHalf).toBeGreaterThan(0);
+  expect(out.spent.codes).toContain('already-below-target');
+  // A lot that starts below 50% has zero time to half.
+  expect(out.belowHalf.toHalf).toBe(0);
+  expect(out.belowHalf.toTarget).toBeGreaterThan(0);
+});
+
+test('mixing constants across two barley fits is detectably wrong', async ({ page, baseURL }) => {
+  await openSeedLab(page, baseURL);
+  const years = await page.evaluate(() => {
+    const E = window.SeedViability;
+    const universal = { KE: 9.144, CW: 5.342, CH: 0.0329, CQ: 0.000478 };
+    const speciesSpecific = { KE: 9.983, CW: 5.896, CH: 0.040, CQ: 0.000428 };
+    const mixed = { ...speciesSpecific, CH: universal.CH, CQ: universal.CQ };
+    return [universal, speciesSpecific, mixed].map((set) => E.sigmaDays(set, 6.17, -20) / E.DAYS_PER_YEAR);
+  });
+  // numeric_audit.csv: 671 y, 2453 y, and 1689 y for the mixture nobody published.
+  expect(Math.round(years[0])).toBe(671);
+  expect(Math.round(years[1])).toBe(2453);
+  expect(Math.round(years[2])).toBe(1689);
+});
+
+test('every bundled parameter set behaves across the whole accepted range', async ({ page, baseURL }) => {
+  await openSeedLab(page, baseURL);
+  const sweep = await page.evaluate(async (lot) => {
+    const E = window.SeedViability;
+    const { SEED_SPECIES } = await import('../js/seed_storage_lab/seed-species-data.js');
+    const problems = [];
+    let sets = 0;
+    let species = 0;
+    for (const record of SEED_SPECIES) {
+      if (!record.constants || !record.constants.length) continue;
+      species += 1;
+      for (const set of record.constants) {
+        sets += 1;
+        let previous = 0;
+        for (let t = 90; t >= -45; t -= 1) {
+          const p = E.predictDetermination(set, { scientificName: record.scientificName, moisturePct: 8, temperatureC: t, ...lot });
+          if (!p.ok || !Number.isFinite(p.sigmaDays) || p.sigmaDays <= 0 || p.sigmaDays < previous * (1 - 1e-12)) {
+            problems.push(`${record.scientificName} temperature ${t}`);
+            break;
+          }
+          previous = p.sigmaDays;
+        }
+        const curve = E.sampleSurvivalCurve(E.predictDetermination(set,
+          { scientificName: record.scientificName, moisturePct: 8, temperatureC: 5, ...lot }), { points: 40 });
+        const monotone = curve.every((point, index) => index === 0 || point.percent <= curve[index - 1].percent + 1e-9);
+        const bounded = curve.every((point) => point.percent >= 0 && point.percent <= 100 && Number.isFinite(point.days));
+        if (curve.length !== 40 || !monotone || !bounded || Math.abs(curve[0].percent - 95) > 1e-9
+          || Math.abs(curve[39].percent - 1) > 1e-6) {
+          problems.push(`${record.scientificName} curve`);
+        }
+      }
+    }
+    return { sets, species, problems };
+  }, LOT);
+
+  expect(sweep.problems).toEqual([]);
+  expect(sweep.species).toBe(54);
+  expect(sweep.sets).toBe(71);
+});
+
+test('the default lettuce lot shows a viability range across two determinations', async ({ page, baseURL }) => {
+  await openSeedLab(page, baseURL);
+
+  // 4.698 and 7.904 years, from the two published lettuce fits at 6% and 5 C.
+  await expect(page.locator('#viabilityValue')).toHaveText('4.7-7.9 y');
+  await expect(page.locator('#viabilityMeta')).toContainText('95.0% to 85.0%');
+  await expect(page.locator('#viabilityMeta')).toContainText('sealed airtight');
+  await expect(page.locator('#viabilityMeta')).toContainText('2 published determinations');
+  await expect(page.locator('#viabilityMeta')).toContainText('does not average');
+  await expect(page.locator('#halfLifeValue')).toHaveText('13-21 y');
+  await expect(page.locator('#sigmaValue')).toHaveText('7.7-13.0 y');
+
+  await page.locator('#viabilityCard summary').click();
+  await expect(page.locator('#viabilityTableBody tr.viability-row')).toHaveCount(2);
+  // Nothing is held at a limit for the default lot, so there are no note rows.
+  await expect(page.locator('#viabilityTableBody tr.viability-notes')).toHaveCount(0);
+  await expect(page.locator('#viabilityTableBody tr').first()).toContainText('6.895 / 4.2 / 0.0329 / 0.000478');
+  await expect(page.locator('#viabilityChart svg polyline.viability-line')).toHaveCount(2);
+  await expect(page.locator('#viabilityChart svg')).toHaveAttribute('aria-label', /reaches 85% after 4\.7-7\.9 y/);
+  await expect(page.locator('#viabilityCard .viability-note')).toContainText('room humidity is a different quantity');
+});
+
+test('the freezer preset is answered by the equation and flagged as extrapolation', async ({ page, baseURL }) => {
+  await openSeedLab(page, baseURL);
+  await page.locator('[data-tab-target="storage"]').click();
+  await page.locator('[data-preset="freezer"]').click();
+
+  // Harrington still clamps to 0 C; the equation runs at -18 C as entered.
+  await expect(page.locator('#warningList')).toContainText("outside Harrington's validity range");
+  await expect(page.locator('#viabilityMeta')).toContainText('-18.0 °C');
+  await expect(page.locator('#warningList')).toContainText('is an extrapolation');
+  await expect(page.locator('#warningList')).toContainText('low-moisture limit lies between 2 and 6%');
+  await expect(page.locator('#viabilityValue')).toHaveText('42-85 y');
+  await page.locator('#viabilityCard summary').click();
+  await expect(page.locator('#viabilityTableBody tr.viability-notes')).toHaveCount(2);
+  await expect(page.locator('#viabilityTableBody tr.viability-notes').first()).toContainText('is an extrapolation');
+
+  // Under-drying costs most of it, which is the teaching case in Hay.
+  await page.fill('#storageMoisture', '8');
+  await expect(page.locator('#viabilityValue')).toHaveText('5.8-7.2 y');
+});
+
+test('the seed lot inputs drive the result and survive a reload', async ({ page, baseURL }) => {
+  await openSeedLab(page, baseURL);
+  await page.locator('[data-tab-target="storage"]').click();
+
+  await page.fill('#targetGermination', '50');
+  await expect(page.locator('#viabilityValue')).toHaveText('13-21 y');
+
+  await page.fill('#initialGermination', '40');
+  await expect(page.locator('#viabilityValue')).toHaveText('0 days');
+  await expect(page.locator('#warningList')).toContainText('has no time left');
+  await expect(page.locator('#halfLifeValue')).toHaveText('0 days');
+
+  await page.fill('#initialGermination', '100');
+  await expect(page.locator('#warningList')).toContainText('Taken as 99.9%');
+
+  await page.fill('#initialGermination', '90');
+  await page.fill('#targetGermination', '70');
+  await expect(page.locator('#viabilityMeta')).toContainText('90.0% to 70.0%');
+  await page.reload();
+  await expect(page.locator('#initialGermination')).toHaveValue('90');
+  await expect(page.locator('#targetGermination')).toHaveValue('70');
+  await expect(page.locator('#viabilityMeta')).toContainText('90.0% to 70.0%');
+
+  await page.click('#resetBtn');
+  await expect(page.locator('#initialGermination')).toHaveValue('95');
+  await expect(page.locator('#targetGermination')).toHaveValue('85');
+  await expect(page.locator('#viabilityValue')).toHaveText('4.7-7.9 y');
+});
+
+test('species without constants, and refused species, say so', async ({ page, baseURL }) => {
+  await openSeedLab(page, baseURL);
+
+  await pickSpecies(page, 'tomato', 'Solanum lycopersicum');
+  await expect(page.locator('#viabilityValue')).toHaveText('--');
+  await expect(page.locator('#viabilityMeta')).toContainText('No published viability constants');
+  await page.locator('#viabilityCard summary').click();
+  await expect(page.locator('#viabilityChart')).toBeHidden();
+  await expect(page.locator('#viabilityTableBody')).toContainText('No published viability constants');
+
+  // Intermediate seed with published constants: the gate still wins.
+  await pickSpecies(page, 'Khaya', 'Khaya senegalensis');
+  await expect(page.locator('#viabilityValue')).toHaveText('Not modelled');
+  await expect(page.locator('#viabilityMeta')).toContainText('intermediate seed');
+  await expect(page.locator('#viabilityChart')).toBeHidden();
+
+  // Out of the equation's moisture range for lettuce: refused with the reason.
+  await pickSpecies(page, 'lettuce', 'Lactuca sativa');
+  await page.locator('[data-tab-target="storage"]').click();
+  await page.fill('#storageMoisture', '16');
+  await expect(page.locator('#viabilityValue')).toHaveText('Outside the equation');
+  await expect(page.locator('#viabilityMeta')).toContainText('Above about 15% moisture');
+});
+
+test('an unrecorded woody species runs on its constants and says why', async ({ page, baseURL }) => {
+  await openSeedLab(page, baseURL);
+  await pickSpecies(page, 'Pinus occidentalis', 'Pinus occidentalis');
+
+  // Harrington stays withheld; the equation runs because constants exist.
+  await expect(page.locator('#longevityValue')).toHaveText('Not modelled');
+  await expect(page.locator('#viabilityValue')).not.toHaveText('Not modelled');
+  await expect(page.locator('#viabilityValue')).not.toHaveText('--');
+  await expect(page.locator('#viabilityMeta')).toContainText('fitted from dry-storage experiments');
+
+  // One of its two sets turns over at -8.2 C, so the freezer holds it there.
+  await page.locator('[data-tab-target="storage"]').click();
+  await page.locator('[data-preset="freezer"]').click();
+  await expect(page.locator('#warningList')).toContainText('turns over at -8.2 °C');
+});
+
+test('the viability detail card does not overflow a phone and its controls are labelled', async ({ page, baseURL }) => {
+  await page.setViewportSize({ width: 375, height: 800 });
+  await openSeedLab(page, baseURL);
+  await page.locator('#viabilityCard summary').click();
+  await expect(page.locator('#viabilityChart svg')).toBeVisible();
+
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  expect(overflow).toBeLessThanOrEqual(1);
+
+  const chartWidth = await page.locator('#viabilityChart svg').evaluate((node) => node.getBoundingClientRect().width);
+  expect(chartWidth).toBeLessThanOrEqual(375);
+
+  for (const id of ['initialGermination', 'targetGermination']) {
+    const labelled = await page.locator(`#${id}`).evaluate((node) => Boolean(node.closest('label')));
+    expect(labelled, id).toBe(true);
+    await expect(page.locator(`[aria-describedby="help-${id}"]`)).toHaveCount(1);
+  }
+});

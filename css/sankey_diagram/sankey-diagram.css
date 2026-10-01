@@ -1,0 +1,466 @@
+/* ============================================
+   Sankey Diagram Builder - Specific Styles
+   shared.css carries no component classes, so the panel, button and table
+   styles live here. Readable text uses --text-secondary, never --text-muted.
+   ============================================ */
+
+.sankey-layout {
+    display: grid;
+    grid-template-columns: minmax(300px, 380px) minmax(0, 1fr);
+    gap: 24px;
+    align-items: start;
+}
+
+.panel {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 24px;
+    min-width: 0;
+}
+
+.panel-header {
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.panel-header h2 {
+    margin-bottom: 4px;
+}
+
+.panel-header p {
+    color: var(--text-secondary);
+    font-size: 0.9375rem;
+}
+
+.diagram-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.result-status {
+    min-height: 1.5em;
+}
+
+.result-status.unbalanced {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+/* Form */
+.input-group {
+    margin-bottom: 16px;
+}
+
+.input-group label,
+.check-group legend {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.flow-text {
+    min-height: 260px;
+    resize: vertical;
+    font-size: 0.8125rem;
+    line-height: 1.6;
+    white-space: pre;
+    overflow-x: auto;
+}
+
+.field-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0 12px;
+}
+
+.check-group {
+    border: 0;
+    margin-bottom: 16px;
+}
+
+.check {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 32px;
+    font-size: 0.875rem;
+    color: var(--text-primary);
+    cursor: pointer;
+}
+
+.check input {
+    width: 18px;
+    height: 18px;
+    padding: 0;
+    flex: none;
+    accent-color: var(--accent-educational);
+}
+
+.helper-text {
+    margin: 0 0 14px;
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    color: var(--text-secondary);
+}
+
+/* Foldable notes */
+.usage-note,
+.advanced {
+    margin-bottom: 16px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--bg-secondary);
+}
+
+.usage-note > summary,
+.advanced > summary {
+    min-height: 44px;
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.usage-note[open] > summary,
+.advanced[open] > summary {
+    border-bottom: 1px solid var(--border-color);
+}
+
+.usage-note > :not(summary),
+.advanced > :not(summary) {
+    margin-left: 14px;
+    margin-right: 14px;
+}
+
+.usage-note > p {
+    margin-bottom: 14px;
+    font-size: 0.8125rem;
+    color: var(--text-secondary);
+}
+
+.advanced h3 {
+    margin: 16px 14px 10px;
+    font-size: 0.8125rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-secondary);
+}
+
+.advanced > .check {
+    margin-bottom: 10px;
+}
+
+.syntax-list {
+    margin-top: 12px;
+    margin-bottom: 12px;
+    font-size: 0.8125rem;
+}
+
+.syntax-list dt {
+    margin-top: 8px;
+}
+
+.syntax-list dd {
+    color: var(--text-secondary);
+}
+
+.syntax-list code,
+.usage-note p code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+}
+
+/* Buttons */
+.button-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.tool-btn {
+    min-height: 44px;
+    padding: 10px 16px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.tool-btn:hover:not(:disabled) {
+    border-color: var(--accent-educational);
+}
+
+/* Dark ink on the green in both themes: white on it measures about 3.3:1. */
+.tool-btn.primary {
+    background: var(--accent-educational);
+    border-color: var(--accent-educational);
+    color: #0a0a0b;
+}
+
+.tool-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.tool-btn:focus-visible,
+.usage-note > summary:focus-visible,
+.advanced > summary:focus-visible,
+.diagram-scroll:focus-visible,
+.table-scroll:focus-visible {
+    outline: 2px solid var(--accent-educational);
+    outline-offset: 2px;
+}
+
+/* Diagram */
+.diagram-scroll {
+    overflow-x: auto;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--bg-card);
+    margin-bottom: 12px;
+}
+
+.diagram-host {
+    min-height: 120px;
+}
+
+.diagram-host svg {
+    display: block;
+    width: 100%;
+    min-width: 560px;
+    height: auto;
+}
+
+.sankey-link:hover {
+    fill-opacity: 0.8;
+}
+
+.sankey-hairline:hover {
+    stroke-width: 2;
+}
+
+/* Messages */
+.message-box {
+    margin-bottom: 14px;
+    padding: 12px 14px;
+    border-radius: 8px;
+    font-size: 0.875rem;
+}
+
+.message-box h3 {
+    font-size: 0.875rem;
+    margin-bottom: 6px;
+}
+
+.message-box ul {
+    padding-left: 18px;
+    color: var(--text-primary);
+}
+
+.error-box {
+    border: 1px solid var(--accent-error);
+    background: var(--accent-error-dim);
+}
+
+.warning-box {
+    border: 1px solid color-mix(in srgb, var(--accent-warning) 50%, transparent);
+    background: var(--accent-warning-dim);
+}
+
+/* Tables */
+.table-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 440px), 1fr));
+    gap: 16px;
+}
+
+.table-card {
+    min-width: 0;
+    padding: 16px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--bg-secondary);
+}
+
+.table-card h3 {
+    font-size: 1rem;
+    margin-bottom: 10px;
+}
+
+.table-scroll {
+    overflow-x: auto;
+}
+
+.totals {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 4px 16px;
+    margin-bottom: 14px;
+    font-size: 0.875rem;
+}
+
+.totals dt {
+    color: var(--text-secondary);
+}
+
+.totals dd {
+    font-family: 'JetBrains Mono', monospace;
+    text-align: right;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8125rem;
+}
+
+th,
+td {
+    padding: 8px 10px;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+    white-space: nowrap;
+}
+
+thead th {
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+
+tbody th {
+    font-weight: 600;
+}
+
+.num {
+    text-align: right;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+tr.unbalanced {
+    box-shadow: inset 3px 0 0 var(--accent-error);
+}
+
+tr.unbalanced .balance-status {
+    font-weight: 600;
+}
+
+/* Status sits beside the name and wraps, so it is never scrolled out of view.
+   Not named .status: shared.css styles that class as a 10px uppercase badge. */
+#balanceTable .balance-status {
+    white-space: normal;
+    min-width: 9em;
+}
+
+/* Passing only because the tolerance allows it gets a quieter mark than failing. */
+tr.tolerated {
+    box-shadow: inset 3px 0 0 var(--accent-warning);
+}
+
+/* Projects */
+.project-bar {
+    margin-bottom: 20px;
+    padding: 14px 14px 2px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--bg-secondary);
+}
+
+.project-bar legend {
+    padding: 0 6px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.project-bar .button-row {
+    margin-bottom: 12px;
+}
+
+.tool-btn.small {
+    padding: 8px 12px;
+    font-size: 0.8125rem;
+}
+
+.tool-btn.danger:hover:not(:disabled),
+.tool-btn.danger[data-armed] {
+    border-color: var(--accent-error);
+    background: var(--accent-error-dim);
+}
+
+.helper-text code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    padding: 1px 5px;
+    border-radius: 4px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+}
+
+/* Movable nodes. touch-action lets a finger drag a node instead of the page. */
+.diagram-host .sankey-node {
+    cursor: grab;
+    touch-action: none;
+}
+
+.diagram-host.dragging,
+.diagram-host.dragging .sankey-node {
+    cursor: grabbing;
+}
+
+.diagram-host .sankey-node:focus-visible {
+    outline: 2px solid var(--accent-educational);
+    outline-offset: 2px;
+}
+
+/* Responsive */
+@media (max-width: 1100px) {
+    .sankey-layout {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    /* The diagram is the answer, so it leads once the columns stack, with the
+       scope notice still ahead of it. */
+    .diagram-panel {
+        order: -1;
+    }
+
+    .sankey-layout > .disclaimer-card {
+        order: -2;
+    }
+}
+
+@media (max-width: 768px) {
+    .panel {
+        padding: 16px;
+    }
+
+    .check {
+        min-height: 44px;
+    }
+
+    input,
+    select,
+    textarea {
+        font-size: 1rem;
+    }
+}

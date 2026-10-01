@@ -1,7 +1,7 @@
 // Repo-wide guard for the boilerplate legal clauses. A rebuild in September 2026
 // dropped indemnification and the enumerated damages clause from the only two
 // pages carrying them, and every page still looked fine. P3 tools are
-// deliberately not listed; see docs/SOW/disclaimer_rework_sow.md.
+// deliberately not listed; see docs/SOW/completed/disclaimer_rework_sow.md.
 const { test, expect } = require('@playwright/test');
 
 const CLAUSE_PAGES = [
@@ -45,6 +45,7 @@ const CLAUSE_PAGES = [
   '/tools/creatine-lab.html',
   '/tools/seed-storage-lab.html',
   '/tools/species-doubling-reference.html',
+  '/tools/sankey-diagram.html',
 ];
 
 const REQUIRED = [

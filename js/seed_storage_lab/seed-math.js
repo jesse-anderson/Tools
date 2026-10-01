@@ -23,6 +23,22 @@ import {
     OZ_PER_LB
 } from "./seed-model.js";
 import { SEED_REFERENCES } from "./seed-source-map.js";
+import { SEED_SPECIES } from "./seed-species-data.js";
+import {
+    DAYS_PER_YEAR,
+    PROBIT_OFFSET,
+    daysToNed,
+    nedFromPercent,
+    predictDetermination,
+    predictSpecies,
+    sigmaDays,
+    turningPointC,
+    viabilityAfterDays
+} from "./seed-viability-engine.js";
+
+// Constants as Hay prints them, independent of the generated bundle.
+const HAY_LETTUCE = Object.freeze({ KE: 6.895, CW: 4.2, CH: 0.0329, CQ: 0.000478 });
+const HAY_BARLEY = Object.freeze({ KE: 9.144, CW: 5.342, CH: 0.0329, CQ: 0.000478 });
 
 const approxEqual = (a, b, tol) => Number.isFinite(a) && Number.isFinite(b) && Math.abs(a - b) <= tol;
 
@@ -426,6 +442,198 @@ export const SEED_EQUATION_SPECS = Object.freeze([
                 actual: `${model.multiplier.multiplier.toFixed(6)}× → ${years.low.toFixed(2)}-${years.high.toFixed(2)} y`,
                 units: "× life",
                 message: "Baseline and multiplier agree, so published figures pass through untouched."
+            });
+        }
+    },
+    {
+        id: "viability-sigma",
+        title: "Ellis-Roberts: how storage conditions set sigma",
+        equation: "log10(sigma) = K_E − C_W·log10(m) − C_H·t − C_Q·t²",
+        rationale:
+            "Sigma is the standard deviation of seed deaths in time, in days, and so the time for germination to "
+            + "fall by one probit. m is moisture content in percent of fresh weight and t is degrees Celsius. "
+            + "Moisture enters as a logarithm and temperature as a quadratic, so drying and cooling multiply, and "
+            + "the benefit of each further degree of cooling shrinks. The four constants are fitted together and "
+            + "are never mixed across sources.",
+        sources: ["ellisRoberts1980", "hayViabilityEquations", "ellis2022SST"],
+        implementation: "seed-viability-engine.js → sigmaDays.",
+        fixture: "Hay's three worked examples at -20 °C: lettuce at 4.19% and 6.0% moisture, barley at 6.17%.",
+        expected: "56,040 d, 12,404 d and 244,961 d, each to the day.",
+        run() {
+            const got = [
+                sigmaDays(HAY_LETTUCE, 4.19, -20),
+                sigmaDays(HAY_LETTUCE, 6.0, -20),
+                sigmaDays(HAY_BARLEY, 6.17, -20)
+            ];
+            const want = [56040, 12404, 244961];
+            return makeResult({
+                pass: got.every((value, index) => Math.round(value) === want[index]),
+                expected: want.join(", "),
+                actual: got.map((value) => value.toFixed(1)).join(", "),
+                units: "days",
+                message: "Under-drying lettuce by 1.8 points of moisture costs a factor of 4.5."
+            });
+        }
+    },
+    {
+        id: "viability-probit",
+        title: "Percent germination to probits",
+        equation: "probit = Φ⁻¹(germination) + 5",
+        rationale:
+            "Seed deaths in time follow a normal distribution, so germination plotted in probits falls as a "
+            + "straight line. The +5 is a pre-calculator convention that kept the numbers positive. It cancels in "
+            + "every time difference, so the engine works without it and adds it back only for display.",
+        sources: ["hayViabilityEquations", "ipgri1996"],
+        implementation: "seed-viability-engine.js → nedFromPercent, normalCdf, inverseNormalCdf.",
+        fixture: "The four probit values Hay prints: 98.0%, 99.0%, 51% and 99.9%.",
+        expected: "7.0537, 7.3263, 5.0251 and 8.0902.",
+        run() {
+            const want = [[98, 7.0537], [99, 7.3263], [51, 5.0251], [99.9, 8.0902]];
+            const got = want.map(([percent]) => nedFromPercent(percent) + PROBIT_OFFSET);
+            return makeResult({
+                pass: got.every((value, index) => approxEqual(value, want[index][1], 5e-5)),
+                expected: want.map((pair) => pair[1]).join(", "),
+                actual: got.map((value) => value.toFixed(4)).join(", "),
+                units: "probits",
+                message: "Matches the printed table to its fourth decimal."
+            });
+        }
+    },
+    {
+        id: "viability-survival",
+        title: "Ellis-Roberts: the survival line",
+        equation: "v = K_i − p / sigma",
+        rationale:
+            "v is probit germination after p days and K_i is the lot's starting probit. The time to fall from one "
+            + "germination level to another is the probit difference times sigma, which is how every duration on "
+            + "this page is computed. Hay's \"total lifespan\" is the time to probit zero, which is 0.00003% "
+            + "germination, and is reproduced here only to check the arithmetic.",
+        sources: ["ellisRoberts1980", "hayViabilityEquations"],
+        implementation: "seed-viability-engine.js → daysToNed, viabilityAfterDays.",
+        fixture: "Hay's lettuce lot at 99.9% germination, 4.19% moisture and -20 °C.",
+        expected: "453,374 d to probit zero, and one sigma takes 84.13% down to 50%.",
+        run() {
+            const sigma = sigmaDays(HAY_LETTUCE, 4.19, -20);
+            const lifespan = daysToNed(sigma, nedFromPercent(99.9), -PROBIT_OFFSET);
+            const afterOneSigma = viabilityAfterDays(sigma, 1, sigma);
+            // Hay multiplies rounded figures, so the printed one sits a few days low.
+            return makeResult({
+                pass: Math.abs(lifespan / 453374 - 1) < 2e-5 && approxEqual(afterOneSigma, 50, 1e-9),
+                expected: "453,374 d; 50%",
+                actual: `${Math.round(lifespan).toLocaleString()} d; ${afterOneSigma.toFixed(4)}%`,
+                units: "",
+                message: "The few days' gap to the printed figure is Hay rounding sigma and the probit before multiplying."
+            });
+        }
+    },
+    {
+        id: "viability-compendium-column",
+        title: "The compendium's own longevity column",
+        equation: "sigma(5% moisture, -20 °C) / 365.25",
+        rationale:
+            "Appendix I of the 1996 compendium prints, beside each set of constants, the years for germination "
+            + "to fall one probit at -20 °C and 5% moisture. Recomputing that column from the constants checks "
+            + "the transcription of every set and the equation at once, against numbers the authors computed.",
+        sources: ["kewAppendix1", "ipgri1996"],
+        implementation: "seed-viability-engine.js → sigmaDays, over every bundled set that carries a published figure.",
+        fixture: "Every bundled parameter set with a published -20 °C figure.",
+        expected: "All within 3% except Ranunculus sceleratus, printed as 24 against a computed 25.3.",
+        run() {
+            let total = 0;
+            const outside = [];
+            for (const record of SEED_SPECIES) {
+                for (const set of record.constants || []) {
+                    if (!Number.isFinite(set.publishedYearsMinus20C)) continue;
+                    total += 1;
+                    const years = sigmaDays(set, 5, -20) / DAYS_PER_YEAR;
+                    const error = Math.abs(years / set.publishedYearsMinus20C - 1);
+                    if (error > 0.03) outside.push({ name: record.scientificName, error });
+                }
+            }
+            const onlyRanunculus = outside.length === 1
+                && outside[0].name === "Ranunculus sceleratus" && outside[0].error < 0.06;
+            return makeResult({
+                pass: total >= 60 && onlyRanunculus,
+                expected: `${total} sets, 1 outside 3%`,
+                actual: `${total} sets, ${outside.length} outside 3%`,
+                units: "",
+                message: outside.map((entry) => `${entry.name} ${(entry.error * 100).toFixed(1)}%`).join("; ")
+            });
+        }
+    },
+    {
+        id: "viability-turning-point",
+        title: "Colder is never predicted to be worse",
+        equation: "t_turn = −C_H / (2·C_Q)",
+        rationale:
+            "The temperature term is a quadratic, so it has a maximum. With the universal constants that is "
+            + "-34.4 °C and out of reach, but five published sets turn over warmer than -25 °C and one sweetgum "
+            + "set at -2.7 °C. Below the turning point the raw equation says a freezer shortens life, which is an "
+            + "artefact of fitting a parabola to warm data. The engine holds the prediction at the turning point "
+            + "and says so. Nothing is evaluated below -20 °C, the coldest any archived source takes the equation.",
+        sources: ["dickieEllis1990", "ellis2022SST", "kewAppendix1"],
+        implementation: "seed-viability-engine.js → turningPointC, predictDetermination.",
+        fixture: "Every bundled parameter set, stepped from 90 °C down to -40 °C at 8% moisture.",
+        expected: "Sigma never falls as the temperature falls, for any set.",
+        run() {
+            let sets = 0;
+            let warmTurn = 0;
+            const offenders = [];
+            for (const record of SEED_SPECIES) {
+                for (const set of record.constants || []) {
+                    sets += 1;
+                    if (turningPointC(set) > -25) warmTurn += 1;
+                    let previous = 0;
+                    for (let t = 90; t >= -40; t -= 1) {
+                        const result = predictDetermination(set, {
+                            scientificName: record.scientificName, moisturePct: 8, temperatureC: t,
+                            initialViabilityPct: 95, targetViabilityPct: 85
+                        });
+                        if (!result.ok || result.sigmaDays < previous * (1 - 1e-12)) {
+                            offenders.push(`${record.scientificName} at ${t} °C`);
+                            break;
+                        }
+                        previous = result.sigmaDays;
+                    }
+                }
+            }
+            return makeResult({
+                pass: sets > 0 && offenders.length === 0 && warmTurn === 5,
+                expected: `${sets} sets monotone, 5 turning above -25 °C`,
+                actual: `${sets - offenders.length} sets monotone, ${warmTurn} turning above -25 °C`,
+                units: "",
+                message: offenders.length ? offenders.join("; ") : "The raw equation fails this for five sets; the limited one does not."
+            });
+        }
+    },
+    {
+        id: "viability-determinations-separate",
+        title: "Published determinations are never merged",
+        equation: "one prediction per (K_E, C_W, C_H, C_Q) set",
+        rationale:
+            "Onion has two published sets, one with its own temperature constants and one with the universal "
+            + "pair. Each is a valid fit and they disagree two-fold at genebank conditions. Averaging them, or "
+            + "taking K_E and C_W from one and C_H and C_Q from the other, gives a figure no experiment supports.",
+        sources: ["kewAppendix1", "dickieEllis1990"],
+        implementation: "seed-viability-engine.js → predictSpecies.",
+        fixture: "Onion at -20 °C and 5% moisture, where the compendium prints 413 and 843 years.",
+        expected: "Two determinations, about 413 and 843 years of sigma, ratio about 2.0.",
+        run() {
+            const onion = getSpeciesById("allium-cepa");
+            const result = predictSpecies(onion, {
+                moisturePct: 5, temperatureC: -20, initialViabilityPct: 95, targetViabilityPct: 85
+            });
+            const years = result.ok
+                ? result.determinations.map((entry) => entry.sigmaDays / DAYS_PER_YEAR).sort((a, b) => a - b)
+                : [];
+            return makeResult({
+                pass: years.length === 2
+                    && Math.abs(years[0] / 413 - 1) < 0.01 && Math.abs(years[1] / 843 - 1) < 0.01
+                    && approxEqual(result.ratio, years[1] / years[0], 1e-9),
+                expected: "413 and 843 y",
+                actual: years.map((value) => value.toFixed(0)).join(" and "),
+                units: "y",
+                message: result.ok ? `Reported as a range with ratio ${result.ratio.toFixed(2)}.` : "No prediction returned."
             });
         }
     },

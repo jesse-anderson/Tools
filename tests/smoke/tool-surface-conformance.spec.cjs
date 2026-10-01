@@ -1,5 +1,5 @@
 // The rules a new tool has to satisfy. Reads files from disk, so it loads no pages.
-// Each rule guards a defect this repo shipped; details in docs/SOW/disclaimer_rework_sow.md.
+// Each rule guards a defect this repo shipped; details in docs/SOW/completed/disclaimer_rework_sow.md.
 const fs = require('fs');
 const path = require('path');
 const { test, expect } = require('@playwright/test');

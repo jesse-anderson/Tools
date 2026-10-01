@@ -1,5 +1,6 @@
 // Seed Storage Lab model: species lookup, seed counts, the species gate,
-// Harrington's rules, and the Hundred Rule indicator.
+// Harrington's rules, the Hundred Rule indicator, and the hand-off to the
+// Ellis-Roberts viability equation in seed-viability-engine.js.
 //
 // Two principles run through the whole module and explain most of its shape:
 //
@@ -14,6 +15,7 @@
 
 import { SEED_SPECIES, SEED_SPECIES_BY_ID } from "./seed-species-data.js";
 import { SEED_REFERENCES } from "./seed-source-map.js";
+import { predictSpecies } from "./seed-viability-engine.js";
 
 export const GRAMS_PER_OZ = 28.349523125;
 export const GRAMS_PER_LB = 453.59237;
@@ -387,7 +389,7 @@ function entryCropKeys(entry) {
  * The distinct crops a species record covers, in display order.
  *
  * Returns [] when every row is species-level, which is the common case: only
- * 31 of 1,048 taxa carry rows for more than one crop.
+ * 30 of 1,047 taxa carry rows for more than one crop.
  */
 export function cropGroups(record) {
     if (!record) return [];
@@ -821,6 +823,42 @@ export function projectLongevity({ record, multiplier, gate, cropKey = null }) {
 }
 
 // ---------------------------------------------------------------------------
+// Viability equation
+// ---------------------------------------------------------------------------
+
+/**
+ * Run the Ellis-Roberts equation where constants exist and the gate allows.
+ * A woody species with no behaviour record still runs: published constants
+ * are evidence the seed survives drying.
+ */
+export function evaluateViability({ record, gate, storageMoisturePct, storageTemperatureC,
+    initialGerminationPct, targetGerminationPct }) {
+    const hasConstants = Boolean(record && record.constants && record.constants.length);
+    if (!hasConstants) return { ok: false, reason: "no-constants" };
+
+    const unrecorded = Boolean(gate) && !gate.behaviour;
+    if (!gate || (!gate.allowLongevity && !unrecorded)) {
+        return { ok: false, reason: "gated", gate };
+    }
+
+    const result = predictSpecies(record, {
+        moisturePct: storageMoisturePct,
+        temperatureC: storageTemperatureC,
+        initialViabilityPct: initialGerminationPct,
+        targetViabilityPct: targetGerminationPct
+    });
+    if (!result.ok) return { ok: false, reason: "not-applicable", detail: result.reason, determinations: result.determinations };
+
+    const longestYears = result.daysToHalf.high / 365.25;
+    return {
+        ...result,
+        // True when the Harrington gate refused and the constants let it through.
+        admittedByConstants: !gate.allowLongevity,
+        beyondEvidence: longestYears > EVIDENCE_HORIZON_YEARS
+    };
+}
+
+// ---------------------------------------------------------------------------
 // Top-level entry point
 // ---------------------------------------------------------------------------
 
@@ -832,6 +870,9 @@ export const DEFAULT_INPUTS = Object.freeze({
     storageTemperatureC: 5,
     storageMoisturePct: 6,
     storageRelativeHumidityPct: 30,
+    // 85% is the usual genebank regeneration standard.
+    initialGerminationPct: 95,
+    targetGerminationPct: 85,
     measuredSeedCount: null,
     measuredSampleMass: null,
     measuredSampleMassUnit: "g",
@@ -870,6 +911,14 @@ export function runSeedModel(rawInputs = {}) {
     });
 
     const projection = projectLongevity({ record, multiplier, gate, cropKey });
+    const viability = evaluateViability({
+        record,
+        gate,
+        storageMoisturePct: inputs.storageMoisturePct,
+        storageTemperatureC: inputs.storageTemperatureC,
+        initialGerminationPct: inputs.initialGerminationPct,
+        targetGerminationPct: inputs.targetGerminationPct
+    });
     const rule = hundredRule({
         temperatureC: inputs.storageTemperatureC,
         relativeHumidityPct: inputs.storageRelativeHumidityPct
@@ -911,6 +960,7 @@ export function runSeedModel(rawInputs = {}) {
         measuredVsPublished: compareMeasuredToPublished(measured, counts),
         multiplier,
         projection,
+        viability,
         hundredRule: rule,
         packet
     };

@@ -1,6 +1,6 @@
 // The P3 band: 14 low-consequence tools that carry a short scope notice and no
 // sectioned disclaimer card. The zero-card assertion pins that decision, which is
-// easy to undo by accident; the reasoning is in docs/SOW/disclaimer_rework_sow.md.
+// easy to undo by accident; the reasoning is in docs/SOW/completed/disclaimer_rework_sow.md.
 const { test, expect } = require('@playwright/test');
 const { expectPageToLoadCleanly } = require('./helpers.cjs');
 

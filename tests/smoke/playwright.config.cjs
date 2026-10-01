@@ -55,6 +55,8 @@ module.exports = defineConfig({
     'screenshot-tool.spec.cjs',
     'dbscan-visualizer.spec.cjs',
     'local-llm-opex.spec.cjs',
+    'sankey-diagram.spec.cjs',
+    'sankey-diagram-page.spec.cjs',
     'legal-clauses.spec.cjs',
     'p3-short-notices.spec.cjs',
     'tool-surface-conformance.spec.cjs',

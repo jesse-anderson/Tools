@@ -22,6 +22,7 @@ import {
 } from "./seed-model.js";
 import { SEED_SPECIES } from "./seed-species-data.js";
 import { SEED_REFERENCES } from "./seed-source-map.js";
+import { SPECIES_MOISTURE_LIMITS, predictDetermination, sigmaDays } from "./seed-viability-engine.js";
 
 function check({ id, title, reference, fixture, benchmark, pass, detail }) {
     return { id, title, reference: reference || null, fixture, benchmark, status: pass ? "pass" : "fail", detail };
@@ -271,6 +272,80 @@ export function evaluateSeedChecks() {
         benchmark: "Every determination kept separately, disagreement flagged. Two independent sources agree, which is what isolates Osborne as the outlier; an average would have destroyed that signal.",
         pass: lettuce.rows.length >= 3 && lettuce.disagreement === true,
         detail: `${lettuce.rows.length} determinations retained, spread ${lettuce.ratio ? lettuce.ratio.toFixed(1) : "n/a"}×.`
+    }));
+
+    // ---- Viability equation ------------------------------------------------
+
+    const refusedBehaviours = new Set(["recalcitrant", "intermediate", "not_applicable"]);
+    const withConstants = SEED_SPECIES.filter((record) => record.constants && record.constants.length);
+    const leaked = withConstants.filter((record) =>
+        record.behaviour && refusedBehaviours.has(record.behaviour.behaviour)
+        && runSeedModel({ speciesId: record.id }).viability.ok);
+    const refusedWithConstants = withConstants.filter((record) =>
+        record.behaviour && refusedBehaviours.has(record.behaviour.behaviour));
+    checks.push(check({
+        id: "viability-respects-gate",
+        title: "Published constants do not override a refusal",
+        reference: SEED_REFERENCES.ipgri1996,
+        fixture: `Fixture: the ${refusedWithConstants.length} species that carry viability constants and a recalcitrant, intermediate or not-applicable flag (${refusedWithConstants.map((record) => record.scientificName).join(", ") || "none"}).`,
+        benchmark: "Constants fitted over a narrow moisture range do not make an intermediate seed safe to dry and freeze.",
+        pass: leaked.length === 0,
+        detail: leaked.length
+            ? `${leaked.map((record) => record.scientificName).join(", ")} received a viability prediction.`
+            : "None receives a viability prediction."
+    }));
+
+    // With the limits applied, sigma must fall or hold as moisture rises.
+    let setsSwept = 0;
+    const moistureOffenders = [];
+    for (const record of withConstants) {
+        for (const set of record.constants) {
+            setsSwept += 1;
+            let previous = Infinity;
+            for (let m = 1; m <= 28; m += 0.5) {
+                const result = predictDetermination(set, {
+                    scientificName: record.scientificName, moisturePct: m, temperatureC: 5,
+                    initialViabilityPct: 95, targetViabilityPct: 85
+                });
+                if (!result.ok) break;
+                if (result.sigmaDays > previous * (1 + 1e-12)) {
+                    moistureOffenders.push(`${record.scientificName} at ${m}%`);
+                    break;
+                }
+                previous = result.sigmaDays;
+            }
+        }
+    }
+    checks.push(check({
+        id: "viability-moisture-monotone",
+        title: "Wetter seed is never predicted to last longer",
+        reference: SEED_REFERENCES.ipgri1996,
+        fixture: `Fixture: all ${setsSwept} published parameter sets, stepped from 1% to 28% moisture at 5 °C.`,
+        benchmark: "Inside its limits the equation falls steadily with moisture; below the low-moisture limit it must plateau.",
+        pass: setsSwept > 0 && moistureOffenders.length === 0,
+        detail: moistureOffenders.length
+            ? `Rises with moisture for ${moistureOffenders.join("; ")}.`
+            : `All ${setsSwept} sets fall or hold as moisture rises.`
+    }));
+
+    const pea = getSpeciesById("pisum-sativum");
+    const peaLimit = SPECIES_MOISTURE_LIMITS["Pisum sativum"].lowerPct;
+    const peaSet = pea.constants[0];
+    const peaArgs = { scientificName: pea.scientificName, temperatureC: 5, initialViabilityPct: 95, targetViabilityPct: 85 };
+    const peaAtLimit = predictDetermination(peaSet, { ...peaArgs, moisturePct: peaLimit });
+    const peaBelow = predictDetermination(peaSet, { ...peaArgs, moisturePct: peaLimit - 2 });
+    checks.push(check({
+        id: "viability-low-moisture-plateau",
+        title: "Over-drying earns no extra life",
+        reference: SEED_REFERENCES.ipgri1996,
+        fixture: `Fixture: pea at ${peaLimit}% and at ${peaLimit - 2}% moisture, 5 °C. The compendium puts pea's low-moisture limit at about ${peaLimit}%.`,
+        benchmark: `Below the limit, further drying no longer increases longevity in hermetic storage. Left unlimited, the equation would credit those two points of drying with a ${(sigmaDays(peaSet, peaLimit - 2, 5) / sigmaDays(peaSet, peaLimit, 5)).toFixed(1)}-fold gain.`,
+        pass: peaAtLimit.ok && peaBelow.ok
+            && peaBelow.sigmaDays === peaAtLimit.sigmaDays
+            && peaBelow.flags.some((item) => item.code === "low-moisture-plateau"),
+        detail: peaAtLimit.ok && peaBelow.ok
+            ? `Both give ${Math.round(peaAtLimit.sigmaDays).toLocaleString()} days per probit, and the drier one is flagged.`
+            : "A pea prediction failed to run."
     }));
 
     // ---- Measured mode ----------------------------------------------------

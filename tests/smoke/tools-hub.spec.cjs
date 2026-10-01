@@ -124,7 +124,7 @@ test('tools.html renders expandable page statistics from current tool cards', as
 // deliberately a passive notice and not an acceptance gate: tools here are
 // reached by direct link far more often than through this page, so a gate on
 // the catalog would guard the one door almost nobody uses. See
-// docs/SOW/disclaimer_rework_sow.md.
+// docs/SOW/completed/disclaimer_rework_sow.md.
 
 test('tools.html carries the site-wide notice above the tool list, readable while collapsed', async ({ page, baseURL }) => {
   await expectPageToLoadCleanly(page, baseURL, '/tools.html');

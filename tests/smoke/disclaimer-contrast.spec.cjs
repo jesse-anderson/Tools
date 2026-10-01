@@ -63,6 +63,7 @@ const TOOLS_WITH_DISCLAIMER_HEADINGS = [
   'psychrometric-calculator',
   'regex-tester',
   'rpi-pinout',
+  'sankey-diagram',
   'scientific-graph-digitizer',
   'screenshot-tool',
   'seed-storage-lab',

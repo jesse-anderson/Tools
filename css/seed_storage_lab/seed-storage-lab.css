@@ -507,6 +507,73 @@
     max-width: 42ch;
 }
 
+/* ---- Viability equation ---------------------------------------------- */
+
+.viability-note {
+    font-size: 0.8rem;
+    line-height: 1.5;
+    color: var(--text-secondary);
+    margin: 0.5rem 0;
+}
+
+.viability-chart svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-width: 640px;
+}
+
+.viability-grid {
+    stroke: var(--border-color);
+    stroke-width: 1;
+}
+
+.viability-tick,
+.viability-axis {
+    fill: var(--text-secondary);
+    font-size: 11px;
+    font-family: "JetBrains Mono", monospace;
+}
+
+.viability-target {
+    stroke: var(--accent-warning);
+    stroke-width: 1.5;
+    stroke-dasharray: 2 4;
+}
+
+.viability-line {
+    fill: none;
+    stroke-width: 2.5;
+    stroke-linejoin: round;
+}
+
+.viability-line.series-0 { stroke: var(--accent-biochemical); }
+.viability-line.series-1 { stroke: var(--accent-it); stroke-dasharray: 9 5; }
+.viability-line.series-2 { stroke: var(--accent-general); stroke-dasharray: 3 4; }
+.viability-line.series-3 { stroke: var(--accent-success); stroke-dasharray: 12 4 3 4; }
+
+.viability-swatch {
+    display: inline-block;
+    width: 1.6rem;
+    height: 0;
+    margin-right: 0.45rem;
+    vertical-align: middle;
+    border-top: 3px solid var(--accent-biochemical);
+}
+
+.viability-swatch.series-1 { border-top: 3px dashed var(--accent-it); }
+.viability-swatch.series-2 { border-top: 3px dotted var(--accent-general); }
+.viability-swatch.series-3 { border-top: 3px double var(--accent-success); }
+
+.viability-row td {
+    border-bottom: none;
+}
+
+.viability-notes .row-note {
+    max-width: none;
+    margin-bottom: 0.25rem;
+}
+
 /* ---- Checks panel ---------------------------------------------------- */
 
 .check-item {

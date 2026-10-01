@@ -1,9 +1,10 @@
 <!--
 ============================================
-SEED STORAGE LAB v0.1.0
+SEED STORAGE LAB v0.2.0
 ============================================
 Description: Seed count lookup, measured-count mode, and orthodox seed
-storage-life estimation from Harrington's rules, with a species gate that
+storage-life estimation from Harrington's rules and, for species with
+published constants, the Ellis-Roberts viability equation. A species gate
 refuses to model recalcitrant and vegetatively propagated crops.
 
 Dependencies:
@@ -79,7 +80,7 @@ License: GPL-3.0
                     <span class="disclaimer-icon" aria-hidden="true">&#9888;</span>
                     <span class="disclaimer-summary-text">
                         <span class="disclaimer-title">Rules-of-thumb projections for orthodox seed. Not a test of your seed, and not a germination result.</span>
-                        <span class="disclaimer-lead">It applies published seed-count tables and Harrington's storage rules to estimate how long dry-stored orthodox seed stays viable. It does not know your seed lot and cannot tell you whether a specific packet will germinate. <strong>Only a germination test can.</strong> Use at your own risk. Open for the full scope limits.</span>
+                        <span class="disclaimer-lead">It applies published seed-count tables, Harrington's storage rules and the Ellis-Roberts viability equation to estimate how long dry-stored orthodox seed stays viable. It does not know your seed lot and cannot tell you whether a specific packet will germinate. <strong>Only a germination test can.</strong> Use at your own risk. Open for the full scope limits.</span>
                     </span>
                     <span class="disclaimer-chevron" aria-hidden="true">&#9662;</span>
                 </summary>
@@ -87,7 +88,7 @@ License: GPL-3.0
                 <div class="disclaimer-body">
                     <div class="disclaimer-section">
                         <h3>Model scope</h3>
-                        <p>This calculator applies published seed-count tables and Harrington's storage rules of thumb. It estimates how long <strong>orthodox</strong> seed stays viable under dry storage. It does not test your seed, does not know your seed lot, and cannot tell you whether a specific packet will germinate.</p>
+                        <p>This calculator applies published seed-count tables, Harrington's storage rules of thumb and, for the species that have published constants, the Ellis-Roberts viability equation. It estimates how long <strong>orthodox</strong> seed stays viable under dry storage. It does not test your seed, does not know your seed lot, and cannot tell you whether a specific packet will germinate.</p>
                     </div>
 
                     <div class="disclaimer-section">
@@ -98,6 +99,18 @@ License: GPL-3.0
                             <li>Starting viability matters more than storage time and is invisible here. Seed harvested immature, dried too fast, or damaged in threshing begins below par, and the model assumes it did not.</li>
                             <li>Harrington's rules assume steady conditions. Real storage cycles in temperature and humidity, and cycling is worse than a steady average at the same mean.</li>
                             <li>Nothing here models disease, insect damage, rodents, or a container that was not actually airtight.</li>
+                        </ul>
+                    </div>
+
+                    <div class="disclaimer-section">
+                        <h3>What the viability equation does not see</h3>
+                        <ul>
+                            <li><strong>It assumes airtight storage at a constant temperature and a constant seed moisture content.</strong> It was fitted to seed sealed in hermetic containers. Seed in a paper packet takes up moisture from the room, and at low moisture content seed in open storage dies much sooner than the equation says.</li>
+                            <li><strong>It needs the moisture content of the seed. Room humidity is a different quantity.</strong> At the same 15% relative humidity lettuce seed holds 4.2% water and barley 6.2%. Entering a guess moves the answer several-fold, and the tool has no way to convert humidity to moisture content for you.</li>
+                            <li>The constants describe a species, fitted from a few seed lots. Where two published determinations exist they commonly differ two- or three-fold, and the tool shows both.</li>
+                            <li>Your lot's starting quality comes from one germination figure. A real estimate of it needs an ageing test, and seed weakened by harvest or drying history starts lower than its germination percentage suggests.</li>
+                            <li>The equation was fitted between -13 and 90 °C. Freezer temperatures are an extrapolation, and nothing below -20 °C is evaluated.</li>
+                            <li>Drying below a species-specific limit, somewhere between 2 and 6% moisture, gives no further gain. That limit is recorded for only five species here.</li>
                         </ul>
                     </div>
 
@@ -156,7 +169,8 @@ License: GPL-3.0
                         <li><strong>How long will this seed keep?</strong> Set the storage temperature and moisture. The multiplier is relative to the baseline conditions the published longevity figure is assumed to describe, so the baseline is an editable input.</li>
                     </ul>
                     <p><strong>Moisture content and relative humidity are different quantities.</strong> Seed moisture content is water as a percentage of seed weight, typically 5 to 14% in stored seed. Relative humidity describes the air around the seed. Harrington's moisture rule uses moisture content; the Hundred Rule uses relative humidity. Both therefore appear as inputs.</p>
-                    <p><strong>Freezer storage is outside these rules.</strong> Harrington's thumb-rules are only valid between 0 and 40 °C. Ask for -18 °C and the tool clamps to 0 °C and says so. Genebank conditions need the Ellis-Roberts viability equation, which this version does not include.</p>
+                    <p><strong>Freezer storage is outside these rules.</strong> Harrington's thumb-rules are only valid between 0 and 40 °C. Ask for -18 °C and the thumb-rule projection clamps to 0 °C and says so. For the species with published constants, the Ellis-Roberts viability equation answers the freezer question instead, down to -20 °C.</p>
+                    <p><strong>The viability equation answers a different question.</strong> Harrington scales a published "keeps about N years" figure. The equation predicts germination percentage against time for a lot that starts at the germination you enter, sealed airtight at the temperature and seed moisture content you enter, and reports how long until it falls to the floor you set. It takes the seed's own moisture content. Room humidity is a different quantity: an oily seed like lettuce holds far less water than a cereal in the same air.</p>
                     <p><strong>The tool will refuse some species.</strong> Acorns, chestnuts, avocado and mango have recalcitrant seed that dies on drying; garlic and potatoes are not grown from stored seed at all. In both cases the tool withholds the storage-life model and explains why. Seed counts still display.</p>
                 </details>
 
@@ -252,7 +266,7 @@ License: GPL-3.0
                         <button type="button" class="preset-btn" data-preset="pantry">Warm pantry</button>
                         <button type="button" class="preset-btn" data-preset="basement">Cool basement</button>
                         <button type="button" class="preset-btn" data-preset="fridge">Fridge + desiccant</button>
-                        <button type="button" class="preset-btn" data-preset="freezer">Freezer (clamps)</button>
+                        <button type="button" class="preset-btn" data-preset="freezer">Freezer</button>
                     </div>
 
                     <div class="section-block">
@@ -294,7 +308,7 @@ License: GPL-3.0
                             <label class="input-line">
                                 <span>Storage moisture content</span>
                                 <div class="unit-field">
-                                    <input id="storageMoisture" type="number" min="5" max="14" step="0.5" value="6">
+                                    <input id="storageMoisture" type="number" min="1" max="30" step="0.1" value="6">
                                     <span class="unit-suffix" aria-hidden="true">%</span>
                                 </div>
                             </label>
@@ -307,6 +321,26 @@ License: GPL-3.0
                             </label>
                         </div>
                     </div>
+
+                    <div class="section-block">
+                        <h3>Your seed lot, for the viability equation</h3>
+                        <div class="input-grid">
+                            <label class="input-line">
+                                <span>Germination now</span>
+                                <div class="unit-field">
+                                    <input id="initialGermination" type="number" min="1" max="100" step="0.1" value="95">
+                                    <span class="unit-suffix" aria-hidden="true">%</span>
+                                </div>
+                            </label>
+                            <label class="input-line">
+                                <span>Lowest germination you accept</span>
+                                <div class="unit-field">
+                                    <input id="targetGermination" type="number" min="1" max="99" step="1" value="85">
+                                    <span class="unit-suffix" aria-hidden="true">%</span>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
                 </section>
             </section>
 
@@ -314,11 +348,11 @@ License: GPL-3.0
                 <div class="panel-header">
                     <div>
                         <h2 id="results-title">Results</h2>
-                        <p id="sourceModelNote">Counts are published table values unless you enter a measured sample. Storage life is a thumb-rule projection.</p>
+                        <p id="sourceModelNote">Counts are published table values unless you enter a measured sample. Storage life is a thumb-rule projection, and a fitted equation where constants exist.</p>
                     </div>
                 </div>
 
-                <p class="disclaimer"><strong>A projection, not a test.</strong> Storage life here comes from thumb-rules fitted across species and conditions, and it cannot see your lot: starting viability, drying history, cycling temperature and humidity, and whether the container was really airtight are all invisible to it. Run a germination test before you rely on any of this.</p>
+                <p class="disclaimer"><strong>A projection, not a test.</strong> Storage life here comes from thumb-rules and an equation fitted across species and conditions, and it cannot see your lot: starting viability, drying history, cycling temperature and humidity, and whether the container was really airtight are all invisible to it. Run a germination test before you rely on any of this.</p>
                 <div class="result-grid">
                     <article class="result-card">
                         <span class="result-label">Seeds per ounce</span>
@@ -344,6 +378,21 @@ License: GPL-3.0
                         <span class="result-label">Projected storage life</span>
                         <strong id="longevityValue">--</strong>
                         <span id="longevityMeta">Waiting for a species.</span>
+                    </article>
+                    <article class="result-card result-card--wide">
+                        <span class="result-label">Viability equation: time to your floor</span>
+                        <strong id="viabilityValue">--</strong>
+                        <span id="viabilityMeta">Waiting for a species.</span>
+                    </article>
+                    <article class="result-card">
+                        <span class="result-label">Time to 50% germination</span>
+                        <strong id="halfLifeValue">--</strong>
+                        <span id="halfLifeMeta">Waiting for a species.</span>
+                    </article>
+                    <article class="result-card">
+                        <span class="result-label">One probit of loss</span>
+                        <strong id="sigmaValue">--</strong>
+                        <span id="sigmaMeta">Waiting for a species.</span>
                     </article>
                     <article class="result-card">
                         <span class="result-label">Life multiplier</span>
@@ -383,6 +432,26 @@ License: GPL-3.0
                 </div>
 
                 <ul class="warning-list" id="warningList"></ul>
+
+                <details class="sources-card" id="viabilityCard">
+                    <summary>Viability equation detail</summary>
+                    <p class="viability-note">Every published determination runs separately and none are averaged. The equation assumes the seed is sealed airtight at a constant temperature. Enter the seed's own moisture content; room humidity is a different quantity.</p>
+                    <div class="viability-chart" id="viabilityChart" hidden></div>
+                    <div class="data-table-wrap">
+                        <table class="data-table" id="viabilityTable">
+                            <thead>
+                                <tr>
+                                    <th scope="col">Determination</th>
+                                    <th scope="col">K<sub>E</sub> / C<sub>W</sub> / C<sub>H</sub> / C<sub>Q</sub></th>
+                                    <th scope="col">One probit</th>
+                                    <th scope="col">To your floor</th>
+                                    <th scope="col">To 50%</th>
+                                </tr>
+                            </thead>
+                            <tbody id="viabilityTableBody"></tbody>
+                        </table>
+                    </div>
+                </details>
 
                 <details class="sources-card" id="sourcesCard">
                     <summary>Sources for this species</summary>

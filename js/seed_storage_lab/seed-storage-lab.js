@@ -19,6 +19,8 @@ import {
 import { SEED_REFERENCES } from "./seed-source-map.js";
 import { SEED_EQUATION_SPECS, getSeedEquationSources, runSeedEquationTest, runAllSeedEquationTests } from "./seed-math.js";
 import { evaluateSeedChecks, summariseSeedChecks } from "./seed-validation.js";
+import * as SeedViabilityEngine from "./seed-viability-engine.js";
+import { renderViability, viabilityWarnings } from "./seed-viability-view.js";
 
 const STORAGE_KEY = "seed-storage-lab-settings-v1";
 
@@ -28,7 +30,8 @@ const INPUT_IDS = [
     "packetMass", "packetMassUnit",
     "baselineTemperature", "baselineTemperatureUnit", "baselineMoisture",
     "storageTemperature", "storageTemperatureUnit", "storageMoisture",
-    "storageRelativeHumidity"
+    "storageRelativeHumidity",
+    "initialGermination", "targetGermination"
 ];
 
 const OUTPUT_IDS = [
@@ -37,6 +40,9 @@ const OUTPUT_IDS = [
     "packetSeedsValue", "packetSeedsMeta",
     "tswValue", "tswMeta",
     "longevityValue", "longevityMeta",
+    "viabilityValue", "viabilityMeta",
+    "halfLifeValue", "halfLifeMeta",
+    "sigmaValue", "sigmaMeta",
     "multiplierValue", "multiplierMeta",
     "moistureFactorValue", "moistureFactorMeta",
     "temperatureFactorValue", "temperatureFactorMeta",
@@ -49,6 +55,7 @@ const OUTPUT_IDS = [
 const OTHER_IDS = [
     "speciesResults", "cropGroupRow", "gateBanner", "gateHeadline", "gateDetail",
     "countsTableBody", "warningList", "sourcesTableBody",
+    "viabilityChart", "viabilityTableBody",
     "checksCard", "checksSummary", "checksBody",
     "statusLine", "settingsStatus", "resetBtn",
     "showMathBtn", "mathModal", "mathModalClose", "mathModalRunAll",
@@ -68,8 +75,10 @@ const INPUT_HELP_TEXT = Object.freeze({
     baselineMoisture: `Seed moisture content the published figure is assumed to describe, pinned at ${DEFAULT_BASELINE.moisturePct}%. Every multiplier is relative to this, so changing it moves every projection.`,
     storageTemperature: `Your actual storage temperature. Harrington's rule is only valid from ${HARRINGTON_LIMITS.temperatureMinC} to ${HARRINGTON_LIMITS.temperatureMaxC} °C; colder inputs are clamped and reported.`,
     storageTemperatureUnit: "Unit for your storage temperature.",
-    storageMoisture: `Water as a percentage of seed weight. Relative humidity is a separate input below. Valid from ${HARRINGTON_LIMITS.moistureMinPct} to ${HARRINGTON_LIMITS.moistureMaxPct}%; below that the relationship inverts for some species.`,
-    storageRelativeHumidity: "Humidity of the air around the seed. Used only by the Hundred Rule indicator, which is a separate heuristic from Harrington's moisture rule."
+    storageMoisture: `Water as a percentage of seed weight. Relative humidity is a separate input below. Harrington's rule is valid from ${HARRINGTON_LIMITS.moistureMinPct} to ${HARRINGTON_LIMITS.moistureMaxPct}% and clamps outside that; the viability equation takes the figure as entered and is very sensitive to it.`,
+    storageRelativeHumidity: "Humidity of the air around the seed. Used only by the Hundred Rule indicator, which is a separate heuristic from Harrington's moisture rule.",
+    initialGermination: "What a germination test on this lot shows today. The viability equation starts its curve here. 100% is taken as 99.9%, since no test can tell them apart.",
+    targetGermination: "The germination percentage below which you would call the lot spent. Genebanks commonly regenerate at 85%. A home gardener sowing thickly can live with far less, and the time to 50% is shown beside it either way."
 });
 
 const RESULT_HELP_TEXT = Object.freeze({
@@ -78,6 +87,9 @@ const RESULT_HELP_TEXT = Object.freeze({
     packetSeedsValue: "Estimated seeds in your packet. Uses your measured count if you entered one, otherwise the published range.",
     tswValue: "Thousand-seed weight, the standard agronomic measure. Computed from your counted sample, or read from the thousand-seed-weight dataset where available.",
     longevityValue: "Published storage life multiplied by the Harrington factor for your conditions. A projection from thumb-rules. Run a germination test to learn the true state of a seed lot.",
+    viabilityValue: "From the Ellis-Roberts viability equation, for species with published constants. Time for germination to fall from the starting figure to your floor, in airtight storage at a constant temperature and seed moisture content.",
+    halfLifeValue: "Time until half the seed no longer germinates, from the same equation. The usual single-number summary of a seed lot's life.",
+    sigmaValue: "Sigma in the viability equation: the time for germination to drop by one probit, such as 97.7% to 84.1% or 84.1% to 50%. It depends only on species, moisture content and temperature, and the published tables quote it.",
     multiplierValue: "How much longer seed keeps at your conditions than at the baseline. The product of the moisture and temperature factors.",
     moistureFactorValue: "2 raised to the drop in moisture content. Each percentage point drier roughly doubles storage life.",
     temperatureFactorValue: "2 raised to the temperature drop divided by 10 °F. Each 10 °F cooler roughly doubles storage life.",
@@ -163,6 +175,8 @@ function readInputs() {
         storageTemperatureC: temperatureC(dom.storageTemperature, dom.storageTemperatureUnit),
         storageMoisturePct: numberOrNull(dom.storageMoisture),
         storageRelativeHumidityPct: numberOrNull(dom.storageRelativeHumidity),
+        initialGerminationPct: numberOrNull(dom.initialGermination),
+        targetGerminationPct: numberOrNull(dom.targetGermination),
         measuredSeedCount: numberOrNull(dom.measuredSeedCount),
         measuredSampleMass: numberOrNull(dom.measuredSampleMass),
         measuredSampleMassUnit: dom.measuredSampleMassUnit ? dom.measuredSampleMassUnit.value : "g",
@@ -182,7 +196,7 @@ function setCard(valueId, metaId, value, meta, blocked = false) {
     if (card) card.classList.toggle("is-blocked", Boolean(blocked));
 }
 
-// The selector only appears for the 31 species that hold more than one crop.
+// The selector only appears for the 30 species that hold more than one crop.
 // Everything else would gain a control with a single option.
 function renderCropGroups(model) {
     if (!dom.cropGroupRow || !dom.cropGroup) return;
@@ -412,6 +426,7 @@ function renderWarnings(model) {
     for (const warning of (model.measured && model.measured.warnings) || []) {
         items.push({ text: warning, kind: "warn" });
     }
+    items.push(...viabilityWarnings(model.viability));
     if (model.counts && model.counts.disagreement) {
         items.push({
             text: `Seed-count sources disagree by ${model.counts.ratio.toFixed(1)}× for this species. `
@@ -501,6 +516,7 @@ function render() {
     renderGate(model.gate);
     renderCounts(model);
     renderStorage(model);
+    renderViability(dom, model);
     renderSpeciesFacts(model);
     renderWarnings(model);
     renderSources(model);
@@ -683,6 +699,8 @@ function resetAll() {
     if (dom.measuredSeedCount) dom.measuredSeedCount.value = "";
     if (dom.measuredSampleMass) dom.measuredSampleMass.value = "";
     if (dom.packetMass) dom.packetMass.value = "2";
+    if (dom.initialGermination) dom.initialGermination.value = "95";
+    if (dom.targetGermination) dom.targetGermination.value = "85";
     const record = getSpeciesById(selectedSpeciesId);
     if (dom.speciesSearch && record) dom.speciesSearch.value = (record.commonNames || [])[0] || record.scientificName;
     persist();
@@ -895,5 +913,8 @@ if (document.readyState === "loading") {
 } else {
     init();
 }
+
+// The pure engine, for the Playwright spec to call directly.
+window.SeedViability = SeedViabilityEngine;
 
 export { cToF, GRAMS_PER_OZ };

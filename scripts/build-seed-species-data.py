@@ -115,9 +115,15 @@ species = {}
 by_common = {}
 by_scientific = {}
 
+# Source misspellings, folded onto the correct binomial. The CSVs keep them
+# verbatim. Appendix I of the 1996 compendium prints mahogany as "Swietinia".
+BINOMIAL_ALIASES = {
+    "swietinia humilis": "Swietenia humilis",
+}
+
 for row in index_rows:
     name = clean(row["scientific_name"])
-    if not name:
+    if not name or name.lower() in BINOMIAL_ALIASES:
         continue
     commons = [c.strip() for c in clean(row["common_names"]).split(";") if c.strip()]
     species[name] = {
@@ -181,6 +187,7 @@ def resolve_common(label, dataset):
 
 def resolve_binomial(name, dataset):
     key = strip_authority(name).lower()
+    key = BINOMIAL_ALIASES.get(key, key).lower()
     hit = by_scientific.get(key)
     if not hit:
         unresolved.append((dataset, name))

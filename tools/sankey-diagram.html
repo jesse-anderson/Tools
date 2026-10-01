@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<!--
+============================================
+SANKEY DIAGRAM BUILDER v1.1.0
+============================================
+Description: Draw a Sankey diagram from a list of flows and check
+the mass balance it implies, node by node and overall.
+
+Dependencies: None (Vanilla JavaScript)
+Google Fonts (JetBrains Mono, Space Grotesk) loaded from CDN.
+
+Project: Tools Hub by Jesse Anderson
+Repository: https://github.com/jesse-anderson/Tools
+License: GPL-3.0 - https://github.com/jesse-anderson/Tools/blob/main/LICENSE
+
+Features:
+- Flows typed as "Source [amount] Target" or pasted as CSV/TSV
+- Mass balance per node and overall, with missing flow drawn on the diagram
+- Recycle streams drawn as loops under the diagram
+- Nodes moved by drag or arrow keys, positions kept in the flow list
+- Up to 10 projects in this browser, autosaved, with save and revert
+- Titles, units, node values, shares, link values and per-node notes
+- Layered layout with one shared scale, written for this tool
+- SVG export and PNG export at 1x, 2x, 4x or 8x
+
+Last Updated: October 2026
+============================================
+-->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; base-uri 'none'; form-action 'none'">
+    <title>Sankey Diagram Builder | Tools Hub</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/shared.css">
+    <link rel="stylesheet" href="../css/sankey_diagram/sankey-diagram.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <div class="header-left">
+                    <a href="../tools.html" class="back-link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <line x1="19" y1="12" x2="5" y2="12"/>
+                            <polyline points="12 19 5 12 12 5"/>
+                        </svg>
+                        Back to Tools
+                    </a>
+                </div>
+                <div class="header-right">
+                    <div class="theme-toggle">
+                        <button data-theme-toggle="light" aria-pressed="false" title="Light mode" aria-label="Light mode">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                <circle cx="12" cy="12" r="5"/>
+                                <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+                            </svg>
+                        </button>
+                        <button data-theme-toggle="dark" aria-pressed="false" title="Dark mode" aria-label="Dark mode">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="tool-title-row">
+                <div class="tool-icon-header educational" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 5h4c5 0 5 6 10 6h4"/>
+                        <path d="M3 12h18"/>
+                        <path d="M3 19h4c5 0 5-4 10-4h4"/>
+                    </svg>
+                </div>
+                <div>
+                    <h1>Sankey Diagram Builder</h1>
+                    <p class="tagline">// FLOWS • MASS BALANCE • ANNOTATE • EXPORT</p>
+                </div>
+            </div>
+        </header>
+
+        <main class="sankey-layout">
+            <details class="disclaimer-card" id="scopeDisclaimer" aria-label="Scope and liability disclaimer">
+                <summary>
+                    <span class="disclaimer-icon" aria-hidden="true">&#9888;</span>
+                    <span class="disclaimer-summary-text">
+                        <span class="disclaimer-title">A drawing of the numbers you typed, with an arithmetic check. Not a verified mass or energy balance.</span>
+                        <span class="disclaimer-lead">Ribbon widths are your amounts on one scale, and the balance compares what you entered going into each node with what you entered coming out. It cannot tell a measurement error from a stream you left off, and a diagram that closes is not evidence that the numbers are right. Used at your own risk. Open for the full scope limits.</span>
+                    </span>
+                    <span class="disclaimer-chevron" aria-hidden="true">&#9662;</span>
+                </summary>
+
+                <div class="disclaimer-body">
+                    <div class="disclaimer-section">
+                        <h3>What this tool actually does</h3>
+                        <p><strong>It parses a list of flows, adds them up at each node, and draws the result.</strong> Nothing on the page knows what is flowing, what the nodes are, or where your numbers came from.</p>
+                        <ul>
+                            <li><strong>The balance is addition and one comparison.</strong> A node balances when its inflow and outflow agree within the tolerance you set, as a share of the larger of the two. Loosen the tolerance far enough and anything balances.</li>
+                            <li><strong>Inputs and outputs are inferred from the list.</strong> A node with nothing entering it is treated as a system input and a node with nothing leaving it as a system output. A stream you forgot to enter turns an internal node into a boundary and can make a wrong balance close.</li>
+                            <li><strong>Amounts with separators are coerced.</strong> A single comma is read as a decimal point, so <code>1,5</code> is 1.5 and <code>1,234</code> is 1.234, not 1234. Each one is listed under "Check these". If the reading is wrong, the diagram is wrong by that factor and looks no different.</li>
+                            <li><strong>A recycle is chosen by typing order.</strong> The flow whose line closes a loop is the one drawn as the return. That is a drawing decision. It changes no number.</li>
+                        </ul>
+                    </div>
+
+                    <div class="disclaimer-section">
+                        <h3>Not checked, at all</h3>
+                        <ul>
+                            <li><strong>Units.</strong> Every amount is taken to be in the same unit on the same basis. Mixing kg/h with t/d, or mass with moles, volume or energy, produces a diagram that draws cleanly and means nothing.</li>
+                            <li><strong>Volumes and moles are not conserved.</strong> A volumetric balance across a temperature, pressure or phase change does not close, and a molar balance across a reaction does not close, however good the measurements are.</li>
+                            <li><strong>Components.</strong> A total balance can close while a component balance is badly wrong. Water in equals water out is a different check from mass in equals mass out.</li>
+                            <li><strong>Accumulation.</strong> The check assumes steady state. A tank filling, a bed loading or a batch in progress shows up as missing outflow.</li>
+                            <li><strong>Measurement uncertainty.</strong> No error bars, no data reconciliation, no weighting by meter quality. A gap smaller than your instruments can resolve is reported the same way as a real loss.</li>
+                            <li><strong>Energy terms.</strong> For an energy diagram, nothing here knows about heat of reaction, reference states, shaft work or ambient loss unless you enter each one as a flow.</li>
+                            <li><strong>Whether the boundary is right.</strong> The tool balances the system you drew, not the one that exists.</li>
+                        </ul>
+                        <p class="disclaimer-note">A diagram that closes tells you the numbers you entered are consistent with each other. It does not tell you that any of them is correct, and two wrong numbers can close a balance as neatly as two right ones.</p>
+                    </div>
+
+                    <div class="disclaimer-section">
+                        <h3>What the picture can mislead about</h3>
+                        <ul>
+                            <li><strong>Thin flows.</strong> A flow under one pixel wide is drawn as a dashed line and is not to scale. Small does not mean unimportant: a trace stream can be the one that matters.</li>
+                            <li><strong>Colour.</strong> The palette has eight colours and repeats after that. Two nodes sharing a colour are not related. Read the labels.</li>
+                            <li><strong>Position and length.</strong> Only ribbon width carries a quantity. Ribbon length, node order, crossings and the height of a column mean nothing, and a node you have dragged can make a ribbon run backwards.</li>
+                            <li><strong>Exports.</strong> PNG text is drawn in your system font, so labels can sit slightly differently from the screen. Check an export before it goes into a report.</li>
+                        </ul>
+                    </div>
+
+                    <div class="disclaimer-section">
+                        <h3>Never use this for</h3>
+                        <ul>
+                            <li>Custody transfer, fiscal metering, allocation, invoicing, or any balance that money changes hands on.</li>
+                            <li>Emissions, discharge, waste or greenhouse-gas reporting to a regulator, a permit, or an auditor.</li>
+                            <li>Material accountancy for controlled, hazardous, radioactive or safeguarded substances.</li>
+                            <li>Relief, flare, vent or containment loads, or any process-safety figure taken from a balance.</li>
+                            <li>Equipment sizing or a design basis without an independent balance behind it.</li>
+                            <li>Financial statements, audits, tax, or any figure a third party will rely on.</li>
+                        </ul>
+                    </div>
+
+                    <div class="disclaimer-section">
+                        <h3>Projects are stored in this browser only</h3>
+                        <p>Up to ten projects are kept in this browser's local storage, on this device, and are never sent anywhere. Clearing site data, using a private window, or switching browser or device loses them. It is a convenience, not a backup: keep the flow list somewhere else if it matters.</p>
+                    </div>
+
+                    <div class="disclaimer-section">
+                        <h3>Before you rely on a diagram</h3>
+                        <p>Trace every amount back to its source. Confirm that all of them share one unit and one basis. Rebuild the balance independently, in a spreadsheet or a process simulator, and have someone qualified in the process review it before the diagram supports a decision, a report or a design.</p>
+                    </div>
+
+                    <div class="disclaimer-footer">
+                        <p><strong>No warranty. No liability. You assume all risk.</strong> This page and everything it draws or computes are provided as-is and as-available, without warranty of any kind, express or implied, including accuracy, completeness, timeliness, reliability, fitness for a particular purpose, merchantability, engineering or professional suitability, regulatory or reporting acceptability, or non-infringement. To the maximum extent permitted by law, the author accepts no liability for any loss, injury, damage, cost or claim arising from use of or reliance on this page.</p>
+                        <p><strong>Independent verification required.</strong> Verify every figure against the source measurements, an independent calculation and qualified professional judgement before acting on it. The source data, the governing standard and professional judgement control; where this page disagrees with them, this page is wrong.</p>
+                        <p><strong>Consequential damages excluded.</strong> To the maximum extent permitted by law, in no event will the author or maintainers be liable for any direct, indirect, incidental, special, exemplary, punitive or consequential damages, including misreporting, regulatory exposure, audit outcome, business decision, lost or corrupted project data, or loss of use, data, profits or business interruption, however caused and on any theory of liability, whether in contract, strict liability or tort including negligence, arising out of or in connection with this page, even if advised of the possibility of such damage.</p>
+                        <p><strong>Indemnity.</strong> By using this page you agree to indemnify and hold harmless the author and maintainers against any claim, demand, loss or expense arising out of your use of it or of anything derived from it.</p>
+                        <p><strong>Severability.</strong> If any part of this notice is held unenforceable, the remainder continues to apply, and the unenforceable part is limited to the least extent necessary rather than struck out.</p>
+                    </div>
+                </div>
+            </details>
+
+            <section class="panel editor-panel" aria-labelledby="editorHeading">
+                <div class="panel-header">
+                    <h2 id="editorHeading">Flows</h2>
+                    <p>One flow per line. Widths are drawn to a single scale.</p>
+                </div>
+
+                <fieldset class="project-bar">
+                    <legend>Project</legend>
+                    <div class="field-grid">
+                        <div class="input-group">
+                            <label for="projectSelect">Open</label>
+                            <select id="projectSelect"></select>
+                        </div>
+                        <div class="input-group">
+                            <label for="projectName">Name</label>
+                            <input type="text" id="projectName" maxlength="60" autocomplete="off">
+                        </div>
+                    </div>
+                    <div class="button-row">
+                        <button type="button" class="tool-btn small" id="projectNew">New</button>
+                        <button type="button" class="tool-btn small" id="projectSave">Save</button>
+                        <button type="button" class="tool-btn small" id="projectRevert">Revert</button>
+                        <button type="button" class="tool-btn small danger" id="projectDelete">Delete</button>
+                    </div>
+                    <p id="projectStatus" class="helper-text" role="status" aria-live="polite"></p>
+                    <p class="helper-text">Edits are kept automatically in this browser. Save marks the point that Revert returns to.</p>
+                </fieldset>
+
+                <div class="input-group">
+                    <label for="presetSelect">Load an example</label>
+                    <select id="presetSelect"></select>
+                </div>
+
+                <div class="input-group">
+                    <label for="flowText">Flow list</label>
+                    <textarea id="flowText" class="flow-text" rows="14" spellcheck="false" autocomplete="off" autocapitalize="off" aria-describedby="syntaxHelp"></textarea>
+                </div>
+
+                <details class="usage-note" id="syntaxHelp">
+                    <summary>Syntax</summary>
+                    <dl class="syntax-list">
+                        <dt><code>Feed [100] Reactor</code></dt>
+                        <dd>A flow of 100 from Feed to Reactor.</dd>
+                        <dt><code>Feed,Reactor,100</code></dt>
+                        <dd>The same flow as CSV. Tab-separated works too, so a spreadsheet range pastes straight in.</dd>
+                        <dt><code>Reactor [20] Mixer</code></dt>
+                        <dd>If Mixer already feeds Reactor, this line closes a loop and is drawn as a recycle under the diagram.</dd>
+                        <dt><code>@ Reactor: runs at 80 C</code></dt>
+                        <dd>A note printed under that node's label.</dd>
+                        <dt><code>: Reactor #4a3aa7</code></dt>
+                        <dd>A colour for that node.</dd>
+                        <dt><code>~ Reactor: 40, 25</code></dt>
+                        <dd>A fixed place for that node, as percent across and percent down. Dragging a node writes this line for you.</dd>
+                        <dt><code>// comment</code></dt>
+                        <dd>Ignored, as is a line starting with <code>#</code>.</dd>
+                    </dl>
+                    <p>A node with nothing entering it is a system input, and a node with nothing leaving it is a system output. An amount written as <code>1,5</code> or <code>1,234.5</code> is read as a number and listed under "Check these" with the reading used. One comma on its own is always a decimal point, so <code>1,234</code> is 1.234.</p>
+                </details>
+
+                <div class="input-group">
+                    <label for="titleInput">Title</label>
+                    <input type="text" id="titleInput" maxlength="100" autocomplete="off">
+                </div>
+                <div class="field-grid">
+                    <div class="input-group">
+                        <label for="unitInput">Unit</label>
+                        <input type="text" id="unitInput" maxlength="16" autocomplete="off" placeholder="kg/h">
+                    </div>
+                    <div class="input-group">
+                        <label for="tolerance">Balance tolerance (%)</label>
+                        <input type="number" id="tolerance" min="0" max="25" step="0.1" value="0.5" aria-describedby="toleranceHelp">
+                    </div>
+                </div>
+                <p class="helper-text" id="toleranceHelp">A node balances when its inflow and outflow agree within this share of the larger of the two. The default is 0.5%. A balance that passes only because of the tolerance is flagged.</p>
+
+                <fieldset class="check-group">
+                    <legend>Annotations</legend>
+                    <label class="check"><input type="checkbox" id="showValues" checked> Node values</label>
+                    <label class="check"><input type="checkbox" id="showPercent"> Share of total input</label>
+                    <label class="check"><input type="checkbox" id="showLinkValues"> Flow values on ribbons</label>
+                    <label class="check"><input type="checkbox" id="showMissing" checked> Missing flow on unbalanced nodes</label>
+                </fieldset>
+
+                <details class="advanced" id="advancedOptions">
+                    <summary>Advanced options</summary>
+
+                    <h3>Layout</h3>
+                    <div class="field-grid">
+                        <div class="input-group">
+                            <label for="diagramWidth">Width (px)</label>
+                            <input type="number" id="diagramWidth" min="320" max="2400" step="10" value="960">
+                        </div>
+                        <div class="input-group">
+                            <label for="diagramHeight">Height (px)</label>
+                            <input type="number" id="diagramHeight" min="200" max="1800" step="10" value="540">
+                        </div>
+                        <div class="input-group">
+                            <label for="nodeWidth">Node width (px)</label>
+                            <input type="number" id="nodeWidth" min="4" max="60" step="1" value="16">
+                        </div>
+                        <div class="input-group">
+                            <label for="nodePadding">Node spacing (px)</label>
+                            <input type="number" id="nodePadding" min="2" max="80" step="1" value="18">
+                        </div>
+                        <div class="input-group">
+                            <label for="align">Outputs</label>
+                            <select id="align">
+                                <option value="justify" selected>Lined up on the right</option>
+                                <option value="left">Next to their source</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label for="fontSize">Label size (px)</label>
+                            <input type="number" id="fontSize" min="8" max="24" step="1" value="12">
+                        </div>
+                        <div class="input-group">
+                            <label for="decimals">Decimals</label>
+                            <select id="decimals">
+                                <option value="auto" selected>Auto</option>
+                                <option value="0">0</option>
+                                <option value="1">1</option>
+                                <option value="2">2</option>
+                                <option value="3">3</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <h3>Colour</h3>
+                    <div class="field-grid">
+                        <div class="input-group">
+                            <label for="nodeColor">Nodes</label>
+                            <select id="nodeColor">
+                                <option value="node" selected>One per node</option>
+                                <option value="role">Input, internal, output</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label for="linkColor">Ribbons</label>
+                            <select id="linkColor">
+                                <option value="source" selected>Source colour</option>
+                                <option value="target">Target colour</option>
+                                <option value="gradient">Source to target</option>
+                                <option value="neutral">Grey</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label for="linkOpacity">Ribbon opacity (%)</label>
+                            <input type="number" id="linkOpacity" min="10" max="100" step="5" value="45">
+                        </div>
+                    </div>
+                    <p class="helper-text">The palette has eight colours and repeats after that, so a node is always identified by its label and never by colour alone.</p>
+
+                    <h3>Export</h3>
+                    <div class="field-grid">
+                        <div class="input-group">
+                            <label for="pngScale">PNG resolution</label>
+                            <select id="pngScale" aria-describedby="pngSizeNote"></select>
+                        </div>
+                        <div class="input-group">
+                            <label for="exportTheme">Colours</label>
+                            <select id="exportTheme">
+                                <option value="current" selected>As shown</option>
+                                <option value="light">Light</option>
+                                <option value="dark">Dark</option>
+                            </select>
+                        </div>
+                    </div>
+                    <label class="check"><input type="checkbox" id="exportTransparent"> Transparent background</label>
+                    <p class="helper-text" id="pngSizeNote"></p>
+                    <p class="helper-text">SVG is vector and has no resolution. PNG text is drawn in your system font, because a web font does not load inside an exported image.</p>
+                </details>
+            </section>
+
+            <section class="panel diagram-panel" aria-labelledby="diagramHeading">
+                <div class="panel-header diagram-header">
+                    <div>
+                        <h2 id="diagramHeading">Diagram</h2>
+                        <p id="resultStatus" class="result-status" role="status" aria-live="polite"></p>
+                    </div>
+                    <div class="button-row">
+                        <button type="button" class="tool-btn" id="resetPositions">Reset positions</button>
+                        <button type="button" class="tool-btn" id="downloadSvg">Download SVG</button>
+                        <button type="button" class="tool-btn primary" id="downloadPng">Download PNG</button>
+                    </div>
+                </div>
+
+                <div id="errorBox" class="message-box error-box" role="alert" hidden>
+                    <h3>Nothing drawn</h3>
+                    <ul id="errorList"></ul>
+                </div>
+
+                <div class="diagram-scroll" id="diagramScroll" tabindex="0" role="group" aria-label="Sankey diagram, scrollable">
+                    <div id="diagramHost" class="diagram-host"></div>
+                </div>
+                <p class="helper-text">Drag a node to move it, or focus it and use the arrow keys (Shift for bigger steps, Delete to release it). A moved node is written into the flow list as a <code>~</code> line.</p>
+
+                <p id="exportStatus" class="helper-text" role="status" aria-live="polite"></p>
+
+                <div id="warningBox" class="message-box warning-box" hidden>
+                    <h3>Check these</h3>
+                    <ul id="warningList"></ul>
+                </div>
+
+                <p class="disclaimer"><strong>This draws the numbers you give it and checks only that they add up.</strong> It cannot tell a measurement error from a stream you left off, it does not check that your amounts share a unit, and a diagram that closes is not evidence that the numbers are right. Used at your own risk. See the full disclaimer at the top of the page.</p>
+
+                <div class="table-grid">
+                    <div class="table-card">
+                        <h3 id="balanceHeading">Mass balance</h3>
+                        <dl class="totals" id="totals"></dl>
+                        <div class="table-scroll" tabindex="0" role="group" aria-labelledby="balanceHeading">
+                            <table id="balanceTable" aria-labelledby="balanceHeading">
+                                <thead>
+                                    <tr>
+                                        <th scope="col">Node</th>
+                                        <th scope="col">Status</th>
+                                        <th scope="col" class="num">In</th>
+                                        <th scope="col" class="num">Out</th>
+                                        <th scope="col" class="num">Difference</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="table-card">
+                        <h3 id="flowsHeading">Flows</h3>
+                        <p class="helper-text">The diagram as a table, one row per ribbon.</p>
+                        <div class="table-scroll" tabindex="0" role="group" aria-labelledby="flowsHeading">
+                            <table id="flowsTable" aria-labelledby="flowsHeading">
+                                <thead>
+                                    <tr>
+                                        <th scope="col">From</th>
+                                        <th scope="col">To</th>
+                                        <th scope="col" class="num">Amount</th>
+                                        <th scope="col" class="num">Share</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer data-footer></footer>
+    </div>
+
+    <script src="../js/shared.js"></script>
+    <script type="module" src="../js/footer.js"></script>
+    <script type="module" src="../js/sankey_diagram/sankey-diagram.js"></script>
+</body>
+</html>

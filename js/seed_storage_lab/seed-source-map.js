@@ -234,6 +234,41 @@ export const SEED_CLAIM_AUDIT = Object.freeze([
         implementation: "scripts/build-seed-species-data.py -> KE_OVERRIDES. The CSV keeps the scan verbatim; only the bundle is corrected."
     },
     {
+        area: "Viability equation",
+        claim: "Germination against time comes from v = Ki - p/sigma with log10(sigma) = KE - CW log10(m) - CH t - CQ t^2.",
+        support: "The improved viability equation of Ellis & Roberts 1980. m is moisture content in percent of fresh weight, t is degrees Celsius, p and sigma are days. Hay's three worked examples reproduce to the day and 65 of the 66 figures in the compendium's own longevity column reproduce within 3%.",
+        sourceKeys: ["ellisRoberts1980", "hayViabilityEquations", "kewAppendix1", "ellis2022SST"],
+        implementation: "seed-viability-engine.js -> sigmaDays, daysToNed, viabilityAfterDays. The engine works in normal equivalent deviates; the published probits are those plus 5."
+    },
+    {
+        area: "Viability equation",
+        claim: "Nothing is evaluated below -20 C, anything below -13 C is flagged as an extrapolation, and a set is held at its own turning point where that is warmer.",
+        support: "Dickie et al. 1990 fitted the temperature term from -13 to 90 C, and Ellis 2022 states there is no evidence for extrapolating to the quadratic's optimum. The compendium and Hay both print values at -20 C, which is the coldest any archived source takes it. Five published sets have a turning point warmer than -25 C, below which the raw equation predicts that cooling shortens life.",
+        sourceKeys: ["dickieEllis1990", "ellis2022SST", "kewAppendix1", "hayViabilityEquations"],
+        implementation: "seed-viability-engine.js -> VIABILITY_LIMITS, turningPointC, resolveTemperature."
+    },
+    {
+        area: "Viability equation",
+        claim: "The moisture term is limited at both ends: a plateau below the low-moisture limit and a refusal above the upper one.",
+        support: "The 1996 compendium, section 3.3: below a limit of about 2 to 6% moisture, further drying no longer increases longevity in hermetic storage (about 6% for pea and mung bean, 4.5% for rice and tef, 2% for sunflower, measured at 65 C); above about 15 to 28%, the equation no longer applies (15% lettuce, 18% onion, 22% elm and niger, 24 to 28% tef). Where a species limit is not recorded the tool flags the band.",
+        sourceKeys: ["ipgri1996", "ellis2022SST"],
+        implementation: "seed-viability-engine.js -> SPECIES_MOISTURE_LIMITS, resolveMoisture."
+    },
+    {
+        area: "Viability equation",
+        claim: "The equation is presented as a prediction for airtight storage only.",
+        support: "It was developed from observations in hermetic storage and does not account for oxygen. Ellis 2022 reports that at low moisture contents longevity is far less in open than in hermetic storage.",
+        sourceKeys: ["ellis2022SST", "ipgri1996"],
+        implementation: "Stated on the result card, in the detail card and in the scope disclaimer. No open-storage correction is applied because none is published as an equation."
+    },
+    {
+        area: "Scope",
+        claim: "A woody species with no storage-behaviour record is withheld a Harrington projection but still runs the viability equation if constants exist.",
+        support: "Published constants are fitted from experiments in which the seed was dried and stored, which is direct evidence it tolerates drying over the tested range. A recalcitrant, intermediate or not-applicable flag still refuses both models.",
+        sourceKeys: ["kewAppendix1", "ipgri1996"],
+        implementation: "seed-model.js -> evaluateViability. The result carries admittedByConstants and the card says so."
+    },
+    {
         area: "Measured mode",
         claim: "A user-counted sample beats any lookup table.",
         support: "Published seed counts vary with cultivar, seed lot, growing season and cleaning standard. A count from the packet in hand has none of that error.",
