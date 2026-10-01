@@ -224,8 +224,71 @@ export function assignLayers(graph, align = 'justify') {
     return { layer, maxLayer };
 }
 
+const ORDER_SWEEPS = 6;
+
+/**
+ * Order each column to cut ribbon crossings: barycentre sweeps left to right
+ * and back, keeping the order with the least crossed flow. measure holds each
+ * item's place down its column as a 0 to 1 fraction; a moved node's is fixed.
+ */
+function orderColumns(columns, ups, downs, measure) {
+    const place = (column) => {
+        const total = column.reduce((s, n) => s + n.value, 0) || 1;
+        let run = 0;
+        for (const item of column) {
+            measure[item.index] = (run + item.value / 2) / total;
+            run += item.value;
+        }
+    };
+    const sortBy = (column, neighbours) => {
+        const key = new Map();
+        column.forEach((item, rank) => {
+            let weight = 0;
+            let sum = 0;
+            for (const e of neighbours[item.index]) { sum += measure[e.to] * e.value; weight += e.value; }
+            key.set(item, [weight > 0 ? sum / weight : measure[item.index], rank]);
+        });
+        column.sort((a, b) => (key.get(a)[0] - key.get(b)[0]) || (key.get(a)[1] - key.get(b)[1]));
+        place(column);
+    };
+    // Flow crossed between neighbouring columns, counting the smaller of each pair.
+    const crossed = () => {
+        let total = 0;
+        for (let c = 1; c < columns.length; c++) {
+            const inColumn = new Set(columns[c - 1].map((n) => n.index));
+            const edges = [];
+            for (const item of columns[c]) {
+                for (const e of ups[item.index]) {
+                    if (inColumn.has(e.to)) edges.push([measure[e.to], measure[item.index], e.value]);
+                }
+            }
+            for (let i = 1; i < edges.length; i++) {
+                for (let j = 0; j < i; j++) {
+                    if ((edges[i][0] - edges[j][0]) * (edges[i][1] - edges[j][1]) < 0) total += Math.min(edges[i][2], edges[j][2]);
+                }
+            }
+        }
+        return total;
+    };
+
+    columns.forEach(place);
+    let best = columns.map((c) => [...c]);
+    let bestScore = crossed();
+    const keep = () => {
+        const score = crossed();
+        if (score < bestScore) { bestScore = score; best = columns.map((c) => [...c]); }
+    };
+    for (let sweep = 0; sweep < ORDER_SWEEPS && bestScore > 0; sweep++) {
+        for (let c = 1; c < columns.length; c++) sortBy(columns[c], ups);
+        keep();
+        for (let c = columns.length - 2; c >= 0; c--) sortBy(columns[c], downs);
+        keep();
+    }
+    best.forEach((order, c) => { columns[c].splice(0, columns[c].length, ...order); });
+}
+
+// Keeps a column in its given order: the order is decided once, up front.
 function resolveCollisions(column, pad, top, bottom) {
-    column.sort((a, b) => (a.y0 - b.y0) || (a.index - b.index));
     let y = top;
     for (const node of column) {
         if (node.y0 < y) node.y0 = y;
@@ -271,6 +334,32 @@ export function computeLayout(graph, balance, options = {}, positions = {}) {
     const columns = Array.from({ length: maxLayer + 1 }, () => []);
     for (const node of nodes) columns[node.layer].push(node);
 
+    // A flow that skips columns takes a slot in each one it passes, so nodes
+    // stack beside it instead of under it. Slots count in the column budget.
+    const items = [...nodes];
+    const ups = nodes.map(() => []);
+    const downs = nodes.map(() => []);
+    const waypoints = graph.links.map(() => []);
+    for (const l of graph.links) {
+        if (l.recycle) continue;
+        let previous = nodes[l.source];
+        const chain = [];
+        for (let c = layer[l.source] + 1; c < layer[l.target]; c++) {
+            const slot = { index: items.length, layer: c, value: l.value, pinned: false, x0: 0, x1: 0, y0: 0, y1: 0, height: 0 };
+            items.push(slot);
+            ups.push([]);
+            downs.push([]);
+            columns[c].push(slot);
+            waypoints[l.index].push(slot);
+            chain.push(slot);
+        }
+        for (const next of [...chain, nodes[l.target]]) {
+            downs[previous.index].push({ to: next.index, value: l.value });
+            ups[next.index].push({ to: previous.index, value: l.value });
+            previous = next;
+        }
+    }
+
     // Vertical scale. Recycle lanes sit under the nodes and are on the same
     // scale, so their total thickness comes out of every column's budget.
     const back = graph.links.filter((l) => l.recycle);
@@ -306,19 +395,22 @@ export function computeLayout(graph, balance, options = {}, positions = {}) {
     const step = maxLayer > 0 ? (right - insetRight - left - insetLeft - opt.nodeWidth) / maxLayer : 0;
 
     const area = { top, bottom: nodeBottom, xMin: left, xMax: right - opt.nodeWidth };
-    for (const node of nodes) {
+    const measure = items.map(() => 0.5);
+    for (const node of items) {
         node.height = node.value * ky;
         node.x0 = left + insetLeft + node.layer * step;
         if (node.pinned) {
             const p = positions[node.name];
             node.x0 = area.xMin + (area.xMax - area.xMin) * clamp(p.x, [0, 100]) / 100;
             node.y0 = area.top + Math.max(0, area.bottom - area.top - node.height) * clamp(p.y, [0, 100]) / 100;
+            measure[node.index] = clamp(p.y, [0, 100]) / 100;
         }
         node.x1 = node.x0 + opt.nodeWidth;
     }
 
-    // Only free nodes are stacked, relaxed and kept apart.
+    // Only free nodes and slots are ordered, stacked, relaxed and kept apart.
     const free = columns.map((c) => c.filter((n) => !n.pinned));
+    orderColumns(free, ups, downs, measure);
     for (const column of free) {
         const total = column.reduce((s, n) => s + n.height, 0) + Math.max(0, column.length - 1) * pad;
         let y = top + (nodeBottom - top - total) / 2;
@@ -329,14 +421,12 @@ export function computeLayout(graph, balance, options = {}, positions = {}) {
     }
 
     const centre = (node) => node.y0 + node.height / 2;
-    const pull = (node, list, end, alpha) => {
+    const pull = (node, neighbours, alpha) => {
         let weight = 0;
         let sum = 0;
-        for (const li of graph.nodes[node.index][list]) {
-            const link = graph.links[li];
-            if (link.recycle) continue;
-            sum += centre(nodes[link[end]]) * link.value;
-            weight += link.value;
+        for (const e of neighbours[node.index]) {
+            sum += centre(items[e.to]) * e.value;
+            weight += e.value;
         }
         if (weight > 0) node.y0 += (sum / weight - centre(node)) * alpha;
     };
@@ -344,37 +434,56 @@ export function computeLayout(graph, balance, options = {}, positions = {}) {
     for (let i = 0; i < opt.iterations; i++) {
         const alpha = Math.pow(0.99, i);
         for (let c = maxLayer - 1; c >= 0; c--) {
-            for (const node of free[c]) pull(node, 'outLinks', 'target', alpha);
+            for (const node of free[c]) pull(node, downs, alpha);
             resolveCollisions(free[c], pad, top, nodeBottom);
         }
         for (let c = 1; c <= maxLayer; c++) {
-            for (const node of free[c]) pull(node, 'inLinks', 'source', alpha);
+            for (const node of free[c]) pull(node, ups, alpha);
             resolveCollisions(free[c], pad, top, nodeBottom);
         }
     }
     for (const column of free) resolveCollisions(column, pad, top, nodeBottom);
-    for (const node of nodes) node.y1 = node.y0 + node.height;
+    for (const node of items) node.y1 = node.y0 + node.height;
 
-    const links = graph.links.map((l) => ({
-        index: l.index,
-        source: l.source,
-        target: l.target,
-        value: l.value,
-        width: l.value * ky,
-        hairline: l.value * ky < HAIRLINE_PX,
-        recycle: l.recycle,
-        x0: nodes[l.source].x1,
-        x1: nodes[l.target].x0,
-        sy0: 0, sy1: 0, ty0: 0, ty1: 0,
-        loop: null
-    }));
+    const links = graph.links.map((l) => {
+        const x0 = nodes[l.source].x1;
+        const x1 = nodes[l.target].x0;
+        // A moved end can leave a slot behind it. Only slots still on the way are drawn through.
+        const via = [];
+        let reach = x0;
+        for (const slot of waypoints[l.index]) {
+            if (slot.x0 > reach && slot.x1 < x1) {
+                via.push({ x0: slot.x0, x1: slot.x1, y0: slot.y0, y1: slot.y1 });
+                reach = slot.x1;
+            }
+        }
+        return {
+            index: l.index,
+            source: l.source,
+            target: l.target,
+            value: l.value,
+            width: l.value * ky,
+            hairline: l.value * ky < HAIRLINE_PX,
+            recycle: l.recycle,
+            x0,
+            x1,
+            sy0: 0, sy1: 0, ty0: 0, ty1: 0,
+            waypoints: via,
+            loop: null
+        };
+    });
 
-    // Forward ribbons leave and arrive in the vertical order of the node at
-    // their far end. Recycles stack beneath them, longest loop outermost, so
+    // Forward ribbons leave and arrive in the vertical order of whatever they
+    // reach next. Recycles stack beneath them, longest loop outermost, so
     // loops from one node nest instead of crossing.
     for (const node of nodes) {
         const g = graph.nodes[node.index];
-        const byFarCentre = (end) => (a, b) => (centre(nodes[links[a][end]]) - centre(nodes[links[b][end]])) || (a - b);
+        const far = (li, end) => {
+            const slots = waypoints[li];
+            if (!slots.length) return nodes[links[li][end]];
+            return end === 'target' ? slots[0] : slots[slots.length - 1];
+        };
+        const byFarCentre = (end) => (a, b) => (centre(far(a, end)) - centre(far(b, end))) || (a - b);
 
         const out = g.outLinks.filter((li) => !links[li].recycle).sort(byFarCentre('target'));
         const outBack = g.outLinks.filter((li) => links[li].recycle)
@@ -523,23 +632,49 @@ function loopCentrePath(link) {
         + L(g.xt, link.ty0 + h);
 }
 
+// The points a forward link passes: its source, each slot it is routed through, its target.
+function stops(link) {
+    return [
+        { xIn: link.x0, xOut: link.x0, top: link.sy0, bottom: link.sy1 },
+        ...(link.waypoints || []).map((w) => ({ xIn: w.x0, xOut: w.x1, top: w.y0, bottom: w.y1 })),
+        { xIn: link.x1, xOut: link.x1, top: link.ty0, bottom: link.ty1 }
+    ];
+}
+
 /** Closed ribbon for a link: exact width at each node, constant along a loop. */
 export function ribbonPath(link) {
     if (link.recycle) return loopRibbonPath(link);
-    const xm = (link.x0 + link.x1) / 2;
-    return `M${r2(link.x0)},${r2(link.sy0)}`
-        + `C${r2(xm)},${r2(link.sy0)} ${r2(xm)},${r2(link.ty0)} ${r2(link.x1)},${r2(link.ty0)}`
-        + `L${r2(link.x1)},${r2(link.ty1)}`
-        + `C${r2(xm)},${r2(link.ty1)} ${r2(xm)},${r2(link.sy1)} ${r2(link.x0)},${r2(link.sy1)}Z`;
+    const s = stops(link);
+    const curve = (xa, ya, xb, yb) => {
+        const xm = (xa + xb) / 2;
+        return `C${r2(xm)},${r2(ya)} ${r2(xm)},${r2(yb)} ${r2(xb)},${r2(yb)}`;
+    };
+    const last = s.length - 1;
+    let d = `M${r2(s[0].xOut)},${r2(s[0].top)}`;
+    for (let i = 1; i <= last; i++) {
+        d += curve(s[i - 1].xOut, s[i - 1].top, s[i].xIn, s[i].top);
+        if (i < last) d += `L${r2(s[i].xOut)},${r2(s[i].top)}`;
+    }
+    d += `L${r2(s[last].xIn)},${r2(s[last].bottom)}`;
+    for (let i = last; i >= 1; i--) {
+        if (i < last) d += `L${r2(s[i].xIn)},${r2(s[i].bottom)}`;
+        d += curve(s[i].xIn, s[i].bottom, s[i - 1].xOut, s[i - 1].bottom);
+    }
+    return `${d}Z`;
 }
 
 /** Centre line of a link, used for the not-to-scale hairline. */
 export function centrePath(link) {
     if (link.recycle) return loopCentrePath(link);
-    const xm = (link.x0 + link.x1) / 2;
-    const ys = (link.sy0 + link.sy1) / 2;
-    const yt = (link.ty0 + link.ty1) / 2;
-    return `M${r2(link.x0)},${r2(ys)}C${r2(xm)},${r2(ys)} ${r2(xm)},${r2(yt)} ${r2(link.x1)},${r2(yt)}`;
+    const s = stops(link);
+    const mid = (stop) => (stop.top + stop.bottom) / 2;
+    let d = `M${r2(s[0].xOut)},${r2(mid(s[0]))}`;
+    for (let i = 1; i < s.length; i++) {
+        const xm = (s[i - 1].xOut + s[i].xIn) / 2;
+        d += `C${r2(xm)},${r2(mid(s[i - 1]))} ${r2(xm)},${r2(mid(s[i]))} ${r2(s[i].xIn)},${r2(mid(s[i]))}`;
+        if (i < s.length - 1) d += `L${r2(s[i].xOut)},${r2(mid(s[i]))}`;
+    }
+    return d;
 }
 
 /** Where a value label sits on a link: mid-ribbon, or mid-lane for a loop. */
@@ -547,6 +682,11 @@ export function linkLabelPoint(link) {
     if (link.recycle) {
         const g = loopGeometry(link);
         return { x: (g.legOutInner + g.legInInner) / 2, y: (g.L0 + g.L1) / 2 };
+    }
+    const via = link.waypoints || [];
+    if (via.length) {
+        const slot = via[Math.floor(via.length / 2)];
+        return { x: (slot.x0 + slot.x1) / 2, y: (slot.y0 + slot.y1) / 2 };
     }
     return { x: (link.x0 + link.x1) / 2, y: (link.sy0 + link.sy1 + link.ty0 + link.ty1) / 4 };
 }

@@ -484,6 +484,7 @@ test.describe('layout', () => {
       const EPS = 1e-6;
       let recycles = 0;
       let pinned = 0;
+      let slots = 0;
       for (const c of cases) {
         const m = S.buildModel(c.text, c.settings);
         const fail = (msg) => problems.push(`${c.name}: ${msg}`);
@@ -537,13 +538,34 @@ test.describe('layout', () => {
           if (lanes[i][0] < lanes[i - 1][1] - EPS) fail('two recycle lanes overlap');
         }
 
-        const byLayer = new Map();
+        // A column holds its free nodes and a slot for every ribbon passing through it.
+        const byColumn = new Map();
+        const occupy = (x0, y0, y1, name) => {
+          const key = x0.toFixed(4);
+          if (!byColumn.has(key)) byColumn.set(key, []);
+          byColumn.get(key).push({ y0, y1, name });
+        };
         for (const node of layout.nodes) {
-          if (node.pinned) continue;
-          if (!byLayer.has(node.layer)) byLayer.set(node.layer, []);
-          byLayer.get(node.layer).push(node);
+          if (!node.pinned) occupy(node.x0, node.y0, node.y1, node.name);
         }
-        for (const column of byLayer.values()) {
+        for (const l of layout.links) {
+          if (l.recycle) continue;
+          const s = layout.nodes[l.source];
+          const t = layout.nodes[l.target];
+          if (!s.pinned && !t.pinned) {
+            slots += l.waypoints.length;
+            if (l.waypoints.length !== t.layer - s.layer - 1) fail(`link ${l.index} skips a column without a slot in it`);
+          }
+          let reach = l.x0;
+          for (const w of l.waypoints) {
+            if (Math.abs((w.y1 - w.y0) - l.width) > EPS) fail(`link ${l.index} changes width at a slot`);
+            if (w.y0 < area.top - EPS || w.y1 > area.bottom + EPS) fail(`link ${l.index} slot is outside the node area`);
+            if (!(w.x0 > reach && w.x1 < l.x1)) fail(`link ${l.index} doubles back through a slot`);
+            reach = w.x1;
+            if (!s.pinned && !t.pinned) occupy(w.x0, w.y0, w.y1, `link ${l.index}`);
+          }
+        }
+        for (const column of byColumn.values()) {
           column.sort((a, b) => a.y0 - b.y0);
           for (let i = 1; i < column.length; i++) {
             if (column[i].y0 - column[i - 1].y1 < padding - EPS) fail(`${column[i - 1].name} and ${column[i].name} are closer than the padding`);
@@ -559,12 +581,52 @@ test.describe('layout', () => {
         const again = S.buildModel(c.text, c.settings);
         if (JSON.stringify(again.layout) !== JSON.stringify(layout)) fail('layout is not deterministic');
       }
-      return { problems, count: cases.length, recycles, pinned };
+      return { problems, count: cases.length, recycles, pinned, slots };
     });
+    expect(result.slots).toBeGreaterThan(100);
     expect(result.count).toBeGreaterThan(50);
     expect(result.recycles).toBeGreaterThan(10);
     expect(result.pinned).toBeGreaterThan(10);
     expect(result.problems).toEqual([]);
+  });
+
+  test('a flow that skips columns is routed past the nodes between, not over them', async ({ page }) => {
+    const out = await page.evaluate(() => {
+      const S = window.SankeyDiagram;
+      const m = S.buildModel([
+        'Web Apply [993] Ghosted',
+        'Web Apply [10] Phone Screen',
+        'Phone Screen [2] Scam',
+        'Phone Screen [7] Ghosted',
+        'Phone Screen [1] Light Technical',
+        'Light Technical [1] Fumbled SQL'
+      ].join('\n'), {});
+      const big = m.layout.links[0];
+      const node = (name) => m.layout.nodes.find((n) => n.name === name);
+      // Flow crossed between any two ribbons, read off their ends and slots.
+      const tracks = m.layout.links.map((l) => [
+        (l.sy0 + l.sy1) / 2, ...l.waypoints.map((w) => (w.y0 + w.y1) / 2), (l.ty0 + l.ty1) / 2
+      ]);
+      return {
+        via: big.waypoints, padding: m.layout.padding, width: big.width,
+        screen: node('Phone Screen'), technical: node('Light Technical'),
+        curves: (S.engine.ribbonPath(big).match(/C/g) || []).length,
+        tracks
+      };
+    });
+    expect(out.via.length).toBe(2);
+    expect(out.curves).toBe(6);
+    for (const [slot, node] of [[out.via[0], out.screen], [out.via[1], out.technical]]) {
+      expect(slot.x0).toBeCloseTo(node.x0, 9);
+      expect(slot.y1 - slot.y0).toBeCloseTo(out.width, 9);
+      const gap = Math.max(slot.y0 - node.y1, node.y0 - slot.y1);
+      expect(gap).toBeGreaterThanOrEqual(out.padding - 1e-9);
+    }
+    // The 993 ribbon stays below every other flow from end to end: nothing crosses it.
+    const [bigTrack, ...rest] = out.tracks;
+    for (const track of rest) {
+      expect(Math.max(...track)).toBeLessThan(Math.min(...bigTrack));
+    }
   });
 
   test('moving a node never changes the scale or any other node', async ({ page }) => {
