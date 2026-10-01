@@ -1,4 +1,4 @@
-// Sankey diagram builder, pure layers: parser, graph, mass balance, layout.
+// Sankey diagram builder, pure layers: parser, graph, balance, layout.
 // The renderer, export and page are in sankey-diagram-page.spec.cjs.
 //
 // Driven through the browser on window.SankeyDiagram. The page runs script-src
@@ -287,7 +287,7 @@ test.describe('graph', () => {
   });
 });
 
-test.describe('mass balance', () => {
+test.describe('balance', () => {
   test.beforeEach(async ({ page }) => { await openTool(page); });
 
   const summary = (page, text, settings = {}, unit = 'kg') => page.evaluate(([t, s, u]) => {
@@ -591,7 +591,7 @@ test.describe('layout', () => {
   });
 
   test('a flow that skips columns is routed past the nodes between, not over them', async ({ page }) => {
-    const out = await page.evaluate(() => {
+    const run = (order) => page.evaluate((o) => {
       const S = window.SankeyDiagram;
       const m = S.buildModel([
         'Web Apply [993] Ghosted',
@@ -600,7 +600,7 @@ test.describe('layout', () => {
         'Phone Screen [7] Ghosted',
         'Phone Screen [1] Light Technical',
         'Light Technical [1] Fumbled SQL'
-      ].join('\n'), {});
+      ].join('\n'), { order: o });
       const big = m.layout.links[0];
       const node = (name) => m.layout.nodes.find((n) => n.name === name);
       // Flow crossed between any two ribbons, read off their ends and slots.
@@ -611,22 +611,33 @@ test.describe('layout', () => {
         via: big.waypoints, padding: m.layout.padding, width: big.width,
         screen: node('Phone Screen'), technical: node('Light Technical'),
         curves: (S.engine.ribbonPath(big).match(/C/g) || []).length,
-        tracks
+        tracks, ky: m.layout.ky, order: m.layout.options.order
       };
-    });
-    expect(out.via.length).toBe(2);
-    expect(out.curves).toBe(6);
-    for (const [slot, node] of [[out.via[0], out.screen], [out.via[1], out.technical]]) {
-      expect(slot.x0).toBeCloseTo(node.x0, 9);
-      expect(slot.y1 - slot.y0).toBeCloseTo(out.width, 9);
-      const gap = Math.max(slot.y0 - node.y1, node.y0 - slot.y1);
-      expect(gap).toBeGreaterThanOrEqual(out.padding - 1e-9);
+    }, order);
+
+    const scales = [];
+    // Smaller flows fall below the main one by default, rise above it on request.
+    for (const [order, used, side] of [[undefined, 'down', 1], ['up', 'up', -1], ['sideways', 'down', 1]]) {
+      const out = await run(order);
+      expect(out.order).toBe(used);
+      expect(out.via.length).toBe(2);
+      expect(out.curves).toBe(6);
+      for (const [slot, node] of [[out.via[0], out.screen], [out.via[1], out.technical]]) {
+        expect(slot.x0).toBeCloseTo(node.x0, 9);
+        expect(slot.y1 - slot.y0).toBeCloseTo(out.width, 9);
+        expect(side * (node.y0 - slot.y1)).toBeGreaterThanOrEqual(side > 0 ? out.padding - 1e-9 : slot.y1 - slot.y0);
+        expect(Math.max(slot.y0 - node.y1, node.y0 - slot.y1)).toBeGreaterThanOrEqual(out.padding - 1e-9);
+      }
+      // Every other flow stays on one side of the 993 ribbon from end to end: nothing crosses it.
+      const [bigTrack, ...rest] = out.tracks;
+      for (const track of rest) {
+        if (side > 0) expect(Math.min(...track)).toBeGreaterThan(Math.max(...bigTrack));
+        else expect(Math.max(...track)).toBeLessThan(Math.min(...bigTrack));
+      }
+      scales.push(out.ky);
     }
-    // The 993 ribbon stays below every other flow from end to end: nothing crosses it.
-    const [bigTrack, ...rest] = out.tracks;
-    for (const track of rest) {
-      expect(Math.max(...track)).toBeLessThan(Math.min(...bigTrack));
-    }
+    // The order moves things around and never changes the scale.
+    expect(new Set(scales).size).toBe(1);
   });
 
   test('moving a node never changes the scale or any other node', async ({ page }) => {

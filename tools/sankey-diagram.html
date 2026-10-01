@@ -4,7 +4,7 @@
 SANKEY DIAGRAM BUILDER v1.2.0
 ============================================
 Description: Draw a Sankey diagram from a list of flows and check
-the mass balance it implies, node by node and overall.
+the balance it implies, node by node and overall.
 
 Dependencies: None (Vanilla JavaScript)
 Google Fonts (JetBrains Mono, Space Grotesk) loaded from CDN.
@@ -15,7 +15,7 @@ License: GPL-3.0 - https://github.com/jesse-anderson/Tools/blob/main/LICENSE
 
 Features:
 - Flows typed as "Source [amount] Target" or pasted as CSV/TSV
-- Mass balance per node and overall, with missing flow drawn on the diagram
+- Balance per node and overall, with missing flow drawn on the diagram
 - Recycle streams drawn as loops under the diagram
 - Nodes moved by drag or arrow keys, positions kept in the flow list
 - Up to 10 projects in this browser, autosaved, with save and revert
@@ -77,7 +77,7 @@ Last Updated: October 2026
                 </div>
                 <div>
                     <h1>Sankey Diagram Builder</h1>
-                    <p class="tagline">// FLOWS • MASS BALANCE • ANNOTATE • EXPORT</p>
+                    <p class="tagline">// FLOWS • BALANCE • ANNOTATE • EXPORT</p>
                 </div>
             </div>
         </header>
@@ -87,7 +87,7 @@ Last Updated: October 2026
                 <summary>
                     <span class="disclaimer-icon" aria-hidden="true">&#9888;</span>
                     <span class="disclaimer-summary-text">
-                        <span class="disclaimer-title">A drawing of the numbers you typed, with an arithmetic check. Not a verified mass or energy balance.</span>
+                        <span class="disclaimer-title">A drawing of the numbers you typed, with an arithmetic check. Not a verified balance of mass, energy or money.</span>
                         <span class="disclaimer-lead">Ribbon widths are your amounts on one scale, and the balance compares what you entered going into each node with what you entered coming out. It cannot tell a measurement error from a stream you left off, and a diagram that closes is not evidence that the numbers are right. Used at your own risk. Open for the full scope limits.</span>
                     </span>
                     <span class="disclaimer-chevron" aria-hidden="true">&#9662;</span>
@@ -273,6 +273,14 @@ Last Updated: October 2026
                             </select>
                         </div>
                         <div class="input-group">
+                            <label for="order">Smaller flows</label>
+                            <select id="order">
+                                <option value="down" selected>Fall below the largest</option>
+                                <option value="up">Rise above the largest</option>
+                                <option value="typed">In the order typed</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
                             <label for="fontSize">Label size (px)</label>
                             <input type="number" id="fontSize" min="8" max="24" step="1" value="12">
                         </div>
@@ -368,7 +376,7 @@ Last Updated: October 2026
 
                 <div class="table-grid">
                     <div class="table-card">
-                        <h3 id="balanceHeading">Mass balance</h3>
+                        <h3 id="balanceHeading">Balance</h3>
                         <dl class="totals" id="totals"></dl>
                         <div class="table-scroll" tabindex="0" role="group" aria-labelledby="balanceHeading">
                             <table id="balanceTable" aria-labelledby="balanceHeading">

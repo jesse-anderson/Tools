@@ -34,7 +34,11 @@ export const PALETTES = Object.freeze({
     })
 });
 
-const ROLE_SLOT = { input: 0, internal: 1, output: 2 };
+// How far a node's grab area reaches past it, vertically and to each side.
+const HIT_REACH = 14;
+const HIT_SIDE = 8;
+
+const ROLE_SLOT ={ input: 0, internal: 1, output: 2 };
 
 export const VIEW_DEFAULTS = Object.freeze({
     title: '',
@@ -196,6 +200,16 @@ export function renderSankey(doc, model, viewOptions = {}, palette = PALETTES.li
                 : null
         });
         rect.appendChild(make(doc, 'title', {}, `${node.name}: ${detail}`));
+        if (view.interactive) {
+            // Invisible grab area: half the column padding above and below, so
+            // neighbours in a column never claim each other's pointer.
+            const reach = Math.min(HIT_REACH, layout.padding / 2);
+            nodeGroup.appendChild(make(doc, 'rect', {
+                class: 'sankey-node-hit', x: node.x0 - HIT_SIDE, y: node.y0 - reach,
+                width: node.x1 - node.x0 + 2 * HIT_SIDE, height: Math.max(1, node.height) + 2 * reach,
+                fill: '#000000', 'fill-opacity': 0, 'pointer-events': 'all', 'data-node': node.index
+            }));
+        }
         nodeGroup.appendChild(rect);
     }
     svg.appendChild(nodeGroup);

@@ -19,7 +19,8 @@ export function attachDrag(host, api) {
     let frame = 0;
 
     const nodeOf = (event) => {
-        const el = event.target instanceof Element ? event.target.closest('.sankey-node') : null;
+        // A thin node is a poor target, so its padded hit area and its label grab it too.
+        const el = event.target instanceof Element ? event.target.closest('.sankey-node, .sankey-node-hit, .sankey-label') : null;
         return el ? Number(el.getAttribute('data-node')) : null;
     };
 

@@ -9,6 +9,7 @@ export const DEFAULTS = Object.freeze({
     nodeWidth: 16,
     nodePadding: 18,
     align: 'justify',
+    order: 'down',
     iterations: 32,
     margin: 16,
     titleHeight: 0,
@@ -23,6 +24,9 @@ export const LIMITS = Object.freeze({
     nodePadding: [2, 80],
     tolerance: [0, 0.25]
 });
+
+// Where smaller flows go in a column: below the largest, above it, or as typed.
+export const ORDERS = Object.freeze(['down', 'up', 'typed']);
 
 // Below this drawn width a ribbon is not visibly a ribbon, so it is flagged.
 export const HAIRLINE_PX = 1;
@@ -116,7 +120,7 @@ const withinTolerance = (a, b, tolerance) => {
 };
 
 /**
- * Mass balance. A node with nothing entering is a system input, a node with
+ * Balance. A node with nothing entering is a system input, a node with
  * nothing leaving is a system output, and every other node should pass on
  * what it receives. residual is inflow minus outflow. Recycle streams count
  * like any other flow.
@@ -191,6 +195,7 @@ export function resolveOptions(options = {}) {
         nodeWidth: clamp(numberOr(options.nodeWidth, DEFAULTS.nodeWidth), LIMITS.nodeWidth),
         nodePadding: clamp(numberOr(options.nodePadding, DEFAULTS.nodePadding), LIMITS.nodePadding),
         align: options.align === 'left' ? 'left' : 'justify',
+        order: ORDERS.includes(options.order) ? options.order : DEFAULTS.order,
         iterations: Math.round(clamp(numberOr(options.iterations, DEFAULTS.iterations), [0, 200])),
         margin: clamp(numberOr(options.margin, DEFAULTS.margin), [0, 200]),
         titleHeight: clamp(numberOr(options.titleHeight, DEFAULTS.titleHeight), [0, 200]),
@@ -410,6 +415,12 @@ export function computeLayout(graph, balance, options = {}, positions = {}) {
 
     // Only free nodes and slots are ordered, stacked, relaxed and kept apart.
     const free = columns.map((c) => c.filter((n) => !n.pinned));
+    // The starting order is kept wherever it costs no crossing, so it decides
+    // which side of the main flow the smaller ones fall to.
+    if (opt.order !== 'typed') {
+        const sign = opt.order === 'down' ? -1 : 1;
+        for (const column of free) column.sort((a, b) => (sign * (a.value - b.value)) || (a.index - b.index));
+    }
     orderColumns(free, ups, downs, measure);
     for (const column of free) {
         const total = column.reduce((s, n) => s + n.height, 0) + Math.max(0, column.length - 1) * pad;

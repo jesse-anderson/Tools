@@ -417,13 +417,18 @@ tr.tolerated {
 }
 
 /* Movable nodes. touch-action lets a finger drag a node instead of the page. */
-.diagram-host .sankey-node {
+.diagram-host .sankey-node,
+.diagram-host .sankey-node-hit,
+.diagram-host .sankey-label {
     cursor: grab;
     touch-action: none;
+    user-select: none;
 }
 
 .diagram-host.dragging,
-.diagram-host.dragging .sankey-node {
+.diagram-host.dragging .sankey-node,
+.diagram-host.dragging .sankey-node-hit,
+.diagram-host.dragging .sankey-label {
     cursor: grabbing;
 }
 

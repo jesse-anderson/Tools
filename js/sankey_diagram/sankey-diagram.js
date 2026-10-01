@@ -17,7 +17,7 @@ const DELETE_ARM_MS = 4000;
 
 // Everything a project remembers besides the flow list.
 const FIELD_IDS = ['titleInput', 'unitInput', 'tolerance', 'showValues', 'showPercent', 'showLinkValues',
-    'showMissing', 'diagramWidth', 'diagramHeight', 'nodeWidth', 'nodePadding', 'align', 'fontSize', 'decimals',
+    'showMissing', 'diagramWidth', 'diagramHeight', 'nodeWidth', 'nodePadding', 'align', 'order', 'fontSize', 'decimals',
     'nodeColor', 'linkColor', 'linkOpacity', 'pngScale', 'exportTheme', 'exportTransparent'];
 const CLAMPED_IDS = ['tolerance', 'diagramWidth', 'diagramHeight', 'nodeWidth', 'nodePadding', 'fontSize', 'linkOpacity'];
 const STARTER_TEXT = '// Source [amount] Target\nFeed [100] Process\nProcess [100] Product\n';
@@ -51,7 +51,8 @@ function readSettings() {
             height: numberField('diagramHeight'),
             nodeWidth: numberField('nodeWidth'),
             nodePadding: numberField('nodePadding'),
-            align: el('align').value
+            align: el('align').value,
+            order: el('order').value
         },
         view: {
             title: el('titleInput').value.trim(),

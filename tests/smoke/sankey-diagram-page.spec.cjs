@@ -452,7 +452,7 @@ test.describe('scope disclaimer', () => {
     const card = page.locator('#scopeDisclaimer');
     expect(await card.evaluate((el) => [el.tagName, el.className, el.open])).toEqual(['DETAILS', 'disclaimer-card', false]);
     const summary = card.locator('summary');
-    await expect(summary).toContainText('Not a verified mass or energy balance');
+    await expect(summary).toContainText('Not a verified balance of mass, energy or money');
     await expect(summary).toContainText('a diagram that closes is not evidence that the numbers are right');
 
     const box = await card.boundingBox();
@@ -759,6 +759,57 @@ test.describe('moving nodes', () => {
     expect(reset.pinned).toBe(false);
     expect(reset.x0).toBeCloseTo(before.x0, 6);
     expect(reset.y0).toBeCloseTo(before.y0, 6);
+  });
+
+  test('a hairline node is grabbed by the area around it and by its label, and neither reaches the export', async ({ page }) => {
+    await openTool(page);
+    await page.fill('#flowText', 'Web Apply [993] Ghosted\nWeb Apply [10] Phone Screen\nPhone Screen [2] Scam\nPhone Screen [8] Ghosted\n');
+    await expect.poll(() => page.evaluate(() => window.SankeyDiagram.getModel().layout.nodes.length)).toBe(4);
+    await expect(page.locator('#diagramHost .sankey-node-hit')).toHaveCount(4);
+
+    // Scam is about a pixel tall. The press lands just above it, on nothing visible.
+    const scam = await nodeBox(page, 'Scam');
+    const el = page.locator(`#diagramHost .sankey-node[data-node="${scam.index}"]`);
+    await el.scrollIntoViewIfNeeded();
+    const box = await el.boundingBox();
+    expect(box.height).toBeLessThan(3);
+    await page.mouse.move(box.x + box.width / 2, box.y - 4);
+    await page.mouse.down();
+    await page.mouse.move(box.x - 120, box.y - 80, { steps: 8 });
+    await page.mouse.up();
+    expect((await nodeBox(page, 'Scam')).pinned).toBe(true);
+
+    const screen = await nodeBox(page, 'Phone Screen');
+    const label = await page.locator(`#diagramHost .sankey-label[data-node="${screen.index}"]`).boundingBox();
+    await page.mouse.move(label.x + label.width / 2, label.y + label.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(label.x + label.width / 2 + 60, label.y - 70, { steps: 8 });
+    await page.mouse.up();
+    expect((await nodeBox(page, 'Phone Screen')).pinned).toBe(true);
+    expect((await page.inputValue('#flowText')).split('\n').filter((l) => l.startsWith('~'))).toHaveLength(2);
+
+    const exported = await page.evaluate(() => {
+      const S = window.SankeyDiagram;
+      return S.renderSankey(document, S.getModel(), {}, S.PALETTES.light).querySelectorAll('.sankey-node-hit').length;
+    });
+    expect(exported).toBe(0);
+  });
+
+  test('the order of smaller flows is a setting, kept with the project', async ({ page }) => {
+    await openTool(page);
+    await page.fill('#flowText', 'Web Apply [993] Ghosted\nWeb Apply [10] Phone Screen\nPhone Screen [10] Ghosted\n');
+    await expect.poll(() => page.evaluate(() => window.SankeyDiagram.getModel().layout.nodes.length)).toBe(3);
+    const gap = () => page.evaluate(() => {
+      const m = window.SankeyDiagram.getModel();
+      return m.layout.nodes[2].y0 - m.layout.links[0].waypoints[0].y0;
+    });
+    expect(await gap()).toBeGreaterThan(0);
+    await page.locator('#advancedOptions > summary').click();
+    await page.selectOption('#order', 'up');
+    expect(await gap()).toBeLessThan(0);
+    await page.reload();
+    await expect(page.locator('#order')).toHaveValue('up');
+    await expect.poll(gap).toBeLessThan(0);
   });
 
   test('a click that does not move is not a drag', async ({ page }) => {
