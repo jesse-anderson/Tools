@@ -717,7 +717,7 @@ test.describe('moving, pasting and saving tables', () => {
     expect(rows).toHaveLength(5);
     expect(rows[2].startsWith('Manager,2,5.88 min,')).toBe(true);
     await expect(page.locator('#exportStatus')).toHaveText('Saved purchase-request-lanes.csv');
-    await expect(page.locator('.csv-btn')).toHaveCount(6);
+    await expect(page.locator('.csv-btn')).toHaveCount(7);
 
     await type(page, 'Ann: (Start) -> "Check a, b"\nAnn: "Check a, b" {5 min} -> (Done)\nAnn: (Done)');
     const csv = await page.evaluate(() => window.ProcessFlowMapper.tableToCsv(document.getElementById('stepTable')));
@@ -751,7 +751,7 @@ test.describe('scope disclaimer', () => {
     await expect(card).toHaveCount(1);
     await expect(card).not.toHaveAttribute('open', '');
     const summary = card.locator('summary');
-    await expect(summary).toContainText('Averages only, not a forecast, a staffing plan or a promise date');
+    await expect(summary).toContainText('Not a forecast, a staffing plan or a promise date');
     await expect(summary).toContainText('Used at your own risk');
     const cardBox = await card.boundingBox();
     const editor = await page.locator('#flowText').boundingBox();
@@ -768,10 +768,10 @@ test.describe('scope disclaimer', () => {
     const body = page.locator('#scopeDisclaimer .disclaimer-body');
     for (const phrase of [
       'A wait is an input',
-      'Work done in parallel',
+      'Work done at the same time, beyond the simple case',
       'Capacity is a ceiling, not a queue',
       'Queues, batching and priorities',
-      'no percentiles',
+      'Variation you did not type',
       'Rework is chosen by typing order',
       'The tint is relative',
       'A delivery date, service level or turnaround',
@@ -784,7 +784,7 @@ test.describe('scope disclaimer', () => {
     const second = page.locator('.diagram-panel p.disclaimer');
     await expect(second).toHaveCount(1);
     await expect(second).toContainText('averages worked out from the times and percentages you typed');
-    await expect(second).toContainText('work done in parallel is not modelled');
+    await expect(second).toContainText('it is only as wide as the ranges you gave');
     await expect(second).toContainText('Used at your own risk');
   });
 });

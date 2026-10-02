@@ -417,6 +417,7 @@ tr.flagged {
 .input-group[hidden],
 .table-block[hidden],
 .table-card[hidden],
+.spread-card[hidden],
 .compare-note[hidden],
 .lesson[hidden] {
     display: none;
@@ -483,6 +484,53 @@ tr.flagged {
 
 .compare-note {
     margin-top: -6px;
+}
+
+/* How lead time is spread: three figures beside a small histogram. */
+.spread-card {
+    margin: 0 0 14px;
+    padding: 14px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+}
+
+.spread-card h3 {
+    margin: 0 0 10px;
+    font-size: 1rem;
+}
+
+.spread-body {
+    display: grid;
+    grid-template-columns: minmax(0, 3fr) minmax(160px, 2fr);
+    gap: 14px;
+    align-items: end;
+}
+
+.spread-stats {
+    margin: 0;
+}
+
+.spread-bars {
+    display: block;
+    width: 100%;
+    height: 64px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.spread-bar {
+    fill: #2a78d6;
+}
+
+.spread-axis {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 4px;
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+}
+
+.spread-card .helper-text {
+    margin: 10px 0 0;
 }
 
 /* The lane table has the most columns, so it gets the full width. */
@@ -666,6 +714,10 @@ tr.limit {
         padding: 16px;
     }
 
+    .spread-body {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
     .check {
         min-height: 44px;
     }
@@ -674,5 +726,54 @@ tr.limit {
     select,
     textarea {
         font-size: 1rem;
+    }
+}
+
+/* One page on paper: the result and its tables, without the editor or the
+   controls. The map is redrawn in the light colours before printing. */
+@media print {
+    header .header-content,
+    .editor-panel,
+    .disclaimer-card,
+    .diagram-header .button-row,
+    .csv-btn,
+    .map-help,
+    .bar-legend,
+    #exportStatus,
+    #compareNote,
+    footer {
+        display: none;
+    }
+
+    .flow-layout {
+        display: block;
+    }
+
+    .panel {
+        padding: 0;
+        border: 0;
+        box-shadow: none;
+    }
+
+    .diagram-scroll {
+        overflow: visible;
+        border: 0;
+    }
+
+    .diagram-host svg {
+        max-width: 100%;
+        height: auto;
+    }
+
+    .table-scroll {
+        overflow: visible;
+    }
+
+    .table-card,
+    .spread-card,
+    .stat,
+    .message-box,
+    .bar-row {
+        break-inside: avoid;
     }
 }

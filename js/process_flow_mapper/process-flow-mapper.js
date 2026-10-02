@@ -5,13 +5,16 @@
 import * as parser from './flow-parse.js';
 import * as graphs from './flow-graph.js';
 import * as solver from './flow-solve.js';
+import * as simulator from './flow-simulate.js';
+import * as parallel from './flow-parallel.js';
 import * as router from './flow-route.js';
 import * as layouts from './flow-layout.js';
 import * as projects from './flow-projects.js';
-import { buildModel, headline, headlineChanges, summarySentence, summaryLine, formatDuration, formatPercent } from './flow-model.js';
+import { buildModel, headline, headlineChanges, summarySentence, summaryLine, footnoteText, formatDuration, formatPercent } from './flow-model.js';
 import { renderFlow, tintLevels, mix, PALETTES } from './flow-render.js';
-import { fillHeadline, fillBars, fillTables, tableToCsv } from './flow-panels.js';
+import { fillHeadline, fillBars, fillTables, fillSpread, tableToCsv } from './flow-panels.js';
 import { attachDrag } from './flow-drag.js';
+import { toMermaid } from './flow-mermaid.js';
 import {
     serializeSvg, svgToPngBlob, downloadBlob, fileStem, pngSize, PNG_SCALES, loadFontDataUrl, embedFont
 } from './flow-export.js';
@@ -23,9 +26,9 @@ const DELETE_ARM_MS = 4000;
 const FONT = "'Space Grotesk', system-ui, 'Segoe UI', Arial, sans-serif";
 
 // Everything a project remembers besides the step list.
-const FIELD_IDS = ['titleInput', 'hoursPreset', 'hoursCustom', 'daysPerWeek', 'tint', 'unit', 'showShares', 'showBadges', 'wide',
-    'fontSize', 'zoom', 'pngScale', 'exportTheme', 'exportTransparent'];
-const CLAMPED_IDS = ['hoursCustom', 'daysPerWeek', 'fontSize'];
+const FIELD_IDS = ['titleInput', 'hoursPreset', 'hoursCustom', 'daysPerWeek', 'tint', 'unit', 'direction', 'showShares', 'showBadges', 'wide',
+    'fontSize', 'zoom', 'seed', 'pngScale', 'exportTheme', 'exportTransparent'];
+const CLAMPED_IDS = ['hoursCustom', 'daysPerWeek', 'fontSize', 'seed'];
 const QUIET_IDS = ['pngScale', 'exportTheme', 'exportTransparent', 'zoom', 'wide'];
 const STARTER_TEXT = '// Lane: Step {touch, wait} -> Next step\nTeam: (Start) -> Do the work\nTeam: Do the work {30 min, wait 1 h} -> (Done)\nTeam: (Done)\n';
 
@@ -70,7 +73,9 @@ function settingsFromFields(fields) {
             daysPerWeek: number('daysPerWeek'),
             unit: fields.unit,
             fontSize: number('fontSize'),
-            showShares: fields.showShares !== false
+            showShares: fields.showShares !== false,
+            direction: fields.direction === 'down' ? 'down' : 'across',
+            seed: number('seed')
         },
         view: {
             title,
@@ -94,8 +99,10 @@ function fillList(list, items) {
 
 const tables = () => ({
     lanes: el('laneTable'), phases: el('phaseTable'), ends: el('endTable'), steps: el('stepTable'), exits: el('exitTable'),
-    handoffs: el('handoffTable')
+    handoffs: el('handoffTable'), sipoc: el('sipocTable')
 });
+
+const spreadParts = () => ({ stats: el('spreadStats'), chart: el('spreadChart'), note: el('spreadNote') });
 
 function clearOutput() {
     el('diagramHost').replaceChildren();
@@ -109,6 +116,8 @@ function clearOutput() {
     el('resultStatus').textContent = '';
     el('exportStatus').textContent = '';
     el('compareNote').hidden = true;
+    el('spreadCard').hidden = true;
+    el('sipocBlock').hidden = true;
 }
 
 /** The last save as a model, rebuilt only when the save itself changes. Null when the form matches it. */
@@ -173,8 +182,7 @@ function render() {
     el('hoursCustomGroup').hidden = el('hoursPreset').value !== 'custom';
     model = buildModel(el('flowText').value, settings.model, measure);
 
-    el('downloadSvg').disabled = !model.ok;
-    el('downloadPng').disabled = !model.ok;
+    for (const id of ['downloadSvg', 'downloadPng', 'copyMermaid', 'printPage']) el(id).disabled = !model.ok;
     el('errorBox').hidden = model.ok;
     fillList(el('errorList'), model.errors);
     el('warningBox').hidden = model.warnings.length === 0;
@@ -188,11 +196,13 @@ function render() {
         const changes = headlineChanges(model, savedModel());
         fillHeadline(el('headline'), model, changes);
         el('compareNote').hidden = changes.length === 0;
+        el('spreadCard').hidden = !fillSpread(spreadParts(), model);
         const bars = fillBars(el('bars'), model, (index) => pick(index));
         el('barsEmpty').hidden = bars > 0;
         fillTables(tables(), model);
         el('phaseBlock').hidden = model.layout.phases.length === 0;
         el('handoffBlock').hidden = model.graph.counts.handoffs === 0;
+        el('sipocBlock').hidden = !model.sipoc;
         el('resultStatus').textContent = summarySentence(model);
         el('resultStatus').classList.toggle('withheld', !model.result.ok);
         applyZoom();
@@ -237,6 +247,38 @@ async function exportDiagram(kind) {
     } catch (e) {
         status.textContent = e.message;
     }
+}
+
+/** Put the map on the clipboard as Mermaid text, or save it as a file when the clipboard is refused. */
+async function copyMermaid() {
+    if (!model || !model.ok) return;
+    const status = el('exportStatus');
+    const text = toMermaid(model, el('titleInput').value.trim());
+    try {
+        await navigator.clipboard.writeText(text);
+        status.textContent = 'Copied the map as Mermaid text. Mermaid draws it its own way, so lanes become boxes around their steps.';
+    } catch (e) {
+        const name = `${fileStem(el('titleInput').value)}.mmd`;
+        downloadBlob(new Blob([text], { type: 'text/plain' }), name);
+        status.textContent = `The clipboard was not available, so the Mermaid text was saved as ${name}`;
+    }
+}
+
+// Printing uses the light colours whatever the page is showing, and puts them back after.
+let themeBeforePrint = null;
+function beforePrint() {
+    if (themeBeforePrint !== null) return;
+    themeBeforePrint = document.documentElement.getAttribute('data-theme') || '';
+    document.documentElement.setAttribute('data-theme', 'light');
+    render();
+}
+function afterPrint() {
+    if (themeBeforePrint === null) return;
+    const theme = themeBeforePrint;
+    themeBeforePrint = null;
+    if (theme) document.documentElement.setAttribute('data-theme', theme);
+    else document.documentElement.removeAttribute('data-theme');
+    render();
 }
 
 // --- projects -----------------------------------------------------------
@@ -506,6 +548,10 @@ function init() {
 
     el('downloadSvg').addEventListener('click', () => exportDiagram('svg'));
     el('downloadPng').addEventListener('click', () => exportDiagram('png'));
+    el('copyMermaid').addEventListener('click', copyMermaid);
+    el('printPage').addEventListener('click', () => window.print());
+    window.addEventListener('beforeprint', beforePrint);
+    window.addEventListener('afterprint', afterPrint);
 
     // A step clicked on the map marks its bar, and the other way round.
     el('diagramHost').addEventListener('click', (event) => {
@@ -566,6 +612,9 @@ window.ProcessFlowMapper = {
     parser,
     graphs,
     solver,
+    simulator,
+    parallel,
+    toMermaid,
     router,
     layouts,
     projects,
@@ -575,6 +624,7 @@ window.ProcessFlowMapper = {
     tableToCsv,
     summarySentence,
     summaryLine,
+    footnoteText,
     formatDuration,
     formatPercent,
     renderFlow,

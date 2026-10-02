@@ -4,7 +4,7 @@
 // style attribute, so the element on the page is the file that is exported and
 // it stays legal under a style-src with no unsafe-inline.
 
-import { summaryLine, summarySentence, formatPercent, formatPasses } from './flow-model.js';
+import { summaryLine, summarySentence, footnoteText, formatPercent, formatPasses, formatDuration } from './flow-model.js';
 import { DECISION_CUT } from './flow-layout.js';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
@@ -124,6 +124,8 @@ export function renderFlow(doc, model, viewOptions = {}, palette = PALETTES.ligh
     const small = fontSize - 1;
     const tint = Object.prototype.hasOwnProperty.call(TINTS, view.tint) ? view.tint : 'lead';
     const levels = tintLevels(model, tint);
+    const down = layout.direction === 'down';
+    const laneKeys = down ? 'left or right' : 'up or down';
 
     const svg = make(doc, 'svg', {
         viewBox: `0 0 ${r2(width)} ${r2(height)}`,
@@ -157,51 +159,73 @@ export function renderFlow(doc, model, viewOptions = {}, palette = PALETTES.ligh
         }, summaryLine(model)));
     }
 
-    // Lanes: a band each, with the name in a header cell on the left.
+    // Lanes: a band each, with the name in a header cell on the left, or along
+    // the top when lanes run down the page.
     const laneGroup = make(doc, 'g', { class: 'flow-lanes' });
     for (const lane of layout.lanes) {
         const color = parsed.colors[lane.name] || palette.series[lane.index % palette.series.length];
+        const laneWidth = lane.x1 - lane.x0;
+        const laneHeight = lane.y1 - lane.y0;
         laneGroup.appendChild(make(doc, 'rect', {
-            class: 'flow-lane', x: area.headerLeft, y: r2(lane.y0), width: r2(area.right - area.headerLeft), height: r2(lane.y1 - lane.y0),
+            class: 'flow-lane', x: r2(lane.x0), y: r2(lane.y0), width: r2(laneWidth), height: r2(laneHeight),
             fill: lane.index % 2 ? palette.surface : palette.band, stroke: palette.rule, 'stroke-width': 1, 'data-lane': lane.index
         }));
-        laneGroup.appendChild(make(doc, 'rect', { x: area.headerLeft, y: r2(lane.y0), width: 5, height: r2(lane.y1 - lane.y0), fill: color }));
+        laneGroup.appendChild(make(doc, 'rect', { x: r2(lane.x0), y: r2(lane.y0), width: down ? r2(laneWidth) : 5, height: down ? 5 : r2(laneHeight), fill: color }));
+        const labelX = down ? r2((lane.x0 + lane.x1) / 2) : r2(lane.x0 + 12);
         const text = make(doc, 'text', {
-            class: 'flow-lane-label', x: area.headerLeft + 12, 'font-weight': 600, fill: palette.ink, 'data-lane': lane.index,
+            class: 'flow-lane-label', x: labelX, 'text-anchor': down ? 'middle' : null, 'font-weight': 600, fill: palette.ink, 'data-lane': lane.index,
             tabindex: view.interactive ? 0 : null,
             role: view.interactive ? 'img' : null,
-            'aria-label': view.interactive ? `${lane.name} lane. Drag, or hold Alt and press the up or down arrow, to move it` : null
+            'aria-label': view.interactive ? `${lane.name} lane. Drag, or hold Alt and press the ${laneKeys} arrow, to move it` : null
         });
         // How busy the lane is, when staff and arrivals are both given.
         const busy = totals ? totals.lanes[lane.index].busy : null;
         const rows = lane.lines.length + (busy === null ? 0 : 1);
-        const firstY = (lane.y0 + lane.y1) / 2 - ((rows - 1) * lineHeight) / 2 + fontSize * 0.35;
-        lane.lines.forEach((line, i) => text.appendChild(make(doc, 'tspan', { x: area.headerLeft + 12, y: r2(firstY + i * lineHeight) }, line)));
+        const firstY = down
+            ? lane.y0 + 9 + fontSize
+            : (lane.y0 + lane.y1) / 2 - ((rows - 1) * lineHeight) / 2 + fontSize * 0.35;
+        lane.lines.forEach((line, i) => text.appendChild(make(doc, 'tspan', { x: labelX, y: r2(firstY + i * lineHeight) }, line)));
         if (busy !== null) {
             text.appendChild(make(doc, 'tspan', {
-                class: 'flow-lane-busy', x: area.headerLeft + 12, y: r2(firstY + lane.lines.length * lineHeight),
+                class: 'flow-lane-busy', x: labelX, y: r2(firstY + lane.lines.length * lineHeight),
                 'font-weight': busy > 1 ? 700 : 400, 'font-size': small, fill: busy > 1 ? palette.rework : palette.inkSecondary
             }, busy > 1 ? `${formatPercent(busy)}, over` : `${formatPercent(busy)} busy`));
         }
         laneGroup.appendChild(text);
     }
-    laneGroup.appendChild(make(doc, 'line', { x1: area.left, x2: area.left, y1: r2(area.top), y2: r2(area.bottom), stroke: palette.rule, 'stroke-width': 1 }));
+    // The edge of the header cells.
+    laneGroup.appendChild(make(doc, 'line', down
+        ? { x1: r2(area.left), x2: r2(area.right), y1: r2(area.top), y2: r2(area.top), stroke: palette.rule, 'stroke-width': 1 }
+        : { x1: area.left, x2: area.left, y1: r2(area.top), y2: r2(area.bottom), stroke: palette.rule, 'stroke-width': 1 }));
     svg.appendChild(laneGroup);
 
-    // Phases: a name over each run of columns, and a rule between runs.
+    // Phases: a name beside each run of steps, and a rule between runs.
     if (layout.phases.length) {
         const phaseGroup = make(doc, 'g', { class: 'flow-phases' });
         layout.phases.forEach((phase, i) => {
             const total = totals ? totals.phases[phase.index] : null;
-            const extra = total && result.lead > 0 ? `  ·  ${formatPercent(total.share)}` : '';
+            const share = total && result.lead > 0 ? formatPercent(total.share) : '';
+            const rule = { stroke: palette.inkSecondary, 'stroke-width': 1, 'stroke-dasharray': '6 4' };
+            if (down) {
+                const text = make(doc, 'text', { class: 'flow-phase-label', x: r2(phase.x0), 'font-weight': 600, fill: palette.ink, 'data-phase': phase.index });
+                const firstY = phase.y0 + 8 + fontSize;
+                phase.lines.forEach((line, k) => text.appendChild(make(doc, 'tspan', { x: r2(phase.x0), y: r2(firstY + k * lineHeight) }, line)));
+                if (share) {
+                    text.appendChild(make(doc, 'tspan', {
+                        x: r2(phase.x0), y: r2(firstY + phase.lines.length * lineHeight), 'font-weight': 400, 'font-size': small
+                    }, share));
+                }
+                phaseGroup.appendChild(text);
+                if (i > 0) phaseGroup.appendChild(make(doc, 'line', { ...rule, x1: r2(phase.x0), x2: r2(area.right), y1: r2(phase.y0), y2: r2(phase.y0) }));
+                return;
+            }
             phaseGroup.appendChild(make(doc, 'text', {
                 class: 'flow-phase-label', x: r2((phase.x0 + phase.x1) / 2), y: r2(area.top - 9), 'text-anchor': 'middle',
                 'font-weight': 600, fill: palette.ink, 'data-phase': phase.index
-            }, `${phase.name}${extra}`));
+            }, `${phase.name}${share ? `  \u00b7  ${share}` : ''}`));
             if (i > 0) {
                 phaseGroup.appendChild(make(doc, 'line', {
-                    x1: r2(phase.x0), x2: r2(phase.x0), y1: r2(area.top - layout.options.phaseHeader + 4), y2: r2(area.bottom),
-                    stroke: palette.inkSecondary, 'stroke-width': 1, 'stroke-dasharray': '6 4'
+                    ...rule, x1: r2(phase.x0), x2: r2(phase.x0), y1: r2(area.top - layout.options.phaseHeader + 4), y2: r2(area.bottom)
                 }));
             }
         });
@@ -221,8 +245,10 @@ export function renderFlow(doc, model, viewOptions = {}, palette = PALETTES.ligh
         });
         const label = link.label ? ` (${link.label})` : '';
         const traffic = result.ok ? `, taken ${formatPasses(result.traversals[c.index])} per unit of work` : '';
+        const taken = link.parallel ? 'taken together with the other exits of this step' : `${formatPercent(link.share)} of what leaves`;
+        const onWay = link.wait > 0 ? `, ${formatDuration(link.wait, graph.calendar, model.unit)} on the way` : '';
         path.appendChild(make(doc, 'title', {},
-            `${graph.nodes[c.source].name} to ${graph.nodes[c.target].name}${label}: ${formatPercent(link.share)} of what leaves${c.rework ? ', rework' : ''}${traffic}`));
+            `${graph.nodes[c.source].name} to ${graph.nodes[c.target].name}${label}: ${taken}${onWay}${c.rework ? ', rework' : ''}${traffic}`));
         linkGroup.appendChild(path);
     }
     svg.appendChild(linkGroup);
@@ -237,7 +263,7 @@ export function renderFlow(doc, model, viewOptions = {}, palette = PALETTES.ligh
             tabindex: view.interactive ? 0 : null,
             role: view.interactive ? 'img' : null,
             'aria-label': view.interactive
-                ? `${step.name}, ${graph.lanes[step.lane].name}. ${step.info.join('. ')}${step.info.length ? '. ' : ''}Drag, or hold Alt and press the up or down arrow, to move it to another lane`
+                ? `${step.name}, ${graph.lanes[step.lane].name}. ${step.info.join('. ')}${step.info.length ? '. ' : ''}Drag, or hold Alt and press the ${laneKeys} arrow, to move it to another lane`
                 : null
         });
         const note = parsed.notes[step.name] ? `. ${parsed.notes[step.name]}` : '';
@@ -276,17 +302,15 @@ export function renderFlow(doc, model, viewOptions = {}, palette = PALETTES.ligh
     for (const c of layout.connectors) {
         if (!c.labelAt) continue;
         labelGroup.appendChild(make(doc, 'text', {
-            class: 'flow-link-label', x: r2(c.labelAt.x), y: r2(c.labelAt.y), 'font-size': small,
+            class: 'flow-link-label', x: r2(c.labelAt.x), y: r2(c.labelAt.y), 'text-anchor': c.labelAt.anchor === 'end' ? 'end' : null, 'font-size': small,
             fill: c.rework ? palette.rework : palette.ink, 'font-weight': c.rework ? 600 : 400, 'data-link': c.index, ...halo(palette)
         }, c.label));
     }
     svg.appendChild(labelGroup);
 
     if (layout.options.footnoteHeight) {
-        const { hoursPerDay, daysPerWeek } = graph.calendar;
         const y = height - margin;
-        svg.appendChild(make(doc, 'text', { class: 'flow-footnote', x: margin, y: r2(y), 'font-size': small, fill: palette.inkSecondary },
-            `Averages per unit of work. A day is ${hoursPerDay} h, a week ${daysPerWeek} d. Dashed connectors are rework.`));
+        svg.appendChild(make(doc, 'text', { class: 'flow-footnote', x: margin, y: r2(y), 'font-size': small, fill: palette.inkSecondary }, footnoteText(model)));
         if (tint !== 'none' && levels.some((v) => v > 0)) {
             const legend = make(doc, 'g', { class: 'flow-legend' });
             const sw = 14;

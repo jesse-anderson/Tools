@@ -1,6 +1,7 @@
 // Flow text parser for the process flow mapper. Pure, no DOM.
 //
 // One step per line: `Lane: Step {touch, wait W} -> label 80%: Target, ...`.
+// `->` means one of these happens, `=>` means all of them do, at the same time.
 // Every problem carries the line it came from, so the page can point at it.
 
 export const LIMITS = Object.freeze({
@@ -9,7 +10,8 @@ export const LIMITS = Object.freeze({
     maxExits: 300,
     maxPhases: 12,
     maxNameLength: 80,
-    maxNoteLength: 120
+    maxNoteLength: 120,
+    maxSipoc: 80
 });
 
 // Hours in one of each unit. Days and weeks depend on the working calendar,
@@ -31,7 +33,11 @@ const STAFF_LINE = /^staff\s*:\s*(.*)$/i;
 const STAFF = /^(.+?)\s+(\d+\.?\d*|\.\d+)(?:\s*@\s*(\d+\.?\d*|\.\d+)\s*%)?$/;
 const STAFF_HELP = 'A staff line reads "staff: Sales 2, Finance 1 @ 25%": people on duty, then the share of their time this process gets';
 const ARRIVALS =/^(\d+\.?\d*|\.\d+)\s*(?:\/|per)\s*([a-z]+)$/i;
-const TIME = /^(wait\s+)?(\d+\.?\d*|\.\d+)\s*([a-z]+)$/i;
+// One number is a fixed time. Two are lowest and highest, three add the most likely between.
+const TIME = /^(wait\s+)?(\d+\.?\d*|\.\d+)(?:\s*(?:-|to)\s*(\d+\.?\d*|\.\d+))?(?:\s*(?:-|to)\s*(\d+\.?\d*|\.\d+))?\s*([a-z]+)$/i;
+const SIPOC_LINE = /^(in|out)\s*:\s*(.*)$/i;
+const SIPOC_HELP = 'An inputs line reads "in: Order form from Customer" and an outputs line "out: Invoice to Customer"';
+const EXIT_WAIT_HELP = 'a wait on the way goes before the colon, such as "-> yes 80% {2 d}: Next step"';
 const SHARE = /(\d+\.?\d*|\.\d+)\s*%/;
 
 const clean = (raw) => String(raw).replace(/\s+/g, ' ').trim();
@@ -87,13 +93,20 @@ export function parseTimes(inside) {
         const part = clean(raw);
         if (!part) continue;
         const m = TIME.exec(part);
-        const unit = m ? TIME_UNITS[m[3].toLowerCase()] : null;
+        const unit = m ? TIME_UNITS[m[5].toLowerCase()] : null;
         if (!m || !unit) {
-            return { ok: false, message: `"${part}" is not a time. Write a number and a unit, such as "15 min" or "wait 2 d"` };
+            return { ok: false, message: `"${part}" is not a time. Write a number and a unit, such as "15 min", "wait 2 d" or "wait 1-3 d"` };
         }
         const key = m[1] ? 'wait' : 'touch';
         if (out[key]) return { ok: false, message: `two ${key === 'wait' ? 'waits' : 'touch times'} given for one step` };
-        out[key] = { value: Number(m[2]), unit };
+        const nums = [m[2], m[3], m[4]].filter((n) => n !== undefined).map(Number);
+        if (nums.some((n, i) => i > 0 && n < nums[i - 1])) {
+            return { ok: false, message: `"${part}" runs backwards. Write a range lowest first, such as "1-3 d", or "1-2-8 d" with the most likely in the middle` };
+        }
+        if (nums.length === 1) { out[key] = { value: nums[0], unit }; continue; }
+        // The value is the average: the middle of a range, or a third of the three points.
+        const spread = { low: nums[0], mode: nums.length === 3 ? nums[1] : null, high: nums[nums.length - 1] };
+        out[key] = { value: nums.reduce((s, n) => s + n, 0) / nums.length, unit, spread };
     }
     return out;
 }
@@ -116,6 +129,8 @@ export function parseFlow(text) {
     const warnings = [];
     let arrivals = null;
     const staff = {};
+    const sipoc = [];
+    const exitKinds = new Map();
     let lanesDeclared = false;
     let phase = -1;
 
@@ -192,6 +207,25 @@ export function parseFlow(text) {
             return undefined;
         }
 
+        // What a phase takes in and hands on, for the SIPOC table.
+        const sipocLine = SIPOC_LINE.exec(line);
+        if (sipocLine) {
+            const kind = sipocLine[1].toLowerCase();
+            const word = kind === 'in' ? ' from ' : ' to ';
+            const entries = sipocLine[2].split(',').map(clean).filter(Boolean);
+            if (!entries.length) return fail(lineNo, 'SIPOC_NOT_UNDERSTOOD', SIPOC_HELP);
+            for (const entry of entries) {
+                // A space is put in front so an entry that starts with the word has nothing before it.
+                const at = ` ${entry}`.toLowerCase().lastIndexOf(word) - 1;
+                const item = at < -1 ? entry : clean(entry.slice(0, Math.max(0, at)));
+                const party = at < -1 ? '' : clean(entry.slice(at + word.length));
+                if (!item) return fail(lineNo, 'SIPOC_NOT_UNDERSTOOD', `"${entry}" names nothing. ${SIPOC_HELP}`);
+                if (item.length > LIMITS.maxNameLength || party.length > LIMITS.maxNameLength) return fail(lineNo, 'NAME_TOO_LONG', `a name is limited to ${LIMITS.maxNameLength} characters`);
+                sipoc.push({ phase, kind, item, party, line: lineNo });
+            }
+            return undefined;
+        }
+
         // A step line: lane, then the step, then optionally where it goes.
         const colon = findOutside(line, ':');
         if (colon < 0) return fail(lineNo, 'LINE_NOT_UNDERSTOOD', 'expected "Lane: Step -> Next step". The lane comes first, then a colon');
@@ -200,9 +234,16 @@ export function parseFlow(text) {
         if (!laneName) return fail(lineNo, 'LANE_MISSING', 'a step line starts with the lane that does the step');
         if (laneName.length > LIMITS.maxNameLength) return fail(lineNo, 'NAME_TOO_LONG', `a name is limited to ${LIMITS.maxNameLength} characters`);
 
-        const arrow = findOutside(rest, '->');
+        // "->" is one of these, "=>" is all of these at once. The first arrow on the line decides.
+        const one = findOutside(rest, '->');
+        const all = findOutside(rest, '=>');
+        const parallel = all >= 0 && (one < 0 || all < one);
+        const arrow = parallel ? all : one;
         let head = arrow < 0 ? rest : rest.slice(0, arrow);
         const tail = arrow < 0 ? null : rest.slice(arrow + 2);
+        if (tail !== null && (findOutside(tail, '->') >= 0 || findOutside(tail, '=>') >= 0)) {
+            return fail(lineNo, 'LINE_NOT_UNDERSTOOD', 'a line has one arrow. Put each step on its own line, or put a name that holds an arrow in double quotes');
+        }
 
         let times = { ok: true, touch: null, wait: null };
         // A brace inside a quoted name is part of the name.
@@ -240,17 +281,36 @@ export function parseFlow(text) {
         if (tail === null) return undefined;
         const targets = splitOutside(tail, ',').map((t) => t.trim()).filter(Boolean);
         if (!targets.length) return fail(lineNo, 'EXIT_MISSING', 'nothing follows the arrow. Name the next step, or drop the arrow');
+        const kind = parallel && targets.length > 1 ? 'all' : 'one';
+        if (exitKinds.has(name) && exitKinds.get(name) !== kind) {
+            return fail(lineNo, 'MIXED_EXITS', `"${name}" has exits written both ways. Its exits are either one of these (->) or all of these at once (=>). Add a step if it needs both`);
+        }
+        exitKinds.set(name, kind);
         for (const raw of targets) {
             const at = findOutside(raw, ':');
-            const prefix = at < 0 ? '' : raw.slice(0, at);
+            let prefix = at < 0 ? '' : raw.slice(0, at);
             const target = stepName(at < 0 ? raw : raw.slice(at + 1));
             if (!target) return fail(lineNo, 'EXIT_MISSING', `"${clean(raw)}" names no step after the colon`);
+            if (target.replace(/"[^"]*"/g, '').includes('{')) return fail(lineNo, 'TIME_NOT_UNDERSTOOD', EXIT_WAIT_HELP);
+            // Time spent on the way to the next step is always a wait.
+            let wait = null;
+            const open = prefix.indexOf('{');
+            const close = prefix.lastIndexOf('}');
+            if (open >= 0 || close >= 0) {
+                if (open < 0 || close < open) return fail(lineNo, 'TIME_NOT_UNDERSTOOD', EXIT_WAIT_HELP);
+                const onWay = parseTimes(prefix.slice(open + 1, close));
+                if (!onWay.ok) return fail(lineNo, 'TIME_NOT_UNDERSTOOD', onWay.message);
+                if (onWay.touch && onWay.wait) return fail(lineNo, 'TIME_NOT_UNDERSTOOD', 'an exit takes one time, the wait on the way. Work belongs to a step');
+                wait = onWay.wait || onWay.touch;
+                prefix = `${prefix.slice(0, open)} ${prefix.slice(close + 1)}`;
+            }
             if (target.length > LIMITS.maxNameLength) return fail(lineNo, 'NAME_TOO_LONG', `a name is limited to ${LIMITS.maxNameLength} characters`);
             if (target === name) return fail(lineNo, 'SELF_LOOP', `"${name}" exits to itself. Model a retry as a check step that sends the work back`);
             const share = SHARE.exec(prefix);
             const value = share ? Number(share[1]) / 100 : null;
             if (value !== null && value > 1) return fail(lineNo, 'SHARE_OUT_OF_RANGE', `${share[1]}% is more than all of the work leaving "${name}"`);
-            exits.push({ source: name, target, label: clean(prefix.replace(SHARE, '')), share: value, line: lineNo });
+            if (value !== null && kind === 'all') return fail(lineNo, 'SHARE_ON_PARALLEL', `"${name}" sends work to all of its exits at once (=>), so an exit has no percentage. Use -> for one of these`);
+            exits.push({ source: name, target, label: clean(prefix.replace(SHARE, '')), share: value, wait, parallel: kind === 'all', line: lineNo });
         }
         return undefined;
     });
@@ -265,6 +325,7 @@ export function parseFlow(text) {
     if (steps.length > LIMITS.maxSteps) fail(null, 'TOO_MANY_STEPS', `${steps.length} steps entered, the limit is ${LIMITS.maxSteps}`);
     if (exits.length > LIMITS.maxExits) fail(null, 'TOO_MANY_EXITS', `${exits.length} exits entered, the limit is ${LIMITS.maxExits}`);
     if (phases.length > LIMITS.maxPhases) fail(null, 'TOO_MANY_PHASES', `${phases.length} phases entered, the limit is ${LIMITS.maxPhases}`);
+    if (sipoc.length > LIMITS.maxSipoc) fail(null, 'TOO_MANY_SIPOC', `${sipoc.length} inputs and outputs entered, the limit is ${LIMITS.maxSipoc}`);
 
     // Names that differ only by case are almost always one thing typed two ways.
     for (const [what, names] of [['steps', steps.map((s) => s.name)], ['lanes', lanes]]) {
@@ -292,10 +353,10 @@ export function parseFlow(text) {
         if (!lanes.includes(name)) warnings.push({ line: entry.line, code: 'UNKNOWN_LANE', message: `"${name}" is staffed but is not a lane` });
     }
 
-    return { lanes, lanesDeclared, arrivals, staff, phases, steps, exits, notes, colors, errors, warnings };
+    return { lanes, lanesDeclared, arrivals, staff, sipoc, phases, steps, exits, notes, colors, errors, warnings };
 }
 
-const DIRECTIVE = /^(==|:|@|\/\/|#|lanes\s*:|arrivals\s*:|staff\s*:)/i;
+const DIRECTIVE = /^(==|:|@|\/\/|#|lanes\s*:|arrivals\s*:|staff\s*:|in\s*:|out\s*:)/i;
 
 /** The lane and step a step line declares, with where the lane ends, or null for any other line. */
 function readStepLine(rawLine) {
@@ -304,7 +365,8 @@ function readStepLine(rawLine) {
     const colon = findOutside(line, ':');
     if (colon < 0) return null;
     const rest = line.slice(colon + 1);
-    const arrow = findOutside(rest, '->');
+    const arrows = [findOutside(rest, '->'), findOutside(rest, '=>')].filter((a) => a >= 0);
+    const arrow = arrows.length ? Math.min(...arrows) : -1;
     let head = arrow < 0 ? rest : rest.slice(0, arrow);
     if (head.trim().endsWith('}') && head.lastIndexOf('{') >= 0) head = head.slice(0, head.lastIndexOf('{'));
     return { lane: clean(line.slice(0, colon)), step: stepName(head), after: line.slice(colon) };
@@ -329,7 +391,7 @@ export function setLaneOrder(text, lanes) {
     return rows.filter((raw, i) => i === at || !LANES_LINE.test(raw.trim())).map((raw, i) => (i === at ? line : raw)).join('\n');
 }
 
-const needsQuotes = (name) => /,|:|->/.test(name);
+const needsQuotes = (name) => /,|:|->|=>/.test(name);
 const quoted = (name) => (needsQuotes(name) ? `"${name.replace(/"/g, '')}"` : name);
 
 /**

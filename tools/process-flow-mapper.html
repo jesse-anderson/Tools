@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
 ============================================
-PROCESS FLOW MAPPER v1.1.0
+PROCESS FLOW MAPPER v1.2.0
 ============================================
 Description: Lead time, touch time, rework and first-pass yield for
 a process typed as a list of steps, drawn as a swimlane diagram.
@@ -32,6 +32,12 @@ Features:
 - Every headline figure compared with the last save
 - Steps dragged between lanes and lanes reordered, written back to the text
 - Tables saved as CSV, and spreadsheet rows pasted in as steps
+- Spread of lead time from a seeded simulation: median, 8 in 10, 19 in 20
+- Times as ranges, waits on the way between steps
+- Work done at the same time (=>), with the slack on the faster branches
+- SIPOC table from in: and out: lines under each phase
+- Lanes across the page or down it
+- Mermaid text of the map, and a one-page print layout
 - Up to 10 projects in this browser, autosaved, with file import and export
 - SVG export and PNG export at 1x, 2x, 4x or 8x
 
@@ -108,8 +114,8 @@ Last Updated: October 2026
                 <summary>
                     <span class="disclaimer-icon" aria-hidden="true">&#9888;</span>
                     <span class="disclaimer-summary-text">
-                        <span class="disclaimer-title">Arithmetic on the times and percentages you typed. Averages only, not a forecast, a staffing plan or a promise date.</span>
-                        <span class="disclaimer-lead">Lead time, yield and rework here follow from your figures and nothing else. Waits are whatever you entered, not something worked out from how busy people are, and an average says nothing about the worst case. Used at your own risk. Open for the full scope limits.</span>
+                        <span class="disclaimer-title">Arithmetic on the times and percentages you typed. Not a forecast, a staffing plan or a promise date.</span>
+                        <span class="disclaimer-lead">Lead time, yield and rework here follow from your figures and nothing else. Waits are whatever you entered, not something worked out from how busy people are, and the spread shown is only as wide as the ranges you gave. Used at your own risk. Open for the full scope limits.</span>
                     </span>
                     <span class="disclaimer-chevron" aria-hidden="true">&#9662;</span>
                 </summary>
@@ -119,7 +125,7 @@ Last Updated: October 2026
                         <h3>What this tool actually does</h3>
                         <p><strong>It treats the process as a chain of steps where work leaves each step by one of its exits, in the proportions you gave.</strong> From that it works out how many times a unit of work passes through each step on average, and multiplies by the times you entered.</p>
                         <ul>
-                            <li><strong>Every figure is an average per unit of work.</strong> Lead time is the mean. Half of the work, or far more than half, can take longer.</li>
+                            <li><strong>Every headline figure is an average per unit of work.</strong> Lead time is the mean. Half of the work, or far more than half, can take longer. The figures under "How long it takes" come from walking simulated units through the same list, and rest on the same inputs.</li>
                             <li><strong>A wait is an input.</strong> The tool does not model queues. If a step waits two days in your list it waits two days here, whether one request a week arrives or a thousand.</li>
                             <li><strong>Percentages are taken as fixed and independent.</strong> A request sent back for the third time is given the same chance of passing as one seen for the first time. Real rework usually is not like that.</li>
                             <li><strong>Exits that do not add up to 100% are scaled, and exits with no percentage share what is left evenly.</strong> Each case is listed under "Check these" with the reading used. If the reading is wrong, every figure downstream is wrong and looks no different.</li>
@@ -130,10 +136,10 @@ Last Updated: October 2026
                     <div class="disclaimer-section">
                         <h3>Not modelled, at all</h3>
                         <ul>
-                            <li><strong>Work done in parallel.</strong> Every exit means "one of these happens". Two lanes working on the same item at once, then joining, is not represented, and a step written that way is read as a split.</li>
+                            <li><strong>Work done at the same time, beyond the simple case.</strong> Branches written with <code>=&gt;</code> must come back together at one step, with no way in or out of a branch in between, and the work goes on when the slowest arrives. A branch that can be abandoned, a join that needs only some of the branches, and people shared between branches are not represented. The headline lead time through a split is the slowest branch on average, which is a little low when the branches vary.</li>
                             <li><strong>Capacity is a ceiling, not a queue.</strong> With a staff line the tool divides the hours available by the work each unit needs. That says what a lane could carry if work arrived perfectly evenly and nobody was ever idle or absent. Real limits are lower, and a lane well under 100% can still have a long queue.</li>
                             <li><strong>Queues, batching and priorities.</strong> Waiting that grows with load, work released in batches, expediting and work that jumps the queue are all outside the model.</li>
-                            <li><strong>Variation.</strong> No spread, no percentiles, no worst case, no confidence interval.</li>
+                            <li><strong>Variation you did not type.</strong> In the simulation a time given as one number never varies, a range is even between its ends or a triangle around its most likely value, and every draw is independent of every other. Real waits move together and have longer tails. The figures are not a worst case and not a confidence interval.</li>
                             <li><strong>Calendars.</strong> A day is the number of working hours you set and a week the number of days you set, for every lane alike. Shifts, holidays, time zones and a lane that works different hours are not represented.</li>
                             <li><strong>Whether the map is the real process.</strong> The tool checks that the list is well formed. It cannot know about the step everyone does and nobody wrote down.</li>
                             <li><strong>Cost, quality and risk.</strong> Only time and counts.</li>
@@ -235,12 +241,20 @@ Last Updated: October 2026
                         <dd>Sales does "Enter order", and the work then goes to "Check credit".</dd>
                         <dt><code>Sales: Enter order {10 min, wait 2 h}</code></dt>
                         <dd>Ten minutes of work, after two hours of waiting to be started. Units are <code>s</code>, <code>min</code>, <code>h</code>, <code>d</code> and <code>wk</code>. Either part can be left out.</dd>
+                        <dt><code>Sales: Enter order {5-15 min, wait 1-2-8 h}</code></dt>
+                        <dd>A time that varies. Two numbers are the lowest and the highest. Three put the most likely in the middle. The averages use the middle of the range, and the spread under the headline uses all of it.</dd>
                         <dt><code>Finance: Credit OK? -&gt; yes 85%: Pick goods, no 15%: Tell customer</code></dt>
                         <dd>Two exits with a label and a share each. A name ending in <code>?</code> is drawn as a decision.</dd>
+                        <dt><code>Warehouse: Pack order -&gt; {wait 1 d}: Deliver</code></dt>
+                        <dd>A wait on the way to the next step, such as transit. It goes before the colon, after any label and share: <code>yes 85% {2 h}: Pick goods</code>.</dd>
+                        <dt><code>Sales: Take order =&gt; Pick goods, Raise invoice</code></dt>
+                        <dd>A double arrow means all of these happen, at the same time. The branches must meet again at one step, which goes on when the slowest arrives. Steps on a faster branch are shown with their slack.</dd>
                         <dt><code>Customer: (Order placed)</code></dt>
                         <dd>Brackets mark a start or an end. A step named only as a target needs a line like this to say which lane does it.</dd>
                         <dt><code>== Fulfil ==</code></dt>
                         <dd>Starts a phase. Steps below it are grouped, and the phase gets its own share of the lead time.</dd>
+                        <dt><code>in: Order form from Customer</code><br><code>out: Invoice to Customer</code></dt>
+                        <dd>What the phase above takes in and from whom, and what it hands on and to whom. Several are separated by commas. They fill the SIPOC table and change no figure.</dd>
                         <dt><code>lanes: Customer, Sales, Finance</code></dt>
                         <dd>The order of the lanes, top to bottom. Without it they appear in the order first typed.</dd>
                         <dt><code>arrivals: 30 / wk</code></dt>
@@ -255,7 +269,7 @@ Last Updated: October 2026
                         <dd>Ignored, as is a line starting with <code>#</code>.</dd>
                     </dl>
                     <p>Rows copied from a spreadsheet can be pasted straight in: columns are lane, step, touch time, wait, next. Several exits go in the last cell separated by semicolons, such as <code>yes 80%: Ship; no 20%: Fix</code>.</p>
-                    <p>An exit that leads back to a step already passed is rework. Which exit of a loop counts as the return is decided by typing order: the line that closes the loop. A name containing a comma, a colon or an arrow goes in double quotes.</p>
+                    <p>An exit that leads back to a step already passed is rework. Which exit of a loop counts as the return is decided by typing order: the line that closes the loop. A name containing a comma, a colon or an arrow goes in double quotes. A lane cannot be called lanes, arrivals, staff, in or out.</p>
                 </details>
 
                 <div class="input-group">
@@ -309,6 +323,15 @@ Last Updated: October 2026
                     </div>
                 </div>
 
+                <div class="input-group">
+                    <label for="direction">Lanes run</label>
+                    <select id="direction" aria-describedby="directionHelp">
+                        <option value="across" selected>Across the page, work flows left to right</option>
+                        <option value="down">Down the page, work flows top to bottom</option>
+                    </select>
+                </div>
+                <p class="helper-text" id="directionHelp">Down the page keeps a long process narrow enough to read without scrolling sideways. Exit labels are shortened to fit over their own column.</p>
+
                 <fieldset class="check-group">
                     <legend>On the map</legend>
                     <label class="check"><input type="checkbox" id="showShares" checked> Exit labels and shares</label>
@@ -332,7 +355,12 @@ Last Updated: October 2026
                                 <option value="50">50%</option>
                             </select>
                         </div>
+                        <div class="input-group">
+                            <label for="seed">Simulation seed</label>
+                            <input type="number" id="seed" min="1" max="999999" step="1" value="1" aria-describedby="seedHelp">
+                        </div>
                     </div>
+                    <p class="helper-text" id="seedHelp">The same seed gives the same simulated spread every time. Change it to see how much the figures move by chance.</p>
                     <h3>Export</h3>
                     <div class="field-grid">
                         <div class="input-group">
@@ -360,6 +388,8 @@ Last Updated: October 2026
                         <p id="resultStatus" class="result-status" role="status" aria-live="polite"></p>
                     </div>
                     <div class="button-row">
+                        <button type="button" class="tool-btn" id="printPage">Print one page</button>
+                        <button type="button" class="tool-btn" id="copyMermaid">Copy Mermaid</button>
                         <button type="button" class="tool-btn" id="downloadSvg">Download SVG</button>
                         <button type="button" class="tool-btn primary" id="downloadPng">Download PNG</button>
                     </div>
@@ -373,10 +403,19 @@ Last Updated: October 2026
                 <dl id="headline" class="headline"></dl>
                 <p id="compareNote" class="helper-text compare-note" hidden>Changes are against the last save. Save to make this the new starting point, or Revert to go back to it.</p>
 
+                <div class="spread-card" id="spreadCard" hidden>
+                    <h3 id="spreadHeading">How long it takes</h3>
+                    <div class="spread-body">
+                        <dl id="spreadStats" class="headline spread-stats" aria-labelledby="spreadHeading"></dl>
+                        <div id="spreadChart" class="spread-chart"></div>
+                    </div>
+                    <p id="spreadNote" class="helper-text"></p>
+                </div>
+
                 <div class="diagram-scroll" id="diagramScroll" tabindex="0" role="group" aria-label="Swimlane diagram, scrollable">
                     <div id="diagramHost" class="diagram-host"></div>
                 </div>
-                <p class="helper-text">Darker steps take more of the lead time. Dashed connectors are rework. Hover or focus a step for its figures. Drag a step to another lane, or a lane name up or down, and the text is rewritten to match; Alt with the up or down arrow does the same from the keyboard. A wide map is fitted to the panel down to 60% and scrolls sideways past that.</p>
+                <p class="helper-text map-help">Darker steps take more of the lead time. Dashed connectors are rework, and a plus marks exits taken at the same time. Hover or focus a step for its figures. Drag a step to another lane, or a lane name past another, and the text is rewritten to match; Alt with an arrow key does the same from the keyboard. A wide map is fitted to the panel down to 60% and scrolls sideways past that, or set "Lanes run" to down the page.</p>
 
                 <p id="exportStatus" class="helper-text" role="status" aria-live="polite"></p>
 
@@ -385,7 +424,7 @@ Last Updated: October 2026
                     <ul id="warningList"></ul>
                 </div>
 
-                <p class="disclaimer"><strong>These are averages worked out from the times and percentages you typed.</strong> Waits are taken as entered, not derived from how busy anyone is, work done in parallel is not modelled, and nothing here says how long the slowest case takes. Used at your own risk. See the full disclaimer at the top of the page.</p>
+                <p class="disclaimer"><strong>These are averages worked out from the times and percentages you typed.</strong> Waits are taken as entered, not derived from how busy anyone is, and the spread is simulated from the same figures, so it is only as wide as the ranges you gave. Used at your own risk. See the full disclaimer at the top of the page.</p>
 
                 <div class="table-card" id="barsCard">
                     <h3 id="barsHeading">Where the time goes</h3>
@@ -398,6 +437,14 @@ Last Updated: October 2026
                         <div class="card-head"><h3 id="lanesHeading">By lane</h3><button type="button" class="tool-btn small csv-btn" data-table="laneTable" data-name="lanes" aria-label="Download this table as CSV">CSV</button></div>
                         <div class="table-scroll" tabindex="0" role="group" aria-labelledby="lanesHeading">
                             <table id="laneTable" aria-labelledby="lanesHeading"><thead></thead><tbody></tbody></table>
+                        </div>
+                </div>
+
+                <div class="table-card table-wide" id="sipocBlock">
+                        <div class="card-head"><h3 id="sipocHeading">SIPOC</h3><button type="button" class="tool-btn small csv-btn" data-table="sipocTable" data-name="sipoc" aria-label="Download this table as CSV">CSV</button></div>
+                        <p class="helper-text">Suppliers, inputs, process, outputs, customers: one row per phase, from the <code>in:</code> and <code>out:</code> lines.</p>
+                        <div class="table-scroll" tabindex="0" role="group" aria-labelledby="sipocHeading">
+                            <table id="sipocTable" aria-labelledby="sipocHeading"><thead></thead><tbody></tbody></table>
                         </div>
                 </div>
 

@@ -1,4 +1,4 @@
-// Moving steps between lanes, and lanes up and down, for the process flow
+// Moving steps between lanes, and lanes past each other, for the process flow
 // mapper. By pointer or by Alt and an arrow key.
 //
 // The SVG is rebuilt on every render, so listeners live on the host element
@@ -22,15 +22,18 @@ export function attachDrag(host, api) {
         return null;
     };
 
-    // Which lane a point on the screen is over. The SVG may be shown smaller than it is drawn.
-    const laneAt = (clientY) => {
+    // Which lane a point on the screen is over. The SVG may be shown smaller
+    // than it is drawn, and lanes are rows or columns depending on the setting.
+    const laneAt = (clientX, clientY) => {
         const svg = host.querySelector('svg');
         const model = api.getModel();
         if (!svg || !model || !model.ok) return null;
         const rect = svg.getBoundingClientRect();
-        if (!(rect.height > 0)) return null;
+        if (!(rect.height > 0) || !(rect.width > 0)) return null;
+        const x = (clientX - rect.left) * (model.layout.width / rect.width);
         const y = (clientY - rect.top) * (model.layout.height / rect.height);
-        const lane = model.layout.lanes.find((l) => y >= l.y0 && y < l.y1);
+        const down = model.layout.direction === 'down';
+        const lane = model.layout.lanes.find((l) => (down ? x >= l.x0 && x < l.x1 : y >= l.y0 && y < l.y1));
         return lane ? lane.index : null;
     };
 
@@ -56,7 +59,7 @@ export function attachDrag(host, api) {
             host.setPointerCapture(event.pointerId);
             host.classList.add('dragging');
         }
-        drag.lane = laneAt(event.clientY);
+        drag.lane = laneAt(event.clientX, event.clientY);
         mark(drag.lane);
     });
 
@@ -76,12 +79,13 @@ export function attachDrag(host, api) {
     host.addEventListener('pointercancel', (event) => finish(event, false));
 
     host.addEventListener('keydown', (event) => {
-        if (!event.altKey || (event.key !== 'ArrowUp' && event.key !== 'ArrowDown')) return;
+        // Up and left are the lane before, down and right the lane after, whichever way lanes run.
+        const delta = { ArrowUp: -1, ArrowLeft: -1, ArrowDown: 1, ArrowRight: 1 }[event.key];
+        if (!event.altKey || !delta) return;
         const what = grabbed(event);
         const model = api.getModel();
         if (!what || !model || !model.ok) return;
         event.preventDefault();
-        const delta = event.key === 'ArrowUp' ? -1 : 1;
         const count = model.graph.lanes.length;
         if (what.kind === 'step') {
             const to = model.graph.nodes[what.index].lane + delta;

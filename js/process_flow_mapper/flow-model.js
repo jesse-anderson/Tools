@@ -3,6 +3,7 @@
 import { parseFlow } from './flow-parse.js';
 import { buildGraph, toHours } from './flow-graph.js';
 import { solveFlow } from './flow-solve.js';
+import { simulate, quantile, histogram, SIM_DEFAULTS } from './flow-simulate.js';
 import { computeLayout } from './flow-layout.js';
 
 export const TITLE_HEIGHT = 30;
@@ -11,6 +12,13 @@ export const FOOTNOTE_HEIGHT = 22;
 export const DISPLAY_UNITS = Object.freeze(['auto', 'min', 'h', 'd', 'wk']);
 // A lane this busy has little slack left for uneven arrivals.
 export const BUSY_FROM = 0.85;
+export const DIRECTIONS = Object.freeze(['across', 'down']);
+// Visits the simulation may spend, so a map with heavy rework walks fewer units.
+const SIM_VISIT_BUDGET = 2000000;
+const SIM_MIN_UNITS = 2000;
+const SUMMARY_GAP = '  \u00b7  ';
+// Room kept beside the small print for the tint legend.
+const LEGEND_ROOM = 230;
 
 const sig = (value, digits = 3) => value.toLocaleString('en-US', { maximumSignificantDigits: digits });
 
@@ -44,8 +52,74 @@ export const formatPasses = (passes) => `x${sig(passes)}`;
 const WITHHELD = {
     NO_START: 'No figures: every step has something leading into it, so there is nowhere for work to begin',
     NO_END: 'No figures: no start leads to an end, so the work never finishes',
-    NEVER_ENDS: 'No figures: some work can never finish'
+    NEVER_ENDS: 'No figures: some work can never finish',
+    PARALLEL: 'No figures: work done at the same time does not come back together'
 };
+
+/** What the small print under the map says, built here so the layout can leave room for it. */
+export function footnoteText(model) {
+    const { graph } = model;
+    const { hoursPerDay, daysPerWeek } = graph.calendar;
+    const parts = [`Averages per unit of work. A day is ${hoursPerDay} h, a week ${daysPerWeek} d.`];
+    if (graph.counts.rework) parts.push('Dashed connectors are rework.');
+    if (graph.parallel.blocks.length) parts.push('+ is work done at the same time.');
+    if (graph.nodes.some((n) => n.touchSpread || n.waitSpread) || graph.links.some((l) => l.waitSpread)) parts.push('~ is the average of a range.');
+    return parts.join(' ');
+}
+
+/** How lead time is spread, from a seeded simulation of the same map. Null when there is nothing to spread. */
+function leadSpread(graph, result, seed) {
+    const { nodes, links } = graph;
+    const wanted = Math.floor(SIM_VISIT_BUDGET / Math.max(1, result.stepsPerUnit));
+    const sim = simulate({
+        count: nodes.length,
+        links: links.map((l) => ({ source: l.source, target: l.target, share: l.share, wait: l.wait, waitSpread: l.waitSpread })),
+        touch: nodes.map((n) => n.touch),
+        wait: nodes.map((n) => n.wait),
+        touchSpread: nodes.map((n) => n.touchSpread),
+        waitSpread: nodes.map((n) => n.waitSpread),
+        starts: graph.starts,
+        blocks: graph.parallel.blocks
+    }, { units: Math.min(SIM_DEFAULTS.units, Math.max(SIM_MIN_UNITS, wanted)), seed });
+    if (!sim.ok) return null;
+    let squares = 0;
+    for (const t of sim.lead) squares += (t - sim.mean) ** 2;
+    return {
+        units: sim.units,
+        seed: sim.seed,
+        cut: sim.cut,
+        mean: sim.mean,
+        // How far the simulated average can be from the true one by chance alone.
+        error: Math.sqrt(squares / sim.units / sim.units),
+        min: sim.min,
+        max: sim.max,
+        p50: quantile(sim.lead, 0.5),
+        p80: quantile(sim.lead, 0.8),
+        p95: quantile(sim.lead, 0.95),
+        varies: sim.max > sim.min,
+        ranges: nodes.some((n) => n.touchSpread || n.waitSpread) || links.some((l) => l.waitSpread),
+        histogram: histogram(sim.lead),
+        ends: sim.ends.map((e) => ({ index: e.index, share: e.count / sim.units, p50: quantile(e.lead, 0.5), p90: quantile(e.lead, 0.9) }))
+    };
+}
+
+/** One SIPOC row per phase: who supplies what, and what goes to whom. Null when no in or out line is given. */
+function sipocRows(parsed, graph) {
+    if (!parsed.sipoc.length) return null;
+    const unique = (list) => [...new Set(list.filter(Boolean))];
+    return graph.phases.map((p) => {
+        const of = (kind) => parsed.sipoc.filter((e) => Math.max(0, e.phase) === p.index && e.kind === kind);
+        return {
+            index: p.index,
+            name: p.name || 'Whole process',
+            steps: p.steps,
+            suppliers: unique(of('in').map((e) => e.party)),
+            inputs: unique(of('in').map((e) => e.item)),
+            outputs: unique(of('out').map((e) => e.item)),
+            customers: unique(of('out').map((e) => e.party))
+        };
+    }).filter((row) => row.steps > 0 || row.inputs.length || row.outputs.length);
+}
 
 /**
  * settings: { title, hoursPerDay, daysPerWeek, unit, fontSize, showShares }.
@@ -60,7 +134,7 @@ export function buildModel(text, settings = {}, measure = undefined) {
     if (errors.length === 0 && parsed.steps.length === 0) {
         errors.push({ line: null, code: 'NO_STEPS', message: 'Enter at least one step, for example "Sales: Take order -> Check stock"' });
     }
-    if (errors.length) return { ok: false, errors, warnings, parsed, graph: null, result: null, totals: null, layout: null };
+    if (errors.length) return { ok: false, errors, warnings, parsed, graph: null, result: null, totals: null, layout: null, spread: null, sipoc: null };
 
     const graph = buildGraph(parsed, settings);
     warnings.push(...graph.warnings);
@@ -68,10 +142,12 @@ export function buildModel(text, settings = {}, measure = undefined) {
 
     const result = solveFlow({
         count: nodes.length,
-        links: links.map((l) => ({ source: l.source, target: l.target, share: l.share, rework: l.rework, handoff: l.handoff })),
+        links: links.map((l) => ({ source: l.source, target: l.target, share: l.share, rework: l.rework, handoff: l.handoff, parallel: l.parallel, wait: l.wait })),
         touch: nodes.map((n) => n.touch),
         wait: nodes.map((n) => n.wait),
-        starts: graph.starts
+        starts: graph.starts,
+        blocks: graph.parallel.blocks,
+        blocked: graph.parallel.problems.map((p) => p.split)
     });
     if (!result.ok) {
         // NO_START and NO_END are already listed by the graph; this adds why no number follows.
@@ -91,12 +167,16 @@ export function buildModel(text, settings = {}, measure = undefined) {
         const lines = [];
         if (timed && n.outLinks.length + n.inLinks.length > 0) {
             const parts = [];
-            if (n.touch > 0) parts.push(dur(n.touch));
-            if (n.wait > 0) parts.push(`wait ${dur(n.wait)}`);
+            // A time given as a range is shown as its average, marked as one.
+            if (n.touch > 0) parts.push(`${n.touchSpread ? '~' : ''}${dur(n.touch)}`);
+            if (n.wait > 0) parts.push(`wait ${n.waitSpread ? '~' : ''}${dur(n.wait)}`);
             if (parts.length) lines.push(parts.join(' + '));
         }
         if (result.ok && n.outLinks.length === 0 && n.inLinks.length > 0) {
             lines.push(`${formatPercent(result.perStep[i].passes)} end here`);
+        } else if (result.ok && !result.perStep[i].critical) {
+            // On a branch that is not the slowest: time here does not add to lead time.
+            lines.push(`${dur(result.perStep[i].slack)} slack`);
         } else if (result.ok && result.lead > 0 && result.perStep[i].lead > 0) {
             lines.push(`${formatPercent(result.perStep[i].share)} of lead time`);
         }
@@ -108,11 +188,11 @@ export function buildModel(text, settings = {}, measure = undefined) {
         const group = (key, list) => list.map((item) => {
             const members = nodes.filter((n) => n[key] === item.index);
             const add = (field) => members.reduce((s, n) => s + result.perStep[n.index][field], 0);
-            const lead = add('lead');
             return {
                 index: item.index, name: item.name, steps: members.length,
-                touch: add('touch'), wait: add('wait'), lead,
-                share: result.lead > 0 ? lead / result.lead : 0
+                touch: add('touch'), wait: add('wait'), lead: add('lead'),
+                // Only time on the longest path counts towards lead time.
+                share: add('share')
             };
         });
         let perWeek = null;
@@ -176,24 +256,61 @@ export function buildModel(text, settings = {}, measure = undefined) {
     }
 
     // What is printed on each exit. A lone exit with no label says nothing.
+    // A plus marks an exit taken together with its neighbours.
     const labels = links.map((l) => {
         if (settings.showShares === false) return '';
         const lone = nodes[l.source].outLinks.length === 1;
-        return [l.label, lone && !l.label ? '' : formatPercent(l.share)].filter(Boolean).join(' ');
+        const share = l.parallel || (lone && !l.label) ? '' : formatPercent(l.share);
+        const text = [l.parallel ? '+' : '', l.label, share].filter(Boolean).join(' ');
+        if (!(l.wait > 0)) return text;
+        const wait = `${l.waitSpread ? '~' : ''}${dur(l.wait)}`;
+        return text ? `${text} \u00b7 ${wait}` : `wait ${wait}`;
     });
 
+    let spread = null;
+    if (result.ok && timed && result.lead > 0) {
+        spread = leadSpread(graph, result, Number.isFinite(settings.seed) ? settings.seed : SIM_DEFAULTS.seed);
+        // The slowest of several branches takes longer on average than the slowest average.
+        if (spread && graph.parallel.blocks.length && spread.mean - result.lead > Math.max(0.01 * result.lead, 3 * spread.error)) {
+            warnings.push({
+                line: null,
+                code: 'PARALLEL_AVERAGE',
+                message: `Branches done at the same time vary, and waiting for whichever is slowest takes longer than the slowest does on average. Simulation puts the lead time at ${dur(spread.mean)}, against the ${dur(result.lead)} shown`
+            });
+        }
+    }
+
+    const sipoc = sipocRows(parsed, graph);
+    if (sipoc) {
+        const gaps = sipoc.filter((row) => row.steps > 0 && (!row.inputs.length || !row.outputs.length)).map((row) => row.name);
+        if (gaps.length) warnings.push({ line: null, code: 'SIPOC_GAP', message: `The SIPOC table has no inputs or no outputs for: ${gaps.join(', ')}` });
+    }
+
+    const partial = { ok: true, parsed, graph, result, totals, timed, unit };
     const hasFootnote = result.ok && timed;
     const infoLines = Math.max(0, ...info.map((l) => l.length));
+    const width = measure || ((t, size) => t.length * size * 0.6);
+    const fontSize = Number.isFinite(settings.fontSize) ? Math.min(20, Math.max(9, settings.fontSize)) : 12;
+    // The lines above and below the map must fit however narrow the map is.
+    const minWidth = Math.max(
+        settings.title ? width(settings.title, 16, 700) : 0,
+        result.ok && timed ? width(summaryLine(partial), fontSize - 1, 400) : 0,
+        hasFootnote ? width(footnoteText(partial), fontSize - 1, 400) + LEGEND_ROOM : 0
+    );
     const layout = computeLayout(graph, {
         fontSize: settings.fontSize,
         titleHeight: settings.title ? TITLE_HEIGHT : 0,
         summaryHeight: result.ok && timed ? SUMMARY_HEIGHT : 0,
         footnoteHeight: hasFootnote ? FOOTNOTE_HEIGHT : 0,
-        infoLines
+        infoLines,
+        laneInfoLines: totals && totals.lanes.some((l) => l.busy !== null) ? 1 : 0,
+        phaseInfoLines: result.ok && result.lead > 0 ? 1 : 0,
+        minWidth,
+        direction: settings.direction
     }, measure, labels);
     layout.steps.forEach((s, i) => { s.info = info[i]; });
 
-    return { ok: true, errors, warnings, parsed, graph, result, totals, layout, timed, unit };
+    return { ...partial, errors, warnings, layout, spread, sipoc, labels };
 }
 
 /**
@@ -207,7 +324,7 @@ export function headline(model) {
     const dur = (h) => formatDuration(h, graph.calendar, unit);
     const items = [
         { key: 'lead', label: 'Lead time', value: dur(result.lead), raw: result.lead, hint: 'start to finish, per unit of work' },
-        { key: 'touch', label: 'Touch time', value: dur(result.touch), raw: result.touch, hint: 'someone is working on it' },
+        { key: 'touch', label: 'Touch time', value: dur(result.touch), raw: result.touch, hint: result.touch > result.touchPath * (1 + 1e-9) ? 'all the work, on every branch' : 'someone is working on it' },
         { key: 'efficiency', label: 'Efficiency', value: result.efficiency === null ? 'n/a' : formatPercent(result.efficiency), raw: result.efficiency, hint: 'touch time as a share of lead time' },
         { key: 'yield', label: 'First-pass yield', value: formatPercent(result.yield), raw: result.yield, hint: 'finishes with no rework' },
         { key: 'handoffs', label: 'Handoffs', value: sig(result.handoffsPerUnit), raw: result.handoffsPerUnit, hint: 'lane to lane, per unit of work' }
@@ -259,10 +376,12 @@ export function summarySentence(model) {
     const rework = result.reworkCost > 0 ? ` Rework adds ${dur(result.reworkCost)}.` : '';
     const c = model.totals.capacity;
     const capacity = c ? ` The process can carry about ${sig(c.perWeek)} a week, limited by ${graph.lanes[c.lane].name}.` : '';
-    return `A unit of work takes ${dur(result.lead)} on average, of which ${dur(result.touch)} is work and ${dur(result.wait)} is waiting.${rework} ${yieldPart}.${capacity} ${calendar}`;
+    const split = graph.parallel.blocks.length > 0;
+    const inAll = split && result.touch > result.touchPath * (1 + 1e-9) ? ` Work done at the same time brings the work to ${dur(result.touch)} in all.` : '';
+    return `A unit of work takes ${dur(result.lead)} on average${split ? ' along its slowest path' : ''}, of which ${dur(result.touchPath)} is work and ${dur(result.wait)} is waiting.${inAll}${rework} ${yieldPart}.${capacity} ${calendar}`;
 }
 
 /** The short line drawn under the title, so a pasted picture still carries its numbers. */
 export function summaryLine(model) {
-    return headline(model).map((h) => `${h.label} ${h.value}`).join('  ·  ');
+    return headline(model).map((h) => `${h.label} ${h.value}`).join(SUMMARY_GAP);
 }

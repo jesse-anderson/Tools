@@ -79,6 +79,7 @@ export function fillBars(container, model, onPick) {
 
         const parts = [`${graph.lanes[step.lane].name}`, `${dur(row.wait)} waiting`, `${dur(row.touch)} working`];
         if (row.passes > 1.005) parts.push(`passed ${formatPasses(row.passes)}`);
+        if (!row.critical) parts.push(`${dur(row.slack)} slack, not on the slowest path`);
         button.append(head, svg, node('span', 'bar-detail', parts.join('  ·  ')));
         button.addEventListener('click', () => onPick(row.index));
         item.appendChild(button);
@@ -87,8 +88,69 @@ export function fillBars(container, model, onPick) {
     return rows.length;
 }
 
-/** Fill a table from column definitions: { label, num?, value(row) }. The first column is the row header. */
+/**
+ * How lead time is spread: three figures, a small histogram and what they
+ * rest on. parts is { stats, chart, note }. Returns false when the model has
+ * no spread to show.
+ */
+export function fillSpread(parts, model) {
+    const { spread, graph, unit } = model;
+    parts.stats.replaceChildren();
+    parts.chart.replaceChildren();
+    parts.note.textContent = '';
+    if (!spread) return false;
+    const dur = (h) => formatDuration(h, graph.calendar, unit);
+    if (!spread.varies) {
+        parts.note.textContent = `Every unit of work takes ${dur(spread.p50)}: nothing branches and no time is given as a range, so there is no spread to show. Write a time as a range, such as "wait 1-3 d", to see one.`;
+        return true;
+    }
+    for (const [key, label, value, hint] of [
+        ['p50', 'Half finish within', spread.p50, 'the typical unit of work'],
+        ['p80', '8 in 10 within', spread.p80, 'a figure to quote'],
+        ['p95', '19 in 20 within', spread.p95, 'the slow ones']
+    ]) {
+        const card = node('div', 'stat');
+        card.setAttribute('data-stat', key);
+        card.append(node('dt', 'stat-label', label), node('dd', 'stat-value', dur(value)), node('dd', 'stat-hint', hint));
+        parts.stats.appendChild(card);
+    }
+
+    if (spread.histogram) {
+        const { from, to, counts } = spread.histogram;
+        const top = Math.max(...counts);
+        const svg = document.createElementNS(SVG_NS, 'svg');
+        svg.setAttribute('class', 'spread-bars');
+        svg.setAttribute('viewBox', `0 0 ${counts.length * 10} 40`);
+        svg.setAttribute('preserveAspectRatio', 'none');
+        svg.setAttribute('role', 'img');
+        svg.setAttribute('aria-label', `Histogram of lead time from ${dur(from)} to ${dur(to)}. The last bar holds everything slower.`);
+        counts.forEach((count, i) => {
+            const rect = document.createElementNS(SVG_NS, 'rect');
+            const h = top > 0 ? (count / top) * 40 : 0;
+            rect.setAttribute('class', 'spread-bar');
+            rect.setAttribute('x', String(i * 10 + 1));
+            rect.setAttribute('y', String(40 - h));
+            rect.setAttribute('width', '8');
+            rect.setAttribute('height', String(h));
+            rect.setAttribute('data-count', String(count));
+            svg.appendChild(rect);
+        });
+        const axis = node('div', 'spread-axis');
+        axis.append(node('span', '', dur(from)), node('span', '', `${dur(to)} and over`));
+        parts.chart.append(svg, axis);
+    }
+
+    const basis = spread.ranges
+        ? 'A time given as a range is drawn from that range; a time given as one number stays fixed.'
+        : 'Every time here is one fixed number, so this is the spread that branching and rework cause on their own. Write a time as a range, such as "wait 1-3 d", to include how much it varies.';
+    const cut = spread.cut ? ' The map loops so much that the run was stopped early.' : '';
+    parts.note.textContent = `From ${spread.units.toLocaleString('en-US')} simulated units of work, seed ${spread.seed}. The average is ${dur(spread.mean)}. ${basis}${cut}`;
+    return true;
+}
+
+/** Fill a table from column definitions: { label, num?, head?, value(row) }. The row header is the column marked head, or the first. */
 export function fillTable(table, columns, rows) {
+    const headAt = Math.max(0, columns.findIndex((c) => c.head));
     const headRow = node('tr');
     for (const col of columns) {
         const th = node('th', col.num ? 'num' : '', col.label);
@@ -99,8 +161,8 @@ export function fillTable(table, columns, rows) {
     table.tBodies[0].replaceChildren(...rows.map((row) => {
         const tr = node('tr', row.className || '');
         columns.forEach((col, i) => {
-            const cell = node(i === 0 ? 'th' : 'td', col.num ? 'num' : '', col.value(row));
-            if (i === 0) cell.scope = 'row';
+            const cell = node(i === headAt ? 'th' : 'td', col.num ? 'num' : '', col.value(row));
+            if (i === headAt) cell.scope = 'row';
             tr.appendChild(cell);
         });
         return tr;
@@ -109,9 +171,19 @@ export function fillTable(table, columns, rows) {
 
 /** Every table under the map. A model with no figures empties the ones that need them. */
 export function fillTables(tables, model) {
-    const { result, graph, totals, unit } = model;
+    const { result, graph, totals, unit, spread, sipoc } = model;
     const dur = (h) => formatDuration(h, graph.calendar, unit);
     const lane = (i) => graph.lanes[i].name;
+
+    // What each phase takes in and hands on, and who from and to.
+    const list = (items) => items.join(', ');
+    fillTable(tables.sipoc, [
+        { label: 'Suppliers', value: (r) => list(r.suppliers) },
+        { label: 'Inputs', value: (r) => list(r.inputs) },
+        { label: 'Process', head: true, value: (r) => r.name },
+        { label: 'Outputs', value: (r) => list(r.outputs) },
+        { label: 'Customers', value: (r) => list(r.customers) }
+    ], sipoc || []);
 
     const laneCols = [
         { label: 'Lane', value: (r) => r.name },
@@ -157,11 +229,20 @@ export function fillTables(tables, model) {
         { label: 'Share of lead', num: true, value: (r) => formatPercent(r.share) }
     ], totals ? totals.phases.filter((p) => p.steps > 0) : []);
 
-    fillTable(tables.ends, [
+    // How long the work that ends at each place took, from the simulation.
+    const simulated = new Map(spread && spread.varies ? spread.ends.map((e) => [e.index, e]) : []);
+    const endCols = [
         { label: 'Ends at', value: (r) => graph.nodes[r.index].name },
         { label: 'Share of work', num: true, value: (r) => formatPercent(r.share) },
         { label: 'Lane', value: (r) => lane(graph.nodes[r.index].lane) }
-    ], result.ok ? [...result.ends].sort((a, b) => b.share - a.share).map((e) => ({
+    ];
+    if (simulated.size) {
+        endCols.push(
+            { label: 'Half within', num: true, value: (r) => (simulated.has(r.index) ? dur(simulated.get(r.index).p50) : '') },
+            { label: '9 in 10 within', num: true, value: (r) => (simulated.has(r.index) ? dur(simulated.get(r.index).p90) : '') }
+        );
+    }
+    fillTable(tables.ends, endCols, result.ok ? [...result.ends].sort((a, b) => b.share - a.share).map((e) => ({
         ...e, className: graph.nodes[e.index].kind === 'terminator' ? '' : 'flagged'
     })) : []);
 
@@ -171,15 +252,19 @@ export function fillTables(tables, model) {
         { label: 'Passes', num: true, value: (r) => (result.ok ? formatPasses(result.perStep[r.index].passes) : '') },
         { label: 'Touch', num: true, value: (r) => (result.ok ? dur(result.perStep[r.index].touch) : dur(r.touch)) },
         { label: 'Wait', num: true, value: (r) => (result.ok ? dur(result.perStep[r.index].wait) : dur(r.wait)) },
-        { label: 'Share of lead', num: true, value: (r) => (result.ok ? formatPercent(result.perStep[r.index].share) : '') }
+        { label: 'Share of lead', num: true, value: (r) => (result.ok ? formatPercent(result.perStep[r.index].share) : '') },
+        ...(result.ok && result.blocks.length
+            ? [{ label: 'Slack', num: true, value: (r) => (result.perStep[r.index].critical ? '' : dur(result.perStep[r.index].slack)) }]
+            : [])
     ], graph.nodes);
 
     fillTable(tables.exits, [
         { label: 'From', value: (r) => graph.nodes[r.source].name },
         { label: 'To', value: (r) => graph.nodes[r.target].name },
         { label: 'Label', value: (r) => r.label },
-        { label: 'Share', num: true, value: (r) => formatPercent(r.share) },
+        { label: 'Share', num: true, value: (r) => (r.parallel ? 'all' : formatPercent(r.share)) },
+        { label: 'Wait on the way', num: true, value: (r) => (r.wait > 0 ? dur(r.wait) : '') },
         { label: 'Per unit', num: true, value: (r) => (result.ok ? formatPasses(result.traversals[r.index]) : '') },
-        { label: 'Kind', value: (r) => [r.rework ? 'rework' : '', r.handoff ? 'handoff' : ''].filter(Boolean).join(', ') }
+        { label: 'Kind', value: (r) => [r.rework ? 'rework' : '', r.parallel ? 'at the same time' : '', r.handoff ? 'handoff' : ''].filter(Boolean).join(', ') }
     ], graph.links.map((l) => ({ ...l, className: l.rework ? 'flagged' : '' })));
 }

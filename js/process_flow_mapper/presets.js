@@ -162,6 +162,61 @@ export const PRESETS = Object.freeze([
             'Reporter: Still fixed? {2 min} -> yes 92%: (Incident closed), no 8%: Investigate',
             'Reporter: (Incident closed)'
         )
+    },
+    {
+        id: 'onboarding',
+        label: 'New starter, three things at once',
+        title: 'New starter, offer to first day',
+        lesson: 'Once the record is open, checks, laptop and desk are all done at the same time (the arrow is =>). Lead time follows the slowest of the three, the checks. The laptop has nearly two days of slack and the desk more than four, so making either faster changes nothing. Touch time still counts all three. The SIPOC table under the lanes comes from the in: and out: lines.',
+        text: lines(
+            'lanes: Hiring manager, HR, IT, Facilities',
+            '',
+            '== Prepare ==',
+            'in: Signed offer from New starter, Role details from Hiring manager',
+            'out: Starter record to IT, Starter record to Facilities',
+            'HR: (Offer accepted) -> Open starter record',
+            'HR: Open starter record {20 min, wait 4 h} => Run checks, Order laptop, Book desk',
+            '',
+            '== Get ready ==',
+            'in: References from Referees, Laptop from Supplier',
+            'out: Cleared checks to Hiring manager, Laptop and account to New starter, Desk to New starter',
+            'HR: Run checks {30 min, wait 5 d} -> Checks clear?',
+            'HR: Checks clear? {10 min} -> yes 90%: Confirm start date, no 10%: Run checks',
+            'IT: Order laptop {15 min, wait 3 d} -> Set up laptop and account',
+            'IT: Set up laptop and account {1.5 h, wait 4 h} -> Confirm start date',
+            'Facilities: Book desk {10 min, wait 1 d} -> Confirm start date',
+            '',
+            '== Start ==',
+            'in: Cleared checks from HR',
+            'out: Start date to New starter',
+            'Hiring manager: Confirm start date {10 min, wait 2 h} -> (First day)',
+            'Hiring manager: (First day)'
+        )
+    },
+    {
+        id: 'claim',
+        label: 'Insurance claim, average against typical',
+        title: 'Insurance claim, notice to payment',
+        lesson: 'Look at "How long it takes" under the headline. Waits here are typed as ranges: "wait 1-2-6 d" is at least one day, usually two, at most six. The average is 12 days, but half of claims are done in under 11, and one in twenty takes more than four weeks: the ones that need a site visit, a chase for documents, or both. If you have to quote a time, quote the 8 in 10 figure, not the average.',
+        text: lines(
+            'lanes: Customer, Claims handler, Assessor, Finance',
+            '',
+            '== Notify ==',
+            'Customer: (Claim made) -> Register claim',
+            'Claims handler: Register claim {15 min, wait 2-4-24 h} -> Documents complete?',
+            'Claims handler: Documents complete? {10 min} -> yes 70%: Assess claim, no 30% {1-3-10 d}: Chase documents',
+            'Claims handler: Chase documents {10 min} -> Documents complete?',
+            '',
+            '== Assess ==',
+            'Assessor: Assess claim {45 min, wait 1-2-6 d} -> small 60%: Approve payment?, large 40%: Visit site',
+            'Assessor: Visit site {2 h, wait 3-5-15 d} -> Approve payment?',
+            'Claims handler: Approve payment? {15 min, wait 2-8 h} -> yes 85%: Pay claim, no 15%: (Claim declined)',
+            'Claims handler: (Claim declined)',
+            '',
+            '== Pay ==',
+            'Finance: Pay claim {10 min, wait 1-3 d} -> (Claim paid)',
+            'Finance: (Claim paid)'
+        )
     }
 ]);
 

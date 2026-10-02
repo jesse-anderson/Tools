@@ -1,6 +1,8 @@
 // Graph, shares, rework detection and findings for the process flow mapper.
 // Pure, no DOM. Times leave here in hours.
 
+import { findBlocks } from './flow-parallel.js';
+
 export const CALENDAR_DEFAULTS = Object.freeze({ hoursPerDay: 8, daysPerWeek: 5 });
 export const CALENDAR_LIMITS = Object.freeze({ hoursPerDay: [1, 24], daysPerWeek: [1, 7] });
 
@@ -34,6 +36,14 @@ export function toHours(time, calendar) {
     return time.value * perUnit[time.unit];
 }
 
+/** The range a time was given as, in hours: { low, mode, high } with mode null for a plain range. Null when fixed. */
+export function spreadHours(time, calendar) {
+    if (!time || !time.spread) return null;
+    const one = toHours({ value: 1, unit: time.unit }, calendar);
+    const { low, mode, high } = time.spread;
+    return { low: low * one, mode: mode === null ? null : mode * one, high: high * one };
+}
+
 const percent = (share) => `${Math.round(share * 1000) / 10}%`;
 
 /**
@@ -59,6 +69,8 @@ export function buildGraph(parsed, settings = {}) {
         phase: Math.max(0, s.phase),
         touch: toHours(s.touch, calendar),
         wait: toHours(s.wait, calendar),
+        touchSpread: spreadHours(s.touch, calendar),
+        waitSpread: spreadHours(s.wait, calendar),
         timed: Boolean(s.touch || s.wait),
         line: s.line,
         inLinks: [],
@@ -88,7 +100,10 @@ export function buildGraph(parsed, settings = {}) {
             continue;
         }
         byPair.set(key, links.length);
-        links.push({ index: links.length, source, target, label: exit.label, given: exit.share, share: 0, rework: false, line: exit.line });
+        links.push({
+            index: links.length, source, target, label: exit.label, given: exit.share, share: 0, rework: false,
+            parallel: exit.parallel === true, wait: toHours(exit.wait, calendar), waitSpread: spreadHours(exit.wait, calendar), line: exit.line
+        });
     }
 
     const forward = nodes.map(() => []);
@@ -116,6 +131,11 @@ export function buildGraph(parsed, settings = {}) {
     for (const node of nodes) {
         const out = node.outLinks.map((li) => links[li]);
         if (!out.length) continue;
+        // Exits taken all at once each carry all of the work.
+        if (out.some((l) => l.parallel)) {
+            for (const l of out) l.share = 1;
+            continue;
+        }
         const given = out.filter((l) => l.given !== null);
         const blank = out.filter((l) => l.given === null);
         const sum = given.reduce((s, l) => s + l.given, 0);
@@ -126,7 +146,7 @@ export function buildGraph(parsed, settings = {}) {
         const reading = () => out.map((l) => `${nodes[l.target].name} ${percent(l.share)}`).join(', ');
         if (blank.length && out.length > 1) {
             if (given.length === 0) {
-                warn('SHARE_ASSUMED', `"${node.name}" has ${out.length} exits and no percentages, so the work is split evenly: ${reading()}. If these happen in parallel, the times here are understated`, node.line);
+                warn('SHARE_ASSUMED', `"${node.name}" has ${out.length} exits and no percentages, so the work is split evenly: ${reading()}. If they all happen, at the same time, write the arrow as =>`, node.line);
             } else if (left > SHARE_EPS) {
                 warn('SHARE_ASSUMED', `"${node.name}" has exits with no percentage, which share the remaining ${percent(left)}: ${reading()}`, node.line);
             }
@@ -212,6 +232,16 @@ export function buildGraph(parsed, settings = {}) {
     const phases = (parsed.phases.length ? parsed.phases : [{ name: '', line: null }])
         .map((p, i) => ({ index: i, name: p.name, steps: nodes.filter((n) => n.phase === i).length }));
 
+    // Work done at the same time: each split with the step where its branches meet.
+    const parallel = findBlocks(nodes.length, links);
+    for (const problem of parallel.problems) {
+        const node = nodes[problem.split];
+        const why = problem.code === 'PARALLEL_NO_JOIN'
+            ? 'never meet again at one step'
+            : 'have a way in or out other than through the step that splits the work and the step where it meets again, or share a step';
+        warn(problem.code, `The branches leaving "${node.name}" (=>) ${why}. Work done at the same time has to come back together before it goes on, so no figures are given`, node.line);
+    }
+
     return {
         calendar,
         nodes,
@@ -220,11 +250,13 @@ export function buildGraph(parsed, settings = {}) {
         phases,
         starts,
         ends,
+        parallel,
         counts: {
             steps: nodes.length,
             decisions: nodes.filter((n) => n.kind === 'decision').length,
             exits: links.length,
             rework: rework.length,
+            splits: parallel.blocks.length + parallel.problems.length,
             handoffs,
             handoffMatrix: matrix
         },

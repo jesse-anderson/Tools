@@ -177,7 +177,7 @@ test.describe('graph and findings', () => {
     for (const s of shares(even, 'Split')) expect(s).toBeCloseTo(1 / 3, 12);
     const assumed = even.warnings.find((w) => w.code === 'SHARE_ASSUMED');
     expect(assumed.message).toContain('split evenly');
-    expect(assumed.message).toContain('parallel');
+    expect(assumed.message).toContain('write the arrow as =>');
     expect(assumed.line).toBe(1);
 
     const rest = await build(page, `Ann: Split -> 50%: A, B, C${tail}`);
@@ -582,7 +582,8 @@ test.describe('the solve', () => {
         t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
         return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
       };
-      const maps = S.PRESETS.map((p) => ({ name: p.id, text: p.text }));
+      // The first six examples: one exit at a time and fixed times, which is all this walk knows.
+      const maps = S.PRESETS.slice(0, 6).map((p) => ({ name: p.id, text: p.text }));
       for (let g = 0; g < 12; g++) {
         const n = 4 + Math.floor(rnd() * 8);
         const lines = ['Lane 0: (Start) -> S0'];
@@ -926,7 +927,7 @@ test.describe('layout and routing', () => {
       }
       return { problems: problems.slice(0, 25), total: problems.length, maps: maps.length, connectors, rework, general };
     });
-    expect(result.maps).toBe(76);
+    expect(result.maps).toBe(78);
     expect(result.connectors).toBeGreaterThan(400);
     expect(result.rework).toBeGreaterThan(60);
     expect(result.general).toBeGreaterThan(150);

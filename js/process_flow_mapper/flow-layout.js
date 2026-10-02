@@ -4,6 +4,11 @@
 // A column per rank, a row band per lane, a vertical band per phase. Every
 // step box is the same size. Connectors come from flow-route.js as gutters and
 // tracks, and are turned into points here.
+//
+// Lanes can also run down the page, with the work flowing from top to bottom.
+// The grid is the same one turned on its side, so everything below is worked
+// out on two axes, along the flow (u) and across the lanes (v), and mapped to
+// x and y at the end.
 
 import { routeLinks } from './flow-route.js';
 
@@ -24,7 +29,11 @@ export const LAYOUT_DEFAULTS = Object.freeze({
     trackGap: 9,
     phaseHeader: 26,
     laneHeaderMin: 84,
-    laneHeaderMax: 150
+    laneHeaderMax: 150,
+    phaseHeaderMax: 112,
+    laneInfoLines: 0,
+    phaseInfoLines: 0,
+    minWidth: 0
 });
 
 // A decision is six-sided: its left and right ends come to a point this far in.
@@ -33,6 +42,7 @@ export const DECISION_CUT = 16;
 const REWORK_ENTRY = 0.25;
 const LABEL_PAD = 7;
 const PHASE_RULE_INSET = 6;
+const DOWN_MIN_BOX = 150;
 
 const estimate = (text, size) => text.length * size * 0.6;
 
@@ -43,6 +53,32 @@ export function leftEdge(step, y) {
     if (step.kind === 'decision') return step.x0 + Math.min(DECISION_CUT, half) * (dy / half);
     if (step.kind === 'terminator') return step.x0 + half - Math.sqrt(Math.max(0, half * half - dy * dy));
     return step.x0;
+}
+
+/** Where the top outline of a step is at x, for work arriving from above. */
+export function topEdge(step, x) {
+    const halfWidth = (step.x1 - step.x0) / 2;
+    const height = step.y1 - step.y0;
+    const dx = Math.min(halfWidth, Math.abs(x - (step.x0 + halfWidth)));
+    if (step.kind === 'decision') {
+        const cut = Math.min(DECISION_CUT, height / 2);
+        const into = dx - (halfWidth - cut);
+        return into > 0 ? step.y0 + (height / 2) * (into / cut) : step.y0;
+    }
+    if (step.kind === 'terminator') {
+        const r = Math.min(height / 2, halfWidth);
+        const into = dx - (halfWidth - r);
+        return into > 0 ? step.y0 + r - Math.sqrt(Math.max(0, r * r - into * into)) : step.y0;
+    }
+    return step.y0;
+}
+
+/** Text cut to a width, ending in an ellipsis when anything was dropped. */
+function clip(text, width, measure, size) {
+    if (measure(text, size, 400) <= width) return text;
+    let cut = text;
+    while (cut.length > 1 && measure(`${cut}…`, size, 400) > width) cut = cut.slice(0, -1);
+    return `${cut.trimEnd()}…`;
 }
 
 /** Break text into at most maxLines lines no wider than width, ending in an ellipsis when cut. */
@@ -157,30 +193,55 @@ export function computeLayout(graph, options = {}, measure = estimate, labels = 
 
     const nameLines = Math.max(1, ...steps.map((s) => s.lines.length));
     const widest = Math.max(0, ...steps.flatMap((s) => s.lines.map((l) => measure(l, opt.fontSize, 600))));
-    const boxWidth = Math.max(opt.minBoxWidth, Math.ceil(widest) + 2 * opt.boxPadX);
+    // Lanes running down put exit labels over their own column, so the box is kept wide enough to hold one.
+    const boxWidth = Math.max(options.direction === 'down' ? DOWN_MIN_BOX : opt.minBoxWidth, Math.ceil(widest) + 2 * opt.boxPadX);
     const boxHeight = (nameLines + opt.infoLines) * lineHeight + 2 * opt.boxPadY;
 
     const { routes, vertical, horizontal } = routeLinks(steps, links, cols, rows);
 
-    // Lane header column, as wide as the longest lane name allows.
-    const laneLabels = lanes.map((l) => wrapText(l.name, opt.laneHeaderMax - 16, 3, measure, opt.fontSize, 600));
-    const laneHeader = Math.min(opt.laneHeaderMax, Math.max(opt.laneHeaderMin,
-        Math.ceil(Math.max(0, ...laneLabels.flatMap((ls) => ls.map((l) => measure(l, opt.fontSize, 600))))) + 16));
-
+    const down = options.direction === 'down';
+    // Box size along the flow and across the lanes.
+    const along = down ? boxHeight : boxWidth;
+    const across = down ? boxWidth : boxHeight;
     const hasPhases = phases.length > 1 || (phases[0] && phases[0].name !== '');
-    const left = opt.margin + laneHeader;
-    const top = opt.margin + opt.titleHeight + opt.summaryHeight + (hasPhases ? opt.phaseHeader : 0);
+    const headTop = opt.margin + opt.titleHeight + opt.summaryHeight;
+
+    // Lane names: a column on the left, or a row along the top when lanes run down.
+    const laneWrap = down ? across + opt.gutterY - 16 : opt.laneHeaderMax - 16;
+    const laneLabels = lanes.map((l) => wrapText(l.name, laneWrap, 3, measure, opt.fontSize, 600));
+    const laneHeader = down
+        ? (Math.max(1, ...laneLabels.map((ls) => ls.length)) + opt.laneInfoLines) * lineHeight + 16
+        : Math.min(opt.laneHeaderMax, Math.max(opt.laneHeaderMin,
+            Math.ceil(Math.max(0, ...laneLabels.flatMap((ls) => ls.map((l) => measure(l, opt.fontSize, 600))))) + 16));
+
+    // Phase names: a row along the top, or a column on the left when lanes run down.
+    const phaseLabels = phases.map((p) => (down ? wrapText(p.name, opt.phaseHeaderMax - 16, 3, measure, opt.fontSize, 600) : [p.name]));
+    const phaseHeader = !hasPhases ? 0 : (down
+        ? Math.min(opt.phaseHeaderMax, Math.max(56, Math.ceil(Math.max(0, ...phaseLabels.flatMap((ls) => ls.map((l) => measure(l, opt.fontSize, 600))))) + 16))
+        : opt.phaseHeader);
+
+    const flowStart = down ? headTop + laneHeader : opt.margin + laneHeader;
+    const laneStartAt = down ? opt.margin + phaseHeader : headTop + phaseHeader;
 
     // An exit label sits beside its own line, just past the turn, in room kept
-    // for it: a track is as wide as the label it carries. So a label never lies
-    // on another line or on a step, and nothing has to be nudged afterwards.
+    // for it. Across, a track is as wide as the label it carries. Down, the
+    // track is a horizontal line with the label above it, so the room is one
+    // line high and the label is cut to stay over its own column.
     const labelSize = opt.fontSize - 1;
-    const labelRoom = links.map((_, i) => (labels[i] ? Math.ceil(measure(labels[i], labelSize, 400)) + LABEL_PAD : 0));
+    const labelHeight = Math.round(labelSize * 1.3);
+    const shown = links.map((_, i) => {
+        if (!labels[i]) return '';
+        return down ? clip(labels[i], across / 2 + opt.gutterY / 2 - LABEL_PAD, measure, labelSize) : labels[i];
+    });
+    const labelRoom = links.map((_, i) => {
+        if (!shown[i]) return 0;
+        return down ? labelHeight : Math.ceil(measure(shown[i], labelSize, 400)) + LABEL_PAD;
+    });
 
-    // Horizontal: gutter, column, gutter, column, ..., gutter. Inside a gutter,
-    // left to right: tracks leaving, direct tracks, a slot for the labels of
+    // Along the flow: gutter, column, gutter, column, ..., gutter. Inside a
+    // gutter, in order: tracks leaving, direct tracks, a slot for the labels of
     // straight connectors, tracks arriving.
-    const vGutters = vertical.map((v, k) => {
+    const flowGutters = vertical.map((v, k) => {
         const c = k - 1;
         const room = { dep: new Array(v.dep).fill(0), direct: new Array(v.direct).fill(0), straight: 0 };
         routes.forEach((route, i) => {
@@ -188,19 +249,21 @@ export function computeLayout(graph, options = {}, measure = estimate, labels = 
             if (route.kind === 'direct' && route.gutter === c) room.direct[route.track] = Math.max(room.direct[route.track], labelRoom[i]);
             if (route.kind === 'straight' && steps[links[i].source].col === c) room.straight = Math.max(room.straight, labelRoom[i]);
         });
-        return { ...v, room, x0: 0, width: 0, dep: [], direct: [], arr: [], slot: 0 };
+        return { ...v, room, u0: 0, size: 0, dep: [], direct: [], arr: [], slot: 0 };
     });
-    const colX = [];
-    let x = left;
+    const colU = [];
+    let u = flowStart;
     for (let c = -1; c < cols; c++) {
-        const g = vGutters[c + 1];
-        if (c >= 0) { colX.push(x); x += boxWidth; }
-        g.x0 = x;
-        let cursor = x + opt.gutterX / 2;
+        const g = flowGutters[c + 1];
+        if (c >= 0) { colU.push(u); u += along; }
+        g.u0 = u;
+        let cursor = u + opt.gutterX / 2;
         for (const zone of ['dep', 'direct']) {
             for (const room of g.room[zone]) {
+                // The label is past the line when lanes run across, and before it when they run down.
+                if (down) cursor += room;
                 g[zone].push(cursor + opt.trackGap / 2);
-                cursor += opt.trackGap + room;
+                cursor += opt.trackGap + (down ? 0 : room);
             }
         }
         g.slot = cursor;
@@ -209,82 +272,89 @@ export function computeLayout(graph, options = {}, measure = estimate, labels = 
             g.arr.push(cursor + opt.trackGap / 2);
             cursor += opt.trackGap;
         }
-        g.width = cursor + opt.gutterX / 2 - x;
-        x += g.width;
+        g.size = cursor + opt.gutterX / 2 - u;
+        u += g.size;
     }
-    const right = x;
+    const flowEnd = u;
 
-    // Vertical: gutter, row, gutter, row, ..., gutter.
-    const hGutters = horizontal.map((count) => ({ tracks: count, y0: 0, height: opt.gutterY + count * opt.trackGap }));
-    const rowY = [];
-    let y = top;
+    // Across the lanes: gutter, row, gutter, row, ..., gutter.
+    const laneGutters = horizontal.map((count) => ({ tracks: count, v0: 0, size: opt.gutterY + count * opt.trackGap }));
+    const rowV = [];
+    let v = laneStartAt;
     for (let r = 0; r <= rows; r++) {
-        hGutters[r].y0 = y;
-        y += hGutters[r].height;
-        if (r < rows) { rowY.push(y); y += boxHeight; }
+        laneGutters[r].v0 = v;
+        v += laneGutters[r].size;
+        if (r < rows) { rowV.push(v); v += across; }
     }
-    const bottom = y;
+    const laneEnd = v;
 
+    const point = (pu, pv) => (down ? [pv, pu] : [pu, pv]);
     for (const step of steps) {
-        step.x0 = colX[step.col];
-        step.x1 = step.x0 + boxWidth;
-        step.y0 = rowY[step.row];
-        step.y1 = step.y0 + boxHeight;
+        const [x0, y0] = point(colU[step.col], rowV[step.row]);
+        step.x0 = x0;
+        step.x1 = x0 + boxWidth;
+        step.y0 = y0;
+        step.y1 = y0 + boxHeight;
     }
 
-    const trackY = (g, t) => hGutters[g].y0 + opt.gutterY / 2 + t * opt.trackGap + opt.trackGap / 2;
-    const mid = (s) => (s.y0 + s.y1) / 2;
+    const trackV = (g, t) => laneGutters[g].v0 + opt.gutterY / 2 + t * opt.trackGap + opt.trackGap / 2;
 
     const connectors = links.map((link, i) => {
         const s = steps[link.source];
         const t = steps[link.target];
         const route = routes[i];
-        const sy = mid(s);
-        let ty = mid(t);
-        let points;
+        const su = colU[s.col] + along;
+        const sv = rowV[s.row] + across / 2;
+        let tv = rowV[t.row] + across / 2;
+        let turns = [];
         let labelAt = null;
         if (route.kind === 'straight') {
-            points = [[s.x1, sy], [t.x0, ty]];
-            labelAt = { x: vGutters[s.col + 1].slot + 2, y: sy - 5 };
+            const slot = flowGutters[s.col + 1].slot;
+            labelAt = down ? { x: sv + 5, y: slot + labelHeight - 4 } : { x: slot + 2, y: sv - 5 };
         } else {
-            let turns;
             if (route.kind === 'direct') {
-                const tx = vGutters[route.gutter + 1].direct[route.track];
-                turns = [[tx, sy], [tx, ty]];
+                const tu = flowGutters[route.gutter + 1].direct[route.track];
+                turns = [[tu, sv], [tu, tv]];
             } else {
-                const xd = vGutters[route.depGutter + 1].dep[route.depTrack];
-                const xa = vGutters[route.arrGutter + 1].arr[route.arrTrack];
-                const yh = trackY(route.hGutter, route.hTrack);
+                const ud = flowGutters[route.depGutter + 1].dep[route.depTrack];
+                const ua = flowGutters[route.arrGutter + 1].arr[route.arrTrack];
+                const vh = trackV(route.hGutter, route.hTrack);
                 // Rework comes in off the centre line, on the side it arrives from,
                 // so its arrowhead does not sit on the one already there.
-                if (link.rework) ty += Math.sign(yh - ty) * boxHeight * REWORK_ENTRY;
-                turns = [[xd, sy], [xd, yh], [xa, yh], [xa, ty]];
+                if (link.rework) tv += Math.sign(vh - tv) * across * REWORK_ENTRY;
+                turns = [[ud, sv], [ud, vh], [ua, vh], [ua, tv]];
             }
-            points = [[s.x1, sy], ...turns, [leftEdge(t, ty), ty]];
-            const heads = Math.sign(turns[1][1] - sy);
-            labelAt = { x: turns[0][0] + 5, y: heads > 0 ? sy + lineHeight : sy - 6 };
+            const heads = Math.sign(turns[1][1] - sv);
+            labelAt = down
+                ? { x: sv + 5 * heads, y: turns[0][0] - 4, anchor: heads > 0 ? 'start' : 'end' }
+                : { x: turns[0][0] + 5, y: heads > 0 ? sv + lineHeight : sv - 6 };
         }
+        const end = down ? [tv, topEdge(t, tv)] : [leftEdge(t, tv), tv];
         return {
             index: i,
             source: link.source,
             target: link.target,
             kind: route.kind,
             rework: link.rework,
-            points,
-            label: labels[i] || '',
-            labelAt: labels[i] ? labelAt : null
+            points: [point(su, sv), ...turns.map((q) => point(q[0], q[1])), end],
+            label: shown[i],
+            labelAt: shown[i] ? labelAt : null
         };
     });
 
     const laneBands = lanes.map((lane, i) => {
         const first = laneStart[i];
         const last = first + laneRows[i];
+        const v0 = laneGutters[first].v0;
+        const v1 = last === rows ? laneEnd : laneGutters[last].v0;
         return {
             index: i,
             name: lane.name,
             lines: laneLabels[i],
-            y0: hGutters[first].y0,
-            y1: last === rows ? bottom : hGutters[last].y0
+            x0: down ? v0 : opt.margin,
+            x1: down ? v1 : flowEnd,
+            y0: down ? headTop : v0,
+            y1: down ? flowEnd : v1
         };
     });
 
@@ -292,24 +362,40 @@ export function computeLayout(graph, options = {}, measure = estimate, labels = 
         ? phases.filter((p) => nodes.some((n) => n.phase === p.index)).map((p) => {
             const c0 = phaseStart[p.index];
             const c1 = phaseEnd[p.index];
-            // A band is bounded just inside the gutter on each side, left of every
+            // A band is bounded just inside the gutter on each side, before every
             // track, so the rule between phases never lies on a connector.
-            const g0 = vGutters[c0];
-            const g1 = vGutters[c1 + 1];
+            const u0 = c0 === 0 ? flowStart : flowGutters[c0].u0 + PHASE_RULE_INSET;
+            const u1 = c1 === cols - 1 ? flowEnd : flowGutters[c1 + 1].u0 + PHASE_RULE_INSET;
             return {
                 index: p.index,
                 name: p.name,
-                x0: c0 === 0 ? left : g0.x0 + PHASE_RULE_INSET,
-                x1: c1 === cols - 1 ? right : g1.x0 + PHASE_RULE_INSET
+                lines: phaseLabels[p.index],
+                x0: down ? opt.margin : u0,
+                x1: down ? laneEnd : u1,
+                y0: down ? u0 : headTop,
+                y1: down ? u1 : laneEnd
             };
         })
         : [];
 
+    const right = down ? laneEnd : flowEnd;
+    const bottom = down ? flowEnd : laneEnd;
+    const flowRanges = flowGutters.map((g) => [g.u0, g.u0 + g.size]);
+    const laneRanges = laneGutters.map((g) => [g.v0, g.v0 + g.size]);
     return {
         options: opt,
-        width: right + opt.margin,
+        direction: down ? 'down' : 'across',
+        // Never narrower than the lines of text above and below the map.
+        width: Math.max(right + opt.margin, opt.minWidth + 2 * opt.margin),
         height: bottom + opt.margin + opt.footnoteHeight,
-        area: { left, right, top, bottom, headerLeft: opt.margin },
+        area: {
+            left: down ? laneStartAt : flowStart,
+            right,
+            top: down ? flowStart : laneStartAt,
+            bottom,
+            headerLeft: opt.margin,
+            headerTop: headTop
+        },
         lineHeight,
         boxWidth,
         boxHeight,
@@ -320,8 +406,8 @@ export function computeLayout(graph, options = {}, measure = estimate, labels = 
         lanes: laneBands,
         phases: phaseBands,
         gutters: {
-            vertical: vGutters.map((g) => ({ x0: g.x0, x1: g.x0 + g.width })),
-            horizontal: hGutters.map((g) => ({ y0: g.y0, y1: g.y0 + g.height }))
+            vertical: (down ? laneRanges : flowRanges).map(([x0, x1]) => ({ x0, x1 })),
+            horizontal: (down ? flowRanges : laneRanges).map(([y0, y1]) => ({ y0, y1 }))
         }
     };
 }
