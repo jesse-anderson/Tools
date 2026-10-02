@@ -2,6 +2,7 @@
 // Each rule guards a defect this repo shipped; details in docs/SOW/completed/disclaimer_rework_sow.md.
 const fs = require('fs');
 const path = require('path');
+const { spawnSync } = require('child_process');
 const { test, expect } = require('@playwright/test');
 const { repoRoot, toolPaths } = require('./helpers.cjs');
 
@@ -163,5 +164,53 @@ test('the shared disclaimer component never paints text in --text-muted', () => 
     offenders,
     '--text-muted fails WCAG AA in both themes (2.6:1 light, 3.7:1 dark). Use ' +
       '--text-secondary for any disclaimer text that is meant to be read.'
+  ).toEqual([]);
+});
+
+// Search and link-preview tags. scripts/build-seo.mjs owns the rules and the
+// derived tags; --check reports what it would change without writing anything.
+let seoReport;
+function seo() {
+  if (!seoReport) {
+    const run = spawnSync(process.execPath, ['scripts/build-seo.mjs', '--check', '--json'], {
+      cwd: repoRoot,
+      encoding: 'utf8',
+    });
+    expect(run.stdout, `build-seo.mjs printed no report. stderr: ${run.stderr}`).not.toBe('');
+    seoReport = JSON.parse(run.stdout);
+  }
+  return seoReport;
+}
+const seoProblems = (...kinds) =>
+  seo().problems.filter((p) => kinds.includes(p.kind)).map((p) => `${p.page}: ${p.detail}`);
+
+test('the search-tag check covers the hub and every reachable page', () => {
+  // Two lists of pages, one here and one in the script. This is what keeps them the same list.
+  expect([...seo().pages].sort()).toEqual(['tools.html', ...ALL_PAGES].sort());
+});
+
+test('every page has its own title and a meta description of usable length', () => {
+  expect(
+    seoProblems('missing-page', 'title', 'description'),
+    'A page needs its own <title> and, on its own line in <head>, ' +
+      '<meta name="description" content="...">, 70 to 160 characters, shared with no other ' +
+      'page. Say what the tool does in the words someone would search for. Then run ' +
+      'node scripts/build-seo.mjs to write the tags derived from it.'
+  ).toEqual([]);
+});
+
+test('canonical and link-preview tags match the title and description', () => {
+  expect(
+    seoProblems('stale-tags'),
+    'The canonical link and the og: and twitter: tags are generated from the title and ' +
+      'description, so they are never edited by hand. Run node scripts/build-seo.mjs.'
+  ).toEqual([]);
+});
+
+test('sitemap.xml and robots.txt match the catalog', () => {
+  expect(
+    seoProblems('stale-site-file'),
+    'sitemap.xml lists the hub and every tool card in tools.html, and robots.txt points ' +
+      'at it. A tool was added, removed or renamed. Run node scripts/build-seo.mjs.'
   ).toEqual([]);
 });

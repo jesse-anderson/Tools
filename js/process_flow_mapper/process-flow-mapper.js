@@ -1,0 +1,515 @@
+// DOM controller for the process flow mapper. The only module here that reads
+// the form or touches the page, apart from flow-panels.js, which builds the
+// result panels it is handed.
+
+import * as parser from './flow-parse.js';
+import * as graphs from './flow-graph.js';
+import * as solver from './flow-solve.js';
+import * as router from './flow-route.js';
+import * as layouts from './flow-layout.js';
+import * as projects from './flow-projects.js';
+import { buildModel, headline, summarySentence, summaryLine, formatDuration, formatPercent } from './flow-model.js';
+import { renderFlow, tintLevels, mix, PALETTES } from './flow-render.js';
+import { fillHeadline, fillBars, fillTables } from './flow-panels.js';
+import {
+    serializeSvg, svgToPngBlob, downloadBlob, fileStem, pngSize, PNG_SCALES, loadFontDataUrl, embedFont
+} from './flow-export.js';
+import { PRESETS, PRESETS_BY_ID } from './presets.js';
+
+const el = (id) => document.getElementById(id);
+const TEXT_DEBOUNCE_MS = 120;
+const DELETE_ARM_MS = 4000;
+const FONT = "'Space Grotesk', system-ui, 'Segoe UI', Arial, sans-serif";
+
+// Everything a project remembers besides the step list.
+const FIELD_IDS = ['titleInput', 'hoursPreset', 'hoursCustom', 'daysPerWeek', 'tint', 'unit', 'showShares', 'showBadges',
+    'fontSize', 'zoom', 'pngScale', 'exportTheme', 'exportTransparent'];
+const CLAMPED_IDS = ['hoursCustom', 'daysPerWeek', 'fontSize'];
+const QUIET_IDS = ['pngScale', 'exportTheme', 'exportTransparent', 'zoom'];
+const STARTER_TEXT = '// Lane: Step {touch, wait} -> Next step\nTeam: (Start) -> Do the work\nTeam: Do the work {30 min, wait 1 h} -> (Done)\nTeam: (Done)\n';
+
+let model = null;
+let renderCount = 0;
+let store = projects.emptyStore();
+let storageProblem = null;
+let defaultFields = {};
+let deleteTimer = null;
+let textTimer = null;
+let picked = null;
+
+// Text is measured on a canvas, so boxes and labels fit what is actually drawn.
+const ruler = document.createElement('canvas').getContext('2d');
+function measure(text, size, weight = 400) {
+    if (!ruler) return text.length * size * 0.6;
+    ruler.font = `${weight} ${size}px ${FONT}`;
+    return ruler.measureText(text).width;
+}
+
+/** Read a number field once. Blank or unparseable falls back to the engine default. */
+function numberField(id) {
+    const raw = el(id).value.trim();
+    if (raw === '') return undefined;
+    const value = Number(raw);
+    return Number.isFinite(value) ? value : undefined;
+}
+
+function readSettings() {
+    const preset = el('hoursPreset').value;
+    const title = el('titleInput').value.trim();
+    return {
+        model: {
+            title,
+            hoursPerDay: preset === 'custom' ? numberField('hoursCustom') : Number(preset),
+            daysPerWeek: numberField('daysPerWeek'),
+            unit: el('unit').value,
+            fontSize: numberField('fontSize'),
+            showShares: el('showShares').checked
+        },
+        view: {
+            title,
+            tint: el('tint').value,
+            showBadges: el('showBadges').checked
+        }
+    };
+}
+
+const currentPalette = () => (document.documentElement.getAttribute('data-theme') === 'light' ? PALETTES.light : PALETTES.dark);
+
+function fillList(list, items) {
+    list.replaceChildren(...items.map((item) => {
+        const li = document.createElement('li');
+        li.textContent = item.line ? `Line ${item.line}: ${item.message}` : item.message;
+        return li;
+    }));
+}
+
+const tables = () => ({
+    lanes: el('laneTable'), phases: el('phaseTable'), ends: el('endTable'), steps: el('stepTable'), exits: el('exitTable')
+});
+
+function clearOutput() {
+    el('diagramHost').replaceChildren();
+    el('headline').replaceChildren();
+    el('bars').replaceChildren();
+    el('barsEmpty').hidden = true;
+    for (const table of Object.values(tables())) {
+        table.tHead.replaceChildren();
+        table.tBodies[0].replaceChildren();
+    }
+    el('resultStatus').textContent = '';
+    el('exportStatus').textContent = '';
+}
+
+function updatePngNote() {
+    const note = el('pngSizeNote');
+    if (!model || !model.ok) { note.textContent = ''; return; }
+    const size = pngSize(model.layout.width, model.layout.height, Number(el('pngScale').value));
+    note.textContent = size.ok
+        ? `The map is ${Math.round(model.layout.width)} x ${Math.round(model.layout.height)} px, so the PNG will be ${size.width} x ${size.height} px.`
+        : `${size.width} x ${size.height} px is larger than a browser canvas can hold. Pick a lower resolution.`;
+}
+
+// Fitting never shrinks the map below this, so its text stays readable; past it the panel scrolls.
+const FIT_FLOOR = 0.6;
+
+/** Show the map at the chosen size. Sizes are attributes: a style attribute is not allowed here. */
+function applyZoom() {
+    const svg = el('diagramHost').querySelector('svg');
+    if (!svg || !model || !model.ok) return;
+    const zoom = el('zoom').value;
+    let factor = (Number(zoom) || 100) / 100;
+    if (zoom === 'fit') {
+        const room = el('diagramScroll').clientWidth;
+        factor = Math.min(1, Math.max(FIT_FLOOR, room > 0 ? room / model.layout.width : 1));
+    }
+    svg.setAttribute('width', String(Math.floor(model.layout.width * factor)));
+    svg.setAttribute('height', String(Math.floor(model.layout.height * factor)));
+}
+
+/** Ring one step on the map and mark its bar. Picking it again, or null, clears it. */
+function pick(index, reveal = true) {
+    picked = index === picked ? null : index;
+    const host = el('diagramHost');
+    for (const g of host.querySelectorAll('.flow-step')) {
+        g.classList.toggle('picked', picked !== null && Number(g.getAttribute('data-node')) === picked);
+    }
+    for (const button of el('bars').querySelectorAll('.bar-button')) {
+        button.setAttribute('aria-pressed', String(picked !== null && Number(button.getAttribute('data-node')) === picked));
+    }
+    if (picked !== null && reveal) {
+        const g = host.querySelector(`.flow-step[data-node="${picked}"]`);
+        if (g) g.scrollIntoView({ block: 'nearest', inline: 'center' });
+    }
+}
+
+function render() {
+    renderCount += 1;
+    const settings = readSettings();
+    el('hoursCustomGroup').hidden = el('hoursPreset').value !== 'custom';
+    model = buildModel(el('flowText').value, settings.model, measure);
+
+    el('downloadSvg').disabled = !model.ok;
+    el('downloadPng').disabled = !model.ok;
+    el('errorBox').hidden = model.ok;
+    fillList(el('errorList'), model.errors);
+    el('warningBox').hidden = model.warnings.length === 0;
+    fillList(el('warningList'), model.warnings);
+
+    // An input error clears everything, so no stale result sits beside it.
+    if (!model.ok) {
+        clearOutput();
+    } else {
+        el('diagramHost').replaceChildren(renderFlow(document, model, { ...settings.view, interactive: true }, currentPalette(), measure));
+        fillHeadline(el('headline'), model);
+        const bars = fillBars(el('bars'), model, (index) => pick(index));
+        el('barsEmpty').hidden = bars > 0;
+        fillTables(tables(), model);
+        el('phaseBlock').hidden = model.layout.phases.length === 0;
+        el('resultStatus').textContent = summarySentence(model);
+        el('resultStatus').classList.toggle('withheld', !model.result.ok);
+        applyZoom();
+        // The picked step survives a redraw while it still exists.
+        const keep = picked !== null && picked < model.graph.nodes.length ? picked : null;
+        picked = null;
+        if (keep !== null) pick(keep, false);
+    }
+    updatePngNote();
+    autosave();
+}
+
+// --- export -------------------------------------------------------------
+
+function exportSvgElement() {
+    const settings = readSettings();
+    const theme = el('exportTheme').value;
+    const palette = theme === 'current' ? currentPalette() : PALETTES[theme];
+    const view = { ...settings.view, background: !el('exportTransparent').checked, interactive: false };
+    return renderFlow(document, model, view, palette, measure);
+}
+
+async function exportDiagram(kind) {
+    if (!model || !model.ok) return;
+    const status = el('exportStatus');
+    const stem = fileStem(el('titleInput').value);
+    try {
+        const svgText = serializeSvg(exportSvgElement());
+        if (kind === 'svg') {
+            downloadBlob(new Blob([svgText], { type: 'image/svg+xml' }), `${stem}.svg`);
+            status.textContent = `Saved ${stem}.svg`;
+            return;
+        }
+        const { width, height } = model.layout;
+        const scale = Number(el('pngScale').value);
+        const font = await loadFontDataUrl();
+        const blob = await svgToPngBlob(embedFont(svgText, font), width, height, scale);
+        const size = pngSize(width, height, scale);
+        downloadBlob(blob, `${stem}.png`);
+        const fallback = font ? '' : '. The page font could not be read, so the text is in your system font';
+        status.textContent = `Saved ${stem}.png at ${size.width} x ${size.height} px${fallback}`;
+    } catch (e) {
+        status.textContent = e.message;
+    }
+}
+
+// --- projects -----------------------------------------------------------
+
+function captureFields() {
+    const fields = {};
+    for (const id of FIELD_IDS) {
+        const input = el(id);
+        fields[id] = input.type === 'checkbox' ? input.checked : input.value;
+    }
+    return fields;
+}
+
+const captureState = () => ({ text: el('flowText').value, fields: captureFields() });
+
+function applyState(state) {
+    el('flowText').value = state.text;
+    for (const id of FIELD_IDS) {
+        const input = el(id);
+        const value = Object.prototype.hasOwnProperty.call(state.fields, id) ? state.fields[id] : defaultFields[id];
+        if (input.type === 'checkbox') input.checked = value === true;
+        else input.value = String(value);
+        // A stored select value that no longer exists falls back to the default.
+        if (input.tagName === 'SELECT' && input.selectedIndex < 0) input.value = defaultFields[id];
+    }
+}
+
+function writeStore() {
+    if (storageProblem === 'unavailable') return;
+    if (!projects.persistStore(window.localStorage, store)) storageProblem = 'full';
+}
+
+function disarmDelete() {
+    clearTimeout(deleteTimer);
+    deleteTimer = null;
+    const button = el('projectDelete');
+    button.textContent = 'Delete';
+    button.removeAttribute('data-armed');
+}
+
+function updateProjectBar() {
+    const active = projects.activeProject(store);
+    const select = el('projectSelect');
+    select.replaceChildren(...store.projects.map((p) => new Option(p.name, p.id, false, p.id === store.activeId)));
+    if (document.activeElement !== el('projectName')) el('projectName').value = active.name;
+
+    const dirty = projects.isDirty(active);
+    el('projectSave').disabled = !dirty;
+    el('projectRevert').disabled = !dirty;
+    el('projectNew').disabled = projects.isFull(store);
+    el('projectImport').disabled = projects.isFull(store);
+
+    const count = `${store.projects.length} of ${projects.MAX_PROJECTS} projects.`;
+    let message = dirty ? 'Unsaved changes, kept automatically. Revert returns to the last save.' : 'Saved.';
+    if (storageProblem === 'unavailable') message = 'This browser is not allowing storage, so nothing will be kept once the page closes.';
+    if (storageProblem === 'full') message = 'The browser refused to store the projects. Changes are not being kept.';
+    if (storageProblem === 'corrupt') message = `Stored projects could not be read and were reset. ${message}`;
+    el('projectStatus').textContent = `${message} ${count}`;
+}
+
+/** Keep the active project's draft in step with the form. */
+function autosave() {
+    const active = projects.activeProject(store);
+    if (!active) return;
+    if (projects.setDraft(active, captureState(), Date.now())) writeStore();
+    updateProjectBar();
+}
+
+/** Put the form into the active draft now, so an edit inside the typing debounce is not left behind. */
+function flushDraft() {
+    clearTimeout(textTimer);
+    const active = projects.activeProject(store);
+    if (active) projects.setDraft(active, captureState(), Date.now());
+}
+
+function showLesson(id) {
+    const preset = PRESETS_BY_ID[id];
+    el('presetSelect').value = preset ? id : '';
+    el('presetLesson').hidden = !preset;
+    el('presetLesson').textContent = preset ? preset.lesson : '';
+}
+
+function openProject(id) {
+    disarmDelete();
+    clearTimeout(textTimer);
+    store.activeId = id;
+    applyState(projects.activeProject(store).draft);
+    showLesson('');
+    picked = null;
+    writeStore();
+    render();
+}
+
+function newProject() {
+    flushDraft();
+    const state = { text: STARTER_TEXT, fields: { ...defaultFields } };
+    const project = projects.addProject(store, projects.nextName(store), state, Date.now());
+    if (project) openProject(project.id);
+}
+
+function deleteProject() {
+    const button = el('projectDelete');
+    if (!button.hasAttribute('data-armed')) {
+        // Two clicks, so a project is never lost to one stray one.
+        button.setAttribute('data-armed', '');
+        button.textContent = 'Confirm delete';
+        deleteTimer = setTimeout(disarmDelete, DELETE_ARM_MS);
+        return;
+    }
+    projects.removeProject(store, store.activeId);
+    if (!store.projects.length) {
+        projects.addProject(store, projects.nextName(store), { text: STARTER_TEXT, fields: { ...defaultFields } }, Date.now());
+    }
+    openProject(store.activeId);
+}
+
+function exportProject() {
+    flushDraft();
+    const active = projects.activeProject(store);
+    const name = `${fileStem(active.name)}.flowmap.json`;
+    downloadBlob(new Blob([projects.projectToFile(active)], { type: 'application/json' }), name);
+    el('projectFileStatus').textContent = `Saved ${name}. It holds this project as it is on screen now.`;
+}
+
+async function importProject(file) {
+    const status = el('projectFileStatus');
+    if (!file) return;
+    if (file.size > projects.MAX_FILE_BYTES) {
+        status.textContent = 'That file is too large to be a process flow project.';
+        return;
+    }
+    let read;
+    try {
+        read = projects.projectFromFile(await file.text());
+    } catch (e) {
+        read = { ok: false, message: 'That file could not be read' };
+    }
+    if (!read.ok) {
+        status.textContent = `${read.message}.`;
+        return;
+    }
+    flushDraft();
+    const project = projects.addProject(store, projects.uniqueName(store, read.name), read.state, Date.now());
+    if (!project) {
+        status.textContent = `${projects.MAX_PROJECTS} projects are already stored. Delete one to import another.`;
+        return;
+    }
+    openProject(project.id);
+    status.textContent = `Imported "${project.name}" as a new project.`;
+}
+
+function loadProjects() {
+    let loaded;
+    try {
+        loaded = projects.loadStore(window.localStorage);
+    } catch (e) {
+        loaded = { store: projects.emptyStore(), problem: 'unavailable' };
+    }
+    store = loaded.store;
+    storageProblem = loaded.problem;
+    if (store.projects.length) return false;
+
+    const first = PRESETS[0];
+    projects.addProject(store, projects.nextName(store), { text: first.text, fields: { ...defaultFields, titleInput: first.title } }, Date.now());
+    return true;
+}
+
+// --- wiring -------------------------------------------------------------
+
+function applyPreset(id) {
+    const preset = PRESETS_BY_ID[id];
+    if (!preset) { showLesson(''); return; }
+    el('flowText').value = preset.text;
+    el('titleInput').value = preset.title;
+    picked = null;
+    showLesson(id);
+    render();
+}
+
+function init() {
+    const presetSelect = el('presetSelect');
+    presetSelect.append(new Option('Choose an example', ''), ...PRESETS.map((p) => new Option(p.label, p.id)));
+    el('pngScale').append(...PNG_SCALES.map((s) => new Option(s.label, String(s.scale), s.id === 'standard', s.id === 'standard')));
+    defaultFields = captureFields();
+
+    const fresh = loadProjects();
+    applyState(projects.activeProject(store).draft);
+    showLesson(fresh ? PRESETS[0].id : '');
+
+    presetSelect.addEventListener('input', () => applyPreset(presetSelect.value));
+
+    el('flowText').addEventListener('input', () => {
+        // Typing over an example releases it, so the lesson never describes text it no longer matches.
+        showLesson('');
+        clearTimeout(textTimer);
+        textTimer = setTimeout(render, TEXT_DEBOUNCE_MS);
+    });
+
+    // A select fires both input and change; listening to input alone renders once.
+    for (const id of FIELD_IDS.filter((f) => !QUIET_IDS.includes(f))) el(id).addEventListener('input', () => render());
+    el('pngScale').addEventListener('input', () => { updatePngNote(); autosave(); });
+    el('zoom').addEventListener('input', () => { applyZoom(); autosave(); });
+    el('exportTheme').addEventListener('input', autosave);
+    el('exportTransparent').addEventListener('input', autosave);
+
+    // Out-of-range numbers are clamped by the engine. Writing the clamped value
+    // back keeps the field showing the number that was actually used.
+    for (const id of CLAMPED_IDS) {
+        el(id).addEventListener('change', (event) => {
+            const input = event.target;
+            const value = Number(input.value);
+            if (input.value.trim() === '' || !Number.isFinite(value)) { input.value = input.defaultValue; render(); return; }
+            const clamped = Math.min(Number(input.max), Math.max(Number(input.min), value));
+            if (clamped !== value) { input.value = String(clamped); render(); }
+        });
+    }
+
+    el('downloadSvg').addEventListener('click', () => exportDiagram('svg'));
+    el('downloadPng').addEventListener('click', () => exportDiagram('png'));
+
+    // A step clicked on the map marks its bar, and the other way round.
+    el('diagramHost').addEventListener('click', (event) => {
+        const g = event.target instanceof Element ? event.target.closest('.flow-step') : null;
+        if (g) pick(Number(g.getAttribute('data-node')), false);
+    });
+
+    el('projectSelect').addEventListener('input', (event) => {
+        flushDraft();
+        openProject(event.target.value);
+    });
+    el('projectNew').addEventListener('click', newProject);
+    el('projectDelete').addEventListener('click', deleteProject);
+    el('projectExport').addEventListener('click', exportProject);
+    el('projectImport').addEventListener('click', () => el('projectFile').click());
+    el('projectFile').addEventListener('change', (event) => {
+        const input = event.target;
+        // Cleared afterwards so choosing the same file twice still fires.
+        importProject(input.files[0]).finally(() => { input.value = ''; });
+    });
+    el('projectSave').addEventListener('click', () => {
+        flushDraft();
+        projects.commitProject(projects.activeProject(store), Date.now());
+        writeStore();
+        updateProjectBar();
+    });
+    el('projectRevert').addEventListener('click', () => {
+        projects.revertProject(projects.activeProject(store), Date.now());
+        openProject(store.activeId);
+    });
+    el('projectName').addEventListener('input', (event) => {
+        projects.activeProject(store).name = projects.cleanName(event.target.value);
+        writeStore();
+        updateProjectBar();
+    });
+    el('projectName').addEventListener('change', (event) => {
+        event.target.value = projects.activeProject(store).name;
+    });
+
+    // A fitted map follows the panel when the window changes size.
+    new ResizeObserver(() => applyZoom()).observe(el('diagramScroll'));
+
+    // Closing the tab inside the typing debounce would otherwise drop the last keystrokes.
+    window.addEventListener('pagehide', () => { flushDraft(); writeStore(); });
+
+    new MutationObserver(() => render()).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+    // Boxes are sized from measured text, and the web font may arrive after the first draw.
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => render());
+
+    writeStore();
+    render();
+}
+
+// Exposed for the Playwright spec, which drives the pure functions directly.
+window.ProcessFlowMapper = {
+    parser,
+    graphs,
+    solver,
+    router,
+    layouts,
+    projects,
+    buildModel,
+    headline,
+    summarySentence,
+    summaryLine,
+    formatDuration,
+    formatPercent,
+    renderFlow,
+    tintLevels,
+    mix,
+    serializeSvg,
+    svgToPngBlob,
+    pngSize,
+    fileStem,
+    measure,
+    PALETTES,
+    PRESETS,
+    getModel: () => model,
+    getStore: () => store,
+    getRenderCount: () => renderCount
+};
+
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+else init();

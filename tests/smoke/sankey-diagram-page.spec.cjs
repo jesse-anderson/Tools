@@ -1140,7 +1140,7 @@ test.describe('font in the PNG', () => {
   });
 
   test('the vendored font is the file its licence note says it is', async () => {
-    const dir = require('node:path').join(__dirname, '..', '..', 'js', 'vendor', 'sankey_diagram');
+    const dir = require('node:path').join(__dirname, '..', '..', 'js', 'vendor', 'space_grotesk');
     const bytes = fs.readFileSync(require('node:path').join(dir, 'space-grotesk-latin.woff2'));
     const sha = require('node:crypto').createHash('sha256').update(bytes).digest('hex');
     expect(sha).toBe('0640890476fc1198ab4de571fb658de443c4d85b66466ec09534a8737ab1ce9d');

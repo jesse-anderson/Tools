@@ -46,6 +46,7 @@ const CLAUSE_PAGES = [
   '/tools/seed-storage-lab.html',
   '/tools/species-doubling-reference.html',
   '/tools/sankey-diagram.html',
+  '/tools/process-flow-mapper.html',
 ];
 
 const REQUIRED = [

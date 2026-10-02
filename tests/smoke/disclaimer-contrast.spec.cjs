@@ -64,6 +64,7 @@ const TOOLS_WITH_DISCLAIMER_HEADINGS = [
   'regex-tester',
   'rpi-pinout',
   'sankey-diagram',
+  'process-flow-mapper',
   'scientific-graph-digitizer',
   'screenshot-tool',
   'seed-storage-lab',

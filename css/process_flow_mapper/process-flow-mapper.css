@@ -1,0 +1,604 @@
+/* ============================================
+   Process Flow Mapper - Specific Styles
+   shared.css carries no component classes, so the panel, button and table
+   styles live here. Readable text uses --text-secondary, never --text-muted.
+   ============================================ */
+
+.flow-layout {
+    display: grid;
+    grid-template-columns: minmax(300px, 380px) minmax(0, 1fr);
+    gap: 24px;
+    align-items: start;
+}
+
+.panel {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 24px;
+    min-width: 0;
+}
+
+.panel-header {
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.panel-header h2 {
+    margin-bottom: 4px;
+}
+
+.panel-header p {
+    color: var(--text-secondary);
+    font-size: 0.9375rem;
+}
+
+.diagram-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.result-status {
+    min-height: 1.5em;
+}
+
+.result-status.withheld {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+/* Form */
+.input-group {
+    margin-bottom: 16px;
+}
+
+.input-group label,
+.check-group legend {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.flow-text {
+    min-height: 260px;
+    resize: vertical;
+    font-size: 0.8125rem;
+    line-height: 1.6;
+    white-space: pre;
+    overflow-x: auto;
+}
+
+.field-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0 12px;
+}
+
+.check-group {
+    border: 0;
+    margin-bottom: 16px;
+}
+
+.check {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 32px;
+    font-size: 0.875rem;
+    color: var(--text-primary);
+    cursor: pointer;
+}
+
+.check input {
+    width: 18px;
+    height: 18px;
+    padding: 0;
+    flex: none;
+    accent-color: var(--accent-general);
+}
+
+.helper-text {
+    margin: 0 0 14px;
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    color: var(--text-secondary);
+}
+
+/* Foldable notes */
+.usage-note,
+.advanced {
+    margin-bottom: 16px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--bg-secondary);
+}
+
+.usage-note > summary,
+.advanced > summary {
+    min-height: 44px;
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.usage-note[open] > summary,
+.advanced[open] > summary {
+    border-bottom: 1px solid var(--border-color);
+}
+
+.usage-note > :not(summary),
+.advanced > :not(summary) {
+    margin-left: 14px;
+    margin-right: 14px;
+}
+
+.usage-note > p {
+    margin-bottom: 14px;
+    font-size: 0.8125rem;
+    color: var(--text-secondary);
+}
+
+.advanced h3 {
+    margin: 16px 14px 10px;
+    font-size: 0.8125rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-secondary);
+}
+
+.advanced > .check {
+    margin-bottom: 10px;
+}
+
+.syntax-list {
+    margin-top: 12px;
+    margin-bottom: 12px;
+    font-size: 0.8125rem;
+}
+
+.syntax-list dt {
+    margin-top: 8px;
+}
+
+.syntax-list dd {
+    color: var(--text-secondary);
+}
+
+.syntax-list code,
+.usage-note p code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+}
+
+/* Buttons */
+.button-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.tool-btn {
+    min-height: 44px;
+    padding: 10px 16px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.tool-btn:hover:not(:disabled) {
+    border-color: var(--accent-general);
+}
+
+/* A fixed violet with white ink: the theme accent is too light for white in
+   dark theme and too dark for black in light theme. */
+.tool-btn.primary {
+    background: #6d28d9;
+    border-color: #6d28d9;
+    color: #ffffff;
+}
+
+.tool-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.tool-btn:focus-visible,
+.usage-note > summary:focus-visible,
+.advanced > summary:focus-visible,
+.diagram-scroll:focus-visible,
+.table-scroll:focus-visible {
+    outline: 2px solid var(--accent-general);
+    outline-offset: 2px;
+}
+
+/* Diagram */
+.diagram-scroll {
+    overflow-x: auto;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--bg-card);
+    margin-bottom: 12px;
+}
+
+.diagram-host {
+    min-height: 120px;
+}
+
+.message-box {
+    margin-bottom: 14px;
+    padding: 12px 14px;
+    border-radius: 8px;
+    font-size: 0.875rem;
+}
+
+.message-box h3 {
+    font-size: 0.875rem;
+    margin-bottom: 6px;
+}
+
+.message-box ul {
+    padding-left: 18px;
+    color: var(--text-primary);
+}
+
+.error-box {
+    border: 1px solid var(--accent-error);
+    background: var(--accent-error-dim);
+}
+
+.warning-box {
+    border: 1px solid color-mix(in srgb, var(--accent-warning) 50%, transparent);
+    background: var(--accent-warning-dim);
+}
+
+/* Tables */
+.table-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 440px), 1fr));
+    gap: 16px;
+}
+
+.table-card {
+    min-width: 0;
+    padding: 16px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--bg-secondary);
+}
+
+.table-card h3 {
+    font-size: 1rem;
+    margin-bottom: 10px;
+}
+
+.table-scroll {
+    overflow-x: auto;
+}
+
+.totals {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 4px 16px;
+    margin-bottom: 14px;
+    font-size: 0.875rem;
+}
+
+.totals dt {
+    color: var(--text-secondary);
+}
+
+.totals dd {
+    font-family: 'JetBrains Mono', monospace;
+    text-align: right;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8125rem;
+}
+
+th,
+td {
+    padding: 8px 10px;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+    white-space: nowrap;
+}
+
+thead th {
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+
+tbody th {
+    font-weight: 600;
+}
+
+.num {
+    text-align: right;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+tr.flagged {
+    box-shadow: inset 3px 0 0 var(--accent-error);
+}
+/* Passing only because the tolerance allows it gets a quieter mark than failing. */
+
+/* Projects */
+.project-bar {
+    margin-bottom: 20px;
+    padding: 14px 14px 2px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--bg-secondary);
+}
+
+.project-bar legend {
+    padding: 0 6px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.project-bar .button-row {
+    margin-bottom: 12px;
+}
+
+/* The Import button opens this; the browser's own file control is never shown. */
+.file-input {
+    display: none;
+}
+
+.tool-btn.small {
+    padding: 8px 12px;
+    font-size: 0.8125rem;
+}
+
+.tool-btn.danger:hover:not(:disabled),
+.tool-btn.danger[data-armed] {
+    border-color: var(--accent-error);
+    background: var(--accent-error-dim);
+}
+
+.helper-text code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    padding: 1px 5px;
+    border-radius: 4px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+}
+
+/* Diagram: drawn at its natural size and scrolled, since a wide process
+   shrunk to fit is unreadable. The zoom classes are set by the controller. */
+.diagram-host svg {
+    display: block;
+    max-width: none;
+}
+
+.flow-link:hover {
+    stroke-width: 3;
+}
+
+.diagram-host .flow-step {
+    cursor: default;
+}
+
+.diagram-host .flow-step:focus-visible {
+    outline: 2px solid var(--accent-general);
+    outline-offset: 3px;
+}
+
+/* A step picked from the bars is ringed until another is picked. */
+.diagram-host .flow-step.picked .flow-step-shape {
+    stroke: var(--accent-general);
+    stroke-width: 3.5;
+}
+
+/* The hidden attribute loses to any display rule above, so it is restated. */
+.input-group[hidden],
+.table-block[hidden],
+.lesson[hidden] {
+    display: none;
+}
+
+/* Example lesson: what to look at in the example just loaded. */
+.lesson {
+    margin: -6px 0 16px;
+    padding: 10px 12px;
+    border-left: 3px solid var(--accent-general);
+    border-radius: 0 6px 6px 0;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    font-size: 0.875rem;
+    line-height: 1.5;
+}
+
+/* Headline figures */
+.headline {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 10px;
+    margin: 0 0 14px;
+}
+
+.stat {
+    padding: 12px 14px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--bg-secondary);
+}
+
+.stat-label {
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.stat-value {
+    margin: 2px 0;
+    color: var(--text-primary);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.5rem;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.stat-hint {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    line-height: 1.35;
+}
+
+/* Where the time goes */
+#barsCard {
+    margin-bottom: 14px;
+}
+
+.bars {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.bar-row + .bar-row {
+    margin-top: 4px;
+}
+
+.bar-button {
+    display: block;
+    width: 100%;
+    min-height: 44px;
+    padding: 8px 10px;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    background: none;
+    color: var(--text-primary);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.bar-button:hover,
+.bar-button[aria-pressed="true"] {
+    border-color: var(--border-color);
+    background: var(--bg-secondary);
+}
+
+.bar-button:focus-visible {
+    outline: 2px solid var(--accent-general);
+    outline-offset: 2px;
+}
+
+.bar-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.bar-share {
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.bar-track {
+    display: block;
+    width: 100%;
+    height: 8px;
+    margin: 5px 0 4px;
+    border-radius: 4px;
+    background: var(--bg-input);
+}
+
+.bar-wait,
+.swatch-wait {
+    fill: #ea580c;
+    background: #ea580c;
+}
+
+.bar-touch,
+.swatch-touch {
+    fill: #2a78d6;
+    background: #2a78d6;
+}
+
+.bar-detail {
+    display: block;
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+}
+
+.swatch {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    margin: 0 2px 0 6px;
+    border-radius: 2px;
+}
+
+.bar-legend .swatch:first-child {
+    margin-left: 0;
+}
+
+.table-block {
+    margin-top: 18px;
+}
+
+/* Responsive */
+@media (max-width: 1100px) {
+    .flow-layout {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    /* The diagram is the answer, so it leads once the columns stack, with the
+       scope notice still ahead of it. */
+    .diagram-panel {
+        order: -1;
+    }
+
+    .flow-layout > .disclaimer-card {
+        order: -2;
+    }
+}
+
+@media (max-width: 768px) {
+    .panel {
+        padding: 16px;
+    }
+
+    .check {
+        min-height: 44px;
+    }
+
+    input,
+    select,
+    textarea {
+        font-size: 1rem;
+    }
+}
