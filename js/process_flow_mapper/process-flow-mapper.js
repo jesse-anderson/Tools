@@ -182,7 +182,7 @@ function render() {
     el('hoursCustomGroup').hidden = el('hoursPreset').value !== 'custom';
     model = buildModel(el('flowText').value, settings.model, measure);
 
-    for (const id of ['downloadSvg', 'downloadPng', 'copyMermaid', 'printPage']) el(id).disabled = !model.ok;
+    for (const id of ['downloadSvg', 'downloadPng', 'copyMermaid']) el(id).disabled = !model.ok;
     el('errorBox').hidden = model.ok;
     fillList(el('errorList'), model.errors);
     el('warningBox').hidden = model.warnings.length === 0;
@@ -262,23 +262,6 @@ async function copyMermaid() {
         downloadBlob(new Blob([text], { type: 'text/plain' }), name);
         status.textContent = `The clipboard was not available, so the Mermaid text was saved as ${name}`;
     }
-}
-
-// Printing uses the light colours whatever the page is showing, and puts them back after.
-let themeBeforePrint = null;
-function beforePrint() {
-    if (themeBeforePrint !== null) return;
-    themeBeforePrint = document.documentElement.getAttribute('data-theme') || '';
-    document.documentElement.setAttribute('data-theme', 'light');
-    render();
-}
-function afterPrint() {
-    if (themeBeforePrint === null) return;
-    const theme = themeBeforePrint;
-    themeBeforePrint = null;
-    if (theme) document.documentElement.setAttribute('data-theme', theme);
-    else document.documentElement.removeAttribute('data-theme');
-    render();
 }
 
 // --- projects -----------------------------------------------------------
@@ -549,9 +532,6 @@ function init() {
     el('downloadSvg').addEventListener('click', () => exportDiagram('svg'));
     el('downloadPng').addEventListener('click', () => exportDiagram('png'));
     el('copyMermaid').addEventListener('click', copyMermaid);
-    el('printPage').addEventListener('click', () => window.print());
-    window.addEventListener('beforeprint', beforePrint);
-    window.addEventListener('afterprint', afterPrint);
 
     // A step clicked on the map marks its bar, and the other way round.
     el('diagramHost').addEventListener('click', (event) => {

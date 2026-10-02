@@ -1,6 +1,6 @@
 // Process flow mapper, Phase 3 on the page: lanes running down, the spread of
-// lead time, work done at the same time, the SIPOC table, Mermaid text and
-// the one-page print layout. The pure layers behind them are in
+// lead time, work done at the same time, the SIPOC table and Mermaid text.
+// The pure layers behind them are in
 // process-flow-mapper-sim.spec.cjs.
 //
 // The page runs script-src 'self' with no unsafe-eval, so page.waitForFunction
@@ -448,7 +448,6 @@ test.describe('how long it takes', () => {
     await type(page, 'nonsense');
     await expect(page.locator('#spreadCard')).toBeHidden();
     await expect(page.locator('#copyMermaid')).toBeDisabled();
-    await expect(page.locator('#printPage')).toBeDisabled();
   });
 });
 
@@ -546,7 +545,7 @@ test.describe('work at the same time, SIPOC and waits on the way, on the page', 
   });
 });
 
-test.describe('Mermaid and printing', () => {
+test.describe('Mermaid', () => {
   test('toMermaid writes lanes as subgraphs, shapes by kind, and arrows by what the exit is', async ({ page }) => {
     await openTool(page);
     const out = await page.evaluate((text) => {
@@ -604,43 +603,6 @@ test.describe('Mermaid and printing', () => {
     expect(await readDownloadText(download)).toBe(copied);
     await expect(page.locator('#exportStatus')).toContainText('saved as purchase-request.mmd');
   });
-
-  test('printing shows the result without the editor, in the light colours, and puts the theme back', async ({ page }) => {
-    await openTool(page);
-    await page.selectOption('#presetSelect', 'onboarding');
-    await page.locator('[data-theme-toggle="dark"]').click();
-    await expect(page.locator('#diagramHost rect.flow-bg')).toHaveAttribute('fill', '#18181b');
-
-    await page.evaluate(() => { window.__printed = 0; window.print = () => { window.__printed += 1; }; });
-    await page.click('#printPage');
-    expect(await page.evaluate(() => window.__printed)).toBe(1);
-
-    await page.evaluate(() => window.dispatchEvent(new Event('beforeprint')));
-    await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
-    await expect(page.locator('#diagramHost rect.flow-bg')).toHaveAttribute('fill', '#ffffff');
-    await page.emulateMedia({ media: 'print' });
-    for (const hidden of ['.editor-panel', '#scopeDisclaimer', '#downloadPng', '#printPage', '.csv-btn', 'footer']) {
-      await expect(page.locator(hidden).first(), hidden).toBeHidden();
-    }
-    for (const shown of ['#headline', '#resultStatus', '#diagramHost svg', '#spreadCard', '#sipocTable', '#laneTable', '.diagram-panel p.disclaimer']) {
-      await expect(page.locator(shown).first(), shown).toBeVisible();
-    }
-    // The whole map is on the page, not cut off by a scrolling box.
-    const fit = await page.evaluate(() => {
-      const svg = document.querySelector('#diagramHost svg').getBoundingClientRect();
-      return { right: svg.right, page: document.documentElement.clientWidth, overflow: getComputedStyle(document.getElementById('diagramScroll')).overflowX };
-    });
-    expect(fit.right).toBeLessThanOrEqual(fit.page + 1);
-    expect(fit.overflow).toBe('visible');
-
-    await page.emulateMedia({ media: 'screen' });
-    await page.evaluate(() => window.dispatchEvent(new Event('afterprint')));
-    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
-    await expect(page.locator('#diagramHost rect.flow-bg')).toHaveAttribute('fill', '#18181b');
-    // A second afterprint with nothing to restore changes nothing.
-    await page.evaluate(() => window.dispatchEvent(new Event('afterprint')));
-    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
-  });
 });
 
 test.describe('page checks for the Phase 3 parts', () => {
@@ -652,9 +614,7 @@ test.describe('page checks for the Phase 3 parts', () => {
       .filter((el) => !(el.labels && el.labels.length) && !el.getAttribute('aria-label') && !el.textContent.trim())
       .map((el) => el.id || el.outerHTML.slice(0, 60)));
     expect(unnamed).toEqual([]);
-    for (const id of ['#copyMermaid', '#printPage']) {
-      expect((await page.locator(id).boundingBox()).height, id).toBeGreaterThanOrEqual(44);
-    }
+    expect((await page.locator('#copyMermaid').boundingBox()).height).toBeGreaterThanOrEqual(44);
     await expectContrastAA(page, '#spreadCard h3, #spreadStats .stat-label, #spreadStats .stat-value, #spreadStats .stat-hint, .spread-axis span, #spreadNote, #sipocTable th, #sipocTable td, #directionHelp');
     for (const width of [1280, 1100, 900, 768, 375]) {
       await page.setViewportSize({ width, height: 900 });
@@ -686,8 +646,6 @@ test.describe('page checks for the Phase 3 parts', () => {
     await page.click('#copyMermaid');
     await page.locator('#diagramHost .flow-step').nth(1).focus();
     await page.keyboard.press('Alt+ArrowRight');
-    await page.evaluate(() => window.dispatchEvent(new Event('beforeprint')));
-    await page.evaluate(() => window.dispatchEvent(new Event('afterprint')));
     await Promise.all([page.waitForEvent('download'), page.click('#downloadSvg')]);
     await Promise.all([page.waitForEvent('download'), page.click('#downloadPng')]);
     await page.selectOption('#presetSelect', 'onboarding');
