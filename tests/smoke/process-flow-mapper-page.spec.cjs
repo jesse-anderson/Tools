@@ -39,29 +39,33 @@ test.describe('result', () => {
     await expectPageToLoadCleanly(page, baseURL, PAGE);
     await expect(page.locator('#presetSelect')).toHaveValue('purchase');
     await expect(page.locator('#presetLesson')).toContainText('Look at Efficiency');
-    await expect(page.locator('#diagramHost .flow-step')).toHaveCount(8);
-    await expect(stat(page, 'lead')).toHaveText('4.05 d');
-    await expect(stat(page, 'touch')).toHaveText('59.6 min');
+    await expect(page.locator('#diagramHost .flow-step')).toHaveCount(10);
+    await expect(stat(page, 'lead')).toHaveText('4.09 d');
+    await expect(stat(page, 'touch')).toHaveText('1 h');
     await expect(stat(page, 'efficiency')).toHaveText('3.1%');
-    await expect(stat(page, 'yield')).toHaveText('77%');
-    await expect(stat(page, 'handoffs')).toHaveText('4.39');
+    await expect(stat(page, 'yield')).toHaveText('79%');
+    await expect(stat(page, 'handoffs')).toHaveText('3.14');
+    await expect(stat(page, 'capacity')).toHaveText('40.8 / wk');
     await expect(page.locator('#resultStatus')).toHaveText(
-      'A unit of work takes 4.05 d on average, of which 59.6 min is work and 3.92 d is waiting. Rework adds 4.19 h. 77% of work gets through with no rework. A day is 8 h and a week 5 d.'
+      'A unit of work takes 4.09 d on average, of which 1 h is work and 3.97 d is waiting. Rework adds 3.21 h. 79% of work gets through with no rework. The process can carry about 40.8 a week, limited by Manager. A day is 8 h and a week 5 d.'
     );
     await expect(page.locator('#errorBox')).toBeHidden();
     await expect(page.locator('#warningList li')).toHaveCount(1);
     await expect(page.locator('#warningList')).toContainText('2 exits send work back');
+    // Nothing has changed since the save, so nothing is compared.
+    await expect(page.locator('#headline .stat-change')).toHaveCount(0);
+    await expect(page.locator('#compareNote')).toBeHidden();
   });
 
   test('every example loads, names what to look at, and shows the figure its lesson is about', async ({ page }) => {
     await openTool(page);
     const expected = {
-      purchase: ['lead', '4.05 d'],
-      lab: ['yield', '80%'],
+      purchase: ['efficiency', '3.1%'],
+      lab: ['yield', '76%'],
       change: ['yield', '52%'],
-      jobs: ['handoffs', '1'],
-      order: ['efficiency', '6.9%'],
-      incident: ['yield', '90%']
+      hiring: ['handoffs', '1.23'],
+      order: ['capacity', '650 / wk'],
+      incident: ['yield', '83%']
     };
     for (const [id, [key, value]] of Object.entries(expected)) {
       await page.selectOption('#presetSelect', id);
@@ -69,19 +73,30 @@ test.describe('result', () => {
       await expect(page.locator('#presetLesson'), id).toBeVisible();
       expect((await page.locator('#presetLesson').innerText()).length, id).toBeGreaterThan(60);
       await expect(page.locator('#errorBox'), id).toBeHidden();
+      // An example replaces the process, so it is not compared with the last save.
+      await expect(page.locator('#headline .stat-change'), id).toHaveCount(0);
       // The line under the title in the picture carries the same figures as the cards.
       const line = await page.locator('#diagramHost .flow-summary').textContent();
       for (const card of await page.locator('#headline .stat-value').allTextContents()) expect(line, id).toContain(card);
     }
     // The lab lesson says 1.25 passes, and the map says it on the steps inside the loop.
     await page.selectOption('#presetSelect', 'lab');
-    await expect(page.locator('#diagramHost .flow-badge')).toHaveCount(3);
+    await expect(page.locator('#diagramHost .flow-badge')).toHaveCount(5);
     await expect(page.locator('#diagramHost .flow-step', { hasText: 'Prepare sample' })).toContainText('x1.25');
+    await expect(page.locator('#resultStatus')).toContainText('Rework adds 2.1 h');
+    // The change lesson says drafting is done 1.9 times.
+    await page.selectOption('#presetSelect', 'change');
+    await expect(page.locator('#diagramHost .flow-step', { hasText: 'Draft change' })).toContainText('x1.9');
+    // The hiring lesson says three in four stop at the first screen and two in a hundred are hired.
+    await page.selectOption('#presetSelect', 'hiring');
+    await expect(page.locator('#endTable tbody tr').first()).toHaveText(/\(Declined at application\)\s*75%\s*Recruiter/);
+    await expect(page.locator('#endTable tbody tr', { hasText: '(Hired)' })).toContainText('2%');
+    await expect(page.locator('#laneTable tbody tr', { hasText: 'Interview panel' })).toContainText('9 h');
     // The incident example's dead end is listed and shown as a place work stops.
     await page.selectOption('#presetSelect', 'incident');
     await expect(page.locator('#warningList')).toContainText('"Escalate to vendor" leads nowhere');
     await expect(page.locator('#endTable tbody tr.flagged')).toContainText('Escalate to vendor');
-    await expect(page.locator('#endTable tbody tr.flagged')).toContainText('5.6%');
+    await expect(page.locator('#endTable tbody tr.flagged')).toContainText('6%');
   });
 
   test('typing over an example releases it, and an input error clears the whole result', async ({ page }) => {
@@ -128,11 +143,13 @@ test.describe('result', () => {
     await openTool(page);
     await page.selectOption('#presetSelect', 'order');
     const bars = page.locator('#bars .bar-button');
-    await expect(bars).toHaveCount(5);
+    await expect(bars).toHaveCount(8);
     await expect(bars.first()).toContainText('Book carrier');
-    await expect(bars.first()).toContainText('63%');
+    await expect(bars.first()).toContainText('52%');
     await expect(bars.first()).toContainText('1 d waiting');
     await expect(bars.first()).toContainText('4 min working');
+    // The order in ten that waits for stock outranks picking, as the lesson says.
+    await expect(bars.nth(1)).toContainText('Wait for stock');
     const widths = await page.evaluate(() => [...document.querySelectorAll('#bars .bar-row')].map((row) => ({
       wait: Number(row.querySelector('.bar-wait').getAttribute('width')),
       touch: Number(row.querySelector('.bar-touch').getAttribute('width')),
@@ -198,20 +215,22 @@ test.describe('result', () => {
 
     // Whatever the tint, the share is printed on the step and in the table.
     await page.selectOption('#tint', 'lead');
-    await expect(page.locator('#diagramHost .flow-step', { hasText: 'Book carrier' })).toContainText('63% of lead time');
+    await expect(page.locator('#diagramHost .flow-step', { hasText: 'Book carrier' })).toContainText('52% of lead time');
     await expect(page.locator('#diagramHost .flow-legend')).toContainText('Share of lead time: less');
-    await expect(page.locator('#stepTable tbody tr', { hasText: 'Book carrier' })).toContainText('63%');
+    await expect(page.locator('#stepTable tbody tr', { hasText: 'Book carrier' })).toContainText('52%');
   });
 
   test('the working day is a setting: preset hours, a custom figure, and both named in the result', async ({ page }) => {
     await openTool(page);
     await page.selectOption('#presetSelect', 'order');
-    await expect(stat(page, 'lead')).toHaveText('1.59 d');
+    await expect(stat(page, 'lead')).toHaveText('1.93 d');
+    await expect(stat(page, 'capacity')).toHaveText('650 / wk');
     await expect(page.locator('#hoursCustomGroup')).toBeHidden();
 
-    // "Wait 1 d" becomes 24 hours, so the same list is a longer wait in hours and under a day in days.
+    // A day is now 24 hours: "wait 1 d" is three times as long, and people on duty have three times the hours.
     await page.selectOption('#hoursPreset', '24');
-    await expect(stat(page, 'lead')).toHaveText('1.2 d');
+    await expect(stat(page, 'lead')).toHaveText('1.51 d');
+    await expect(stat(page, 'capacity')).toHaveText('1,950 / wk');
     await expect(page.locator('#resultStatus')).toContainText('A day is 24 h and a week 5 d.');
     await expect(page.locator('#diagramHost .flow-footnote')).toContainText('A day is 24 h, a week 5 d.');
 
@@ -232,24 +251,92 @@ test.describe('result', () => {
     await page.selectOption('#hoursPreset', '8');
     await page.fill('#daysPerWeek', '5');
     await page.selectOption('#unit', 'h');
-    await expect(stat(page, 'lead')).toHaveText('12.7 h');
+    await expect(stat(page, 'lead')).toHaveText('15.4 h');
     await page.selectOption('#unit', 'min');
-    await expect(stat(page, 'touch')).toHaveText('53 min');
+    await expect(stat(page, 'touch')).toHaveText('58.6 min');
   });
 
-  test('tables: lanes carry weekly work when arrivals are given, and phases appear only when there are some', async ({ page }) => {
+  test('tables: staffing and weekly work by lane, phases only when there are some, and who hands to whom', async ({ page }) => {
     await openTool(page);
-    await expect(page.locator('#laneTable thead th')).toHaveText(['Lane', 'Steps', 'Touch', 'Wait', 'Share of lead', 'Hands on', 'Receives', 'Work per week']);
-    await expect(page.locator('#laneTable tbody tr', { hasText: 'Manager' })).toContainText('2.94 h');
+    await expect(page.locator('#laneTable thead th')).toHaveText(
+      ['Lane', 'Steps', 'Touch', 'Wait', 'Share of lead', 'Hands on', 'Receives', 'Work per week', 'Staff', 'Hours per week', 'Can carry', 'Busy']
+    );
+    const manager = page.locator('#laneTable tbody tr', { hasText: 'Manager' });
+    await expect(manager).toContainText('2.94 h');
+    await expect(manager).toContainText('1 @ 10%');
+    await expect(manager).toContainText('4 h');
+    await expect(manager).toContainText('40.8 / wk');
+    await expect(manager).toContainText('74%');
+    // The lane that limits the process is marked in the table and named on the card.
+    await expect(manager).toHaveClass(/limit/);
+    await expect(page.locator('#laneTable tbody tr.limit')).toHaveCount(1);
+    await expect(page.locator('#headline [data-stat="capacity"] .stat-hint')).toHaveText('limited by Manager, 74% busy');
+    await expect(page.locator('#diagramHost .flow-lane-label[data-lane="1"]')).toContainText('74% busy');
+
     await expect(page.locator('#phaseBlock')).toBeVisible();
-    await expect(page.locator('#phaseTable tbody tr')).toHaveCount(2);
+    await expect(page.locator('#phaseTable tbody tr')).toHaveCount(3);
     await expect(page.locator('#exitTable tbody tr.flagged')).toHaveCount(2);
     await expect(page.locator('#exitTable tbody tr.flagged').first()).toContainText('rework');
 
-    await page.selectOption('#presetSelect', 'lab');
+    // Requester hands to Manager twice over one connector, Manager back once: rows hand on, columns receive.
+    await expect(page.locator('#handoffTable thead th')).toHaveText(['Hands on to', 'Requester', 'Manager', 'Finance', 'Purchasing']);
+    await expect(page.locator('#handoffTable tbody tr').first()).toHaveText(/^Requester\s*1\s*$/);
+    await expect(page.locator('#handoffTable tbody tr').nth(1)).toHaveText(/^Manager\s*1\s*1\s*$/);
+
+    // No staff line: no staffing columns and no capacity card. No phases: no phase table.
+    await type(page, LOOP);
     await expect(page.locator('#laneTable thead th')).toHaveCount(7);
+    await expect(page.locator('#headline .stat')).toHaveCount(5);
     await expect(page.locator('#phaseBlock')).toBeHidden();
-    await expect(page.locator('#endTable tbody tr')).toHaveText([/\(Report issued\)\s*Reception\s*100%/]);
+    await expect(page.locator('#endTable tbody tr')).toHaveText([/\(Done\)\s*100%\s*Bob/]);
+    await expect(page.locator('#diagramHost .flow-lane-busy')).toHaveCount(0);
+    // A map inside one lane hands nothing on, so there is no handoff table to show.
+    await type(page, 'Ann: (Start) -> Work\nAnn: Work -> (Done)\nAnn: (Done)');
+    await expect(page.locator('#handoffBlock')).toBeHidden();
+  });
+
+  test('a lane with more work than hours is flagged on the map, in the table and in words', async ({ page }) => {
+    await openTool(page);
+    await type(page, (await page.inputValue('#flowText')).replace('arrivals: 30 / wk', 'arrivals: 60 / wk'));
+    await expect(page.locator('#warningList')).toContainText('Manager cannot keep up: 5.88 h of work arrives each week and 4 h is available');
+    await expect(page.locator('#warningList')).toContainText('lead time shown is too low');
+    await expect(page.locator('#laneTable tbody tr.flagged')).toContainText('Manager');
+    await expect(page.locator('#laneTable tbody tr.flagged')).toContainText('147%');
+    await expect(page.locator('#diagramHost .flow-lane-label[data-lane="1"]')).toContainText('147%, over');
+    // Capacity does not move with arrivals, and the lead time does not either: waits are inputs.
+    await expect(stat(page, 'capacity')).toHaveText('40.8 / wk');
+    await expect(stat(page, 'lead')).toHaveText('4.09 d');
+
+    await page.selectOption('#presetSelect', 'order');
+    await expect(page.locator('#warningList')).toContainText('Warehouse is 92% busy');
+    await expect(page.locator('#laneTable tbody tr.flagged')).toHaveCount(0);
+  });
+
+  test('every headline figure is compared with the last save until it is saved or reverted', async ({ page }) => {
+    await openTool(page);
+    const original = await page.inputValue('#flowText');
+    await type(page, original.replace('wait 2 d', 'wait 1 d').replace('Manager 1 @ 10%', 'Manager 2 @ 10%'));
+    await expect(stat(page, 'lead')).toHaveText('2.92 d');
+    await expect(page.locator('#headline [data-stat="lead"] .stat-change')).toHaveText('down from 4.09 d');
+    await expect(page.locator('#headline [data-stat="efficiency"] .stat-change')).toHaveText('up from 3.1%');
+    await expect(page.locator('#headline [data-stat="capacity"] .stat-change')).toHaveText('up from 40.8 / wk');
+    // A figure that did not move says nothing.
+    await expect(page.locator('#headline [data-stat="yield"] .stat-change')).toHaveCount(0);
+    await expect(page.locator('#compareNote')).toBeVisible();
+
+    await page.click('#projectSave');
+    await expect(page.locator('#headline .stat-change')).toHaveCount(0);
+    await expect(page.locator('#compareNote')).toBeHidden();
+
+    await type(page, original);
+    await expect(page.locator('#headline [data-stat="lead"] .stat-change')).toHaveText('up from 2.92 d');
+    await page.click('#projectRevert');
+    await expect(stat(page, 'lead')).toHaveText('2.92 d');
+    await expect(page.locator('#headline .stat-change')).toHaveCount(0);
+
+    // A setting counts as a change too.
+    await page.selectOption('#hoursPreset', '24');
+    await expect(page.locator('#headline [data-stat="capacity"] .stat-change')).toContainText('up from');
   });
 });
 
@@ -258,16 +345,16 @@ test.describe('map and export', () => {
 
   test('shapes, rework and labels are drawn as the text says', async ({ page }) => {
     const host = page.locator('#diagramHost');
-    await expect(host.locator('.flow-step polygon')).toHaveCount(1);
+    await expect(host.locator('.flow-step polygon')).toHaveCount(3);
     await expect(host.locator('.flow-lane')).toHaveCount(4);
-    await expect(host.locator('.flow-phase-label')).toHaveText([/^Request\s+·\s+59%$/, /^Order\s+·\s+41%$/]);
-    await expect(host.locator('path.flow-link')).toHaveCount(9);
+    await expect(host.locator('.flow-phase-label')).toHaveText([/^Request\s+·\s+59%$/, /^Funding\s+·\s+23%$/, /^Order\s+·\s+18%$/]);
+    await expect(host.locator('path.flow-link')).toHaveCount(11);
     await expect(host.locator('path.flow-rework')).toHaveCount(2);
     await expect(host.locator('path.flow-rework').first()).toHaveAttribute('stroke-dasharray', '6 3');
-    await expect(host.locator('.flow-link-label')).toHaveText(['yes 80%', 'no 5%', 'fix 15%', 'pass 90%', 'fail 10%']);
+    await expect(host.locator('.flow-link-label')).toHaveText(['yes 80%', 'no 5%', 'fix 15%', 'yes 90%', 'no 10%', 'yes 92%', 'no 8%']);
     await expect(host.locator('svg')).toHaveAttribute('role', 'group');
     await expect(host.locator('.flow-step').first()).toHaveAttribute('tabindex', '0');
-    expect(await host.locator('svg desc').textContent()).toContain('8 steps in 4 lanes');
+    expect(await host.locator('svg desc').textContent()).toContain('10 steps in 4 lanes');
     // A note travels as the step's tooltip.
     await type(page, `${LOOP}\n@ Check?: second reviewer on Fridays`);
     expect(await host.locator('.flow-step', { hasText: 'Check?' }).locator('title').textContent()).toContain('second reviewer on Fridays');
@@ -284,7 +371,7 @@ test.describe('map and export', () => {
   });
 
   test('drawn labels and step text keep clear of each other, measured on the real elements', async ({ page }) => {
-    for (const id of ['purchase', 'lab', 'change', 'jobs', 'order', 'incident']) {
+    for (const id of ['purchase', 'lab', 'change', 'hiring', 'order', 'incident']) {
       await page.selectOption('#presetSelect', id);
       await page.locator('#advancedOptions').evaluate((d) => { d.open = true; });
       await page.selectOption('#zoom', '100');
@@ -373,11 +460,12 @@ test.describe('map and export', () => {
     await expect(page.locator('#exportStatus')).toContainText('Saved purchase-request.png');
     await expect(page.locator('#pngSizeNote')).toContainText('so the PNG will be');
 
+    // A long process at 8x is wider than a canvas allows: the note says so before, and the export after.
     await page.selectOption('#presetSelect', 'change');
     await page.selectOption('#pngScale', '8');
-    await expect(page.locator('#pngSizeNote')).toContainText('The map is');
-    const size = await page.evaluate(() => { const S = window.ProcessFlowMapper; const l = S.getModel().layout; return S.pngSize(l.width, l.height, 12); });
-    expect(size.ok).toBe(false);
+    await expect(page.locator('#pngSizeNote')).toContainText('larger than a browser canvas can hold');
+    await page.click('#downloadPng');
+    await expect(page.locator('#exportStatus')).toContainText('larger than a browser canvas can hold');
   });
 
   test('ink clears AA on each surface and on the darkest tint, since map text never reaches the CSS', async ({ page }) => {
@@ -430,8 +518,9 @@ test.describe('page', () => {
       expect((await page.locator(id).first().boundingBox()).height, id).toBeGreaterThanOrEqual(44);
     }
     // A step can be reached and read from the keyboard.
-    const label = await page.locator('#diagramHost .flow-step', { hasText: 'Approve?' }).getAttribute('aria-label');
-    expect(label).toContain('Approve?, Manager');
+    const label = await page.locator('#diagramHost .flow-step', { hasText: 'Approve request?' }).getAttribute('aria-label');
+    expect(label).toContain('Approve request?, Manager');
+    expect(label).toContain('hold Alt and press the up or down arrow');
     expect(label).toContain('of lead time');
   });
 
@@ -485,7 +574,7 @@ test.describe('page', () => {
     });
 
     await openTool(page);
-    for (const id of ['lab', 'change', 'jobs', 'order', 'incident']) await page.selectOption('#presetSelect', id);
+    for (const id of ['lab', 'change', 'hiring', 'order', 'incident']) await page.selectOption('#presetSelect', id);
     await page.locator('#advancedOptions > summary').click();
     await page.selectOption('#tint', 'passes');
     await page.selectOption('#zoom', '75');
@@ -497,11 +586,161 @@ test.describe('page', () => {
     await type(page, LOOP);
     await page.click('#projectSave');
     await Promise.all([page.waitForEvent('download'), page.click('#projectExport')]);
+    await page.check('#wide');
+    await Promise.all([page.waitForEvent('download'), page.locator('.csv-btn').first().click()]);
+    await page.locator('#diagramHost .flow-step').nth(1).focus();
+    await page.keyboard.press('Alt+ArrowDown');
     await Promise.all([page.waitForEvent('download'), page.click('#downloadSvg')]);
     await Promise.all([page.waitForEvent('download'), page.click('#downloadPng')]);
 
     expect(await page.evaluate(() => window.__cspViolations)).toEqual([]);
     expect(consoleHits).toEqual([]);
+  });
+});
+
+test.describe('moving, pasting and saving tables', () => {
+  const lineOf = async (page, step) => (await page.inputValue('#flowText')).split('\n').filter((l) => l.replace(/^[^:]+: /, '').startsWith(step));
+  const laneOf = (page, step) => page.evaluate((name) => {
+    const m = window.ProcessFlowMapper.getModel();
+    const node = m.graph.nodes.find((n) => n.name === name);
+    return m.graph.lanes[node.lane].name;
+  }, step);
+
+  test('dragging a step onto another lane rewrites its line, and a plain click still only picks it', async ({ page }) => {
+    await openTool(page);
+    const index = await page.evaluate(() => window.ProcessFlowMapper.getModel().graph.nodes.findIndex((n) => n.name === 'Budget available?'));
+    const step = page.locator(`#diagramHost .flow-step[data-node="${index}"]`);
+    // The mouse works in viewport coordinates, so the step has to be on screen.
+    await step.scrollIntoViewIfNeeded();
+    const before = await page.inputValue('#flowText');
+
+    await step.click();
+    await expect(step).toHaveClass(/picked/);
+    expect(await page.inputValue('#flowText')).toBe(before);
+
+    const from = await step.boundingBox();
+    const lane = await page.locator('#diagramHost .flow-lane[data-lane="1"]').boundingBox();
+    await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(from.x + from.width / 2, lane.y + lane.height / 2, { steps: 8 });
+    // While it is held over a lane, that lane is marked as where it will land.
+    await expect(page.locator('#diagramHost .flow-lane.drop-target')).toHaveAttribute('data-lane', '1');
+    await page.mouse.up();
+
+    expect(await laneOf(page, 'Budget available?')).toBe('Manager');
+    expect(await lineOf(page, 'Budget available?')).toEqual(['Manager: Budget available? {10 min, wait 1 d} -> yes 90%: Raise purchase order, no 10%: (No budget)']);
+    await expect(page.locator('#diagramHost .flow-lane.drop-target')).toHaveCount(0);
+    // The move is an edit like any other: the example is released and the project keeps it.
+    await expect(page.locator('#presetSelect')).toHaveValue('');
+    expect((await stored(page)).projects[0].draft.text).toContain('Manager: Budget available?');
+    // Finance now has only its end left, and the manager has more to do.
+    await expect(page.locator('#headline [data-stat="capacity"] .stat-change')).toContainText('down from 40.8 / wk');
+    // Letting go outside every lane changes nothing.
+    const moved = await page.inputValue('#flowText');
+    const again = await page.locator(`#diagramHost .flow-step[data-node="${index}"]`).boundingBox();
+    await page.mouse.move(again.x + again.width / 2, again.y + again.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(again.x + again.width / 2, again.y - 400, { steps: 6 });
+    await page.mouse.up();
+    expect(await page.inputValue('#flowText')).toBe(moved);
+  });
+
+  test('Alt and an arrow moves a focused step to the next lane and a focused lane up or down, and focus stays', async ({ page }) => {
+    await openTool(page);
+    const index = await page.evaluate(() => window.ProcessFlowMapper.getModel().graph.nodes.findIndex((n) => n.name === 'Fill in request'));
+    await page.locator(`#diagramHost .flow-step[data-node="${index}"]`).focus();
+    await page.keyboard.press('Alt+ArrowDown');
+    expect(await laneOf(page, 'Fill in request')).toBe('Manager');
+    expect(await page.evaluate(() => document.activeElement.getAttribute('data-node'))).toBe(String(index));
+    await page.keyboard.press('Alt+ArrowDown');
+    expect(await laneOf(page, 'Fill in request')).toBe('Finance');
+    await page.keyboard.press('Alt+ArrowUp');
+    await page.keyboard.press('Alt+ArrowUp');
+    expect(await laneOf(page, 'Fill in request')).toBe('Requester');
+    // Already in the top lane: nothing to do, and nothing breaks.
+    const top = await page.inputValue('#flowText');
+    await page.keyboard.press('Alt+ArrowUp');
+    expect(await page.inputValue('#flowText')).toBe(top);
+    // A plain arrow is not a move.
+    await page.keyboard.press('ArrowDown');
+    expect(await page.inputValue('#flowText')).toBe(top);
+
+    await page.locator('#diagramHost .flow-lane-label[data-lane="0"]').focus();
+    await page.keyboard.press('Alt+ArrowDown');
+    expect((await page.inputValue('#flowText')).split('\n')[0]).toBe('lanes: Manager, Requester, Finance, Purchasing');
+    expect(await page.evaluate(() => window.ProcessFlowMapper.getModel().graph.lanes.map((l) => l.name))).toEqual(['Manager', 'Requester', 'Finance', 'Purchasing']);
+    expect(await page.evaluate(() => document.activeElement.getAttribute('data-lane'))).toBe('1');
+    // Staff follows the lane by name, so the manager is still the limit.
+    await expect(page.locator('#headline [data-stat="capacity"] .stat-hint')).toContainText('limited by Manager');
+  });
+
+  test('a lane name dragged past another lane reorders them', async ({ page }) => {
+    await openTool(page);
+    const label = page.locator('#diagramHost .flow-lane-label[data-lane="3"]');
+    await label.scrollIntoViewIfNeeded();
+    const from = await label.boundingBox();
+    const target = await page.locator('#diagramHost .flow-lane[data-lane="0"]').boundingBox();
+    await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(from.x + from.width / 2, target.y + target.height / 2, { steps: 8 });
+    await page.mouse.up();
+    expect((await page.inputValue('#flowText')).split('\n')[0]).toBe('lanes: Purchasing, Requester, Manager, Finance');
+  });
+
+  test('rows pasted from a spreadsheet become step lines, and ordinary text pastes as it is', async ({ page }) => {
+    await openTool(page);
+    await page.fill('#flowText', '');
+    const paste = (text) => page.evaluate((t) => {
+      const data = new DataTransfer();
+      data.setData('text/plain', t);
+      const box = document.getElementById('flowText');
+      box.focus();
+      return box.dispatchEvent(new ClipboardEvent('paste', { clipboardData: data, bubbles: true, cancelable: true }));
+    }, text);
+    const rows = ['Lane\tStep\tTouch\tWait\tNext', 'Ann\t(Start)\t\t\tDraft', 'Ann\tDraft\t30 min\t\tOK?', 'Bob\tOK?\t10 min\t1 d\tyes 75%: (Done); no 25%: Draft', 'Bob\t(Done)'].join('\n');
+    // The page handled it, so the browser's own paste is cancelled.
+    expect(await paste(rows)).toBe(false);
+    expect(await page.inputValue('#flowText')).toBe('Ann: (Start) -> Draft\nAnn: Draft {30 min} -> OK?\nBob: OK? {10 min, wait 1 d} -> yes 75%: (Done), no 25%: Draft\nBob: (Done)\n');
+    await expect(page.locator('#pasteStatus')).toHaveText('Turned 4 spreadsheet rows into step lines.');
+    await expect(page.locator('#diagramHost .flow-step')).toHaveCount(4);
+    await expect(stat(page, 'yield')).toHaveText('75%');
+    // Plain text is left to the browser.
+    expect(await paste('Cy: Another step')).toBe(true);
+  });
+
+  test('each table saves as CSV, named for the diagram, with awkward cells quoted', async ({ page }) => {
+    await openTool(page);
+    const [lanes] = await Promise.all([page.waitForEvent('download'), page.locator('.csv-btn[data-table="laneTable"]').click()]);
+    expect(lanes.suggestedFilename()).toBe('purchase-request-lanes.csv');
+    const rows = (await readDownloadText(lanes)).split('\r\n');
+    expect(rows[0]).toBe('Lane,Steps,Touch,Wait,Share of lead,Hands on,Receives,Work per week,Staff,Hours per week,Can carry,Busy');
+    expect(rows).toHaveLength(5);
+    expect(rows[2].startsWith('Manager,2,5.88 min,')).toBe(true);
+    await expect(page.locator('#exportStatus')).toHaveText('Saved purchase-request-lanes.csv');
+    await expect(page.locator('.csv-btn')).toHaveCount(6);
+
+    await type(page, 'Ann: (Start) -> "Check a, b"\nAnn: "Check a, b" {5 min} -> (Done)\nAnn: (Done)');
+    const csv = await page.evaluate(() => window.ProcessFlowMapper.tableToCsv(document.getElementById('stepTable')));
+    expect(csv.split('\r\n')[2].startsWith('"Check a, b",Ann,')).toBe(true);
+  });
+
+  test('the result can take the full width with the editor below, and that is kept', async ({ page }) => {
+    await page.setViewportSize({ width: 1500, height: 900 });
+    await openTool(page);
+    const width = async () => (await page.locator('.diagram-panel').boundingBox()).width;
+    const narrow = await width();
+    await page.check('#wide');
+    await expect(page.locator('#flowLayout')).toHaveClass(/wide/);
+    expect(await width()).toBeGreaterThan(narrow + 250);
+    const panel = await page.locator('.diagram-panel').boundingBox();
+    const editor = await page.locator('#flowText').boundingBox();
+    expect(panel.y).toBeLessThan(editor.y);
+    // The fitted map uses the room it has been given.
+    const shown = await page.evaluate(() => Number(document.querySelector('#diagramHost svg').getAttribute('width')));
+    expect(shown).toBeGreaterThan(narrow);
+    await page.reload();
+    await expect(page.locator('#wide')).toBeChecked();
+    await expect(page.locator('#flowLayout')).toHaveClass(/wide/);
   });
 });
 
@@ -530,7 +769,7 @@ test.describe('scope disclaimer', () => {
     for (const phrase of [
       'A wait is an input',
       'Work done in parallel',
-      'Capacity',
+      'Capacity is a ceiling, not a queue',
       'Queues, batching and priorities',
       'no percentiles',
       'Rework is chosen by typing order',
@@ -617,7 +856,7 @@ test.describe('projects', () => {
     await page.addInitScript((key) => { if (!sessionStorage.getItem('seeded')) { localStorage.setItem(key, '{"projects": "nope"}'); sessionStorage.setItem('seeded', '1'); } }, STORAGE_KEY);
     await openTool(page);
     await expect(page.locator('#projectStatus')).toContainText('could not be read and were reset');
-    await expect(page.locator('#diagramHost .flow-step')).toHaveCount(8);
+    await expect(page.locator('#diagramHost .flow-step')).toHaveCount(10);
 
     for (let i = 0; i < 9; i++) await page.click('#projectNew');
     await expect(page.locator('#projectNew')).toBeDisabled();

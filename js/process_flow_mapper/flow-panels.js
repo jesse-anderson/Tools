@@ -13,14 +13,25 @@ function node(tag, className, text) {
     return el;
 }
 
-/** Five figures in a row, each with what it means underneath. */
-export function fillHeadline(container, model) {
+/**
+ * The headline figures in a row, each with what it means underneath. changes
+ * is [{ key, text }] from headlineChanges: how a figure moved since the save.
+ */
+export function fillHeadline(container, model, changes = []) {
+    const moved = new Map(changes.map((c) => [c.key, c.text]));
     container.replaceChildren(...headline(model).map((h) => {
         const card = node('div', 'stat');
         card.setAttribute('data-stat', h.key);
         card.append(node('dt', 'stat-label', h.label), node('dd', 'stat-value', h.value), node('dd', 'stat-hint', h.hint));
+        if (moved.has(h.key)) card.append(node('dd', 'stat-change', moved.get(h.key)));
         return card;
     }));
+}
+
+/** A table as CSV text: quoted where a cell holds a comma, a quote or a line break. */
+export function tableToCsv(table) {
+    const quote = (text) => (/[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text);
+    return [...table.rows].map((row) => [...row.cells].map((c) => quote(c.textContent.trim())).join(',')).join('\r\n');
 }
 
 /**
@@ -111,10 +122,32 @@ export function fillTables(tables, model) {
         { label: 'Hands on', num: true, value: (r) => String(r.handoffsOut) },
         { label: 'Receives', num: true, value: (r) => String(r.handoffsIn) }
     ];
+    const figure = (v) => v.toLocaleString('en-US', { maximumSignificantDigits: 3 });
     if (totals && totals.arrivalsPerWeek !== null) {
-        laneCols.push({ label: 'Work per week', num: true, value: (r) => `${r.loadPerWeek.toLocaleString('en-US', { maximumSignificantDigits: 3 })} h` });
+        laneCols.push({ label: 'Work per week', num: true, value: (r) => `${figure(r.loadPerWeek)} h` });
     }
-    fillTable(tables.lanes, laneCols, totals ? totals.lanes : []);
+    // Staffing columns appear once any lane has staff.
+    if (totals && totals.lanes.some((l) => l.staff)) {
+        laneCols.push(
+            { label: 'Staff', num: true, value: (r) => (r.staff ? `${figure(r.staff.people)}${r.staff.share < 1 ? ` @ ${formatPercent(r.staff.share)}` : ''}` : '') },
+            { label: 'Hours per week', num: true, value: (r) => (r.available === null ? '' : `${figure(r.available)} h`) },
+            { label: 'Can carry', num: true, value: (r) => (r.canCarry === null ? '' : `${figure(r.canCarry)} / wk`) }
+        );
+        if (totals.arrivalsPerWeek !== null) {
+            laneCols.push({ label: 'Busy', num: true, value: (r) => (r.busy === null ? '' : formatPercent(r.busy)) });
+        }
+    }
+    const limit = totals && totals.capacity ? totals.capacity.lane : -1;
+    fillTable(tables.lanes, laneCols, totals ? totals.lanes.map((l) => ({
+        ...l, className: l.busy !== null && l.busy > 1 ? 'flagged' : (l.index === limit ? 'limit' : '')
+    })) : []);
+
+    // Who hands work to whom: rows hand on, columns receive.
+    const matrix = graph.counts.handoffMatrix;
+    fillTable(tables.handoffs, [
+        { label: 'Hands on to', value: (r) => r.name },
+        ...graph.lanes.map((to) => ({ label: to.name, num: true, value: (r) => (r.index === to.index ? '' : String(matrix[r.index][to.index] || '')) }))
+    ], graph.counts.handoffs ? graph.lanes : []);
 
     fillTable(tables.phases, [
         { label: 'Phase', value: (r) => r.name || 'Whole process' },
@@ -126,8 +159,8 @@ export function fillTables(tables, model) {
 
     fillTable(tables.ends, [
         { label: 'Ends at', value: (r) => graph.nodes[r.index].name },
-        { label: 'Lane', value: (r) => lane(graph.nodes[r.index].lane) },
-        { label: 'Share of work', num: true, value: (r) => formatPercent(r.share) }
+        { label: 'Share of work', num: true, value: (r) => formatPercent(r.share) },
+        { label: 'Lane', value: (r) => lane(graph.nodes[r.index].lane) }
     ], result.ok ? [...result.ends].sort((a, b) => b.share - a.share).map((e) => ({
         ...e, className: graph.nodes[e.index].kind === 'terminator' ? '' : 'flagged'
     })) : []);

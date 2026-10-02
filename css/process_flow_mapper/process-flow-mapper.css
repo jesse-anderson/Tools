@@ -402,10 +402,6 @@ tr.flagged {
     stroke-width: 3;
 }
 
-.diagram-host .flow-step {
-    cursor: default;
-}
-
 .diagram-host .flow-step:focus-visible {
     outline: 2px solid var(--accent-general);
     outline-offset: 3px;
@@ -420,6 +416,8 @@ tr.flagged {
 /* The hidden attribute loses to any display rule above, so it is restated. */
 .input-group[hidden],
 .table-block[hidden],
+.table-card[hidden],
+.compare-note[hidden],
 .lesson[hidden] {
     display: none;
 }
@@ -439,7 +437,7 @@ tr.flagged {
 /* Headline figures */
 .headline {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
     gap: 10px;
     margin: 0 0 14px;
 }
@@ -463,9 +461,10 @@ tr.flagged {
     margin: 2px 0;
     color: var(--text-primary);
     font-family: 'JetBrains Mono', monospace;
-    font-size: 1.5rem;
+    font-size: 1.375rem;
     font-weight: 700;
     line-height: 1.2;
+    white-space: nowrap;
 }
 
 .stat-hint {
@@ -473,6 +472,81 @@ tr.flagged {
     color: var(--text-secondary);
     font-size: 0.75rem;
     line-height: 1.35;
+}
+
+.stat-change {
+    margin: 4px 0 0;
+    color: var(--text-primary);
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.compare-note {
+    margin-top: -6px;
+}
+
+/* The lane table has the most columns, so it gets the full width. */
+.table-wide {
+    margin-bottom: 14px;
+}
+
+/* A table card's heading with its CSV button beside it. */
+.card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.card-head h3 {
+    margin: 0;
+}
+
+.card-head + .helper-text,
+.card-head + .table-scroll {
+    margin-top: 8px;
+}
+
+/* The lane that limits capacity. Overloaded lanes use tr.flagged. */
+tr.limit {
+    box-shadow: inset 3px 0 0 var(--accent-general);
+}
+
+/* Full-width result with the editor underneath, for a long process. */
+.flow-layout.wide {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.flow-layout.wide .diagram-panel {
+    order: -1;
+}
+
+.flow-layout.wide > .disclaimer-card {
+    order: -2;
+}
+
+/* Steps and lane names can be dragged. touch-action lets a finger drag one instead of the page. */
+.diagram-host .flow-step,
+.diagram-host .flow-lane-label {
+    cursor: grab;
+    touch-action: none;
+    user-select: none;
+}
+
+.diagram-host.dragging,
+.diagram-host.dragging .flow-step,
+.diagram-host.dragging .flow-lane-label {
+    cursor: grabbing;
+}
+
+.diagram-host .flow-lane.drop-target {
+    stroke: var(--accent-general);
+    stroke-width: 3;
+}
+
+.diagram-host .flow-lane-label:focus-visible {
+    outline: 2px solid var(--accent-general);
+    outline-offset: 3px;
 }
 
 /* Where the time goes */

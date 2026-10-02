@@ -8,9 +8,10 @@ import * as solver from './flow-solve.js';
 import * as router from './flow-route.js';
 import * as layouts from './flow-layout.js';
 import * as projects from './flow-projects.js';
-import { buildModel, headline, summarySentence, summaryLine, formatDuration, formatPercent } from './flow-model.js';
+import { buildModel, headline, headlineChanges, summarySentence, summaryLine, formatDuration, formatPercent } from './flow-model.js';
 import { renderFlow, tintLevels, mix, PALETTES } from './flow-render.js';
-import { fillHeadline, fillBars, fillTables } from './flow-panels.js';
+import { fillHeadline, fillBars, fillTables, tableToCsv } from './flow-panels.js';
+import { attachDrag } from './flow-drag.js';
 import {
     serializeSvg, svgToPngBlob, downloadBlob, fileStem, pngSize, PNG_SCALES, loadFontDataUrl, embedFont
 } from './flow-export.js';
@@ -22,10 +23,10 @@ const DELETE_ARM_MS = 4000;
 const FONT = "'Space Grotesk', system-ui, 'Segoe UI', Arial, sans-serif";
 
 // Everything a project remembers besides the step list.
-const FIELD_IDS = ['titleInput', 'hoursPreset', 'hoursCustom', 'daysPerWeek', 'tint', 'unit', 'showShares', 'showBadges',
+const FIELD_IDS = ['titleInput', 'hoursPreset', 'hoursCustom', 'daysPerWeek', 'tint', 'unit', 'showShares', 'showBadges', 'wide',
     'fontSize', 'zoom', 'pngScale', 'exportTheme', 'exportTransparent'];
 const CLAMPED_IDS = ['hoursCustom', 'daysPerWeek', 'fontSize'];
-const QUIET_IDS = ['pngScale', 'exportTheme', 'exportTransparent', 'zoom'];
+const QUIET_IDS = ['pngScale', 'exportTheme', 'exportTransparent', 'zoom', 'wide'];
 const STARTER_TEXT = '// Lane: Step {touch, wait} -> Next step\nTeam: (Start) -> Do the work\nTeam: Do the work {30 min, wait 1 h} -> (Done)\nTeam: (Done)\n';
 
 let model = null;
@@ -36,6 +37,8 @@ let defaultFields = {};
 let deleteTimer = null;
 let textTimer = null;
 let picked = null;
+// The model of the last save, kept until the save changes, for "since last save".
+let baseline = { key: null, model: null };
 
 // Text is measured on a canvas, so boxes and labels fit what is actually drawn.
 const ruler = document.createElement('canvas').getContext('2d');
@@ -53,25 +56,31 @@ function numberField(id) {
     return Number.isFinite(value) ? value : undefined;
 }
 
-function readSettings() {
-    const preset = el('hoursPreset').value;
-    const title = el('titleInput').value.trim();
+/** Settings from a set of field values: the form's, or a saved project's. */
+function settingsFromFields(fields) {
+    const number = (id) => {
+        const raw = String(fields[id] == null ? '' : fields[id]).trim();
+        return raw === '' || !Number.isFinite(Number(raw)) ? undefined : Number(raw);
+    };
+    const title = String(fields.titleInput || '').trim();
     return {
         model: {
             title,
-            hoursPerDay: preset === 'custom' ? numberField('hoursCustom') : Number(preset),
-            daysPerWeek: numberField('daysPerWeek'),
-            unit: el('unit').value,
-            fontSize: numberField('fontSize'),
-            showShares: el('showShares').checked
+            hoursPerDay: fields.hoursPreset === 'custom' ? number('hoursCustom') : Number(fields.hoursPreset),
+            daysPerWeek: number('daysPerWeek'),
+            unit: fields.unit,
+            fontSize: number('fontSize'),
+            showShares: fields.showShares !== false
         },
         view: {
             title,
-            tint: el('tint').value,
-            showBadges: el('showBadges').checked
+            tint: fields.tint,
+            showBadges: fields.showBadges !== false
         }
     };
 }
+
+const readSettings = () => settingsFromFields(captureFields());
 
 const currentPalette = () => (document.documentElement.getAttribute('data-theme') === 'light' ? PALETTES.light : PALETTES.dark);
 
@@ -84,7 +93,8 @@ function fillList(list, items) {
 }
 
 const tables = () => ({
-    lanes: el('laneTable'), phases: el('phaseTable'), ends: el('endTable'), steps: el('stepTable'), exits: el('exitTable')
+    lanes: el('laneTable'), phases: el('phaseTable'), ends: el('endTable'), steps: el('stepTable'), exits: el('exitTable'),
+    handoffs: el('handoffTable')
 });
 
 function clearOutput() {
@@ -98,6 +108,20 @@ function clearOutput() {
     }
     el('resultStatus').textContent = '';
     el('exportStatus').textContent = '';
+    el('compareNote').hidden = true;
+}
+
+/** The last save as a model, rebuilt only when the save itself changes. Null when the form matches it. */
+function savedModel() {
+    const active = projects.activeProject(store);
+    if (!active) return null;
+    const saved = JSON.stringify(projects.cleanState(active.saved));
+    if (saved === JSON.stringify(projects.cleanState(captureState()))) return null;
+    if (baseline.key !== saved) {
+        const fields = { ...defaultFields, ...active.saved.fields };
+        baseline = { key: saved, model: buildModel(active.saved.text, settingsFromFields(fields).model, measure) };
+    }
+    return baseline.model;
 }
 
 function updatePngNote() {
@@ -114,6 +138,7 @@ const FIT_FLOOR = 0.6;
 
 /** Show the map at the chosen size. Sizes are attributes: a style attribute is not allowed here. */
 function applyZoom() {
+    el('flowLayout').classList.toggle('wide', el('wide').checked);
     const svg = el('diagramHost').querySelector('svg');
     if (!svg || !model || !model.ok) return;
     const zoom = el('zoom').value;
@@ -160,11 +185,14 @@ function render() {
         clearOutput();
     } else {
         el('diagramHost').replaceChildren(renderFlow(document, model, { ...settings.view, interactive: true }, currentPalette(), measure));
-        fillHeadline(el('headline'), model);
+        const changes = headlineChanges(model, savedModel());
+        fillHeadline(el('headline'), model, changes);
+        el('compareNote').hidden = changes.length === 0;
         const bars = fillBars(el('bars'), model, (index) => pick(index));
         el('barsEmpty').hidden = bars > 0;
         fillTables(tables(), model);
         el('phaseBlock').hidden = model.layout.phases.length === 0;
+        el('handoffBlock').hidden = model.graph.counts.handoffs === 0;
         el('resultStatus').textContent = summarySentence(model);
         el('resultStatus').classList.toggle('withheld', !model.result.ok);
         applyZoom();
@@ -411,6 +439,7 @@ function init() {
     for (const id of FIELD_IDS.filter((f) => !QUIET_IDS.includes(f))) el(id).addEventListener('input', () => render());
     el('pngScale').addEventListener('input', () => { updatePngNote(); autosave(); });
     el('zoom').addEventListener('input', () => { applyZoom(); autosave(); });
+    el('wide').addEventListener('input', () => { applyZoom(); autosave(); });
     el('exportTheme').addEventListener('input', autosave);
     el('exportTransparent').addEventListener('input', autosave);
 
@@ -425,6 +454,55 @@ function init() {
             if (clamped !== value) { input.value = String(clamped); render(); }
         });
     }
+
+    // Each table saves as CSV from the button in its card.
+    document.querySelector('.diagram-panel').addEventListener('click', (event) => {
+        const button = event.target instanceof Element ? event.target.closest('.csv-btn') : null;
+        if (!button) return;
+        const name = `${fileStem(el('titleInput').value)}-${button.getAttribute('data-name')}.csv`;
+        downloadBlob(new Blob([tableToCsv(el(button.getAttribute('data-table')))], { type: 'text/csv' }), name);
+        el('exportStatus').textContent = `Saved ${name}`;
+    });
+
+    // Rows pasted from a spreadsheet are turned into step lines on the way in.
+    el('flowText').addEventListener('paste', (event) => {
+        const pasted = event.clipboardData ? event.clipboardData.getData('text/plain') : '';
+        const converted = parser.tableToFlow(pasted);
+        if (!converted) return;
+        event.preventDefault();
+        const box = el('flowText');
+        box.setRangeText(converted.text, box.selectionStart, box.selectionEnd, 'end');
+        el('pasteStatus').textContent = `Turned ${converted.rows} spreadsheet row${converted.rows === 1 ? '' : 's'} into step lines.`;
+        showLesson('');
+        render();
+    });
+
+    // Moving a step to another lane, or a lane up or down, rewrites the text.
+    const refocus = (selector) => {
+        const target = el('diagramHost').querySelector(selector);
+        if (target) target.focus({ preventScroll: true });
+    };
+    const setText = (text) => {
+        el('flowText').value = text;
+        showLesson('');
+        render();
+    };
+    attachDrag(el('diagramHost'), {
+        getModel: () => model,
+        moveStep: (stepIndex, laneIndex) => {
+            const step = model.graph.nodes[stepIndex];
+            if (step.lane === laneIndex) return;
+            setText(parser.setStepLane(el('flowText').value, step.name, model.graph.lanes[laneIndex].name));
+            refocus(`.flow-step[data-node="${stepIndex}"]`);
+        },
+        moveLane: (laneIndex, toIndex) => {
+            if (laneIndex === toIndex) return;
+            const order = model.graph.lanes.map((l) => l.name);
+            order.splice(toIndex, 0, order.splice(laneIndex, 1)[0]);
+            setText(parser.setLaneOrder(el('flowText').value, order));
+            refocus(`.flow-lane-label[data-lane="${toIndex}"]`);
+        }
+    });
 
     el('downloadSvg').addEventListener('click', () => exportDiagram('svg'));
     el('downloadPng').addEventListener('click', () => exportDiagram('png'));
@@ -452,7 +530,8 @@ function init() {
         flushDraft();
         projects.commitProject(projects.activeProject(store), Date.now());
         writeStore();
-        updateProjectBar();
+        // The comparison is against the save, so saving clears it.
+        render();
     });
     el('projectRevert').addEventListener('click', () => {
         projects.revertProject(projects.activeProject(store), Date.now());
@@ -492,6 +571,8 @@ window.ProcessFlowMapper = {
     projects,
     buildModel,
     headline,
+    headlineChanges,
+    tableToCsv,
     summarySentence,
     summaryLine,
     formatDuration,

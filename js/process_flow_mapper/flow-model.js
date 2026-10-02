@@ -9,6 +9,8 @@ export const TITLE_HEIGHT = 30;
 export const SUMMARY_HEIGHT = 20;
 export const FOOTNOTE_HEIGHT = 22;
 export const DISPLAY_UNITS = Object.freeze(['auto', 'min', 'h', 'd', 'wk']);
+// A lane this busy has little slack left for uneven arrivals.
+export const BUSY_FROM = 0.85;
 
 const sig = (value, digits = 3) => value.toLocaleString('en-US', { maximumSignificantDigits: digits });
 
@@ -115,17 +117,62 @@ export function buildModel(text, settings = {}, measure = undefined) {
         });
         let perWeek = null;
         if (parsed.arrivals) {
-            const weekHours = calendar.hoursPerDay * calendar.daysPerWeek;
-            perWeek = parsed.arrivals.count * weekHours / toHours({ value: 1, unit: parsed.arrivals.per }, calendar);
+            perWeek = parsed.arrivals.count * calendar.hoursPerDay * calendar.daysPerWeek / toHours({ value: 1, unit: parsed.arrivals.per }, calendar);
         }
-        const lanes = group('lane', graph.lanes).map((l) => ({
-            ...l,
-            handoffsIn: graph.lanes[l.index].handoffsIn,
-            handoffsOut: graph.lanes[l.index].handoffsOut,
-            // Hours of work landing on the lane each week. Not a utilisation: headcount is not known here.
-            loadPerWeek: perWeek === null ? null : perWeek * l.touch
-        }));
-        totals = { lanes, phases: group('phase', graph.phases), arrivalsPerWeek: perWeek };
+        // Capacity. Staff is people on duty during working hours, and the share
+        // of their time this process gets. A lane can carry what its hours
+        // allow, and the process can carry what its tightest lane can.
+        const weekHours = calendar.hoursPerDay * calendar.daysPerWeek;
+        const lanes = group('lane', graph.lanes).map((l) => {
+            const staff = parsed.staff[l.name] || null;
+            const available = staff ? staff.people * staff.share * weekHours : null;
+            const loadPerWeek = perWeek === null ? null : perWeek * l.touch;
+            return {
+                ...l,
+                handoffsIn: graph.lanes[l.index].handoffsIn,
+                handoffsOut: graph.lanes[l.index].handoffsOut,
+                // Hours of work landing on the lane each week.
+                loadPerWeek,
+                staff,
+                available,
+                canCarry: available !== null && l.touch > 0 ? available / l.touch : null,
+                busy: available !== null && loadPerWeek !== null ? loadPerWeek / available : null
+            };
+        });
+        const staffed = lanes.filter((l) => l.canCarry !== null);
+        const limit = staffed.length ? staffed.reduce((m, l) => (l.canCarry < m.canCarry ? l : m)) : null;
+        const unstaffed = lanes.filter((l) => l.touch > 0 && l.staff === null).map((l) => l.name);
+        totals = {
+            lanes,
+            phases: group('phase', graph.phases),
+            arrivalsPerWeek: perWeek,
+            capacity: limit ? { perWeek: limit.canCarry, lane: limit.index, busy: limit.busy, unstaffed } : null
+        };
+
+        const hours = (h) => `${sig(h)} h`;
+        for (const l of lanes) {
+            if (l.busy === null) continue;
+            if (l.busy > 1 + 1e-9) {
+                warnings.push({
+                    line: l.staff.line,
+                    code: 'OVERLOADED',
+                    message: `${l.name} cannot keep up: ${hours(l.loadPerWeek)} of work arrives each week and ${hours(l.available)} is available. Work will pile up there without limit, so the lead time shown is too low`
+                });
+            } else if (l.busy >= BUSY_FROM) {
+                warnings.push({
+                    line: l.staff.line,
+                    code: 'BUSY',
+                    message: `${l.name} is ${formatPercent(l.busy)} busy. Past about ${formatPercent(BUSY_FROM)} a queue grows quickly whenever work arrives unevenly, so its real wait is likely longer than the one entered`
+                });
+            }
+        }
+        if (limit && unstaffed.length) {
+            warnings.push({
+                line: null,
+                code: 'STAFF_PARTIAL',
+                message: `No staff is given for ${unstaffed.join(', ')}, so capacity is the tightest of the lanes that have it and may be lower`
+            });
+        }
     }
 
     // What is printed on each exit. A lone exit with no label says nothing.
@@ -149,18 +196,52 @@ export function buildModel(text, settings = {}, measure = undefined) {
     return { ok: true, errors, warnings, parsed, graph, result, totals, layout, timed, unit };
 }
 
-/** The five headline figures, as { key, label, value, hint } in display order. */
+/**
+ * The headline figures, as { key, label, value, hint, raw } in display order.
+ * Capacity joins the five when staff is given. raw is the number behind the
+ * text, for comparing two models.
+ */
 export function headline(model) {
-    const { result, graph, unit } = model;
+    const { result, graph, unit, totals } = model;
     if (!result.ok) return [];
     const dur = (h) => formatDuration(h, graph.calendar, unit);
-    return [
-        { key: 'lead', label: 'Lead time', value: dur(result.lead), hint: 'start to finish, per unit of work' },
-        { key: 'touch', label: 'Touch time', value: dur(result.touch), hint: 'someone is working on it' },
-        { key: 'efficiency', label: 'Efficiency', value: result.efficiency === null ? 'n/a' : formatPercent(result.efficiency), hint: 'touch time as a share of lead time' },
-        { key: 'yield', label: 'First-pass yield', value: formatPercent(result.yield), hint: 'finishes with no rework' },
-        { key: 'handoffs', label: 'Handoffs', value: sig(result.handoffsPerUnit), hint: 'lane to lane, per unit of work' }
+    const items = [
+        { key: 'lead', label: 'Lead time', value: dur(result.lead), raw: result.lead, hint: 'start to finish, per unit of work' },
+        { key: 'touch', label: 'Touch time', value: dur(result.touch), raw: result.touch, hint: 'someone is working on it' },
+        { key: 'efficiency', label: 'Efficiency', value: result.efficiency === null ? 'n/a' : formatPercent(result.efficiency), raw: result.efficiency, hint: 'touch time as a share of lead time' },
+        { key: 'yield', label: 'First-pass yield', value: formatPercent(result.yield), raw: result.yield, hint: 'finishes with no rework' },
+        { key: 'handoffs', label: 'Handoffs', value: sig(result.handoffsPerUnit), raw: result.handoffsPerUnit, hint: 'lane to lane, per unit of work' }
     ];
+    if (totals.capacity) {
+        const c = totals.capacity;
+        const busy = c.busy === null ? '' : `, ${formatPercent(c.busy)} busy`;
+        items.push({
+            key: 'capacity', label: 'Capacity', value: `${sig(c.perWeek)} / wk`, raw: c.perWeek,
+            hint: `limited by ${graph.lanes[c.lane].name}${busy}`
+        });
+    }
+    return items;
+}
+
+/**
+ * How each headline figure moved against a baseline model, as
+ * { key, text } for the ones that changed. Used for "since last save".
+ */
+export function headlineChanges(model, baseline) {
+    if (!model.ok || !baseline || !baseline.ok || !model.result.ok || !baseline.result.ok) return [];
+    // A different process is not a change to this one: most of the saved steps must still be here.
+    const names = new Set(model.graph.nodes.map((n) => n.name));
+    const kept = baseline.graph.nodes.filter((n) => names.has(n.name)).length;
+    if (kept * 2 < baseline.graph.nodes.length) return [];
+    const before = new Map(headline(baseline).map((h) => [h.key, h]));
+    const changes = [];
+    for (const now of headline(model)) {
+        const was = before.get(now.key);
+        if (!was) { changes.push({ key: now.key, text: 'new since last save' }); continue; }
+        if (was.value === now.value || was.raw === null || now.raw === null) continue;
+        changes.push({ key: now.key, text: `${now.raw > was.raw ? 'up' : 'down'} from ${was.value}` });
+    }
+    return changes;
 }
 
 /** The result in one or two sentences, for the status line and the SVG description. */
@@ -176,7 +257,9 @@ export function summarySentence(model) {
         return `No times entered, so there is no lead time. ${yieldPart}, and a unit of work passes through ${sig(result.stepsPerUnit)} steps and ${sig(result.handoffsPerUnit)} handoffs on average.`;
     }
     const rework = result.reworkCost > 0 ? ` Rework adds ${dur(result.reworkCost)}.` : '';
-    return `A unit of work takes ${dur(result.lead)} on average, of which ${dur(result.touch)} is work and ${dur(result.wait)} is waiting.${rework} ${yieldPart}. ${calendar}`;
+    const c = model.totals.capacity;
+    const capacity = c ? ` The process can carry about ${sig(c.perWeek)} a week, limited by ${graph.lanes[c.lane].name}.` : '';
+    return `A unit of work takes ${dur(result.lead)} on average, of which ${dur(result.touch)} is work and ${dur(result.wait)} is waiting.${rework} ${yieldPart}.${capacity} ${calendar}`;
 }
 
 /** The short line drawn under the title, so a pasted picture still carries its numbers. */

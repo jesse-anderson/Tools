@@ -166,9 +166,23 @@ export function renderFlow(doc, model, viewOptions = {}, palette = PALETTES.ligh
             fill: lane.index % 2 ? palette.surface : palette.band, stroke: palette.rule, 'stroke-width': 1, 'data-lane': lane.index
         }));
         laneGroup.appendChild(make(doc, 'rect', { x: area.headerLeft, y: r2(lane.y0), width: 5, height: r2(lane.y1 - lane.y0), fill: color }));
-        const text = make(doc, 'text', { class: 'flow-lane-label', x: area.headerLeft + 12, 'font-weight': 600, fill: palette.ink, 'data-lane': lane.index });
-        const firstY = (lane.y0 + lane.y1) / 2 - ((lane.lines.length - 1) * lineHeight) / 2 + fontSize * 0.35;
+        const text = make(doc, 'text', {
+            class: 'flow-lane-label', x: area.headerLeft + 12, 'font-weight': 600, fill: palette.ink, 'data-lane': lane.index,
+            tabindex: view.interactive ? 0 : null,
+            role: view.interactive ? 'img' : null,
+            'aria-label': view.interactive ? `${lane.name} lane. Drag, or hold Alt and press the up or down arrow, to move it` : null
+        });
+        // How busy the lane is, when staff and arrivals are both given.
+        const busy = totals ? totals.lanes[lane.index].busy : null;
+        const rows = lane.lines.length + (busy === null ? 0 : 1);
+        const firstY = (lane.y0 + lane.y1) / 2 - ((rows - 1) * lineHeight) / 2 + fontSize * 0.35;
         lane.lines.forEach((line, i) => text.appendChild(make(doc, 'tspan', { x: area.headerLeft + 12, y: r2(firstY + i * lineHeight) }, line)));
+        if (busy !== null) {
+            text.appendChild(make(doc, 'tspan', {
+                class: 'flow-lane-busy', x: area.headerLeft + 12, y: r2(firstY + lane.lines.length * lineHeight),
+                'font-weight': busy > 1 ? 700 : 400, 'font-size': small, fill: busy > 1 ? palette.rework : palette.inkSecondary
+            }, busy > 1 ? `${formatPercent(busy)}, over` : `${formatPercent(busy)} busy`));
+        }
         laneGroup.appendChild(text);
     }
     laneGroup.appendChild(make(doc, 'line', { x1: area.left, x2: area.left, y1: r2(area.top), y2: r2(area.bottom), stroke: palette.rule, 'stroke-width': 1 }));
@@ -222,7 +236,9 @@ export function renderFlow(doc, model, viewOptions = {}, palette = PALETTES.ligh
             class: 'flow-step', 'data-node': step.index,
             tabindex: view.interactive ? 0 : null,
             role: view.interactive ? 'img' : null,
-            'aria-label': view.interactive ? `${step.name}, ${graph.lanes[step.lane].name}. ${step.info.join('. ')}` : null
+            'aria-label': view.interactive
+                ? `${step.name}, ${graph.lanes[step.lane].name}. ${step.info.join('. ')}${step.info.length ? '. ' : ''}Drag, or hold Alt and press the up or down arrow, to move it to another lane`
+                : null
         });
         const note = parsed.notes[step.name] ? `. ${parsed.notes[step.name]}` : '';
         const passed = per && node.outLinks.length ? `, passed ${formatPasses(per.passes)}` : '';

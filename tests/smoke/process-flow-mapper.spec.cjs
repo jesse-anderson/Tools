@@ -1,5 +1,6 @@
 // Process flow mapper, pure layers: parser, graph and findings, the solve,
-// layout and routing. Driven through window.ProcessFlowMapper.
+// layout and routing. Driven through window.ProcessFlowMapper. Capacity, the baseline comparison and
+// the text rewrites behind drag and paste are here too.
 //
 // The solve is checked three ways that share no code with it: closed forms, a
 // seeded random walk written here, and identities. The layout has no external
@@ -205,13 +206,23 @@ test.describe('graph and findings', () => {
     // Typed the other way round, the same loop is closed by a different exit.
     const other = await build(page, 'Ann: C -> 50%: A, 50%: (End)\nAnn: A -> B\nAnn: B -> C\nAnn: (End)');
     expect(rework(other)).toEqual(['B>C']);
-    // An exit to an earlier phase is rework even though it closes no loop.
-    const phased = await build(page, '== One ==\nAnn: A -> B\nAnn: (Out)\n== Two ==\nAnn: B -> 50%: (Out), 50%: (End)\nAnn: (End)');
-    expect(rework(phased)).toEqual(['B>(Out)']);
+    // An exit to a step in an earlier phase is rework even though it closes no loop.
+    const phased = await build(page, '== One ==\nAnn: A -> B\nAnn: Side -> (End)\n== Two ==\nAnn: B -> 50%: Side, 50%: (End)\nAnn: (End)');
+    expect(rework(phased)).toEqual(['B>Side']);
     expect(loop.warnings.find((w) => w.code === 'REWORK').message).toContain('C to A');
+
+    // An end is not a step work is sent back to. Typed under an early phase and
+    // reached from a later one, it moves to the later phase and yield stays 1.
+    const ended = await build(page, '== One ==\nAnn: (Start) -> A\nAnn: A -> B\nAnn: (Stopped)\n== Two ==\nAnn: B -> 50%: (Stopped), 50%: (End)\nAnn: (End)');
+    expect(rework(ended)).toEqual([]);
+    expect(ended.graph.nodes.find((n) => n.name === '(Stopped)').phase).toBe(1);
+    expect(ended.result.yield).toBe(1);
+    const stopped = ended.layout.steps.find((x) => x.name === '(Stopped)');
+    const band = ended.layout.phases.find((x) => x.name === 'Two');
+    expect(stopped.x0).toBeGreaterThanOrEqual(band.x0);
+
     // Forward exits never loop, whatever is typed.
-    for (const m of [loop, other, phased]) {
-      const rank = new Map();
+    for (const m of [loop, other, phased, ended]) {
       const order = [];
       const fwd = m.graph.links.filter((l) => !l.rework);
       const indeg = m.graph.nodes.map((n) => fwd.filter((l) => l.target === n.index).length);
@@ -219,7 +230,6 @@ test.describe('graph and findings', () => {
       while (queue.length) {
         const n = queue.shift();
         order.push(n);
-        rank.set(n, order.length);
         for (const l of fwd.filter((x) => x.source === n)) if (--indeg[l.target] === 0) queue.push(l.target);
       }
       expect(order).toHaveLength(m.graph.nodes.length);
@@ -351,49 +361,214 @@ test.describe('the solve', () => {
   });
 
   test('the worked examples land on figures done by hand', async ({ page }) => {
-    const lab = await build(page, await preset(page, 'lab'));
-    // Loop of 60 min touch and 7 h wait at 1.25 passes, plus 5 and 15 min outside it.
-    expect(lab.result.touch).toBeCloseTo((5 + 1.25 * 60 + 15) / 60, 9);
-    expect(lab.result.wait).toBeCloseTo(1.25 * 7, 9);
-    expect(lab.result.yield).toBeCloseTo(0.8, 9);
-    expect(lab.result.reworkCost).toBeCloseTo(0.25 * 8, 9);
-    expect(passesOf(lab)['Prepare sample']).toBeCloseTo(1.25, 9);
-
     const purchase = await build(page, await preset(page, 'purchase'));
     const p = passesOf(purchase);
     expect(p['Fill in request']).toBeCloseTo(1 / 0.85, 9);
-    expect(p['(Rejected)']).toBeCloseTo(0.05 / 0.85, 9);
-    expect(p['Raise order']).toBeCloseTo(0.8 / 0.85 / 0.9, 9);
-    expect(p['(Order placed)']).toBeCloseTo(0.8 / 0.85, 9);
-    expect(purchase.result.yield).toBeCloseTo(0.05 + 0.8 * 0.9, 9);
-    // 30 a week arrive, and the manager's 5 minutes is done 1/0.85 times each.
-    const manager = purchase.totals.lanes.find((l) => l.name === 'Manager');
-    expect(manager.loadPerWeek).toBeCloseTo(30 * (5 / 60) / 0.85, 9);
+    expect(p['(Request declined)']).toBeCloseTo(0.05 / 0.85, 9);
+    expect(p['Budget available?']).toBeCloseTo(0.8 / 0.85, 9);
+    expect(p['(No budget)']).toBeCloseTo(0.8 / 0.85 * 0.1, 9);
+    expect(p['Raise purchase order']).toBeCloseTo(0.8 / 0.85 * 0.9 / 0.92, 9);
+    expect(p['(Order placed)']).toBeCloseTo(0.8 / 0.85 * 0.9, 9);
+    expect(purchase.result.yield).toBeCloseTo(0.05 + 0.8 * (0.1 + 0.9 * 0.92), 9);
+
+    const lab = await build(page, await preset(page, 'lab'));
+    // The analysis loop is 60 min of work and 7 h of waiting at 1.25 passes; the
+    // report loop is 20 min and 1.5 h at 1 / 0.95; logging is 5 min after a 20 min wait.
+    expect(lab.result.touch).toBeCloseTo((5 + 1.25 * 60 + 20 / 0.95) / 60, 9);
+    expect(lab.result.wait).toBeCloseTo(20 / 60 + 1.25 * 7 + 1.5 / 0.95, 9);
+    expect(lab.result.yield).toBeCloseTo(0.8 * 0.95, 9);
+    expect(lab.result.reworkCost).toBeCloseTo(0.25 * 8 + (1 / 0.95 - 1) * (20 / 60 + 1.5), 9);
+    expect(passesOf(lab)['Prepare sample']).toBeCloseTo(1.25, 9);
 
     const change = await build(page, await preset(page, 'change'));
     expect(passesOf(change)['Draft change']).toBeCloseTo(1 / (0.75 * 0.7), 9);
+    expect(passesOf(change)['Review change']).toBeCloseTo(1 / 0.7, 9);
+    expect(passesOf(change)['Assess impact']).toBeCloseTo(1, 9);
+
+    const hiring = await build(page, await preset(page, 'hiring'));
+    const ends = Object.fromEntries(hiring.result.ends.map((e) => [hiring.graph.nodes[e.index].name, e.share]));
+    expect(ends['(Declined at application)']).toBeCloseTo(0.75, 12);
+    expect(ends['(Declined after phone screen)']).toBeCloseTo(0.25 * 0.5, 12);
+    expect(ends['(Declined after interview)']).toBeCloseTo(0.125 * 0.6 + 0.125 * 0.4 * 0.5, 12);
+    expect(ends['(Hired)']).toBeCloseTo(0.25 * 0.5 * 0.4 * 0.5 * 0.8, 12);
+    expect(ends['(Offer turned down)']).toBeCloseTo(0.25 * 0.5 * 0.4 * 0.5 * 0.2, 12);
+    expect(hiring.result.yield).toBe(1);
+    // 60 applications a week, 5% reach a three hour panel.
+    expect(hiring.totals.lanes.find((l) => l.name === 'Interview panel').loadPerWeek).toBeCloseTo(60 * 0.05 * 3, 9);
 
     const order = await build(page, await preset(page, 'order'));
-    expect(order.result.touch).toBeCloseTo(53 / 60, 9);
-    expect(order.result.wait).toBeCloseTo(0.5 + 1 + 20 / 60 + 8 + 2, 9);
-    const book = order.result.perStep[order.graph.nodes.findIndex((n) => n.name === 'Book carrier')];
-    const pick = order.result.perStep[order.graph.nodes.findIndex((n) => n.name === 'Pick items')];
-    expect(book.share).toBeGreaterThan(0.6);
-    expect(pick.touch).toBeGreaterThan(book.touch);
+    const loop = 1 / 0.97;
+    expect(order.result.touch).toBeCloseTo((6 + 2 + 0.1 * 5 + loop * 37 + 4 + 8) / 60, 9);
+    expect(order.result.wait).toBeCloseTo(0.5 + 10 / 60 + 0.1 * 24 + loop * (1 + 20 / 60) + 8 + 2, 9);
+    const step = (name) => order.result.perStep[order.graph.nodes.findIndex((n) => n.name === name)];
+    // The longest job is not where the time goes.
+    expect(step('Pick items').touch).toBeGreaterThan(step('Book carrier').touch);
+    expect(step('Book carrier').share).toBeGreaterThan(0.5);
+    expect(step('Wait for stock').lead).toBeGreaterThan(step('Pick items').lead);
     // 120 a day on a 5 day week.
     expect(order.totals.arrivalsPerWeek).toBeCloseTo(600, 9);
 
-    const jobs = await build(page, await preset(page, 'jobs'));
-    const ends = Object.fromEntries(jobs.result.ends.map((e) => [jobs.graph.nodes[e.index].name, e.share]));
-    expect(ends['(Ghosted)']).toBeCloseTo(0.99 + 0.01 * 0.6, 12);
-    expect(ends['(Scam)']).toBeCloseTo(0.01 * 0.2, 12);
-    expect(ends['(Offer)']).toBeCloseTo(0.01 * 0.2 * 0.5 * 0.25, 12);
-    expect(ends['(Rejected)']).toBeCloseTo(0.01 * 0.2 * 0.5 + 0.01 * 0.2 * 0.5 * 0.75, 12);
-
     const incident = await build(page, await preset(page, 'incident'));
     expect(incident.warnings.map((w) => w.code)).toContain('DEAD_END');
+    // Fixed? = 1 + 0.1 Fixed? + 0.08 (0.85 Fixed?), and 5% of that is escalated.
+    const fixed = 1 / (1 - 0.1 - 0.85 * 0.08);
     const stuck = incident.result.ends.find((e) => incident.graph.nodes[e.index].name === 'Escalate to vendor');
-    expect(stuck.share).toBeCloseTo(0.05 / 0.9, 9);
+    expect(stuck.share).toBeCloseTo(0.05 * fixed, 9);
+    expect(passesOf(incident)['(Incident closed)']).toBeCloseTo(0.85 * fixed * 0.92, 9);
+  });
+
+  test('capacity: a lane carries what its hours allow, the tightest lane limits the process, and busy lanes are said', async ({ page }) => {
+    const text = [
+      'arrivals: 30 / wk',
+      'staff: Ann 1, Bob 2 @ 50%',
+      'Ann: (Start) -> Draft',
+      'Ann: Draft {1 h} -> Review?',
+      'Bob: Review? {30 min} -> ok 80%: (Done), redo 20%: Draft',
+      'Bob: (Done)'
+    ].join('\n');
+    const m = await build(page, text);
+    const [ann, bob] = m.totals.lanes;
+    // Draft and Review are each passed 1.25 times.
+    expect(ann.touch).toBeCloseTo(1.25, 9);
+    expect(bob.touch).toBeCloseTo(0.625, 9);
+    expect(ann.available).toBeCloseTo(40, 9);
+    expect(bob.available).toBeCloseTo(2 * 0.5 * 40, 9);
+    expect(ann.canCarry).toBeCloseTo(32, 9);
+    expect(bob.canCarry).toBeCloseTo(64, 9);
+    expect(ann.busy).toBeCloseTo(30 * 1.25 / 40, 9);
+    expect(bob.busy).toBeCloseTo(30 * 0.625 / 40, 9);
+    expect(m.totals.capacity).toMatchObject({ lane: 0, unstaffed: [] });
+    expect(m.totals.capacity.perWeek).toBeCloseTo(32, 9);
+    // 93.75% busy is flagged, and says why it matters.
+    const busy = m.warnings.find((w) => w.code === 'BUSY');
+    expect(busy.message).toContain('Ann is 94% busy');
+    expect(busy.line).toBe(2);
+    expect(m.warnings.map((w) => w.code)).not.toContain('OVERLOADED');
+
+    // More work than hours: said plainly, and the lead time is called too low.
+    const over = await build(page, text.replace('30 / wk', '40 / wk'));
+    const loaded = over.warnings.find((w) => w.code === 'OVERLOADED');
+    expect(loaded.message).toContain('Ann cannot keep up: 50 h of work arrives each week and 40 h is available');
+    expect(loaded.message).toContain('lead time shown is too low');
+    expect(over.totals.lanes[0].busy).toBeCloseTo(1.25, 9);
+    // The times themselves do not move: waits are inputs.
+    expect(over.result.lead).toBe(m.result.lead);
+
+    // The calendar scales the hours a person has.
+    const shifts = await build(page, text, { hoursPerDay: 16, daysPerWeek: 6 });
+    expect(shifts.totals.lanes[0].available).toBeCloseTo(96, 9);
+    expect(shifts.totals.capacity.perWeek).toBeCloseTo(96 / 1.25, 9);
+
+    // Staff with no arrivals still gives the limit, with no busy figure.
+    const quiet = await build(page, text.replace('arrivals: 30 / wk\n', ''));
+    expect(quiet.totals.capacity.perWeek).toBeCloseTo(32, 9);
+    expect(quiet.totals.capacity.busy).toBeNull();
+    expect(quiet.totals.lanes[0].loadPerWeek).toBeNull();
+    // Staff for only some lanes is used, and said to be partial.
+    const partial = await build(page, text.replace('staff: Ann 1, Bob 2 @ 50%', 'staff: Bob 2 @ 50%'));
+    expect(partial.totals.capacity).toMatchObject({ lane: 1, unstaffed: ['Ann'] });
+    expect(partial.warnings.find((w) => w.code === 'STAFF_PARTIAL').message).toContain('No staff is given for Ann');
+    // No staff line, no capacity.
+    const none = await build(page, text.replace('staff: Ann 1, Bob 2 @ 50%\n', ''));
+    expect(none.totals.capacity).toBeNull();
+
+    const purchase = await build(page, await preset(page, 'purchase'));
+    // One manager with a tenth of a 40 hour week, at 5 minutes a pass and 1 / 0.85 passes.
+    expect(purchase.totals.capacity.perWeek).toBeCloseTo(4 / (5 / 60 / 0.85), 9);
+    expect(purchase.graph.lanes[purchase.totals.capacity.lane].name).toBe('Manager');
+    const orders = await build(page, await preset(page, 'order'));
+    expect(orders.graph.lanes[orders.totals.capacity.lane].name).toBe('Warehouse');
+    expect(orders.warnings.find((w) => w.code === 'BUSY').message).toContain('Warehouse is 92% busy');
+  });
+
+  test('a staff line is read, checked, and refused when it says nothing usable', async ({ page }) => {
+    const out = await parse(page, 'staff: Ann 2, Bob 1.5 @ 25%, The night shift 3\nAnn: A\nBob: B\nThe night shift: C');
+    expect(out.errors).toEqual([]);
+    expect(out.staff).toEqual({ Ann: { people: 2, share: 1, line: 1 }, Bob: { people: 1.5, share: 0.25, line: 1 }, 'The night shift': { people: 3, share: 1, line: 1 } });
+    for (const bad of ['staff:', 'staff: Ann', 'staff: Ann two', 'staff: Ann 0', 'staff: Ann 2 @ 0%', 'staff: Ann 2 @ 150%']) {
+      const r = await parse(page, `${bad}\nAnn: A`);
+      expect(r.errors.map((e) => [e.code, e.line]), bad).toEqual([['STAFF_NOT_UNDERSTOOD', 1]]);
+    }
+    const stray = await parse(page, 'staff: Nobody 2\nAnn: A');
+    expect(stray.warnings.map((w) => [w.code, w.line])).toEqual([['UNKNOWN_LANE', 1]]);
+  });
+
+  test('headline figures compare with a baseline, and only when it is the same process', async ({ page }) => {
+    const out = await page.evaluate(() => {
+      const S = window.ProcessFlowMapper;
+      const base = 'staff: Ann 1\nAnn: (Start) -> Work\nAnn: Work {1 h, wait 2 d} -> ok 80%: (Done), redo 20%: Work2\nAnn: Work2 {10 min} -> Work\nAnn: (Done)';
+      const a = S.buildModel(base, {});
+      const quicker = S.buildModel(base.replace('wait 2 d', 'wait 1 d').replace('ok 80%', 'ok 90%').replace('redo 20%', 'redo 10%'), {});
+      const other = S.buildModel('Bob: (Begin) -> Pack {5 min}\nBob: Pack -> (Shipped)\nBob: (Shipped)', {});
+      const broken = S.buildModel('Ann: A -> B', {});
+      return {
+        same: S.headlineChanges(a, a),
+        moved: S.headlineChanges(quicker, a),
+        other: S.headlineChanges(other, a),
+        broken: S.headlineChanges(a, broken),
+        none: S.headlineChanges(a, null),
+        before: S.headline(a).map((h) => [h.key, h.value]),
+        after: S.headline(quicker).map((h) => [h.key, h.value])
+      };
+    });
+    expect(out.same).toEqual([]);
+    expect(out.other).toEqual([]);
+    expect(out.broken).toEqual([]);
+    expect(out.none).toEqual([]);
+    const before = Object.fromEntries(out.before);
+    const moved = Object.fromEntries(out.moved.map((c) => [c.key, c.text]));
+    expect(moved.lead).toBe(`down from ${before.lead}`);
+    expect(moved.yield).toBe(`up from ${before.yield}`);
+    expect(moved.touch).toBe(`down from ${before.touch}`);
+    expect(moved.capacity).toBe(`up from ${before.capacity}`);
+    // A figure that reads the same is not listed as changed.
+    expect(Object.keys(moved)).not.toContain('handoffs');
+  });
+
+  test('moving a step, reordering lanes and pasting spreadsheet rows all rewrite the text and nothing else', async ({ page }) => {
+    const out = await page.evaluate(() => {
+      const P = window.ProcessFlowMapper.parser;
+      const text = [
+        '// header', 'lanes: Ann, Bob', '== One ==', '  Ann: Draft {5 min} -> yes: Review, no: "Fix, then retry"',
+        'Bob: Review -> (Done)', 'Ann: "Fix, then retry" {1 h} -> Draft', 'Ann: Draft -> Extra', 'Bob: Extra', 'Bob: (Done)', '@ Draft: a note', ': Ann #112233'
+      ].join('\n');
+      const pasted = ['Lane\tStep\tTouch\tWait\tNext', 'Ann\tDraft, v2\t5 min\t2 h\tyes 80%: Review; no 20%: Fix', 'Bob\tReview\t\t1 d\t(Done)', 'Ann\tFix\t10 min\t\tDraft, v2', 'Bob\t(Done)'].join('\n');
+      return {
+        moved: P.setStepLane(text, 'Draft', 'Cy').split('\n'),
+        quoted: P.setStepLane(text, 'Fix, then retry', 'Bob').split('\n')[5],
+        untouched: P.setStepLane(text, 'Nobody', 'Cy') === text,
+        order: P.setLaneOrder(text, ['Bob', 'Ann']).split('\n').slice(0, 3),
+        added: P.setLaneOrder('Ann: A\nBob: B', ['Bob', 'Ann']),
+        twice: P.setLaneOrder('lanes: A, B\nA: x\nlanes: B, A\nB: y', ['B', 'A']),
+        table: P.tableToFlow(pasted),
+        parsed: P.parseFlow(P.tableToFlow(pasted).text),
+        notTable: [P.tableToFlow('Ann: Draft -> Review'), P.tableToFlow('one\ttwo'), P.tableToFlow('a\tb\nno tabs here')]
+      };
+    });
+    // Both lines that declare Draft move, with indentation, times, exits and every other line kept.
+    expect(out.moved[3]).toBe('  Cy: Draft {5 min} -> yes: Review, no: "Fix, then retry"');
+    expect(out.moved[6]).toBe('Cy: Draft -> Extra');
+    expect(out.moved[4]).toBe('Bob: Review -> (Done)');
+    expect(out.moved[9]).toBe('@ Draft: a note');
+    expect(out.moved).toHaveLength(11);
+    expect(out.quoted).toBe('Bob: "Fix, then retry" {1 h} -> Draft');
+    expect(out.untouched).toBe(true);
+    expect(out.order).toEqual(['// header', 'lanes: Bob, Ann', '== One ==']);
+    expect(out.added).toBe('lanes: Bob, Ann\nAnn: A\nBob: B');
+    expect(out.twice).toBe('lanes: B, A\nA: x\nB: y');
+
+    expect(out.table.rows).toBe(4);
+    expect(out.table.text).toBe([
+      'Ann: "Draft, v2" {5 min, wait 2 h} -> yes 80%: Review, no 20%: Fix',
+      'Bob: Review {wait 1 d} -> (Done)',
+      'Ann: Fix {10 min} -> "Draft, v2"',
+      'Bob: (Done)',
+      ''
+    ].join('\n'));
+    expect(out.parsed.errors).toEqual([]);
+    expect(out.parsed.steps.map((x) => x.name)).toEqual(['Draft, v2', 'Review', 'Fix', '(Done)']);
+    expect(out.parsed.exits).toHaveLength(4);
+    expect(out.notTable).toEqual([null, null, null]);
   });
 
   test('a seeded random walk written here agrees with the solve on every example and on random maps', async ({ page }) => {
@@ -588,21 +763,23 @@ test.describe('layout and routing', () => {
 
   test('columns follow the order of work, phases take runs of columns, and a lane grows to hold two steps', async ({ page }) => {
     const m = await build(page, await preset(page, 'purchase'));
-    const at = Object.fromEntries(m.layout.steps.map((s) => [s.name, [s.col, s.row]]));
+    const at = Object.fromEntries(m.layout.steps.map((x) => [x.name, [x.col, x.row]]));
     expect(at).toEqual({
-      '(Need identified)': [0, 0], 'Fill in request': [1, 0], 'Approve?': [2, 1], '(Rejected)': [3, 1],
-      'Raise order': [4, 2], 'Budget check': [5, 3], 'Send to supplier': [6, 2], '(Order placed)': [7, 2]
+      '(Need identified)': [0, 0], 'Fill in request': [1, 0], 'Approve request?': [2, 1], '(Request declined)': [3, 1],
+      'Budget available?': [4, 2], '(No budget)': [5, 2], 'Raise purchase order': [6, 3], 'Order correct?': [7, 3],
+      'Send to supplier': [8, 3], '(Order placed)': [9, 3]
     });
-    expect(m.layout.phases.map((p) => p.name)).toEqual(['Request', 'Order']);
+    expect(m.layout.phases.map((p) => p.name)).toEqual(['Request', 'Funding', 'Order']);
     expect(m.layout.phases[0].x1).toBeCloseTo(m.layout.phases[1].x0, 9);
+    expect(m.layout.phases[1].x1).toBeCloseTo(m.layout.phases[2].x0, 9);
 
-    // Two ends of one lane in one column stack, and that lane alone gets the second row.
-    const jobs = await build(page, await preset(page, 'jobs'));
-    const ghosted = jobs.layout.steps.find((s) => s.name === '(Ghosted)');
-    const scam = jobs.layout.steps.find((s) => s.name === '(Scam)');
-    expect(ghosted.col).toBe(scam.col);
-    expect(scam.row).toBe(ghosted.row + 1);
-    expect(jobs.layout.rows).toBe(5);
+    // Two steps of one lane in one column stack, and that lane alone gets the second row.
+    const hiring = await build(page, await preset(page, 'hiring'));
+    const declined = hiring.layout.steps.find((x) => x.name === '(Declined at application)');
+    const phone = hiring.layout.steps.find((x) => x.name === 'Phone screen');
+    expect(declined.col).toBe(phone.col);
+    expect(phone.row).toBe(declined.row + 1);
+    expect(hiring.layout.rows).toBe(5);
   });
 
   test('assignTracks keeps overlapping runs apart and lets separate ones share', async ({ page }) => {

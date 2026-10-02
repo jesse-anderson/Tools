@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
 ============================================
-PROCESS FLOW MAPPER v1.0.0
+PROCESS FLOW MAPPER v1.1.0
 ============================================
 Description: Lead time, touch time, rework and first-pass yield for
 a process typed as a list of steps, drawn as a swimlane diagram.
@@ -27,6 +27,11 @@ Features:
 - Swimlane diagram with connectors that never pass under a step
 - Structural checks: dead ends, unreachable steps, loops with no exit
 - Working calendar of 8, 10, 12, 16, 24 or custom hours a day
+- Capacity from a staff line: what the process can carry, the lane that
+  limits it, and how busy each lane is
+- Every headline figure compared with the last save
+- Steps dragged between lanes and lanes reordered, written back to the text
+- Tables saved as CSV, and spreadsheet rows pasted in as steps
 - Up to 10 projects in this browser, autosaved, with file import and export
 - SVG export and PNG export at 1x, 2x, 4x or 8x
 
@@ -98,7 +103,7 @@ Last Updated: October 2026
             </div>
         </header>
 
-        <main class="flow-layout">
+        <main class="flow-layout" id="flowLayout">
             <details class="disclaimer-card" id="scopeDisclaimer" aria-label="Scope and liability disclaimer">
                 <summary>
                     <span class="disclaimer-icon" aria-hidden="true">&#9888;</span>
@@ -126,7 +131,7 @@ Last Updated: October 2026
                         <h3>Not modelled, at all</h3>
                         <ul>
                             <li><strong>Work done in parallel.</strong> Every exit means "one of these happens". Two lanes working on the same item at once, then joining, is not represented, and a step written that way is read as a split.</li>
-                            <li><strong>Capacity.</strong> Nothing here knows how many people are in a lane, what else they are doing, or whether they can keep up. "Work per week" is hours of work arriving, not a utilisation.</li>
+                            <li><strong>Capacity is a ceiling, not a queue.</strong> With a staff line the tool divides the hours available by the work each unit needs. That says what a lane could carry if work arrived perfectly evenly and nobody was ever idle or absent. Real limits are lower, and a lane well under 100% can still have a long queue.</li>
                             <li><strong>Queues, batching and priorities.</strong> Waiting that grows with load, work released in batches, expediting and work that jumps the queue are all outside the model.</li>
                             <li><strong>Variation.</strong> No spread, no percentiles, no worst case, no confidence interval.</li>
                             <li><strong>Calendars.</strong> A day is the number of working hours you set and a week the number of days you set, for every lane alike. Shifts, holidays, time zones and a lane that works different hours are not represented.</li>
@@ -221,6 +226,7 @@ Last Updated: October 2026
                     <label for="flowText">Steps</label>
                     <textarea id="flowText" class="flow-text" rows="16" spellcheck="false" autocomplete="off" autocapitalize="off" aria-describedby="syntaxHelp"></textarea>
                 </div>
+                <p id="pasteStatus" class="helper-text" role="status" aria-live="polite"></p>
 
                 <details class="usage-note" id="syntaxHelp">
                     <summary>Syntax</summary>
@@ -239,6 +245,8 @@ Last Updated: October 2026
                         <dd>The order of the lanes, top to bottom. Without it they appear in the order first typed.</dd>
                         <dt><code>arrivals: 30 / wk</code></dt>
                         <dd>How much work arrives. Adds hours of work per week to each lane.</dd>
+                        <dt><code>staff: Sales 2, Finance 1 @ 25%</code></dt>
+                        <dd>People on duty in a lane during working hours, and the share of their time this process gets. Gives the most the process can carry and the lane that limits it, and with arrivals, how busy each lane is.</dd>
                         <dt><code>@ Credit OK?: limit is 30 days overdue</code></dt>
                         <dd>A note kept with that step and shown when you hover over it.</dd>
                         <dt><code>: Finance #4a3aa7</code></dt>
@@ -246,6 +254,7 @@ Last Updated: October 2026
                         <dt><code>// comment</code></dt>
                         <dd>Ignored, as is a line starting with <code>#</code>.</dd>
                     </dl>
+                    <p>Rows copied from a spreadsheet can be pasted straight in: columns are lane, step, touch time, wait, next. Several exits go in the last cell separated by semicolons, such as <code>yes 80%: Ship; no 20%: Fix</code>.</p>
                     <p>An exit that leads back to a step already passed is rework. Which exit of a loop counts as the return is decided by typing order: the line that closes the loop. A name containing a comma, a colon or an arrow goes in double quotes.</p>
                 </details>
 
@@ -304,6 +313,7 @@ Last Updated: October 2026
                     <legend>On the map</legend>
                     <label class="check"><input type="checkbox" id="showShares" checked> Exit labels and shares</label>
                     <label class="check"><input type="checkbox" id="showBadges" checked> Passes badge on repeated steps</label>
+                    <label class="check"><input type="checkbox" id="wide"> Result at full width, editor below</label>
                 </fieldset>
 
                 <details class="advanced" id="advancedOptions">
@@ -361,11 +371,12 @@ Last Updated: October 2026
                 </div>
 
                 <dl id="headline" class="headline"></dl>
+                <p id="compareNote" class="helper-text compare-note" hidden>Changes are against the last save. Save to make this the new starting point, or Revert to go back to it.</p>
 
                 <div class="diagram-scroll" id="diagramScroll" tabindex="0" role="group" aria-label="Swimlane diagram, scrollable">
                     <div id="diagramHost" class="diagram-host"></div>
                 </div>
-                <p class="helper-text">Darker steps take more of the lead time. Dashed connectors are rework. Hover or focus a step for its figures. A wide map is fitted to the panel down to 60% and scrolls sideways past that; the size is under Advanced.</p>
+                <p class="helper-text">Darker steps take more of the lead time. Dashed connectors are rework. Hover or focus a step for its figures. Drag a step to another lane, or a lane name up or down, and the text is rewritten to match; Alt with the up or down arrow does the same from the keyboard. A wide map is fitted to the panel down to 60% and scrolls sideways past that.</p>
 
                 <p id="exportStatus" class="helper-text" role="status" aria-live="polite"></p>
 
@@ -383,37 +394,45 @@ Last Updated: October 2026
                     <p id="barsEmpty" class="helper-text" hidden>No times entered yet. Add <code>{10 min, wait 2 h}</code> after a step.</p>
                 </div>
 
-                <div class="table-grid">
-                    <div class="table-card">
-                        <h3 id="lanesHeading">By lane</h3>
+                <div class="table-card table-wide">
+                        <div class="card-head"><h3 id="lanesHeading">By lane</h3><button type="button" class="tool-btn small csv-btn" data-table="laneTable" data-name="lanes" aria-label="Download this table as CSV">CSV</button></div>
                         <div class="table-scroll" tabindex="0" role="group" aria-labelledby="lanesHeading">
                             <table id="laneTable" aria-labelledby="lanesHeading"><thead></thead><tbody></tbody></table>
                         </div>
-                    </div>
+                </div>
+
+                <div class="table-grid">
                     <div class="table-card">
-                        <h3 id="endsHeading">Where work ends up</h3>
+                        <div class="card-head"><h3 id="endsHeading">Where work ends up</h3><button type="button" class="tool-btn small csv-btn" data-table="endTable" data-name="ends" aria-label="Download this table as CSV">CSV</button></div>
                         <div class="table-scroll" tabindex="0" role="group" aria-labelledby="endsHeading">
                             <table id="endTable" aria-labelledby="endsHeading"><thead></thead><tbody></tbody></table>
                         </div>
                         <div id="phaseBlock" class="table-block">
-                            <h3 id="phasesHeading">By phase</h3>
+                            <div class="card-head"><h3 id="phasesHeading">By phase</h3><button type="button" class="tool-btn small csv-btn" data-table="phaseTable" data-name="phases" aria-label="Download this table as CSV">CSV</button></div>
                             <div class="table-scroll" tabindex="0" role="group" aria-labelledby="phasesHeading">
                                 <table id="phaseTable" aria-labelledby="phasesHeading"><thead></thead><tbody></tbody></table>
                             </div>
                         </div>
                     </div>
+                    <div class="table-card" id="handoffBlock">
+                            <div class="card-head"><h3 id="handoffsHeading">Handoffs</h3><button type="button" class="tool-btn small csv-btn" data-table="handoffTable" data-name="handoffs" aria-label="Download this table as CSV">CSV</button></div>
+                            <p class="helper-text">Connectors from the lane on the left to the lane above.</p>
+                            <div class="table-scroll" tabindex="0" role="group" aria-labelledby="handoffsHeading">
+                                <table id="handoffTable" aria-labelledby="handoffsHeading"><thead></thead><tbody></tbody></table>
+                            </div>
+                    </div>
                 </div>
 
                 <div class="table-grid">
                     <div class="table-card">
-                        <h3 id="stepsHeading">Every step</h3>
+                        <div class="card-head"><h3 id="stepsHeading">Every step</h3><button type="button" class="tool-btn small csv-btn" data-table="stepTable" data-name="steps" aria-label="Download this table as CSV">CSV</button></div>
                         <p class="helper-text">Times are per unit of work, with repeat passes counted.</p>
                         <div class="table-scroll" tabindex="0" role="group" aria-labelledby="stepsHeading">
                             <table id="stepTable" aria-labelledby="stepsHeading"><thead></thead><tbody></tbody></table>
                         </div>
                     </div>
                     <div class="table-card">
-                        <h3 id="exitsHeading">Every exit</h3>
+                        <div class="card-head"><h3 id="exitsHeading">Every exit</h3><button type="button" class="tool-btn small csv-btn" data-table="exitTable" data-name="exits" aria-label="Download this table as CSV">CSV</button></div>
                         <p class="helper-text">Per unit is how often the exit is taken, on average.</p>
                         <div class="table-scroll" tabindex="0" role="group" aria-labelledby="exitsHeading">
                             <table id="exitTable" aria-labelledby="exitsHeading"><thead></thead><tbody></tbody></table>

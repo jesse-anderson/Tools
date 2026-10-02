@@ -19,11 +19,11 @@ export const LAYOUT_DEFAULTS = Object.freeze({
     minBoxWidth: 112,
     boxPadX: 12,
     boxPadY: 9,
-    gutterX: 26,
+    gutterX: 22,
     gutterY: 22,
     trackGap: 9,
     phaseHeader: 26,
-    laneHeaderMin: 64,
+    laneHeaderMin: 84,
     laneHeaderMax: 150
 });
 
@@ -31,7 +31,7 @@ export const LAYOUT_DEFAULTS = Object.freeze({
 export const DECISION_CUT = 16;
 // How far off the centre line a rework connector enters, as a share of the box height.
 const REWORK_ENTRY = 0.25;
-const LABEL_PAD = 10;
+const LABEL_PAD = 7;
 const PHASE_RULE_INSET = 6;
 
 const estimate = (text, size) => text.length * size * 0.6;

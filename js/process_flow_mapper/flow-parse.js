@@ -27,7 +27,10 @@ const COLOR_LINE = /^:\s*(.+?)\s+(#[0-9a-fA-F]{6}|#[0-9a-fA-F]{3})$/;
 const NOTE_LINE = /^@\s*(.+?)\s*:\s*(.+)$/;
 const LANES_LINE = /^lanes\s*:\s*(.*)$/i;
 const ARRIVALS_LINE = /^arrivals\s*:\s*(.*)$/i;
-const ARRIVALS = /^(\d+\.?\d*|\.\d+)\s*(?:\/|per)\s*([a-z]+)$/i;
+const STAFF_LINE = /^staff\s*:\s*(.*)$/i;
+const STAFF = /^(.+?)\s+(\d+\.?\d*|\.\d+)(?:\s*@\s*(\d+\.?\d*|\.\d+)\s*%)?$/;
+const STAFF_HELP = 'A staff line reads "staff: Sales 2, Finance 1 @ 25%": people on duty, then the share of their time this process gets';
+const ARRIVALS =/^(\d+\.?\d*|\.\d+)\s*(?:\/|per)\s*([a-z]+)$/i;
 const TIME = /^(wait\s+)?(\d+\.?\d*|\.\d+)\s*([a-z]+)$/i;
 const SHARE = /(\d+\.?\d*|\.\d+)\s*%/;
 
@@ -112,6 +115,7 @@ export function parseFlow(text) {
     const errors = [];
     const warnings = [];
     let arrivals = null;
+    const staff = {};
     let lanesDeclared = false;
     let phase = -1;
 
@@ -170,6 +174,21 @@ export function parseFlow(text) {
             const unit = m ? TIME_UNITS[m[2].toLowerCase()] : null;
             if (!m || !unit) return fail(lineNo, 'ARRIVALS_NOT_UNDERSTOOD', 'an arrivals line reads "arrivals: 30 / wk"');
             arrivals = { count: Number(m[1]), per: unit, line: lineNo };
+            return undefined;
+        }
+
+        // People on duty in a lane, and the share of their time this process gets.
+        const staffLine = STAFF_LINE.exec(line);
+        if (staffLine) {
+            const entries = staffLine[1].split(',').map(clean).filter(Boolean);
+            if (!entries.length) return fail(lineNo, 'STAFF_NOT_UNDERSTOOD', STAFF_HELP);
+            for (const entry of entries) {
+                const m = STAFF.exec(entry);
+                const people = m ? Number(m[2]) : 0;
+                const share = m && m[3] !== undefined ? Number(m[3]) / 100 : 1;
+                if (!m || !(people > 0) || !(share > 0) || share > 1) return fail(lineNo, 'STAFF_NOT_UNDERSTOOD', `"${entry}" is not a staffing entry. ${STAFF_HELP}`);
+                staff[clean(m[1])] = { people, share, line: lineNo };
+            }
             return undefined;
         }
 
@@ -269,6 +288,70 @@ export function parseFlow(text) {
     for (const name of Object.keys(colors)) {
         if (!lanes.includes(name)) warnings.push({ line: null, code: 'UNKNOWN_LANE', message: `"${name}" has a colour but is not a lane` });
     }
+    for (const [name, entry] of Object.entries(staff)) {
+        if (!lanes.includes(name)) warnings.push({ line: entry.line, code: 'UNKNOWN_LANE', message: `"${name}" is staffed but is not a lane` });
+    }
 
-    return { lanes, lanesDeclared, arrivals, phases, steps, exits, notes, colors, errors, warnings };
+    return { lanes, lanesDeclared, arrivals, staff, phases, steps, exits, notes, colors, errors, warnings };
+}
+
+const DIRECTIVE = /^(==|:|@|\/\/|#|lanes\s*:|arrivals\s*:|staff\s*:)/i;
+
+/** The lane and step a step line declares, with where the lane ends, or null for any other line. */
+function readStepLine(rawLine) {
+    const line = rawLine.trim();
+    if (line === '' || DIRECTIVE.test(line)) return null;
+    const colon = findOutside(line, ':');
+    if (colon < 0) return null;
+    const rest = line.slice(colon + 1);
+    const arrow = findOutside(rest, '->');
+    let head = arrow < 0 ? rest : rest.slice(0, arrow);
+    if (head.trim().endsWith('}') && head.lastIndexOf('{') >= 0) head = head.slice(0, head.lastIndexOf('{'));
+    return { lane: clean(line.slice(0, colon)), step: stepName(head), after: line.slice(colon) };
+}
+
+/** Return the text with a step moved to another lane: every line that declares it is rewritten. */
+export function setStepLane(text, step, lane) {
+    return String(text == null ? '' : text).split(/\r\n|\r|\n/).map((raw) => {
+        const read = readStepLine(raw);
+        if (!read || read.step !== step) return raw;
+        return `${raw.slice(0, raw.length - raw.trimStart().length)}${lane}${read.after}`;
+    }).join('\n');
+}
+
+/** Return the text with the lane order set: the lanes line is replaced, or added at the top. */
+export function setLaneOrder(text, lanes) {
+    const rows = String(text == null ? '' : text).split(/\r\n|\r|\n/);
+    const line = `lanes: ${lanes.join(', ')}`;
+    const at = rows.findIndex((raw) => LANES_LINE.test(raw.trim()));
+    if (at < 0) return [line, ...rows].join('\n');
+    // Any later lanes line would override this one, so only the first is kept.
+    return rows.filter((raw, i) => i === at || !LANES_LINE.test(raw.trim())).map((raw, i) => (i === at ? line : raw)).join('\n');
+}
+
+const needsQuotes = (name) => /,|:|->/.test(name);
+const quoted = (name) => (needsQuotes(name) ? `"${name.replace(/"/g, '')}"` : name);
+
+/**
+ * Turn rows pasted from a spreadsheet into step lines. Columns are lane, step,
+ * touch time, wait, next. Next holds one exit or several separated by
+ * semicolons, each written as it would be after an arrow. Returns
+ * { text, rows }, or null when the text is not tab-separated rows.
+ */
+export function tableToFlow(text) {
+    const rows = String(text == null ? '' : text).split(/\r\n|\r|\n/).filter((r) => r.trim() !== '');
+    if (rows.length < 2 || !rows.every((r) => r.includes('\t'))) return null;
+    const cells = rows.map((r) => r.split('\t').map(clean));
+    if (!cells.every((c) => c.length >= 2 && c[0] && c[1])) return null;
+    const body = cells[0][0].toLowerCase() === 'lane' ? cells.slice(1) : cells;
+    if (!body.length) return null;
+    const out = body.map(([lane, step, touch = '', wait = '', next = '']) => {
+        const times = [touch, wait ? `wait ${wait.replace(/^wait\s+/i, '')}` : ''].filter(Boolean).join(', ');
+        const exits = next.split(';').map(clean).filter(Boolean).map((exit) => {
+            const at = exit.lastIndexOf(':');
+            return at < 0 ? quoted(exit) : `${exit.slice(0, at).trim()}: ${quoted(exit.slice(at + 1).trim())}`;
+        });
+        return `${lane}: ${quoted(step)}${times ? ` {${times}}` : ''}${exits.length ? ` -> ${exits.join(', ')}` : ''}`;
+    });
+    return { text: `${out.join('\n')}\n`, rows: body.length };
 }

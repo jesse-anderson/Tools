@@ -65,6 +65,15 @@ export function buildGraph(parsed, settings = {}) {
         outLinks: []
     }));
 
+    // An end belongs to the latest phase that leads to it. Otherwise an end
+    // typed under an early phase and reached from a later one would read as
+    // work being sent back.
+    const leaves = new Set(parsed.exits.map((e) => e.source));
+    for (const exit of parsed.exits) {
+        const target = nodes[index.get(exit.target)];
+        if (!leaves.has(target.name)) target.phase = Math.max(target.phase, nodes[index.get(exit.source)].phase);
+    }
+
     // Repeated exits between the same pair are one exit, shares added.
     const links = [];
     const byPair = new Map();
