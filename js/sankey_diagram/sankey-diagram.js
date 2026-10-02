@@ -7,7 +7,9 @@ import * as engine from './sankey-engine.js';
 import * as projects from './sankey-projects.js';
 import { buildModel, balanceSummary } from './sankey-model.js';
 import { renderSankey, nodeColors, PALETTES } from './sankey-render.js';
-import { serializeSvg, svgToPngBlob, downloadBlob, fileStem, pngSize, PNG_SCALES } from './sankey-export.js';
+import {
+    serializeSvg, svgToPngBlob, downloadBlob, fileStem, pngSize, PNG_SCALES, loadFontDataUrl, embedFont
+} from './sankey-export.js';
 import { PRESETS, PRESETS_BY_ID } from './presets.js';
 import { attachDrag } from './sankey-drag.js';
 
@@ -227,10 +229,12 @@ async function exportDiagram(kind) {
         }
         const { width, height } = model.layout.options;
         const scale = Number(el('pngScale').value);
-        const blob = await svgToPngBlob(svgText, width, height, scale);
+        const font = await loadFontDataUrl();
+        const blob = await svgToPngBlob(embedFont(svgText, font), width, height, scale);
         const size = pngSize(width, height, scale);
         downloadBlob(blob, `${stem}.png`);
-        status.textContent = `Saved ${stem}.png at ${size.width} x ${size.height} px`;
+        const fallback = font ? '' : '. The page font could not be read, so the text is in your system font';
+        status.textContent = `Saved ${stem}.png at ${size.width} x ${size.height} px${fallback}`;
     } catch (e) {
         status.textContent = e.message;
     }
@@ -284,6 +288,7 @@ function updateProjectBar() {
     el('projectSave').disabled = !dirty;
     el('projectRevert').disabled = !dirty;
     el('projectNew').disabled = projects.isFull(store);
+    el('projectImport').disabled = projects.isFull(store);
 
     const count = `${store.projects.length} of ${projects.MAX_PROJECTS} projects.`;
     let message = dirty ? 'Unsaved changes, kept automatically. Revert returns to the last save.' : 'Saved.';
@@ -342,6 +347,41 @@ function deleteProject() {
         projects.addProject(store, projects.nextName(store), { text: STARTER_TEXT, fields: { ...defaultFields } }, Date.now());
     }
     openProject(store.activeId);
+}
+
+function exportProject() {
+    flushDraft();
+    const active = projects.activeProject(store);
+    const name = `${fileStem(active.name)}.sankey.json`;
+    downloadBlob(new Blob([projects.projectToFile(active)], { type: 'application/json' }), name);
+    el('projectFileStatus').textContent = `Saved ${name}. It holds this project as it is on screen now.`;
+}
+
+async function importProject(file) {
+    const status = el('projectFileStatus');
+    if (!file) return;
+    if (file.size > projects.MAX_FILE_BYTES) {
+        status.textContent = 'That file is too large to be a Sankey project.';
+        return;
+    }
+    let read;
+    try {
+        read = projects.projectFromFile(await file.text());
+    } catch (e) {
+        read = { ok: false, message: 'That file could not be read' };
+    }
+    if (!read.ok) {
+        status.textContent = `${read.message}.`;
+        return;
+    }
+    flushDraft();
+    const project = projects.addProject(store, projects.uniqueName(store, read.name), read.state, Date.now());
+    if (!project) {
+        status.textContent = `${projects.MAX_PROJECTS} projects are already stored. Delete one to import another.`;
+        return;
+    }
+    openProject(project.id);
+    status.textContent = `Imported "${project.name}" as a new project.`;
 }
 
 function loadProjects() {
@@ -426,6 +466,13 @@ function init() {
     });
     el('projectNew').addEventListener('click', newProject);
     el('projectDelete').addEventListener('click', deleteProject);
+    el('projectExport').addEventListener('click', exportProject);
+    el('projectImport').addEventListener('click', () => el('projectFile').click());
+    el('projectFile').addEventListener('change', (event) => {
+        const input = event.target;
+        // Cleared afterwards so choosing the same file twice still fires.
+        importProject(input.files[0]).finally(() => { input.value = ''; });
+    });
     el('projectSave').addEventListener('click', () => {
         flushDraft();
         const active = projects.activeProject(store);
@@ -471,6 +518,9 @@ window.SankeyDiagram = {
     renderSankey,
     nodeColors,
     serializeSvg,
+    svgToPngBlob,
+    loadFontDataUrl,
+    embedFont,
     pngSize,
     fileStem,
     PALETTES,

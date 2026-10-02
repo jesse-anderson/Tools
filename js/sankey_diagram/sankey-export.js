@@ -23,10 +23,44 @@ export function serializeSvg(svg) {
     return `<?xml version="1.0" encoding="UTF-8"?>\n${new XMLSerializer().serializeToString(svg)}`;
 }
 
+// The page font, vendored so a PNG can carry it. Latin subset, weights 300 to 700.
+export const FONT_URL = new URL('../vendor/sankey_diagram/space-grotesk-latin.woff2', import.meta.url).href;
+const FONT_FAMILY = 'Space Grotesk';
+let fontRequest = null;
+
+function toBase64(bytes) {
+    let binary = '';
+    for (let i = 0; i < bytes.length; i += 0x8000) {
+        binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+    }
+    return btoa(binary);
+}
+
+/** The font as a data: URL, fetched once. Resolves to null when it cannot be read. */
+export function loadFontDataUrl() {
+    if (!fontRequest) {
+        fontRequest = fetch(FONT_URL)
+            .then((response) => (response.ok ? response.arrayBuffer() : Promise.reject(new Error('font not found'))))
+            .then((buffer) => `data:font/woff2;base64,${toBase64(new Uint8Array(buffer))}`)
+            .catch(() => { fontRequest = null; return null; });
+    }
+    return fontRequest;
+}
+
+/**
+ * Put a font face inside a serialized SVG. An SVG drawn as an image cannot
+ * reach the page's fonts, so the face has to travel in the file as data.
+ */
+export function embedFont(svgText, dataUrl, family = FONT_FAMILY) {
+    if (!dataUrl) return svgText;
+    const face = `<style>@font-face{font-family:'${family}';font-weight:300 700;src:url(${dataUrl}) format('woff2');}</style>`;
+    return svgText.replace('<defs>', `<defs>${face}`);
+}
+
 /**
  * Rasterize a serialized SVG. The image is loaded from a data: URL, which the
- * page's img-src allows. Web fonts do not load inside an SVG image, so the PNG
- * falls back to the system font named in the font stack.
+ * page's img-src allows. Text uses whatever fonts the SVG carries, and falls
+ * back to the system font for the rest.
  */
 export function svgToPngBlob(svgText, width, height, scale) {
     const size = pngSize(width, height, scale);
@@ -35,7 +69,9 @@ export function svgToPngBlob(svgText, width, height, scale) {
     }
     return new Promise((resolve, reject) => {
         const img = new Image();
-        img.onload = () => {
+        img.onload = async () => {
+            // Decoding first gives an embedded font time to be ready before the draw.
+            try { await img.decode(); } catch (e) { /* drawn as loaded */ }
             const canvas = document.createElement('canvas');
             canvas.width = size.width;
             canvas.height = size.height;

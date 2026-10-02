@@ -395,6 +395,11 @@ tr.tolerated {
     margin-bottom: 12px;
 }
 
+/* The Import button opens this; the browser's own file control is never shown. */
+.file-input {
+    display: none;
+}
+
 .tool-btn.small {
     padding: 8px 12px;
     font-size: 0.8125rem;

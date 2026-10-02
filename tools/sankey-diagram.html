@@ -1,12 +1,18 @@
 <!DOCTYPE html>
 <!--
 ============================================
-SANKEY DIAGRAM BUILDER v1.2.0
+SANKEY DIAGRAM BUILDER v1.3.0
 ============================================
 Description: Draw a Sankey diagram from a list of flows and check
 the balance it implies, node by node and overall.
 
 Dependencies: None (Vanilla JavaScript)
+
+Vendored asset:
+- Space Grotesk, Latin subset (the page font, embedded in PNG exports)
+    js/vendor/sankey_diagram/space-grotesk-latin.woff2
+    https://github.com/floriankarsten/space-grotesk
+    SIL Open Font License 1.1: js/vendor/sankey_diagram/OFL.txt
 Google Fonts (JetBrains Mono, Space Grotesk) loaded from CDN.
 
 Project: Tools Hub by Jesse Anderson
@@ -17,11 +23,13 @@ Features:
 - Flows typed as "Source [amount] Target" or pasted as CSV/TSV
 - Balance per node and overall, with missing flow drawn on the diagram
 - Recycle streams drawn as loops under the diagram
-- Nodes moved by drag or arrow keys, positions kept in the flow list
-- Up to 10 projects in this browser, autosaved, with save and revert
+- Nodes moved by drag or arrow keys, positions kept in the flow list;
+  a column per node set by hand
+- Up to 10 projects in this browser, autosaved, with save and revert,
+  and export and import of a project as a file
 - Titles, units, node values, shares, link values and per-node notes
 - Layered layout with one shared scale, written for this tool
-- SVG export and PNG export at 1x, 2x, 4x or 8x
+- SVG export and PNG export at 1x, 2x, 4x or 8x, the PNG carrying its font
 
 Last Updated: October 2026
 ============================================
@@ -30,7 +38,7 @@ Last Updated: October 2026
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; base-uri 'none'; form-action 'none'">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'none'">
     <title>Sankey Diagram Builder | Tools Hub</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -125,7 +133,7 @@ Last Updated: October 2026
                             <li><strong>Thin flows.</strong> A flow under one pixel wide is drawn as a dashed line and is not to scale. Small does not mean unimportant: a trace stream can be the one that matters.</li>
                             <li><strong>Colour.</strong> The palette has eight colours and repeats after that. Two nodes sharing a colour are not related. Read the labels.</li>
                             <li><strong>Position and length.</strong> Only ribbon width carries a quantity. Ribbon length, node order, crossings and the height of a column mean nothing, and a node you have dragged can make a ribbon run backwards.</li>
-                            <li><strong>Exports.</strong> PNG text is drawn in your system font, so labels can sit slightly differently from the screen. Check an export before it goes into a report.</li>
+                            <li><strong>Exports.</strong> A PNG carries the page font for Latin text only; other scripts fall back to your system font, and an SVG uses whatever fonts the program opening it has, so labels can sit slightly differently from the screen. Check an export before it goes into a report.</li>
                         </ul>
                     </div>
 
@@ -143,7 +151,7 @@ Last Updated: October 2026
 
                     <div class="disclaimer-section">
                         <h3>Projects are stored in this browser only</h3>
-                        <p>Up to ten projects are kept in this browser's local storage, on this device, and are never sent anywhere. Clearing site data, using a private window, or switching browser or device loses them. It is a convenience, not a backup: keep the flow list somewhere else if it matters.</p>
+                        <p>Up to ten projects are kept in this browser's local storage, on this device, and are never sent anywhere. Clearing site data, using a private window, or switching browser or device loses them. It is a convenience, not a backup: use Export file to keep a copy of anything that matters.</p>
                     </div>
 
                     <div class="disclaimer-section">
@@ -187,6 +195,13 @@ Last Updated: October 2026
                     </div>
                     <p id="projectStatus" class="helper-text" role="status" aria-live="polite"></p>
                     <p class="helper-text">Edits are kept automatically in this browser. Save marks the point that Revert returns to.</p>
+                    <div class="button-row">
+                        <button type="button" class="tool-btn small" id="projectExport">Export file</button>
+                        <button type="button" class="tool-btn small" id="projectImport">Import file</button>
+                        <input type="file" id="projectFile" class="file-input" accept=".json,application/json" aria-label="Project file to import" tabindex="-1">
+                    </div>
+                    <p id="projectFileStatus" class="helper-text" role="status" aria-live="polite"></p>
+                    <p class="helper-text">A project file is the only copy that survives clearing this browser's data. Importing adds a project and replaces nothing.</p>
                 </fieldset>
 
                 <div class="input-group">
@@ -214,6 +229,8 @@ Last Updated: October 2026
                         <dd>A colour for that node.</dd>
                         <dt><code>~ Reactor: 40, 25</code></dt>
                         <dd>A fixed place for that node, as percent across and percent down. Dragging a node writes this line for you.</dd>
+                        <dt><code>&gt; Reactor: 3</code></dt>
+                        <dd>The column for that node, counted from 1 at the left. A node cannot sit left of something that feeds it, so it and everything after it move right if they must.</dd>
                         <dt><code>// comment</code></dt>
                         <dd>Ignored, as is a line starting with <code>#</code>.</dd>
                     </dl>
@@ -338,7 +355,7 @@ Last Updated: October 2026
                     </div>
                     <label class="check"><input type="checkbox" id="exportTransparent"> Transparent background</label>
                     <p class="helper-text" id="pngSizeNote"></p>
-                    <p class="helper-text">SVG is vector and has no resolution. PNG text is drawn in your system font, because a web font does not load inside an exported image.</p>
+                    <p class="helper-text">SVG is vector and has no resolution. A PNG carries the page font for Latin text; anything else is drawn in your system font.</p>
                 </details>
             </section>
 

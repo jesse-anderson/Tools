@@ -7,14 +7,16 @@
 export const LIMITS = Object.freeze({
     maxFlows: 500,
     maxNameLength: 80,
-    maxNoteLength: 120
+    maxNoteLength: 120,
+    maxColumn: 40
 });
 
 const FLOW_LINE = /^(.+?)\s*\[([^\]]*)\]\s*(.+)$/;
 const COLOR_LINE = /^:\s*(.+?)\s+(#[0-9a-fA-F]{6}|#[0-9a-fA-F]{3})$/;
 const NOTE_LINE = /^@\s*([^:]+?)\s*:\s*(.+)$/;
 const POSITION_LINE = /^~\s*([^:]+?)\s*:\s*(-?\d+\.?\d*)\s*%?\s*,\s*(-?\d+\.?\d*)\s*%?$/;
-const AMOUNT = /^[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?$/;
+const COLUMN_LINE = /^>\s*([^:]+?)\s*:\s*(\d+)$/;
+const AMOUNT =/^[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?$/;
 const GROUPED = /^[+-]?\d{1,3}([.,]\d{3})+$/;
 const HEADER_WORDS = new Set(['value', 'amount', 'flow', 'weight', 'qty', 'quantity', 'mass']);
 
@@ -123,7 +125,7 @@ function readFlowLine(line) {
 
 /**
  * Parse the whole text.
- * Returns { flows, colors, notes, positions, errors, warnings }. flows are
+ * Returns { flows, colors, notes, positions, columns, errors, warnings }. flows are
  * { source, target, value, line }; errors and warnings are { line, code, message }.
  */
 export function parseFlows(text) {
@@ -131,6 +133,7 @@ export function parseFlows(text) {
     const colors = {};
     const notes = {};
     const positions = {};
+    const columns = {};
     const errors = [];
     const warnings = [];
     const lines = String(text == null ? '' : text).split(/\r\n|\r|\n/);
@@ -183,7 +186,24 @@ export function parseFlows(text) {
             return;
         }
 
+        // A column asked for by hand, counted from 1 at the left.
+        const column = COLUMN_LINE.exec(line);
+        if (column) {
+            const n = Number(column[2]);
+            if (n < 1 || n > LIMITS.maxColumn) {
+                errors.push({ line: lineNo, code: 'COLUMN_OUT_OF_RANGE', message: `a column is a whole number from 1 to ${LIMITS.maxColumn}` });
+                return;
+            }
+            columns[cleanName(column[1])] = n;
+            return;
+        }
+
         const parts = readFlowLine(line);
+        // A flow whose source name starts with ">" is still a flow.
+        if (!parts && line.startsWith('>')) {
+            errors.push({ line: lineNo, code: 'COLUMN_NOT_UNDERSTOOD', message: 'a column line reads "> Node name: 3"' });
+            return;
+        }
         if (!parts) {
             errors.push({ line: lineNo, code: 'LINE_NOT_UNDERSTOOD', message: 'expected "Source [amount] Target" or "source,target,amount"' });
             return;
@@ -256,13 +276,13 @@ export function parseFlows(text) {
     }
 
     const known = new Set(flows.flatMap((f) => [f.source, f.target]));
-    for (const name of new Set([...Object.keys(colors), ...Object.keys(notes), ...Object.keys(positions)])) {
+    for (const name of new Set([...Object.keys(colors), ...Object.keys(notes), ...Object.keys(positions), ...Object.keys(columns)])) {
         if (!known.has(name)) {
-            warnings.push({ line: null, code: 'UNKNOWN_NODE', message: `"${name}" has a colour, note or position but appears in no flow` });
+            warnings.push({ line: null, code: 'UNKNOWN_NODE', message: `"${name}" has a colour, note, position or column but appears in no flow` });
         }
     }
 
-    return { flows, colors, notes, positions, errors, warnings };
+    return { flows, colors, notes, positions, columns, errors, warnings };
 }
 
 /**

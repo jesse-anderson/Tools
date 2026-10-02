@@ -203,15 +203,23 @@ export function resolveOptions(options = {}) {
     };
 }
 
-/** Column of each node: the longest path from any input, along forward links only. */
-export function assignLayers(graph, align = 'justify') {
+/**
+ * Column of each node: the longest path from any input, along forward links
+ * only. columns maps a node name to the column asked for, counted from 1. A
+ * node is never drawn left of something that feeds it, so a request can push a
+ * node and everything after it right, and is listed in displaced when it
+ * could not be met.
+ */
+export function assignLayers(graph, align = 'justify', columns = {}) {
     const { nodes, links } = graph;
     const layer = new Array(nodes.length).fill(0);
+    const wanted = nodes.map((n) => (Object.prototype.hasOwnProperty.call(columns, n.name) ? columns[n.name] - 1 : null));
     const pending = nodes.map((n) => n.inLinks.filter((li) => !links[li].recycle).length);
     const queue = nodes.filter((n) => pending[n.index] === 0).map((n) => n.index);
 
     for (let q = 0; q < queue.length; q++) {
         const n = queue[q];
+        if (wanted[n] !== null) layer[n] = Math.max(layer[n], wanted[n]);
         for (const li of nodes[n].outLinks) {
             if (links[li].recycle) continue;
             const t = links[li].target;
@@ -223,10 +231,14 @@ export function assignLayers(graph, align = 'justify') {
     const maxLayer = Math.max(0, ...layer);
     if (align === 'justify') {
         for (const node of nodes) {
-            if (node.outLinks.length === 0) layer[node.index] = maxLayer;
+            // An output with a column of its own is left where it was put.
+            if (node.outLinks.length === 0 && wanted[node.index] === null) layer[node.index] = maxLayer;
         }
     }
-    return { layer, maxLayer };
+    const displaced = nodes
+        .filter((n) => wanted[n.index] !== null && layer[n.index] !== wanted[n.index])
+        .map((n) => ({ index: n.index, wanted: wanted[n.index] + 1, used: layer[n.index] + 1 }));
+    return { layer, maxLayer, displaced };
 }
 
 const ORDER_SWEEPS = 6;
@@ -314,9 +326,9 @@ function resolveCollisions(column, pad, top, bottom) {
  * Returns node rectangles, link ribbons, recycle loops and, for every internal
  * node that does not balance, the stub that shows the missing flow.
  */
-export function computeLayout(graph, balance, options = {}, positions = {}) {
+export function computeLayout(graph, balance, options = {}, positions = {}, columnsWanted = {}) {
     const opt = resolveOptions(options);
-    const { layer, maxLayer } = assignLayers(graph, opt.align);
+    const { layer, maxLayer, displaced } = assignLayers(graph, opt.align, columnsWanted);
 
     const left = opt.margin;
     const right = opt.width - opt.margin;
@@ -390,9 +402,11 @@ export function computeLayout(graph, balance, options = {}, positions = {}) {
     // needs room outside it for its vertical leg.
     const recycleSum = (node, list) => graph.nodes[node.index][list]
         .reduce((s, li) => s + (graph.links[li].recycle ? graph.links[li].value : 0), 0);
+    // Loops from different nodes of that column turn side by side, so the room is their sum.
     const inset = (column, list) => {
-        const widest = Math.max(0, ...column.map((n) => recycleSum(n, list)));
-        const want = widest > 0 ? RECYCLE.run + RECYCLE.radius + widest * ky : 0;
+        const sums = column.map((n) => recycleSum(n, list)).filter((s) => s > 0);
+        if (!sums.length) return 0;
+        const want = RECYCLE.run + RECYCLE.radius + sums.reduce((s, v) => s + v, 0) * ky + laneGap * (sums.length - 1);
         return Math.min(want, (right - left) * RECYCLE.maxInsetShare);
     };
     const insetLeft = inset(columns[0], 'inLinks');
@@ -484,9 +498,21 @@ export function computeLayout(graph, balance, options = {}, positions = {}) {
         };
     });
 
+    // One lane per recycle under the nodes, shortest loop nearest them, so a
+    // loop inside another never crosses it. Between loops over the same
+    // columns the one from the lower node is the inner one.
+    const laneOrder = links.filter((l) => l.recycle).sort((a, b) =>
+        ((nodes[a.source].layer - nodes[a.target].layer) - (nodes[b.source].layer - nodes[b.target].layer))
+        || (nodes[b.target].layer - nodes[a.target].layer)
+        || (centre(nodes[b.source]) - centre(nodes[a.source]))
+        || (centre(nodes[b.target]) - centre(nodes[a.target]))
+        || (a.index - b.index));
+    const lane = new Map(laneOrder.map((l, i) => [l.index, i]));
+    const outerFirst = (a, b) => lane.get(b) - lane.get(a);
+
     // Forward ribbons leave and arrive in the vertical order of whatever they
-    // reach next. Recycles stack beneath them, longest loop outermost, so
-    // loops from one node nest instead of crossing.
+    // reach next. Recycles stack beneath them, outermost lane first, so the
+    // loops at one node nest instead of crossing.
     for (const node of nodes) {
         const g = graph.nodes[node.index];
         const far = (li, end) => {
@@ -497,15 +523,13 @@ export function computeLayout(graph, balance, options = {}, positions = {}) {
         const byFarCentre = (end) => (a, b) => (centre(far(a, end)) - centre(far(b, end))) || (a - b);
 
         const out = g.outLinks.filter((li) => !links[li].recycle).sort(byFarCentre('target'));
-        const outBack = g.outLinks.filter((li) => links[li].recycle)
-            .sort((a, b) => (nodes[links[a].target].layer - nodes[links[b].target].layer) || (a - b));
+        const outBack = g.outLinks.filter((li) => links[li].recycle).sort(outerFirst);
         let y = node.y0;
         for (const li of [...out, ...outBack]) { links[li].sy0 = y; y += links[li].width; links[li].sy1 = y; }
         const outBottom = y;
 
         const inn = g.inLinks.filter((li) => !links[li].recycle).sort(byFarCentre('source'));
-        const innBack = g.inLinks.filter((li) => links[li].recycle)
-            .sort((a, b) => (nodes[links[b].source].layer - nodes[links[a].source].layer) || (a - b));
+        const innBack = g.inLinks.filter((li) => links[li].recycle).sort(outerFirst);
         y = node.y0;
         for (const li of [...inn, ...innBack]) { links[li].ty0 = y; y += links[li].width; links[li].ty1 = y; }
         const inBottom = y;
@@ -514,16 +538,37 @@ export function computeLayout(graph, balance, options = {}, positions = {}) {
         for (const li of innBack) links[li].loop = { ...(links[li].loop || {}), targetBottom: inBottom };
     }
 
-    // One lane per recycle under the nodes, shortest loop nearest them.
-    const laneOrder = links.filter((l) => l.recycle).sort((a, b) =>
-        ((nodes[a.source].layer - nodes[a.target].layer) - (nodes[b.source].layer - nodes[b.target].layer))
-        || (nodes[b.target].layer - nodes[a.target].layer)
-        || (a.index - b.index));
     let laneTop = nodeBottom + RECYCLE.clearance;
     for (const link of laneOrder) {
         link.loop.laneTop = laneTop;
         link.loop.laneBottom = laneTop + link.width;
         laneTop = link.loop.laneBottom + laneGap;
+    }
+
+    // Loops turning beside the same column each get their own track there. The
+    // inner lane keeps the short run out of its node; each one further out runs
+    // on past the last before it turns, so the legs never lie on each other.
+    for (const side of ['out', 'in']) {
+        const taken = new Map();
+        const dir = side === 'out' ? 1 : -1;
+        for (const link of laneOrder) {
+            const end = nodes[side === 'out' ? link.source : link.target];
+            const edge = side === 'out' ? link.x0 : link.x1;
+            const turn = side === 'out'
+                ? link.loop.sourceBottom + RECYCLE.radius - link.sy1
+                : link.loop.targetBottom + RECYCLE.radius - link.ty1;
+            const natural = edge + dir * (RECYCLE.run + turn);
+            const key = end.x0.toFixed(3);
+            const last = taken.get(key);
+            let extra = 0;
+            if (last) {
+                const needed = last.outer + dir * (last.node === end.index ? 0 : laneGap);
+                extra = Math.max(0, dir * (needed - natural));
+                if (extra < 1e-9) extra = 0;
+            }
+            link.loop[side === 'out' ? 'sourceRun' : 'targetRun'] = RECYCLE.run + extra;
+            taken.set(key, { outer: natural + dir * (extra + link.width), node: end.index });
+        }
     }
 
     // The side of an unbalanced node that carries less flow leaves a gap at the
@@ -552,6 +597,7 @@ export function computeLayout(graph, balance, options = {}, positions = {}) {
         bounds: { left, right, top, bottom },
         area,
         maxLayer,
+        displaced,
         nodes,
         links,
         stubs,
@@ -579,8 +625,10 @@ const r2 = (v) => Math.round(v * 100) / 100;
 // down, runs left along its lane, turns up and enters the target from the left.
 // Every turn is a pair of concentric arcs, so the width never changes.
 function loopGeometry(link) {
-    const { radius: r, run: e } = RECYCLE;
+    const r = RECYCLE.radius;
     const { sourceBottom: S, targetBottom: T, laneTop: L0, laneBottom: L1 } = link.loop;
+    const eS = link.loop.sourceRun === undefined ? RECYCLE.run : link.loop.sourceRun;
+    const eT = link.loop.targetRun === undefined ? RECYCLE.run : link.loop.targetRun;
     const w = link.width;
     const xs = link.x0;
     const xt = link.x1;
@@ -590,13 +638,19 @@ function loopGeometry(link) {
         r, w, xs, xt, S, T, L0, L1, riS, riT,
         roS: riS + w,
         roT: riT + w,
-        xa: xs + e,
-        xb: xt - e,
-        legOutInner: xs + e + riS,
-        legOutOuter: xs + e + riS + w,
-        legInInner: xt - e - riT,
-        legInOuter: xt - e - riT - w
+        xa: xs + eS,
+        xb: xt - eT,
+        legOutInner: xs + eS + riS,
+        legOutOuter: xs + eS + riS + w,
+        legInInner: xt - eT - riT,
+        legInOuter: xt - eT - riT - w
     };
+}
+
+/** The x extent of a recycle's two vertical legs, for checking that none overlap. */
+export function loopLegs(link) {
+    const g = loopGeometry(link);
+    return { out: [g.legOutInner, g.legOutOuter], in: [g.legInOuter, g.legInInner] };
 }
 
 function loopRibbonPath(link) {

@@ -7,7 +7,7 @@ export const TITLE_HEIGHT = 30;
 export const FOOTNOTE_HEIGHT = 22;
 
 /**
- * settings: { title, tolerance, width, height, nodeWidth, nodePadding, align }.
+ * settings: { title, tolerance, width, height, nodeWidth, nodePadding, align, order }.
  * positions overrides the positions parsed from the text, which is how a drag
  * in progress previews without rewriting the text on every pointer move.
  * Returns { ok, errors, warnings, parsed, graph, balance, layout }. On a
@@ -37,10 +37,17 @@ export function buildModel(text, settings = {}, positions = null) {
 
     const pins = positions || parsed.positions;
     const base = { ...settings, titleHeight: settings.title ? TITLE_HEIGHT : 0, footnoteHeight: 0 };
-    let layout = computeLayout(graph, balance, base, pins);
+    let layout = computeLayout(graph, balance, base, pins, parsed.columns);
     // The hairline footnote needs room, which is only known after a first pass.
     if (layout.hairlines.length) {
-        layout = computeLayout(graph, balance, { ...base, footnoteHeight: FOOTNOTE_HEIGHT }, pins);
+        layout = computeLayout(graph, balance, { ...base, footnoteHeight: FOOTNOTE_HEIGHT }, pins, parsed.columns);
+    }
+    for (const d of layout.displaced) {
+        warnings.push({
+            line: null,
+            code: 'COLUMN_DISPLACED',
+            message: `"${graph.nodes[d.index].name}" is set to column ${d.wanted}, but something that feeds it is in that column or further right, so it is drawn in column ${d.used}`
+        });
     }
     if (layout.hairlines.length) {
         const names = layout.hairlines.slice(0, 4)

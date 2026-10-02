@@ -38,7 +38,13 @@ export const PALETTES = Object.freeze({
 const HIT_REACH = 14;
 const HIT_SIDE = 8;
 
-const ROLE_SLOT ={ input: 0, internal: 1, output: 2 };
+// How many lines past its own node a crowded label may be lifted or dropped.
+const LABEL_LIFT = 4;
+// Clear space kept beside a label, in px.
+const LABEL_GAP = 6;
+const FOOTNOTE = 'Dashed lines are flows under 1 px wide at this size. They are not to scale.';
+
+const ROLE_SLOT = { input: 0, internal: 1, output: 2 };
 
 export const VIEW_DEFAULTS = Object.freeze({
     title: '',
@@ -230,8 +236,23 @@ export function renderSankey(doc, model, viewOptions = {}, palette = PALETTES.li
 
     const labelGroup = make(doc, 'g', { class: 'sankey-labels' });
     const lineHeight = Math.round(view.fontSize * 1.25);
-    const charWidth = view.fontSize * 0.6;
-    const placed = [];
+    // Text is measured on a canvas where there is one, and estimated where there is not.
+    let ruler = null;
+    try { ruler = doc.createElement('canvas').getContext('2d'); } catch (e) { ruler = null; }
+    const textWidth = (text, size, weight = 400) => {
+        if (!ruler) return text.length * size * 0.6;
+        ruler.font = `${weight} ${size}px ${FONT}`;
+        return ruler.measureText(text).width;
+    };
+    // What a label must keep off: every node, the title, the footnote, and each label once placed.
+    const labelTop = view.title ? margin + 22 : 2;
+    const obstacles = layout.nodes.map((n) => ({ x0: n.x0, x1: n.x1, y0: n.y0, y1: Math.max(n.y1, n.y0 + 1), owner: n.index }));
+    if (layout.hairlines.length) {
+        obstacles.push({
+            x0: margin, x1: margin + textWidth(FOOTNOTE, view.fontSize - 1),
+            y0: height - margin - view.fontSize, y1: height, owner: -1
+        });
+    }
     // Shortest nodes first: they have the least room to dodge, so they get first pick.
     const labelOrder = [...layout.nodes].sort((a, b) => (a.height - b.height) || (a.index - b.index));
     for (const node of labelOrder) {
@@ -243,9 +264,9 @@ export function renderSankey(doc, model, viewOptions = {}, palette = PALETTES.li
         // Labels go to the right of their node, where the next column's ribbons
         // start, and flip left only when they would run off the edge. Flipping
         // at the midline instead makes the two middle columns write over each other.
-        const estimate = (node.name.length + extraText.length + 1) * charWidth;
-        const onRight = node.x1 + 6 + estimate <= width - 2;
-        const x = onRight ? node.x1 + 6 : node.x0 - 6;
+        const estimate = textWidth(node.name, view.fontSize, 600)
+            + (extraText ? 6 + textWidth(extraText, view.fontSize) : 0) + LABEL_GAP;
+        const preferRight = node.x1 + 6 + estimate <= width - 2;
         const lines = [];
         if (view.showMissing && !b.balanced) {
             lines.push({ text: `${b.residual > 0 ? 'Missing outflow' : 'Missing inflow'} ${fmt(Math.abs(b.residual))}`, weight: 600, fill: palette.ink });
@@ -254,26 +275,42 @@ export function renderSankey(doc, model, viewOptions = {}, palette = PALETTES.li
             lines.push({ text: parsed.notes[node.name], style: 'italic', fill: palette.inkSecondary });
         }
 
-        // A label that would sit on one already placed slides along its node to
-        // the nearest clear line. Widths are estimated, which is enough to dodge.
-        const blockWidth = Math.max(estimate, ...lines.map((l) => l.text.length * charWidth));
+        // A label that would sit on another label, a node, the title or the
+        // footnote looks for the nearest clear place: along its own node, then
+        // on the node's other side, then a few lines above or below it, where
+        // a leader ties it back. Widths are estimated, which is enough to dodge.
+        const blockWidth = Math.max(estimate, ...lines.map((l) => textWidth(l.text, view.fontSize - 1, l.weight || 400) + LABEL_GAP));
         const blockHeight = (lines.length + 1) * lineHeight;
-        const boxAt = (baseline) => ({
-            x0: onRight ? x : x - blockWidth, x1: onRight ? x + blockWidth : x,
+        const anchor = (right) => (right ? node.x1 + 6 : node.x0 - 6);
+        const boxAt = (right, baseline) => ({
+            x0: right ? anchor(right) : anchor(right) - blockWidth, x1: right ? anchor(right) + blockWidth : anchor(right),
             y0: baseline - view.fontSize, y1: baseline - view.fontSize + blockHeight
         });
-        const clear = (box) => placed.every((p) => box.x1 < p.x0 || box.x0 > p.x1 || box.y1 < p.y0 || box.y0 > p.y1);
+        const clear = (box) => box.y0 >= labelTop && box.y1 <= height - 2
+            && obstacles.every((p) => p.owner === node.index || box.x1 < p.x0 || box.x0 > p.x1 || box.y1 < p.y0 || box.y0 > p.y1);
+        const fits = (right) => (right ? node.x1 + 6 + blockWidth <= width - 2 : node.x0 - 6 - blockWidth >= 2);
         const centred = (node.y0 + node.y1) / 2 - (lines.length * lineHeight) / 2 + view.fontSize * 0.35;
-        let first = centred;
-        if (!clear(boxAt(centred))) {
-            const room = Math.floor(Math.max(0, node.height - blockHeight) / 2 / lineHeight);
-            for (let k = 1; k <= room && first === centred; k++) {
-                for (const shift of [-k * lineHeight, k * lineHeight]) {
-                    if (clear(boxAt(centred + shift))) { first = centred + shift; break; }
-                }
-            }
+        const room = Math.floor(Math.max(0, node.height - blockHeight) / 2 / lineHeight);
+        const sides = [preferRight, !preferRight].filter((right) => right === preferRight || fits(right));
+        const tries = [];
+        for (const right of sides) {
+            tries.push([right, 0]);
+            for (let k = 1; k <= room; k++) tries.push([right, -k], [right, k]);
         }
-        placed.push(boxAt(first));
+        for (const right of sides) {
+            for (let k = room + 1; k <= room + LABEL_LIFT; k++) tries.push([right, -k], [right, k]);
+        }
+        const [onRight, shift] = tries.find(([right, k]) => clear(boxAt(right, centred + k * lineHeight))) || [preferRight, 0];
+        const x = anchor(onRight);
+        const first = centred + shift * lineHeight;
+        obstacles.push({ ...boxAt(onRight, first), owner: -1 });
+
+        if (Math.abs(shift) > room) {
+            labelGroup.appendChild(make(doc, 'line', {
+                class: 'sankey-leader', x1: onRight ? node.x1 : node.x0, y1: (node.y0 + node.y1) / 2,
+                x2: x, y2: first - view.fontSize * 0.35, stroke: palette.inkSecondary, 'stroke-width': 1
+            }));
+        }
 
         const text = make(doc, 'text', {
             class: 'sankey-label', x, y: first, 'text-anchor': onRight ? 'start' : 'end', fill: palette.ink,
@@ -296,7 +333,7 @@ export function renderSankey(doc, model, viewOptions = {}, palette = PALETTES.li
     if (layout.hairlines.length) {
         svg.appendChild(make(doc, 'text', {
             class: 'sankey-footnote', x: margin, y: height - margin, 'font-size': view.fontSize - 1, fill: palette.inkSecondary
-        }, 'Dashed lines are flows under 1 px wide at this size. They are not to scale.'));
+        }, FOOTNOTE));
     }
 
     return svg;

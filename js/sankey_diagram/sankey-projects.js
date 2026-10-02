@@ -144,6 +144,48 @@ export function commitProject(project, now = 0) {
     project.savedAt = now;
 }
 
+export const FILE_FORMAT = 'sankey-diagram-project';
+export const MAX_FILE_BYTES = 400000;
+
+/** One project as the text of a file: the form as it stands, with its name. */
+export function projectToFile(project) {
+    return JSON.stringify({ format: FILE_FORMAT, version: 1, name: project.name, state: cleanState(project.draft) }, null, 2);
+}
+
+/**
+ * Read a project file. Returns { ok, name, state } or { ok: false, message }.
+ * The contents are cleaned like anything from storage, never trusted.
+ */
+export function projectFromFile(text) {
+    let raw;
+    try {
+        raw = JSON.parse(text);
+    } catch (e) {
+        return { ok: false, message: 'That file is not a Sankey project: it is not JSON' };
+    }
+    if (!raw || typeof raw !== 'object' || raw.format !== FILE_FORMAT) {
+        return { ok: false, message: 'That file is not a Sankey project exported from this tool' };
+    }
+    if (raw.version !== 1) {
+        return { ok: false, message: 'That project file is from a newer version of this tool and cannot be read' };
+    }
+    if (!raw.state || typeof raw.state !== 'object' || typeof raw.state.text !== 'string') {
+        return { ok: false, message: 'That project file has no flow list in it' };
+    }
+    return { ok: true, name: cleanName(raw.name), state: cleanState(raw.state) };
+}
+
+/** A name not already in use: "Budget", then "Budget (2)". */
+export function uniqueName(store, name) {
+    const names = new Set(store.projects.map((p) => p.name));
+    if (!names.has(name)) return name;
+    for (let n = 2; n <= MAX_PROJECTS + 1; n++) {
+        const candidate = cleanName(`${name.slice(0, MAX_NAME - 5)} (${n})`);
+        if (!names.has(candidate)) return candidate;
+    }
+    return name;
+}
+
 /** Throw the draft away and go back to the last save. */
 export function revertProject(project, now = 0) {
     project.draft = cleanState(project.saved);

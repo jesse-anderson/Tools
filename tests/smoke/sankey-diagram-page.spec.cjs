@@ -866,3 +866,208 @@ test.describe('moving nodes', () => {
     await expect(page.locator('#errorList li')).toHaveText(/^Line 7: a position is two percentages from 0 to 100/);
   });
 });
+
+test.describe('crowded labels', () => {
+  const BUSY = [
+    'Web Apply [552] Ghosted', 'Web Apply [9] Phone Screen', 'Automated Apply [715] Ghosted',
+    'Automated Apply [1] Phone Screen', 'Phone Screen [2] Scam', 'Phone Screen [7] Ghosted',
+    'Phone Screen [1] Light Technical', 'Light Technical [1] Fumbled SQL', 'LinkedIn Message [1] Phone Screen',
+    'Phone Screen [1] Technical 1', 'Technical 1 [1] Technical 2', 'Technical 2 [1] Panel Interview',
+    'Panel Interview [1] Lack Domain Exp.'
+  ].join('\n');
+
+  // Draws into the page so the boxes are the real, measured ones.
+  const measure = (page, text, view = {}) => page.evaluate(async ([t, v]) => {
+    await document.fonts.ready;
+    const S = window.SankeyDiagram;
+    const m = S.buildModel(t, { title: v.title || '' });
+    const svg = S.renderSankey(document, m, { showValues: true, ...v }, S.PALETTES.light);
+    document.body.appendChild(svg);
+    const box = (el) => { const b = el.getBBox(); return { x0: b.x, x1: b.x + b.width, y0: b.y, y1: b.y + b.height, node: el.getAttribute('data-node') }; };
+    const labels = [...svg.querySelectorAll('.sankey-label')].map(box);
+    const nodes = [...svg.querySelectorAll('rect.sankey-node')].map(box);
+    const hit = (a, b) => a.x0 < b.x1 - 0.5 && b.x0 < a.x1 - 0.5 && a.y0 < b.y1 - 0.5 && b.y0 < a.y1 - 0.5;
+    const clashes = [];
+    for (let i = 0; i < labels.length; i++) {
+      for (let j = i + 1; j < labels.length; j++) if (hit(labels[i], labels[j])) clashes.push(`labels ${labels[i].node} and ${labels[j].node}`);
+      for (const n of nodes) if (n.node !== labels[i].node && hit(labels[i], n)) clashes.push(`label ${labels[i].node} on node ${n.node}`);
+      if (labels[i].x0 < 0 || labels[i].x1 > m.layout.options.width || labels[i].y0 < 0 || labels[i].y1 > m.layout.options.height) clashes.push(`label ${labels[i].node} off the diagram`);
+    }
+    const foot = svg.querySelector('.sankey-footnote');
+    const title = svg.querySelector('.sankey-title');
+    for (const fixed of [foot, title].filter(Boolean).map(box)) {
+      for (const l of labels) if (hit(l, fixed)) clashes.push(`label ${l.node} on the title or footnote`);
+    }
+    const leaders = svg.querySelectorAll('.sankey-leader').length;
+    svg.remove();
+    return { clashes, leaders, labels: labels.length };
+  }, [text, view]);
+
+  test('labels on a busy diagram never print over each other, a node, the title or the footnote', async ({ page }) => {
+    await openTool(page);
+    const busy = await measure(page, BUSY, { title: 'Job search', unit: 'applications' });
+    expect(busy.labels).toBe(12);
+    expect(busy.clashes).toEqual([]);
+    // Something had to move off its own row here, and a leader says where it belongs.
+    expect(busy.leaders).toBeGreaterThan(0);
+  });
+
+  test('an uncrowded diagram keeps every label beside its node, with no leader', async ({ page }) => {
+    await openTool(page);
+    for (const id of ['evaporator', 'dryer', 'energy', 'budget']) {
+      const text = await page.evaluate((i) => window.SankeyDiagram.PRESETS.find((p) => p.id === i).text, id);
+      const out = await measure(page, text, { unit: 'kg/h' });
+      expect(out.clashes, id).toEqual([]);
+      expect(out.leaders, id).toBe(0);
+    }
+  });
+});
+
+test.describe('project files', () => {
+  test('a project file round-trips, and anything else is refused with a reason', async ({ page }) => {
+    await openTool(page);
+    const out = await page.evaluate(() => {
+      const P = window.SankeyDiagram.projects;
+      const store = P.emptyStore();
+      const project = P.addProject(store, 'Boiler house', { text: 'A [1] B', fields: { titleInput: 'Energy', showValues: true } }, 1);
+      P.setDraft(project, { text: 'A [2] B', fields: { titleInput: 'Energy', showValues: false } }, 2);
+      const file = P.projectToFile(project);
+      const refuse = (text) => P.projectFromFile(text);
+      return {
+        parsed: JSON.parse(file),
+        back: P.projectFromFile(file),
+        notJson: refuse('A [1] B'),
+        wrongFormat: refuse(JSON.stringify({ format: 'something-else', version: 1, state: { text: 'A [1] B' } })),
+        newer: refuse(JSON.stringify({ format: P.FILE_FORMAT, version: 2, state: { text: 'A [1] B' } })),
+        noText: refuse(JSON.stringify({ format: P.FILE_FORMAT, version: 1, state: { fields: {} } })),
+        junk: P.projectFromFile(JSON.stringify({
+          format: P.FILE_FORMAT, version: 1, name: { evil: true },
+          state: { text: 'A [1] B', fields: { titleInput: 'ok', nested: { a: 1 }, count: 5 }, extra: 'dropped' }
+        })),
+        unique: [P.uniqueName(store, 'Fresh'), P.uniqueName(store, 'Boiler house')]
+      };
+    });
+    expect(out.parsed.format).toBe('sankey-diagram-project');
+    expect(out.parsed.version).toBe(1);
+    // The file holds what is on screen, which is the draft, not the last save.
+    expect(out.back).toEqual({ ok: true, name: 'Boiler house', state: { text: 'A [2] B', fields: { titleInput: 'Energy', showValues: false } } });
+    for (const bad of [out.notJson, out.wrongFormat, out.newer, out.noText]) {
+      expect(bad.ok).toBe(false);
+      expect(bad.message.length).toBeGreaterThan(10);
+    }
+    expect(new Set([out.notJson, out.wrongFormat, out.newer, out.noText].map((b) => b.message)).size).toBe(4);
+    expect(out.junk.state).toEqual({ text: 'A [1] B', fields: { titleInput: 'ok' } });
+    expect(typeof out.junk.name).toBe('string');
+    expect(out.unique).toEqual(['Fresh', 'Boiler house (2)']);
+  });
+
+  test('Export file saves the project and Import file adds it back as a new one', async ({ page }) => {
+    await openTool(page);
+    await page.fill('#projectName', 'Dryer trial');
+    await page.fill('#flowText', DRYER);
+    await page.fill('#titleInput', 'Spray dryer');
+    await page.locator('#advancedOptions > summary').click();
+    await page.selectOption('#order', 'up');
+
+    const [download] = await Promise.all([page.waitForEvent('download'), page.click('#projectExport')]);
+    expect(download.suggestedFilename()).toBe('dryer-trial.sankey.json');
+    const text = await readDownloadText(download);
+    const file = JSON.parse(text);
+    expect(file.name).toBe('Dryer trial');
+    expect(file.state.text).toBe(DRYER);
+    expect(file.state.fields.order).toBe('up');
+
+    // Change the original, then bring the file back: it arrives beside it, not over it.
+    await page.fill('#flowText', 'A [1] B');
+    await page.setInputFiles('#projectFile', { name: 'dryer-trial.sankey.json', mimeType: 'application/json', buffer: Buffer.from(text) });
+    await expect(page.locator('#projectFileStatus')).toContainText('Imported "Dryer trial (2)"');
+    expect(await page.inputValue('#flowText')).toBe(DRYER);
+    await expect(page.locator('#titleInput')).toHaveValue('Spray dryer');
+    await expect(page.locator('#order')).toHaveValue('up');
+    await expect(page.locator('#diagramHost rect.sankey-node')).toHaveCount(7);
+    const store = await stored(page);
+    expect(store.projects.map((p) => p.name)).toEqual(['Dryer trial', 'Dryer trial (2)']);
+    expect(store.projects[0].draft.text).toBe('A [1] B');
+
+    // The same file can be chosen again, and a file that is not a project changes nothing.
+    await page.setInputFiles('#projectFile', { name: 'dryer-trial.sankey.json', mimeType: 'application/json', buffer: Buffer.from(text) });
+    await expect(page.locator('#projectFileStatus')).toContainText('Imported "Dryer trial (3)"');
+    await page.setInputFiles('#projectFile', { name: 'notes.json', mimeType: 'application/json', buffer: Buffer.from('{"hello": 1}') });
+    await expect(page.locator('#projectFileStatus')).toContainText('not a Sankey project');
+    expect((await stored(page)).projects).toHaveLength(3);
+    await page.setInputFiles('#projectFile', { name: 'big.json', mimeType: 'application/json', buffer: Buffer.alloc(400001, 32) });
+    await expect(page.locator('#projectFileStatus')).toContainText('too large');
+  });
+
+  test('Import is off once ten projects are stored', async ({ page }) => {
+    await openTool(page);
+    for (let i = 0; i < 9; i++) await page.click('#projectNew');
+    await expect(page.locator('#projectNew')).toBeDisabled();
+    await expect(page.locator('#projectImport')).toBeDisabled();
+    await expect(page.locator('#projectExport')).toBeEnabled();
+  });
+});
+
+test.describe('font in the PNG', () => {
+  test('a font carried inside the SVG is the one the PNG is drawn in', async ({ page }) => {
+    await openTool(page);
+    const out = await page.evaluate(async () => {
+      const S = window.SankeyDiagram;
+      const font = await S.loadFontDataUrl();
+      // A family name no machine has, so only the embedded face can change the pixels.
+      const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="300" height="60" viewBox="0 0 300 60"><defs><pattern id="p"/></defs>'
+        + '<rect width="300" height="60" fill="#ffffff"/>'
+        + '<text x="6" y="40" font-size="30" font-family="SankeyProbeFace, monospace" fill="#000000">Rag gain 0123</text></svg>';
+      const pixels = async (text) => {
+        const blob = await S.svgToPngBlob(text, 300, 60, 1);
+        const bitmap = await createImageBitmap(blob);
+        const canvas = document.createElement('canvas');
+        canvas.width = 300; canvas.height = 60;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(bitmap, 0, 0);
+        const data = ctx.getImageData(0, 0, 300, 60).data;
+        let ink = 0;
+        let hash = 0;
+        for (let i = 0; i < data.length; i += 4) {
+          if (data[i] < 128) { ink += 1; hash = (hash * 31 + i) | 0; }
+        }
+        return { ink, hash };
+      };
+      const embedded = S.embedFont(svg, font, 'SankeyProbeFace');
+      return {
+        font: font ? font.slice(0, 29) : null,
+        length: font ? font.length : 0,
+        inDefs: embedded.includes('<defs><style>@font-face{font-family:\'SankeyProbeFace\''),
+        untouched: S.embedFont(svg, null) === svg,
+        plain: await pixels(svg),
+        withFace: await pixels(embedded),
+        again: await pixels(embedded)
+      };
+    });
+    expect(out.font).toBe('data:font/woff2;base64,d09GMg');
+    expect(out.length).toBeGreaterThan(20000);
+    expect(out.inDefs).toBe(true);
+    expect(out.untouched).toBe(true);
+    expect(out.plain.ink).toBeGreaterThan(200);
+    expect(out.withFace.ink).toBeGreaterThan(200);
+    // Same text, different glyphs: the face inside the file was used.
+    expect(out.withFace.hash).not.toBe(out.plain.hash);
+    expect(out.again.hash).toBe(out.withFace.hash);
+  });
+
+  test('the vendored font is the file its licence note says it is', async () => {
+    const dir = require('node:path').join(__dirname, '..', '..', 'js', 'vendor', 'sankey_diagram');
+    const bytes = fs.readFileSync(require('node:path').join(dir, 'space-grotesk-latin.woff2'));
+    const sha = require('node:crypto').createHash('sha256').update(bytes).digest('hex');
+    expect(sha).toBe('0640890476fc1198ab4de571fb658de443c4d85b66466ec09534a8737ab1ce9d');
+    expect(fs.readFileSync(require('node:path').join(dir, 'OFL.txt'), 'utf8')).toContain('SIL Open Font License, Version 1.1');
+  });
+
+  test('a PNG export says so when the font could not be read', async ({ page }) => {
+    await page.route('**/space-grotesk-latin.woff2', (route) => route.abort());
+    await openTool(page);
+    const [download] = await Promise.all([page.waitForEvent('download'), page.click('#downloadPng')]);
+    expect(download.suggestedFilename()).toMatch(/[.]png$/);
+    await expect(page.locator('#exportStatus')).toContainText('text is in your system font');
+  });
+});

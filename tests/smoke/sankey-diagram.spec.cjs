@@ -810,3 +810,144 @@ test.describe('layout', () => {
     expect(m.errors[0].code).toBe('TOO_MANY_FLOWS');
   });
 });
+
+test.describe('column set by hand', () => {
+  test.beforeEach(async ({ page }) => { await openTool(page); });
+
+  const CHAIN = ['Feed [10] Mill', 'Mill [6] Screen', 'Mill [4] Waste', 'Screen [6] Product'].join('\n');
+  const layers = (m) => Object.fromEntries(m.layout.nodes.map((n) => [n.name, n.layer + 1]));
+
+  test('a column line is parsed, range checked, and never mistaken for a flow', async ({ page }) => {
+    const ok = await parse(page, `${CHAIN}\n> Waste: 2\n>   Screen :  4`);
+    expect(ok.errors).toEqual([]);
+    expect(ok.columns).toEqual({ Waste: 2, Screen: 4 });
+
+    for (const [line, code] of [['> Waste: 0', 'COLUMN_OUT_OF_RANGE'], ['> Waste: 41', 'COLUMN_OUT_OF_RANGE'],
+      ['> Waste: two', 'COLUMN_NOT_UNDERSTOOD'], ['> Waste 2', 'COLUMN_NOT_UNDERSTOOD'], ['> Waste: 2.5', 'COLUMN_NOT_UNDERSTOOD']]) {
+      const out = await parse(page, `${CHAIN}\n${line}`);
+      expect(out.errors.map((e) => [e.line, e.code])).toEqual([[5, code]]);
+    }
+
+    // A source whose name starts with the same character is still a flow.
+    const flow = await parse(page, '>5 mm [3] Crusher\n>5 mm,Stockpile,2');
+    expect(flow.errors).toEqual([]);
+    expect(flow.flows.map((f) => [f.source, f.target, f.value])).toEqual([['>5 mm', 'Crusher', 3], ['>5 mm', 'Stockpile', 2]]);
+
+    const stray = await parse(page, `${CHAIN}\n> Nowhere: 3`);
+    expect(stray.warnings.map((w) => w.code)).toEqual(['UNKNOWN_NODE']);
+  });
+
+  test('a column pushes its node and everything after it right, and holds an output in place', async ({ page }) => {
+    expect(layers(await build(page, CHAIN))).toEqual({ Feed: 1, Mill: 2, Screen: 3, Waste: 4, Product: 4 });
+
+    // Waste is an output, which would otherwise be lined up on the right.
+    const held = await build(page, `${CHAIN}\n> Waste: 3`);
+    expect(layers(held)).toEqual({ Feed: 1, Mill: 2, Screen: 3, Waste: 3, Product: 4 });
+    expect(held.warnings.map((w) => w.code)).not.toContain('COLUMN_DISPLACED');
+
+    const pushed = await build(page, `${CHAIN}\n> Mill: 4`);
+    expect(layers(pushed)).toEqual({ Feed: 1, Mill: 4, Screen: 5, Waste: 6, Product: 6 });
+    // The flow from Feed now skips two columns and is routed through both.
+    expect(pushed.layout.links[0].waypoints.length).toBe(2);
+
+    // An input can be started further right, beside what it joins.
+    const late = await build(page, `${CHAIN}\nMake-up [2] Screen\n> Make-up: 2`);
+    expect(layers(late)['Make-up']).toBe(2);
+  });
+
+  test('a column left of what feeds the node is refused out loud, not obeyed', async ({ page }) => {
+    const m = await build(page, `${CHAIN}\n> Screen: 1`);
+    expect(m.ok).toBe(true);
+    expect(layers(m).Screen).toBe(3);
+    const warning = m.warnings.find((w) => w.code === 'COLUMN_DISPLACED');
+    expect(warning.message).toContain('"Screen" is set to column 1');
+    expect(warning.message).toContain('drawn in column 3');
+    for (const l of m.layout.links) expect(l.x1).toBeGreaterThan(l.x0);
+  });
+});
+
+test.describe('recycle loops beside each other', () => {
+  test.beforeEach(async ({ page }) => { await openTool(page); });
+
+  const LOOPS = [
+    'A [100] B', 'A [60] C', 'B [100] D', 'C [60] E', 'D [80] F', 'E [50] G',
+    'D [20] B', 'E [10] C', 'F [15] A', 'G [8] A'
+  ].join('\n');
+
+  const legs = (page, text, settings = {}) => page.evaluate(([t, s]) => {
+    const S = window.SankeyDiagram;
+    const m = S.buildModel(t, s);
+    return m.layout.links.filter((l) => l.recycle).map((l) => ({
+      name: `${m.graph.nodes[l.source].name}>${m.graph.nodes[l.target].name}`,
+      legs: S.engine.loopLegs(l), lane: l.loop.laneTop, width: l.width,
+      sourceX: m.layout.nodes[l.source].x0, targetX: m.layout.nodes[l.target].x0,
+      sourceRun: l.loop.sourceRun, targetRun: l.loop.targetRun
+    }));
+  }, [text, settings]);
+
+  test('loops from different nodes of one column turn on their own tracks, inner lane innermost', async ({ page }) => {
+    const out = await legs(page, LOOPS);
+    const by = Object.fromEntries(out.map((l) => [l.name, l]));
+    expect(out.map((l) => l.name).sort()).toEqual(['D>B', 'E>C', 'F>A', 'G>A']);
+
+    // D and E share a column, as do B and C: the loop from the lower pair is the inner one.
+    expect(by['E>C'].lane).toBeLessThan(by['D>B'].lane);
+    expect(by['E>C'].sourceRun).toBe(4);
+    expect(by['D>B'].sourceRun).toBeGreaterThan(4);
+    // Out legs run left to right as [inner, outer]; in legs as [outer, inner].
+    expect(by['D>B'].legs.out[0]).toBeGreaterThanOrEqual(by['E>C'].legs.out[1] + 4 - 1e-9);
+    expect(by['D>B'].legs.in[1]).toBeLessThanOrEqual(by['E>C'].legs.in[0] - 4 + 1e-9);
+    // Two loops arriving at the one node A stay touching, as loops at one node always did.
+    expect(by['F>A'].legs.in[1]).toBeCloseTo(by['G>A'].legs.in[0], 9);
+  });
+
+  test('on seeded random graphs no two legs beside a column overlap, and the outer leg has the lower lane', async ({ page }) => {
+    const result = await page.evaluate(() => {
+      const S = window.SankeyDiagram;
+      let seed = 4242;
+      const rnd = () => {
+        seed = (seed + 0x6D2B79F5) | 0;
+        let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      };
+      const problems = [];
+      let pairs = 0;
+      for (let g = 0; g < 80; g++) {
+        const n = 4 + Math.floor(rnd() * 10);
+        const lines = [];
+        for (let i = 0; i < n; i++) {
+          for (let j = 0; j < n; j++) {
+            if (i !== j && rnd() < 0.16) lines.push(`N${i} [${(rnd() * 90 + 1).toFixed(1)}] N${j}`);
+          }
+        }
+        if (!lines.length) continue;
+        if (g % 3 === 1) lines.push(`> N${Math.floor(rnd() * n)}: ${2 + Math.floor(rnd() * 4)}`);
+        const m = S.buildModel(lines.join('\n'), { width: 700 + g * 20, height: 420 + g * 10 });
+        if (!m.ok) { problems.push(`random${g}: did not build`); continue; }
+        for (const l of m.layout.links) {
+          if (!l.recycle && !(l.x1 > l.x0)) problems.push(`random${g}: link ${l.index} does not run left to right`);
+        }
+        const loops = m.layout.links.filter((l) => l.recycle);
+        for (const side of ['out', 'in']) {
+          for (let a = 0; a < loops.length; a++) {
+            for (let b = a + 1; b < loops.length; b++) {
+              const end = side === 'out' ? 'source' : 'target';
+              if (m.layout.nodes[loops[a][end]].x0 !== m.layout.nodes[loops[b][end]].x0) continue;
+              pairs += 1;
+              const A = S.engine.loopLegs(loops[a])[side];
+              const B = S.engine.loopLegs(loops[b])[side];
+              if (Math.min(A[1], B[1]) - Math.max(A[0], B[0]) > 1e-6) problems.push(`random${g}: ${side} legs of ${loops[a].index} and ${loops[b].index} overlap`);
+              // Further from the column means a lower lane, or the leg would cut the other's lane.
+              const outerA = side === 'out' ? A[0] > B[0] : A[1] < B[1];
+              if (outerA !== (loops[a].loop.laneTop > loops[b].loop.laneTop)) problems.push(`random${g}: ${side} legs of ${loops[a].index} and ${loops[b].index} are out of lane order`);
+            }
+          }
+        }
+      }
+      return { problems, pairs };
+    });
+    expect(result.pairs).toBeGreaterThan(50);
+    expect(result.problems).toEqual([]);
+  });
+});
