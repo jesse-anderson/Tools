@@ -154,13 +154,15 @@ test('psychrometric calculator keeps unit paths and Tdb plus W wet bulb consiste
   }));
   await page.locator('#psychoCanvas').click({ position: chartPoint });
   await expect(page.locator('#labelInput2')).toContainText('Humidity Ratio');
+  // The chart applies a click on the next animation frame, and the label above
+  // already reads Humidity Ratio from the coil step, so poll the state itself.
+  await expect.poll(() => page.evaluate(() => currentState.Tdb)).toBeCloseTo(32, 1);
   const chartState = await page.evaluate(() => ({
     mode: inputMode,
     Tdb: currentState.Tdb,
     W: currentState.W
   }));
   expect(chartState.mode).toBe('tdb_w');
-  expect(chartState.Tdb).toBeCloseTo(32, 1);
   expect(chartState.W).toBeCloseTo(0.012, 3);
 
   const resultsDownloadPromise = page.waitForEvent('download');
