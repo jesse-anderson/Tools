@@ -16,12 +16,14 @@ import { attachDrag } from './sankey-drag.js';
 const el = (id) => document.getElementById(id);
 const TEXT_DEBOUNCE_MS = 120;
 const DELETE_ARM_MS = 4000;
+const RESIZE_STEP = 20;
+const RESIZE_STEP_LARGE = 100;
 
 // Everything a project remembers besides the flow list.
-const FIELD_IDS = ['titleInput', 'unitInput', 'tolerance', 'showValues', 'showPercent', 'showLinkValues',
+const FIELD_IDS = ['titleInput', 'unitInput', 'tolerance', 'widthMode', 'minLinkWidth', 'showValues', 'showPercent', 'showLinkValues',
     'showMissing', 'diagramWidth', 'diagramHeight', 'nodeWidth', 'nodePadding', 'align', 'order', 'fontSize', 'decimals',
     'nodeColor', 'linkColor', 'linkOpacity', 'pngScale', 'exportTheme', 'exportTransparent'];
-const CLAMPED_IDS = ['tolerance', 'diagramWidth', 'diagramHeight', 'nodeWidth', 'nodePadding', 'fontSize', 'linkOpacity'];
+const CLAMPED_IDS = ['tolerance', 'minLinkWidth','diagramWidth', 'diagramHeight', 'nodeWidth', 'nodePadding', 'fontSize', 'linkOpacity'];
 const STARTER_TEXT = '// Source [amount] Target\nFeed [100] Process\nProcess [100] Product\n';
 
 let model = null;
@@ -54,7 +56,9 @@ function readSettings() {
             nodeWidth: numberField('nodeWidth'),
             nodePadding: numberField('nodePadding'),
             align: el('align').value,
-            order: el('order').value
+            order: el('order').value,
+            minLinkWidth: numberField('minLinkWidth'),
+            widthMode: el('widthMode').value
         },
         view: {
             title: el('titleInput').value.trim(),
@@ -168,6 +172,55 @@ function updatePngNote() {
         : `${size.width} x ${size.height} px is larger than a browser canvas can hold. Pick a lower resolution.`;
 }
 
+/** The size the engine used, shown on the height handle. */
+function updateResizeBar() {
+    const used = engine.resolveOptions(readSettings().layout);
+    el('resizeBar').setAttribute('aria-valuenow', String(used.height));
+    el('resizeNote').textContent = `${used.width} x ${used.height} px`;
+}
+
+/** Drag or arrow-key the bar under the diagram to change its height. */
+function attachResize(bar) {
+    const [min, max] = engine.LIMITS.height;
+    let drag = null;
+    let frame = 0;
+    const setHeight = (height) => {
+        el('diagramHeight').value = String(Math.round(Math.min(max, Math.max(min, height))));
+    };
+
+    bar.addEventListener('pointerdown', (event) => {
+        if (event.button !== 0) return;
+        const svg = el('diagramHost').querySelector('svg');
+        const used = engine.resolveOptions(readSettings().layout);
+        // Screen pixels to diagram units: the SVG is scaled to fit its panel.
+        const shown = svg ? svg.getBoundingClientRect().width : 0;
+        drag = { pointerId: event.pointerId, startY: event.clientY, height: used.height, scale: shown > 0 ? used.width / shown : 1 };
+        bar.setPointerCapture(event.pointerId);
+    });
+    bar.addEventListener('pointermove', (event) => {
+        if (!drag || event.pointerId !== drag.pointerId) return;
+        setHeight(drag.height + (event.clientY - drag.startY) * drag.scale);
+        if (frame) return;
+        frame = requestAnimationFrame(() => { frame = 0; render(); });
+    });
+    const finish = (event) => {
+        if (!drag || event.pointerId !== drag.pointerId) return;
+        drag = null;
+        if (bar.hasPointerCapture(event.pointerId)) bar.releasePointerCapture(event.pointerId);
+    };
+    bar.addEventListener('pointerup', finish);
+    bar.addEventListener('pointercancel', finish);
+
+    bar.addEventListener('keydown', (event) => {
+        const direction = { ArrowUp: -1, ArrowDown: 1 }[event.key];
+        if (!direction) return;
+        event.preventDefault();
+        const used = engine.resolveOptions(readSettings().layout);
+        setHeight(used.height + direction * (event.shiftKey ? RESIZE_STEP_LARGE : RESIZE_STEP));
+        render();
+    });
+}
+
 /**
  * Rebuild everything from the form. previewPositions is set only while a node
  * is being dragged: the diagram follows the pointer and nothing else changes.
@@ -203,6 +256,7 @@ function render(previewPositions = null) {
         el('resultStatus').classList.toggle('unbalanced', !model.balance.balanced);
     }
     updatePngNote();
+    updateResizeBar();
     autosave();
 }
 
@@ -498,6 +552,8 @@ function init() {
         preview: (positions) => render(positions),
         commit: (name, position) => setFlowText(parser.setPositionLine(el('flowText').value, name, position))
     });
+
+    attachResize(el('resizeBar'));
 
     // Closing the tab inside the typing debounce would otherwise drop the last keystrokes.
     window.addEventListener('pagehide', () => { flushDraft(); writeStore(); });

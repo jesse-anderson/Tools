@@ -10,6 +10,8 @@ export const DEFAULTS = Object.freeze({
     nodePadding: 18,
     align: 'justify',
     order: 'down',
+    minLinkWidth: 0,
+    widthMode: 'scale',
     iterations: 32,
     margin: 16,
     titleHeight: 0,
@@ -22,11 +24,15 @@ export const LIMITS = Object.freeze({
     height: [200, 1800],
     nodeWidth: [4, 60],
     nodePadding: [2, 80],
+    minLinkWidth: [0, 12],
     tolerance: [0, 0.25]
 });
 
 // Where smaller flows go in a column: below the largest, above it, or as typed.
 export const ORDERS = Object.freeze(['down', 'up', 'typed']);
+
+// How a flow's amount becomes a width: in proportion, by square root, or not at all.
+export const WIDTH_MODES = Object.freeze(['scale', 'root', 'equal']);
 
 // Below this drawn width a ribbon is not visibly a ribbon, so it is flagged.
 export const HAIRLINE_PX = 1;
@@ -196,6 +202,8 @@ export function resolveOptions(options = {}) {
         nodePadding: clamp(numberOr(options.nodePadding, DEFAULTS.nodePadding), LIMITS.nodePadding),
         align: options.align === 'left' ? 'left' : 'justify',
         order: ORDERS.includes(options.order) ? options.order : DEFAULTS.order,
+        minLinkWidth: clamp(numberOr(options.minLinkWidth, DEFAULTS.minLinkWidth), LIMITS.minLinkWidth),
+        widthMode: WIDTH_MODES.includes(options.widthMode) ? options.widthMode : DEFAULTS.widthMode,
         iterations: Math.round(clamp(numberOr(options.iterations, DEFAULTS.iterations), [0, 200])),
         margin: clamp(numberOr(options.margin, DEFAULTS.margin), [0, 200]),
         titleHeight: clamp(numberOr(options.titleHeight, DEFAULTS.titleHeight), [0, 200]),
@@ -362,7 +370,7 @@ export function computeLayout(graph, balance, options = {}, positions = {}, colu
         let previous = nodes[l.source];
         const chain = [];
         for (let c = layer[l.source] + 1; c < layer[l.target]; c++) {
-            const slot = { index: items.length, layer: c, value: l.value, pinned: false, x0: 0, x1: 0, y0: 0, y1: 0, height: 0 };
+            const slot = { index: items.length, slot: true, layer: c, value: l.value, pinned: false, x0: 0, x1: 0, y0: 0, y1: 0, height: 0 };
             items.push(slot);
             ups.push([]);
             downs.push([]);
@@ -396,17 +404,53 @@ export function computeLayout(graph, balance, options = {}, positions = {}, colu
         if (sum > 0) ky = Math.min(ky, (innerH - (column.length - 1) * pad - fixedBand) / (sum + backValue));
     }
     if (!Number.isFinite(ky) || ky < 0) ky = 0;
-    const nodeBottom = bottom - fixedBand - backValue * ky;
+
+    // Widths that are not to scale: a compressed or equal width mode, or a
+    // floor on drawn width. Such widths no longer add up to their node, so a
+    // node is as tall as its drawn ribbons need, and the scale is the largest
+    // one at which every column still fits. ky is then pixels per drawn unit.
+    let minWidth = opt.minLinkWidth;
+    const drawn = { scale: (v) => v, root: Math.sqrt, equal: () => 1 }[opt.widthMode];
+    const additive = opt.widthMode === 'scale' && !(minWidth > 0);
+    const widthAt = (v, k) => (minWidth > 0 ? Math.max(drawn(v) * k, minWidth) : drawn(v) * k);
+    const gaps = new Map((balance ? balance.unbalanced : []).map((b) => [b.index, b.residual]));
+    const heightAt = (item, k) => {
+        if (item.slot) return widthAt(item.value, k);
+        if (additive) return item.value * k;
+        const g = graph.nodes[item.index];
+        const side = (list) => g[list].reduce((s, li) => s + widthAt(graph.links[li].value, k), 0);
+        const gap = gaps.get(item.index) || 0;
+        const stub = gap ? widthAt(Math.abs(gap), k) : 0;
+        const toScale = opt.widthMode === 'scale' ? item.value * k : 0;
+        return Math.max(toScale, side('inLinks') + (gap < 0 ? stub : 0), side('outLinks') + (gap > 0 ? stub : 0));
+    };
+    const backWidthAt = (k) => back.reduce((s, l) => s + widthAt(l.value, k), 0);
+    if (!additive && ky > 0) {
+        const need = (k) => Math.max(...columns.map((c) => c.reduce((s, n) => s + heightAt(n, k), 0) + (c.length - 1) * pad))
+            + fixedBand + backWidthAt(k);
+        // A floor too thick to fit with nothing left to scale is thinned until it does.
+        while (need(0) > innerH && minWidth > 0.25) minWidth *= 0.8;
+        // No single ribbon can be taller than the diagram, which bounds the search.
+        let lo = 0;
+        let hi = innerH / Math.min(...graph.links.map((l) => drawn(l.value)));
+        for (let i = 0; i < 60; i++) {
+            const mid = (lo + hi) / 2;
+            if (need(mid) <= innerH) lo = mid; else hi = mid;
+        }
+        ky = lo;
+    }
+    const widthOf = (v) => widthAt(v, ky);
+    const nodeBottom = bottom - fixedBand - (additive ? backValue * ky : backWidthAt(ky));
 
     // Horizontal extent. A recycle into the first column or out of the last
     // needs room outside it for its vertical leg.
     const recycleSum = (node, list) => graph.nodes[node.index][list]
-        .reduce((s, li) => s + (graph.links[li].recycle ? graph.links[li].value : 0), 0);
+        .reduce((s, li) => s + (graph.links[li].recycle ? widthOf(graph.links[li].value) : 0), 0);
     // Loops from different nodes of that column turn side by side, so the room is their sum.
     const inset = (column, list) => {
         const sums = column.map((n) => recycleSum(n, list)).filter((s) => s > 0);
         if (!sums.length) return 0;
-        const want = RECYCLE.run + RECYCLE.radius + sums.reduce((s, v) => s + v, 0) * ky + laneGap * (sums.length - 1);
+        const want = RECYCLE.run + RECYCLE.radius + sums.reduce((s, v) => s + v, 0) + laneGap * (sums.length - 1);
         return Math.min(want, (right - left) * RECYCLE.maxInsetShare);
     };
     const insetLeft = inset(columns[0], 'inLinks');
@@ -416,7 +460,7 @@ export function computeLayout(graph, balance, options = {}, positions = {}, colu
     const area = { top, bottom: nodeBottom, xMin: left, xMax: right - opt.nodeWidth };
     const measure = items.map(() => 0.5);
     for (const node of items) {
-        node.height = node.value * ky;
+        node.height = heightAt(node, ky);
         node.x0 = left + insetLeft + node.layer * step;
         if (node.pinned) {
             const p = positions[node.name];
@@ -487,8 +531,10 @@ export function computeLayout(graph, balance, options = {}, positions = {}, colu
             source: l.source,
             target: l.target,
             value: l.value,
-            width: l.value * ky,
-            hairline: l.value * ky < HAIRLINE_PX,
+            width: widthOf(l.value),
+            hairline: widthOf(l.value) < HAIRLINE_PX,
+            // Drawn at the floor, so wider than its true scale.
+            widened: minWidth > 0 && drawn(l.value) * ky < minWidth,
             recycle: l.recycle,
             x0,
             x1,
@@ -578,14 +624,17 @@ export function computeLayout(graph, balance, options = {}, positions = {}, colu
         for (const b of balance.unbalanced) {
             const node = nodes[b.index];
             const side = b.residual > 0 ? 'out' : 'in';
-            const covered = (side === 'out' ? node.outflow : node.inflow) * ky;
+            const list = graph.nodes[b.index][side === 'out' ? 'outLinks' : 'inLinks'];
+            const covered = !additive
+                ? list.reduce((s, li) => s + links[li].width, 0)
+                : (side === 'out' ? node.outflow : node.inflow) * ky;
             stubs.push({
                 node: b.index,
                 side,
                 value: Math.abs(b.residual),
                 x: side === 'out' ? node.x1 : node.x0,
                 y0: node.y0 + covered,
-                y1: node.y0 + node.height
+                y1: additive ? node.y0 + node.height : node.y0 + covered + widthOf(Math.abs(b.residual))
             });
         }
     }
@@ -602,6 +651,10 @@ export function computeLayout(graph, balance, options = {}, positions = {}, colu
         links,
         stubs,
         hairlines: links.filter((l) => l.hairline).map((l) => l.index),
+        // The floor actually used, which is lower than asked when that did not fit.
+        minLinkWidth: minWidth,
+        widthMode: opt.widthMode,
+        widened: links.filter((l) => l.widened).map((l) => l.index),
         recycles: laneOrder.map((l) => l.index)
     };
 }

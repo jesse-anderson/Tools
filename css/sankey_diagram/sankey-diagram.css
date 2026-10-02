@@ -250,6 +250,43 @@
     height: auto;
 }
 
+/* Height handle under the diagram. touch-action lets a finger drag it instead of the page. */
+.diagram-scroll:has(+ .resize-bar) {
+    margin-bottom: 0;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.resize-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    min-height: 28px;
+    margin-bottom: 12px;
+    border: 1px solid var(--border-color);
+    border-top: 0;
+    border-radius: 0 0 8px 8px;
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    cursor: ns-resize;
+    touch-action: none;
+    user-select: none;
+}
+
+.resize-bar:focus-visible {
+    outline: 2px solid var(--accent-educational);
+    outline-offset: 2px;
+}
+
+.resize-grip {
+    width: 44px;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--text-secondary);
+}
+
 .sankey-link:hover {
     fill-opacity: 0.8;
 }

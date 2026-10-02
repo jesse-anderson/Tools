@@ -951,3 +951,167 @@ test.describe('recycle loops beside each other', () => {
     expect(result.problems).toEqual([]);
   });
 });
+
+test.describe('widths not to scale', () => {
+  test.beforeEach(async ({ page }) => { await openTool(page); });
+
+  const SKEWED = ['Web Apply [9900] Ghosted', 'Web Apply [100] Phone Screen', 'Phone Screen [1] Offer', 'Phone Screen [99] Ghosted'].join('\n');
+
+  test('to scale is untouched by the new settings when they are off', async ({ page }) => {
+    const same = await page.evaluate((t) => {
+      const S = window.SankeyDiagram;
+      const plain = S.buildModel(t, {});
+      const explicit = S.buildModel(t, { widthMode: 'scale', minLinkWidth: 0 });
+      const junk = S.buildModel(t, { widthMode: 'sideways', minLinkWidth: -3 });
+      return [JSON.stringify(plain.layout) === JSON.stringify(explicit.layout), JSON.stringify(plain.layout) === JSON.stringify(junk.layout),
+        plain.layout.widthMode, plain.layout.widened.length];
+    }, SKEWED);
+    expect(same).toEqual([true, true, 'scale', 0]);
+  });
+
+  test('equal draws every flow the same, square root compresses, and a floor lifts only what is under it', async ({ page }) => {
+    const out = await page.evaluate((t) => {
+      const S = window.SankeyDiagram;
+      const pick = (settings) => {
+        const m = S.buildModel(t, settings);
+        return {
+          widths: m.layout.links.map((l) => l.width), widened: m.layout.widened, ky: m.layout.ky,
+          floor: m.layout.minLinkWidth, codes: m.warnings.map((w) => w.code),
+          heights: Object.fromEntries(m.layout.nodes.map((n) => [n.name, n.height])),
+          balance: JSON.stringify(m.balance)
+        };
+      };
+      return { scale: pick({}), equal: pick({ widthMode: 'equal' }), root: pick({ widthMode: 'root' }), floor: pick({ minLinkWidth: 2 }) };
+    }, SKEWED);
+
+    const [w] = out.equal.widths;
+    for (const width of out.equal.widths) expect(width).toBeCloseTo(w, 9);
+    // A node is as tall as the busier of its two sides: two ribbons each here.
+    expect(out.equal.heights['Web Apply']).toBeCloseTo(2 * w, 9);
+    expect(out.equal.heights['Phone Screen']).toBeCloseTo(2 * w, 9);
+    expect(out.equal.heights.Offer).toBeCloseTo(w, 9);
+    expect(out.equal.codes).toEqual(['NOT_TO_SCALE']);
+
+    expect(out.root.widths[0] / out.root.widths[2]).toBeCloseTo(Math.sqrt(9900), 6);
+    expect(out.root.widths[1] / out.root.widths[2]).toBeCloseTo(10, 6);
+    expect(out.root.codes).toEqual(['NOT_TO_SCALE']);
+
+    // 9900 and 100 and 99 stay in proportion; only the flow of 1 is lifted to the floor.
+    expect(out.floor.widened).toEqual([2]);
+    expect(out.floor.widths[2]).toBe(2);
+    expect(out.floor.widths[0] / out.floor.widths[1]).toBeCloseTo(99, 6);
+    expect(out.floor.widths[3]).toBeCloseTo(99 * out.floor.ky, 9);
+    expect(out.floor.ky).toBeLessThan(out.scale.ky);
+    expect(out.floor.codes).toEqual(['WIDENED']);
+
+    // None of it touches the arithmetic.
+    for (const mode of ['equal', 'root', 'floor']) expect(out[mode].balance).toBe(out.scale.balance);
+  });
+
+  test('a floor too thick to fit is thinned, and says what was used', async ({ page }) => {
+    const lines = Array.from({ length: 40 }, (_, i) => `Source [${i + 1}] Sink ${i}`).join('\n');
+    const m = await build(page, lines, { minLinkWidth: 12, height: 300 });
+    expect(m.ok).toBe(true);
+    expect(m.layout.minLinkWidth).toBeLessThan(12);
+    expect(m.layout.minLinkWidth).toBeGreaterThan(0);
+    for (const n of m.layout.nodes) {
+      expect(n.y0).toBeGreaterThanOrEqual(m.layout.area.top - 1e-6);
+      expect(n.y1).toBeLessThanOrEqual(m.layout.area.bottom + 1e-6);
+    }
+    const used = String(Math.round(m.layout.minLinkWidth * 10) / 10);
+    expect(m.warnings.find((w) => w.code === 'WIDENED').message).toContain(`${used} px minimum`);
+  });
+
+  test('a missing flow is still drawn on its node in every mode', async ({ page }) => {
+    for (const settings of [{ widthMode: 'equal' }, { widthMode: 'root' }, { minLinkWidth: 6 }]) {
+      const m = await build(page, 'Feed [1000] Dryer\nDryer [900] Product\nDryer [1] Dust', settings);
+      expect(m.layout.stubs).toHaveLength(1);
+      const [stub] = m.layout.stubs;
+      const dryer = m.layout.nodes.find((n) => n.name === 'Dryer');
+      expect(stub.side).toBe('out');
+      expect(stub.value).toBe(99);
+      expect(stub.y1 - stub.y0).toBeGreaterThanOrEqual(1);
+      expect(stub.y0).toBeGreaterThanOrEqual(dryer.y0 - 1e-6);
+      expect(stub.y1).toBeLessThanOrEqual(dryer.y1 + 1e-6);
+      // The stub starts where the last ribbon out of the node ends.
+      const lowest = Math.max(...m.layout.links.filter((l) => l.source === dryer.index).map((l) => l.sy1));
+      expect(stub.y0).toBeCloseTo(lowest, 6);
+    }
+  });
+
+  test('invariants hold in every mode on seeded random graphs with loops', async ({ page }) => {
+    const result = await page.evaluate(() => {
+      const S = window.SankeyDiagram;
+      let seed = 777;
+      const rnd = () => {
+        seed = (seed + 0x6D2B79F5) | 0;
+        let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      };
+      const EPS = 1e-6;
+      const problems = [];
+      let built = 0;
+      for (let g = 0; g < 60; g++) {
+        const n = 3 + Math.floor(rnd() * 12);
+        const lines = [];
+        for (let i = 0; i < n; i++) {
+          for (let j = 0; j < n; j++) {
+            const allowed = g % 3 === 0 ? i !== j : j > i;
+            // Amounts span five orders of magnitude, which is what these modes are for.
+            if (allowed && rnd() < 0.2) lines.push(`N${i} [${Math.pow(10, rnd() * 5).toFixed(2)}] N${j}`);
+          }
+        }
+        if (!lines.length) continue;
+        const settings = [{ widthMode: 'equal' }, { widthMode: 'root' }, { minLinkWidth: 1 + (g % 8) }, { widthMode: 'root', minLinkWidth: 3 }][g % 4];
+        const m = S.buildModel(lines.join('\n'), { ...settings, width: 700 + g * 20, height: 400 + g * 15 });
+        const fail = (msg) => problems.push(`random${g} ${JSON.stringify(settings)}: ${msg}`);
+        if (!m.ok) { fail('did not build'); continue; }
+        built += 1;
+        const { layout, graph } = m;
+        const { area, bounds, padding } = layout;
+        if (!(layout.ky > 0)) fail(`ky ${layout.ky}`);
+        const floor = layout.minLinkWidth;
+        for (const l of layout.links) {
+          if (floor > 0 && l.width < floor - EPS) fail(`link ${l.index} is under the floor`);
+          if (l.widened !== (floor > 0 && Math.abs(l.width - floor) < EPS && l.widened)) fail(`link ${l.index} widened flag is inconsistent`);
+          if (Math.abs((l.sy1 - l.sy0) - l.width) > EPS || Math.abs((l.ty1 - l.ty0) - l.width) > EPS) fail(`link ${l.index} changes width`);
+          for (const w of l.waypoints) if (Math.abs((w.y1 - w.y0) - l.width) > EPS) fail(`link ${l.index} changes width at a slot`);
+          if (l.recycle && l.loop.laneBottom > bounds.bottom + EPS) fail(`recycle ${l.index} lane runs below the diagram`);
+        }
+        if (settings.widthMode === 'equal' && !floor) {
+          const first = layout.links[0].width;
+          if (layout.links.some((l) => Math.abs(l.width - first) > EPS)) fail('equal widths differ');
+        }
+        const columns = new Map();
+        for (const node of layout.nodes) {
+          const gn = graph.nodes[node.index];
+          if (node.y0 < area.top - EPS || node.y1 > area.bottom + EPS) fail(`${node.name} outside the node area`);
+          for (const [list, a, b] of [['outLinks', 'sy0', 'sy1'], ['inLinks', 'ty0', 'ty1']]) {
+            const ribbons = gn[list].map((i) => layout.links[i]).sort((p, q) => p[a] - q[a]);
+            let y = node.y0;
+            for (const l of ribbons) { if (Math.abs(l[a] - y) > EPS) fail(`${node.name} ribbons gap or overlap`); y = l[b]; }
+            if (y > node.y1 + EPS) fail(`${node.name} ribbons overrun the node`);
+          }
+          const key = node.x0.toFixed(4);
+          if (!columns.has(key)) columns.set(key, []);
+          columns.get(key).push(node);
+        }
+        for (const column of columns.values()) {
+          column.sort((p, q) => p.y0 - q.y0);
+          for (let i = 1; i < column.length; i++) {
+            if (column[i].y0 - column[i - 1].y1 < padding - EPS) fail(`${column[i - 1].name} and ${column[i].name} are closer than the padding`);
+          }
+        }
+        for (const stub of layout.stubs) {
+          const node = layout.nodes[stub.node];
+          if (stub.y0 < node.y0 - EPS || stub.y1 > node.y1 + EPS) fail(`${node.name} stub is outside its node`);
+        }
+        if (JSON.stringify(S.buildModel(lines.join('\n'), { ...settings, width: 700 + g * 20, height: 400 + g * 15 }).layout) !== JSON.stringify(layout)) fail('not deterministic');
+      }
+      return { problems, built };
+    });
+    expect(result.built).toBeGreaterThan(40);
+    expect(result.problems).toEqual([]);
+  });
+});

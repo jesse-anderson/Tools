@@ -38,9 +38,23 @@ export function buildModel(text, settings = {}, positions = null) {
     const pins = positions || parsed.positions;
     const base = { ...settings, titleHeight: settings.title ? TITLE_HEIGHT : 0, footnoteHeight: 0 };
     let layout = computeLayout(graph, balance, base, pins, parsed.columns);
-    // The hairline footnote needs room, which is only known after a first pass.
-    if (layout.hairlines.length) {
+    // The not-to-scale footnote needs room, which is only known after a first pass.
+    if (layout.hairlines.length || layout.widened.length || layout.widthMode !== 'scale') {
         layout = computeLayout(graph, balance, { ...base, footnoteHeight: FOOTNOTE_HEIGHT }, pins, parsed.columns);
+    }
+    if (layout.widthMode !== 'scale') {
+        const how = layout.widthMode === 'equal'
+            ? 'Every flow is drawn the same width, so widths show what connects to what and say nothing about amounts'
+            : 'Widths follow the square root of each amount, so large flows are understated and widths do not add up';
+        warnings.push({ line: null, code: 'NOT_TO_SCALE', message: `${how}. Read amounts from the labels and tables. Set "Flow widths" to "To scale" for a true-scale diagram` });
+    }
+    if (layout.widened.length) {
+        const px = String(Math.round(layout.minLinkWidth * 10) / 10);
+        warnings.push({
+            line: null,
+            code: 'WIDENED',
+            message: `${layout.widened.length} of ${graph.links.length} flow(s) are drawn at the ${px} px minimum, wider than their true scale, so widths no longer compare or add up exactly. Set "Thinnest flow" to 0 for a true-scale diagram`
+        });
     }
     for (const d of layout.displaced) {
         warnings.push({

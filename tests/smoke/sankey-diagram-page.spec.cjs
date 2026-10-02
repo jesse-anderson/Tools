@@ -392,7 +392,7 @@ test.describe('page', () => {
     await expectContrastAA(
       page,
       '.panel-header p, .result-status, .helper-text, .input-group label, .check, thead th, tbody td, ' +
-        '.totals dt, .syntax-list dd, .advanced h3, .warning-box li, .tool-btn:not(:disabled), .project-bar legend'
+        '.totals dt, .syntax-list dd, .advanced h3, .warning-box li, .tool-btn:not(:disabled), .project-bar legend, .resize-note'
     );
   });
 
@@ -920,6 +920,90 @@ test.describe('crowded labels', () => {
       expect(out.clashes, id).toEqual([]);
       expect(out.leaders, id).toBe(0);
     }
+  });
+});
+
+test.describe('width modes and the height bar', () => {
+  const SKEWED = 'Web Apply [993] Ghosted\nWeb Apply [10] Phone Screen\nPhone Screen [2] Scam\nPhone Screen [8] Ghosted\n';
+  const widths = (page) => page.evaluate(() => {
+    const m = window.SankeyDiagram.getModel();
+    return { widths: m.layout.links.map((l) => l.width), codes: m.warnings.map((w) => w.code), height: m.layout.options.height };
+  });
+
+  test('each width setting redraws, says on the diagram that it is not to scale, and is kept', async ({ page }) => {
+    await openTool(page);
+    await page.fill('#flowText', SKEWED);
+    await expect.poll(async () => (await widths(page)).widths.length).toBe(4);
+    const footnote = page.locator('#diagramHost .sankey-footnote');
+    const scale = await widths(page);
+    expect(scale.widths[0] / scale.widths[2]).toBeCloseTo(993 / 2, 6);
+    await expect(footnote).toHaveText(/^Dashed lines are flows under 1 px/);
+
+    await page.selectOption('#widthMode', 'equal');
+    const equal = await widths(page);
+    expect(new Set(equal.widths.map((w) => w.toFixed(6))).size).toBe(1);
+    expect(equal.codes).toContain('NOT_TO_SCALE');
+    await expect(footnote).toHaveText('Every flow is drawn the same width. Widths are not amounts.');
+    await expect(page.locator('#warningList')).toContainText('Every flow is drawn the same width');
+    await expect(page.locator('#diagramHost .sankey-hairline')).toHaveCount(0);
+    // The numbers on the page are still the real ones.
+    await expect(page.locator('#resultStatus')).toContainText('Inputs 1,003');
+    await expect(page.locator('#diagramHost .sankey-label[data-node="0"]')).toContainText('1,003');
+
+    await page.selectOption('#widthMode', 'root');
+    const root = await widths(page);
+    expect(root.widths[0] / root.widths[2]).toBeCloseTo(Math.sqrt(993 / 2), 6);
+    await expect(footnote).toHaveText(/^Widths follow the square root of each amount/);
+
+    await page.selectOption('#widthMode', 'scale');
+    await page.fill('#minLinkWidth', '4');
+    await expect.poll(async () => (await widths(page)).codes.includes('WIDENED')).toBe(true);
+    expect(Math.min(...(await widths(page)).widths)).toBeCloseTo(4, 9);
+    await expect(footnote).toHaveText('Flows under 4 px are drawn 4 px wide, not to scale.');
+    await expect(page.locator('#warningList')).toContainText('2 of 4 flow(s) are drawn at the 4 px minimum');
+
+    // Out of range is clamped and written back, like every other number here.
+    await page.fill('#minLinkWidth', '40');
+    await page.locator('#minLinkWidth').blur();
+    await expect(page.locator('#minLinkWidth')).toHaveValue('12');
+
+    await page.selectOption('#widthMode', 'equal');
+    await page.reload();
+    await expect(page.locator('#widthMode')).toHaveValue('equal');
+    await expect(page.locator('#minLinkWidth')).toHaveValue('12');
+  });
+
+  test('the bar under the diagram changes its height by keyboard and by drag', async ({ page }) => {
+    await openTool(page);
+    const bar = page.locator('#resizeBar');
+    await expect(page.locator('#resizeNote')).toHaveText('960 x 540 px');
+    await expect(bar).toHaveAttribute('aria-valuenow', '540');
+
+    await bar.focus();
+    await page.keyboard.press('ArrowDown');
+    await expect(page.locator('#resizeNote')).toHaveText('960 x 560 px');
+    await page.keyboard.press('Shift+ArrowDown');
+    expect((await widths(page)).height).toBe(660);
+    await page.keyboard.press('ArrowUp');
+    await expect(bar).toHaveAttribute('aria-valuenow', '640');
+    for (let i = 0; i < 6; i++) await page.keyboard.press('Shift+ArrowUp');
+    await expect(page.locator('#resizeNote')).toHaveText('960 x 200 px');
+    await page.locator('#advancedOptions > summary').click();
+    await expect(page.locator('#diagramHeight')).toHaveValue('200');
+
+    // A drag tracks the pointer: the shown diagram grows by what the mouse moved.
+    await bar.scrollIntoViewIfNeeded();
+    const svgBefore = await page.locator('#diagramHost svg').boundingBox();
+    const box = await bar.boundingBox();
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2 + 150, { steps: 8 });
+    await page.mouse.up();
+    const svgAfter = await page.locator('#diagramHost svg').boundingBox();
+    expect(Math.abs((svgAfter.height - svgBefore.height) - 150)).toBeLessThan(3);
+    const stored1 = await stored(page);
+    expect(Number(stored1.projects[0].draft.fields.diagramHeight)).toBeGreaterThan(300);
+    expect((await widths(page)).height).toBe(Number(stored1.projects[0].draft.fields.diagramHeight));
   });
 });
 

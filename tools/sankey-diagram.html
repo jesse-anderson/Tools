@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
 ============================================
-SANKEY DIAGRAM BUILDER v1.3.0
+SANKEY DIAGRAM BUILDER v1.4.0
 ============================================
 Description: Draw a Sankey diagram from a list of flows and check
 the balance it implies, node by node and overall.
@@ -28,7 +28,10 @@ Features:
 - Up to 10 projects in this browser, autosaved, with save and revert,
   and export and import of a project as a file
 - Titles, units, node values, shares, link values and per-node notes
-- Layered layout with one shared scale, written for this tool
+- Layered layout with one shared scale, written for this tool; widths
+  to scale by default, or compressed, equal, or floored, each marked on
+  the diagram as not to scale
+- Height changed by dragging the bar under the diagram
 - SVG export and PNG export at 1x, 2x, 4x or 8x, the PNG carrying its font
 
 Last Updated: October 2026
@@ -252,6 +255,21 @@ Last Updated: October 2026
                     </div>
                 </div>
                 <p class="helper-text" id="toleranceHelp">A node balances when its inflow and outflow agree within this share of the larger of the two. The default is 0.5%. A balance that passes only because of the tolerance is flagged.</p>
+                <div class="field-grid">
+                    <div class="input-group">
+                        <label for="widthMode">Flow widths</label>
+                        <select id="widthMode" aria-describedby="widthHelp">
+                            <option value="scale" selected>To scale</option>
+                            <option value="root">Compressed (square root)</option>
+                            <option value="equal">Equal, every flow the same</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label for="minLinkWidth">Thinnest flow (px)</label>
+                        <input type="number" id="minLinkWidth" min="0" max="12" step="0.5" value="0" aria-describedby="widthHelp">
+                    </div>
+                </div>
+                <p class="helper-text" id="widthHelp">To scale is the only setting where a width is an amount. Compressed narrows the gap between 1 and 10,000, and Equal removes it, so the diagram shows what connects to what. Thinnest flow widens anything smaller to that many pixels; at 0 a flow under a pixel is a dashed line. Anything not to scale is said so on the diagram. The balance is never affected.</p>
 
                 <fieldset class="check-group">
                     <legend>Annotations</legend>
@@ -380,7 +398,12 @@ Last Updated: October 2026
                 <div class="diagram-scroll" id="diagramScroll" tabindex="0" role="group" aria-label="Sankey diagram, scrollable">
                     <div id="diagramHost" class="diagram-host"></div>
                 </div>
-                <p class="helper-text">Drag a node to move it, or focus it and use the arrow keys (Shift for bigger steps, Delete to release it). A moved node is written into the flow list as a <code>~</code> line.</p>
+                <div id="resizeBar" class="resize-bar" role="separator" aria-orientation="horizontal" tabindex="0"
+                     aria-label="Diagram height. Drag, or use the up and down arrow keys" aria-valuemin="200" aria-valuemax="1800" aria-valuenow="540">
+                    <span class="resize-grip" aria-hidden="true"></span>
+                    <span id="resizeNote" class="resize-note"></span>
+                </div>
+                <p class="helper-text">Drag the bar under the diagram to make it taller or shorter; width is under Advanced. Drag a node to move it, or focus it and use the arrow keys (Shift for bigger steps, Delete to release it). A moved node is written into the flow list as a <code>~</code> line.</p>
 
                 <p id="exportStatus" class="helper-text" role="status" aria-live="polite"></p>
 

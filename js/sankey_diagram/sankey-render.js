@@ -42,7 +42,18 @@ const HIT_SIDE = 8;
 const LABEL_LIFT = 4;
 // Clear space kept beside a label, in px.
 const LABEL_GAP = 6;
-const FOOTNOTE = 'Dashed lines are flows under 1 px wide at this size. They are not to scale.';
+// What the diagram says about anything on it that is not drawn to scale.
+function footnoteText(layout) {
+    const parts = [];
+    if (layout.widthMode === 'equal') parts.push('Every flow is drawn the same width. Widths are not amounts.');
+    if (layout.widthMode === 'root') parts.push('Widths follow the square root of each amount. They are not to scale.');
+    if (layout.hairlines.length) parts.push('Dashed lines are flows under 1 px wide at this size. They are not to scale.');
+    if (layout.widened.length) {
+        const px = String(Math.round(layout.minLinkWidth * 10) / 10);
+        parts.push(`Flows under ${px} px are drawn ${px} px wide, not to scale.`);
+    }
+    return parts.join(' ');
+}
 
 const ROLE_SLOT = { input: 0, internal: 1, output: 2 };
 
@@ -165,7 +176,9 @@ export function renderSankey(doc, model, viewOptions = {}, palette = PALETTES.li
                 class: `sankey-link${kind}`, d: ribbonPath(link), fill: paint,
                 'fill-opacity': view.linkOpacity, 'data-link': link.index
             });
-        const scale = link.hairline ? ', drawn as a dashed line, not to scale' : '';
+        let scale = link.hairline ? ', drawn as a dashed line, not to scale' : '';
+        if (link.widened && !link.hairline) scale = ', widened to the minimum width, not to scale';
+        else if (layout.widthMode !== 'scale' && !link.hairline) scale = ', width not to scale';
         const recycle = link.recycle ? ' (recycle)' : '';
         path.appendChild(make(doc, 'title', {}, `${source.name} to ${target.name}${recycle}: ${fmt(link.value)} (${share(link.value)} of input)${scale}`));
         linkGroup.appendChild(path);
@@ -246,10 +259,11 @@ export function renderSankey(doc, model, viewOptions = {}, palette = PALETTES.li
     };
     // What a label must keep off: every node, the title, the footnote, and each label once placed.
     const labelTop = view.title ? margin + 22 : 2;
+    const footnote = footnoteText(layout);
     const obstacles = layout.nodes.map((n) => ({ x0: n.x0, x1: n.x1, y0: n.y0, y1: Math.max(n.y1, n.y0 + 1), owner: n.index }));
-    if (layout.hairlines.length) {
+    if (footnote) {
         obstacles.push({
-            x0: margin, x1: margin + textWidth(FOOTNOTE, view.fontSize - 1),
+            x0: margin, x1: margin + textWidth(footnote, view.fontSize - 1),
             y0: height - margin - view.fontSize, y1: height, owner: -1
         });
     }
@@ -330,10 +344,10 @@ export function renderSankey(doc, model, viewOptions = {}, palette = PALETTES.li
     }
     svg.appendChild(labelGroup);
 
-    if (layout.hairlines.length) {
+    if (footnote) {
         svg.appendChild(make(doc, 'text', {
             class: 'sankey-footnote', x: margin, y: height - margin, 'font-size': view.fontSize - 1, fill: palette.inkSecondary
-        }, FOOTNOTE));
+        }, footnote));
     }
 
     return svg;
