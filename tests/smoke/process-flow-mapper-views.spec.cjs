@@ -499,10 +499,20 @@ test.describe('work at the same time, SIPOC and waits on the way, on the page', 
     expect(csv.split('\r\n')[0]).toBe('Suppliers,Inputs,Process,Outputs,Customers');
     expect(csv.split('\r\n')[3]).toBe('HR,Cleared checks,Start,Start date,New starter');
 
-    // No in or out lines, no table.
-    await page.selectOption('#presetSelect', 'lab');
-    await expect(page.locator('#sipocBlock')).toBeHidden();
+    // Every example carries its inputs and outputs, with no phase left with a side missing.
+    for (const id of ['purchase', 'lab', 'change', 'hiring', 'order', 'incident', 'claim']) {
+      await page.selectOption('#presetSelect', id);
+      await expect(page.locator('#sipocBlock'), id).toBeVisible();
+      const cells = await page.locator('#sipocTable tbody th, #sipocTable tbody td').allTextContents();
+      expect(cells.length, id).toBeGreaterThanOrEqual(15);
+      expect(cells.filter((c) => c.trim() === ''), id).toEqual([]);
+      await expect(page.locator('#warningList'), id).not.toContainText('SIPOC');
+    }
     expect(await page.locator('#stepTable thead th').allTextContents()).not.toContain('Slack');
+    // No in or out lines, no table.
+    await page.click('#projectNew');
+    await expect(page.locator('#sipocBlock')).toBeHidden();
+    await expect(page.locator('#sipocTable tbody tr')).toHaveCount(0);
   });
 
   test('branches that never meet draw the map, give no figures and say which step to look at', async ({ page }) => {
