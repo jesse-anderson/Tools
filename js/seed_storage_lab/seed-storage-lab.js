@@ -19,7 +19,7 @@ import {
 } from "./seed-model.js";
 import { SEED_REFERENCES } from "./seed-source-map.js";
 import { SEED_EQUATION_SPECS, getSeedEquationSources, runSeedEquationTest, runAllSeedEquationTests } from "./seed-math.js";
-import { evaluateSeedChecks, summariseSeedChecks } from "./seed-validation.js";
+import { evaluateSeedChecks, summarizeSeedChecks } from "./seed-validation.js";
 import * as SeedViabilityEngine from "./seed-viability-engine.js";
 import { renderViability, viabilityWarnings } from "./seed-viability-view.js";
 import * as SeedStorageTiers from "./seed-storage-tiers.js";
@@ -59,7 +59,7 @@ const OUTPUT_IDS = [
     "containerValue", "containerMeta",
     "oxygenValue", "oxygenMeta",
     "hundredRuleValue", "hundredRuleMeta",
-    "behaviourValue", "behaviourMeta",
+    "behaviorValue", "behaviorMeta",
     "germinationValue", "germinationMeta",
     "coverageValue", "coverageMeta"
 ];
@@ -92,7 +92,7 @@ const INPUT_HELP_TEXT = Object.freeze({
     storageRelativeHumidity: "The humidity the seed is in balance with. For an open packet that is the room's. For a sealed jar it is the humidity the seed was dried to before sealing, which stays put; the air of the fridge or cupboard outside the jar does not count. Used by the Hundred Rule, the check on sealing seed that is not dry, and the oxygen factor.",
     containerType: "What the seed is stored in. Groot et al. 2015 found the closure decides whether oxygen stays out: a rubber ring or a lined twist-off lid held it, plastic screw caps did not. Paper and cloth hold neither oxygen nor moisture.",
     vacuumResidual: "Pressure left in the jar or bag after pumping, as a percentage of atmospheric. 100 means no vacuum. Oxygen falls in proportion. Read it from the pump or sealer's gauge if it has one; the tool assumes no figure for home equipment, foil bags included.",
-    oxygenAbsorber: "An iron oxygen absorber sealed in with the seed. Most carry a moisturiser, so pair one with a desiccant or the jar can turn humid.",
+    oxygenAbsorber: "An iron oxygen absorber sealed in with the seed. Most carry a moisturizer, so pair one with a desiccant or the jar can turn humid.",
     absorberCapacity: "The absorber's rating in mL of oxygen, as printed on the packet. Air is about one fifth oxygen, so a 100 mL absorber clears roughly 480 mL of air.",
     desiccant: "Silica gel or drying beads sealed in with the seed. Johnny's recommends it for a jar in the fridge. Primed and pelleted seed can be harmed by strong drying without an absorber.",
     containerVolume: "Inside volume of the jar. A US pint mason jar holds about 473 mL and a quart about 946 mL.",
@@ -125,7 +125,7 @@ const RESULT_HELP_TEXT = Object.freeze({
     containerValue: "Which storage tier your container and its contents fall in. Each tier fails in its own way, so the card names the one that applies.",
     oxygenValue: "Life multiplier from lowering oxygen: (20.9 / O2%) raised to 0.782, from Groot et al. 2025, where each halving of oxygen gave 1.72 times the shelf life. Held at 1% and faded out between 43% and 60% RH.",
     hundredRuleValue: "Storage temperature in °F plus relative humidity in percent. Under 100 is the seed-saving rule of thumb. It screens conditions; it does not predict years.",
-    behaviourValue: "Whether the species tolerates drying and cold. Orthodox seed can be stored dry; recalcitrant seed dies on drying and is refused by the model.",
+    behaviorValue: "Whether the species tolerates drying and cold. Orthodox seed can be stored dry; recalcitrant seed dies on drying and is refused by the model.",
     germinationValue: "Optimum germination temperature and expected days, where the source supplies them. Use these for the germination test, not for storage.",
     coverageValue: "Which categories of data this tool holds for the selected species. Absence means no source in the dataset covers it, not that the value is zero."
 });
@@ -408,13 +408,13 @@ function renderStorage(model) {
             + `${TEMPERATURE_METHODS[multiplier.temperature.lowMethod]} and the long end from `
             + `${TEMPERATURE_METHODS[multiplier.temperature.highMethod]}.${oxygen}${cap} Run a germination test before trusting it.`);
     } else if (projection.reason === "primed") {
-        setCard("longevityValue", "longevityMeta", "Not modelled",
+        setCard("longevityValue", "longevityMeta", "Not modeled",
             "Primed seed has no published storage figure, and it ages faster than the raw seed these figures describe. Test germination before you sow.", true);
     } else if (projection.reason === "absorber-only") {
-        setCard("longevityValue", "longevityMeta", "Not modelled",
+        setCard("longevityValue", "longevityMeta", "Not modeled",
             "An absorber with no desiccant can turn the jar humid, so the moisture content entered no longer holds. Add a desiccant.", true);
     } else if (projection.reason === "gated") {
-        setCard("longevityValue", "longevityMeta", "Not modelled", gate.headline, true);
+        setCard("longevityValue", "longevityMeta", "Not modeled", gate.headline, true);
     } else if (projection.reason === "no-baseline") {
         setCard("longevityValue", "longevityMeta", "--",
             "No published storage life held for this species, so there is nothing to scale.");
@@ -435,10 +435,10 @@ function renderSpeciesFacts(model) {
     const record = model.record;
     const gate = model.gate;
 
-    const behaviourLabel = gate.behaviour
-        ? gate.behaviour.replace(/_/g, " ")
+    const behaviorLabel = gate.behavior
+        ? gate.behavior.replace(/_/g, " ")
         : "unrecorded";
-    setCard("behaviourValue", "behaviourMeta", behaviourLabel,
+    setCard("behaviorValue", "behaviorMeta", behaviorLabel,
         gate.reference ? `Source: ${gate.reference.label}.` : gate.detail,
         gate.status === "blocked" || gate.status === "not_applicable");
 
@@ -481,7 +481,7 @@ function renderSpeciesFacts(model) {
         if (record.germination) held.push("germination");
         setCard("coverageValue", "coverageMeta",
             `${held.length}/4`,
-            held.length ? `Held: ${held.join(", ")}.` : "No numeric data held; storage behaviour only.");
+            held.length ? `Held: ${held.join(", ")}.` : "No numeric data held; storage behavior only.");
     } else {
         setCard("coverageValue", "coverageMeta", "--", "Waiting for a species.");
     }
@@ -554,9 +554,9 @@ function renderSources(model) {
         // same fit is corroboration, and dropping the second would lose it.
         for (const key of entry.corroboratedBy || []) push("Viability constants", key);
     }
-    if (record.behaviour) {
-        push("Storage behaviour", record.behaviour.sourceKey);
-        if (record.behaviour.overruled) push("Storage behaviour (overruled)", record.behaviour.overruled.sourceKey);
+    if (record.behavior) {
+        push("Storage behavior", record.behavior.sourceKey);
+        if (record.behavior.overruled) push("Storage behavior (overruled)", record.behavior.overruled.sourceKey);
     }
 
     const seen = new Set();
@@ -574,7 +574,7 @@ function renderSources(model) {
 function renderChecks() {
     if (!dom.checksBody) return;
     const checks = evaluateSeedChecks();
-    const summary = summariseSeedChecks(checks);
+    const summary = summarizeSeedChecks(checks);
     if (dom.checksSummary) {
         dom.checksSummary.textContent = `${summary.passed}/${summary.total} passing`;
     }

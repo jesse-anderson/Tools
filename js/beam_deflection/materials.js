@@ -57,7 +57,7 @@
 //   'none'    no meaningful single strength for this tool; the stress check is
 //             skipped and the reason is shown
 
-export const MATERIAL_CATEGORIES = ['Steel', 'Aluminium', 'Other metals', 'Plastics', 'Wood', 'Brittle', 'Gated'];
+export const MATERIAL_CATEGORIES = ['Steel', 'Aluminum', 'Other metals', 'Plastics', 'Wood', 'Brittle', 'Gated'];
 
 // Warning text attached by category instead of repeated per row.
 export const CATEGORY_WARNINGS = {
@@ -165,11 +165,11 @@ export const MATERIALS = [
         reviewed: true,
     },
 
-    // --- Aluminium ---------------------------------------------------------
+    // --- Aluminum ---------------------------------------------------------
     {
         id: 'alu-6061-t6',
-        cat: 'Aluminium',
-        name: 'Aluminium 6061-T6',
+        cat: 'Aluminum',
+        name: 'Aluminum 6061-T6',
         E: 68.9e9,              // 10,000 ksi
         E_range: null,
         strength: { kind: 'yield', value: 241e6 },  // 35 ksi
@@ -180,8 +180,8 @@ export const MATERIALS = [
     },
     {
         id: 'alu-6063-t5',
-        cat: 'Aluminium',
-        name: 'Aluminium 6063-T5',
+        cat: 'Aluminum',
+        name: 'Aluminum 6063-T5',
         E: 68.9e9,
         E_range: null,
         strength: { kind: 'yield', value: 110e6 },  // 16 ksi
@@ -192,8 +192,8 @@ export const MATERIALS = [
     },
     {
         id: 'alu-2024-t3',
-        cat: 'Aluminium',
-        name: 'Aluminium 2024-T3',
+        cat: 'Aluminum',
+        name: 'Aluminum 2024-T3',
         E: 73.1e9,
         E_range: null,
         strength: { kind: 'yield', value: 345e6 },
@@ -432,7 +432,7 @@ export const MATERIALS = [
         strength: { kind: 'none', value: null },
         rho: 2400,
         gated: true,
-        gateReason: 'Plain concrete has negligible tensile capacity, so a concrete beam is a reinforced-section problem: the steel carries the tension and the section is analysed cracked, with a transformed or strain-compatibility method. That is a different calculation from the homogeneous elastic one this tool performs, and running it here would return a confident number that means nothing. Use a reinforced-concrete design tool.',
+        gateReason: 'Plain concrete has negligible tensile capacity, so a concrete beam is a reinforced-section problem: the steel carries the tension and the section is analyzed cracked, with a transformed or strain-compatibility method. That is a different calculation from the homogeneous elastic one this tool performs, and running it here would return a confident number that means nothing. Use a reinforced-concrete design tool.',
         source: 'ACI 318, Building Code Requirements for Structural Concrete.',
         notes: 'Listed so the gate is visible rather than the material simply being absent. The 25 GPa is the ACI 318 secant modulus 57000*sqrt(f_c) at f_c = 4000 psi, which gives 3605 ksi or 24.9 GPa; it is shown for reference only, since the stress check is skipped.',
         reviewed: true,

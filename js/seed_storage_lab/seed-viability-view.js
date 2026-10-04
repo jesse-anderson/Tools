@@ -57,7 +57,7 @@ function renderCards(dom, viability, gate) {
     if (!viability || !viability.ok) {
         const reason = viability ? viability.reason : "no-constants";
         const [value, meta, blocked] = reason === "gated"
-            ? ["Not modelled", gate ? gate.headline : "The species gate refuses this seed.", true]
+            ? ["Not modeled", gate ? gate.headline : "The species gate refuses this seed.", true]
             : reason === "not-applicable"
                 ? ["Outside the equation", viability.detail, true]
                 : ["--", "No published viability constants are held for this species, so the equation cannot run. "
@@ -73,7 +73,7 @@ function renderCards(dom, viability, gate) {
             + `${viability.ratio.toFixed(1)}×. The tool does not average them.`
         : " One published determination.";
     const admitted = viability.admittedByConstants
-        ? " No storage-behaviour record is held, but these constants were fitted from dry-storage experiments on this species."
+        ? " No storage-behavior record is held, but these constants were fitted from dry-storage experiments on this species."
         : "";
 
     setCard(dom, "viabilityValue", "viabilityMeta",
@@ -247,7 +247,7 @@ function renderChart(dom, viability, monteCarlo) {
         });
     }
 
-    // Series are told apart by dash pattern as well as colour.
+    // Series are told apart by dash pattern as well as color.
     usable.forEach((entry) => {
         const index = viability.determinations.indexOf(entry);
         const points = sampleSurvivalCurve(entry, { points: 80, horizonDays: horizon })

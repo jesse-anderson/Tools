@@ -7,7 +7,7 @@
 //   1. Nothing is averaged across sources. Where two references disagree, both
 //      are carried and the disagreement is reported. Averaging the 13.5x
 //      lettuce conflict produces a number no source supports. This applies to
-//      storage behaviour as well as to counts: where the species-level record
+//      storage behavior as well as to counts: where the species-level record
 //      overrules a genus flag, the gate names what it overruled.
 //   2. The longevity math refuses to run on seeds it cannot legitimately model.
 //      Recalcitrant seeds die on drying; predicting decades for an acorn is the
@@ -82,7 +82,7 @@ function tokenize(text) {
         .filter(Boolean);
 }
 
-// Tie-break weight: a species with numbers outranks a bare behaviour flag.
+// Tie-break weight: a species with numbers outranks a bare behavior flag.
 function payloadScore(record) {
     return (record.counts ? 3 : 0) + (record.longevity ? 2 : 0) + (record.constants ? 2 : 0);
 }
@@ -197,14 +197,14 @@ function isWoodyTaxon(record) {
 // source had been overruled. Pecan, shagbark and shellbark hickory and little
 // walnut all leave a recalcitrant Carya or Juglans flag behind this way. The
 // species-level record still wins, because sourced species data beats a genus
-// generalisation, but the reader is told what it beat.
+// generalization, but the reader is told what it beat.
 function overruledNote(flag) {
     const other = flag && flag.overruled;
     if (!other) return "";
     const source = SEED_REFERENCES[other.sourceKey];
     const rank = other.matchedRank === "genus" ? " at genus level" : "";
     const cite = source ? ` (${source.label})` : "";
-    return ` A second source disagrees: ${other.matchedTaxon} is listed ${other.behaviour}`
+    return ` A second source disagrees: ${other.matchedTaxon} is listed ${other.behavior}`
         + `${rank}${cite}. The species-level record is used here.`;
 }
 
@@ -234,8 +234,8 @@ export function evaluateSpeciesGate(record) {
         };
     }
 
-    const flag = record.behaviour || null;
-    const behaviour = flag ? flag.behaviour : null;
+    const flag = record.behavior || null;
+    const behavior = flag ? flag.behavior : null;
     const reference = flag ? SEED_REFERENCES[flag.sourceKey] || null : null;
     const via = flag && flag.matchedRank === "genus"
         ? ` (matched at genus level: ${flag.matchedTaxon})`
@@ -243,7 +243,7 @@ export function evaluateSpeciesGate(record) {
     const overruled = overruledNote(flag);
     const conflict = (flag && flag.overruled) || null;
 
-    if (behaviour === "not_applicable") {
+    if (behavior === "not_applicable") {
         // The curated note already names the propagation route ("Propagated
         // from cloves"), so prefixing it with the raw field value produced
         // "Propagated vegetative. Propagated from cloves." The note leads.
@@ -251,7 +251,7 @@ export function evaluateSpeciesGate(record) {
         return {
             status: GATE_STATUS.NOT_APPLICABLE,
             allowLongevity: false,
-            behaviour,
+            behavior,
             headline: `${speciesDisplayName(record)} is not grown from stored seed`,
             detail: `${flag.note || `Propagated ${how}.`}${via}${overruled}`.trim(),
             reference,
@@ -259,11 +259,11 @@ export function evaluateSpeciesGate(record) {
         };
     }
 
-    if (behaviour === "recalcitrant") {
+    if (behavior === "recalcitrant") {
         return {
             status: GATE_STATUS.BLOCKED,
             allowLongevity: false,
-            behaviour,
+            behavior,
             headline: `${speciesDisplayName(record)} has recalcitrant seed: drying kills it`,
             detail: (`Recalcitrant seed dies if dried to storage moisture${via}. `
                 + "Harrington's rules and the viability equation both assume dry orthodox seed, so no storage life is projected here. "
@@ -275,11 +275,11 @@ export function evaluateSpeciesGate(record) {
         };
     }
 
-    if (behaviour === "intermediate") {
+    if (behavior === "intermediate") {
         return {
             status: GATE_STATUS.CAUTION,
             allowLongevity: false,
-            behaviour,
+            behavior,
             headline: `${speciesDisplayName(record)} has intermediate seed`,
             detail: (`Tolerates drying only part of the way and keeps worse if dried further${via}. `
                 + "The 1996 compendium puts that point at about 7-12% moisture for the species it describes, and tropical species such as coffee and papaya also keep worse below about 10 °C. "
@@ -292,12 +292,12 @@ export function evaluateSpeciesGate(record) {
 
     // A genus grouped by nursery practice, which is none of the three
     // categories. Its species are refused until a species record settles them.
-    if (behaviour === "unconfirmed") {
+    if (behavior === "unconfirmed") {
         return {
             status: GATE_STATUS.CAUTION,
             allowLongevity: false,
-            behaviour,
-            headline: `Storage behaviour not confirmed for ${speciesDisplayName(record)}`,
+            behavior,
+            headline: `Storage behavior not confirmed for ${speciesDisplayName(record)}`,
             detail: (`${flag.note || ""}${via} Storage life is withheld until a species-level record confirms the seed is orthodox.`
                 + overruled).trim(),
             reference,
@@ -305,7 +305,7 @@ export function evaluateSpeciesGate(record) {
         };
     }
 
-    if (behaviour === "orthodox") {
+    if (behavior === "orthodox") {
         // Grape, strawberry, rhubarb and date palm are orthodox and their seed
         // does store, but nobody grows them from it. Saying only "dry, cold
         // storage applies" would answer a question the user did not ask.
@@ -317,13 +317,13 @@ export function evaluateSpeciesGate(record) {
             // An overruled recalcitrant flag is the one disagreement that can
             // hurt someone, so it costs the species its clean bill of health
             // even though the projection still runs.
-            status: conflict && conflict.behaviour === "recalcitrant"
+            status: conflict && conflict.behavior === "recalcitrant"
                 ? GATE_STATUS.CAUTION
                 : GATE_STATUS.OK,
             allowLongevity: true,
-            behaviour,
+            behavior,
             headline: "Orthodox seed: dry, cold storage applies",
-            detail: `Storage behaviour is recorded${via}, so the drying and chilling model is appropriate.`
+            detail: `Storage behavior is recorded${via}, so the drying and chilling model is appropriate.`
                 + `${vegetative}${overruled}`,
             reference,
             conflict
@@ -338,14 +338,14 @@ export function evaluateSpeciesGate(record) {
     return {
         status: isWoody ? GATE_STATUS.CAUTION : GATE_STATUS.ASSUMED,
         allowLongevity: !isWoody,
-        behaviour: null,
+        behavior: null,
         headline: isWoody
-            ? "Storage behaviour unrecorded for this woody species"
-            : "Storage behaviour unrecorded, treated as orthodox",
+            ? "Storage behavior unrecorded for this woody species"
+            : "Storage behavior unrecorded, treated as orthodox",
         detail: isWoody
             ? "No orthodox/intermediate/recalcitrant record is held, and tree and shrub seed is where recalcitrance is common. "
-              + "Seed counts are shown; storage life is withheld until the behaviour is confirmed."
-            : "No storage-behaviour record is held for this species. Nearly all annual vegetable, grain and herb seed is orthodox, "
+              + "Seed counts are shown; storage life is withheld until the behavior is confirmed."
+            : "No storage-behavior record is held for this species. Nearly all annual vegetable, grain and herb seed is orthodox, "
               + "so the model runs on that assumption. Confirm it against a source before relying on the result.",
         reference: null,
         conflict: null
@@ -367,9 +367,9 @@ export function evaluateSpeciesGate(record) {
 
 // "Brussels Sprouts" and "Brussel Sprouts" are one crop; "Cabbage" and
 // "Cabbage, Napa" are two. Sorting the tokens folds "Sweet Corn" into
-// "Corn, Sweet", and singularising folds the plurals, without merging crops
+// "Corn, Sweet", and singularizing folds the plurals, without merging crops
 // that genuinely differ by a qualifier.
-function singularise(word) {
+function singularize(word) {
     // "Tomatoes" needs the es; "peas" is only four letters; "grass" must not
     // become "gras". Getting any of the three wrong splits a crop in two.
     if (word.length > 4 && /(?:o|s|x|ch|sh)es$/.test(word)) return word.slice(0, -2);
@@ -383,7 +383,7 @@ export function cropGroupKey(label) {
         .replace(/[^a-z0-9]+/g, " ")
         .split(" ")
         .filter(Boolean)
-        .map(singularise)
+        .map(singularize)
         .sort()
         .join(" ");
 }
@@ -393,7 +393,7 @@ const CROP_BUCKETS = ["counts", "longevity", "germination"];
 // Vendors publish one figure for two crops: "Cilantro/Coriander" (the same
 // plant twice), "Celery & Celeriac", "Endive/Escarole", "Squash & Gourds".
 // Treated as a crop of its own, the row splits a crop in half and hides the
-// figure that should sit beside its neighbour. It belongs to each crop it
+// figure that should sit beside its neighbor. It belongs to each crop it
 // names instead, and forms no group of its own.
 function combinedLabelParts(label) {
     const parts = String(label || "").split(/\s*(?:\/|&|\+| and )\s*/i)
@@ -563,7 +563,7 @@ export function findUnreadableCountEntries() {
  * when the extremes differ by more than 1.3x, which is the tool's cue to show
  * a range and refuse to imply a single authoritative count.
  */
-export function summariseCounts(record, { cropKey = null } = {}) {
+export function summarizeCounts(record, { cropKey = null } = {}) {
     const entries = ((record && record.counts) || []).filter((entry) => matchesCrop(entry, cropKey));
     const rows = [];
 
@@ -815,7 +815,7 @@ export function hundredRule({ temperatureC, relativeHumidityPct } = {}) {
 // ---------------------------------------------------------------------------
 
 /** Published baseline longevity across sources, kept as a span. */
-export function summariseLongevity(record, { cropKey = null } = {}) {
+export function summarizeLongevity(record, { cropKey = null } = {}) {
     const entries = ((record && record.longevity) || []).filter((entry) => matchesCrop(entry, cropKey));
     const rows = entries.map((entry) => ({
         sourceKey: entry.sourceKey,
@@ -846,7 +846,7 @@ export function summariseLongevity(record, { cropKey = null } = {}) {
  * extrapolation beyond any measurement.
  */
 export function projectLongevity({ record, multiplier, gate, cropKey = null, storage = null }) {
-    const baseline = summariseLongevity(record, { cropKey });
+    const baseline = summarizeLongevity(record, { cropKey });
     if (!gate || !gate.allowLongevity) {
         return { ok: false, reason: "gated", baseline, gate };
     }
@@ -910,7 +910,7 @@ export function projectLongevity({ record, multiplier, gate, cropKey = null, sto
 
 /**
  * Run the Ellis-Roberts equation where constants exist and the gate allows.
- * A woody species with no behaviour record still runs: published constants
+ * A woody species with no behavior record still runs: published constants
  * are evidence the seed survives drying.
  */
 export function evaluateViability({ record, gate, storageMoisturePct, storageTemperatureC,
@@ -926,7 +926,7 @@ export function evaluateViability({ record, gate, storageMoisturePct, storageTem
             detail: "An absorber without a desiccant can raise the humidity in the jar, so the moisture content entered no longer holds." };
     }
 
-    const unrecorded = Boolean(gate) && !gate.behaviour;
+    const unrecorded = Boolean(gate) && !gate.behavior;
     if (!gate || (!gate.allowLongevity && !unrecorded)) {
         return { ok: false, reason: "gated", gate };
     }
@@ -1009,7 +1009,7 @@ export function runSeedModel(rawInputs = {}) {
         || (groups.length ? groups[0] : null);
     const cropKey = activeGroup ? activeGroup.key : null;
 
-    const counts = summariseCounts(record, { cropKey });
+    const counts = summarizeCounts(record, { cropKey });
 
     const measured = (isNumber(inputs.measuredSeedCount) && isNumber(inputs.measuredSampleMass))
         ? countFromMeasurement({

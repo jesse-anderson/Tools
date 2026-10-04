@@ -140,7 +140,7 @@ test('tools.html carries the site-wide notice above the tool list, readable whil
   // reason it lives in the summary rather than the body.
   const summary = card.locator('summary');
   await expect(summary).toBeVisible();
-  await expect(summary).toContainText('substitute for professional judgement');
+  await expect(summary).toContainText('substitute for professional judgment');
   await expect(summary).toContainText('none of it is certified, validated or independently reviewed software');
 
   // Above the first tool card and inside the first viewport.

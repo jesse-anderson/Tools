@@ -341,13 +341,13 @@ test('scope disclaimer names each way an export diverges from the preview', asyn
   await expect(body).toContainText('Images that cannot be embedded');
 });
 
-test('scope disclaimer is honest about what sanitisation buys', async ({ page }) => {
+test('scope disclaimer is honest about what sanitization buys', async ({ page }) => {
   await page.goto(DISCLAIMER_PAGE, { waitUntil: 'domcontentloaded' });
   const card = page.locator('details#scopeDisclaimer');
   await card.evaluate((el) => { el.open = true; });
   const body = card.locator('.disclaimer-body');
 
-  await expect(body).toContainText('Sanitisation protects this page, not your reader');
+  await expect(body).toContainText('Sanitization protects this page, not your reader');
   await expect(body).toContainText('it can silently drop markup you meant to keep');
   // No accessibility or archival conformance is claimed, which matters because
   // "Export PDF" reads like it might.

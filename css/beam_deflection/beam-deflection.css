@@ -191,7 +191,7 @@
 }
 
 /* --- Diagrams --------------------------------------------------------------
-   Colour comes from the theme variables, so both themes work with no JS. */
+   Color comes from the theme variables, so both themes work with no JS. */
 
 .bd-diagram {
     display: block;
@@ -434,7 +434,7 @@
 
 /* The self-weight box spends most of its life disabled, because it only
    applies to the full-span distributed case. Dimming the whole row says so at a
-   glance; the label used to keep its normal colour, so the only clue that the
+   glance; the label used to keep its normal color, so the only clue that the
    control was dead was the note underneath it. Opacity dims the box and its
    label together as one unit, and WCAG exempts disabled controls from the
    contrast minimum, so this is the one place it is the right tool. */
@@ -630,7 +630,7 @@
    2.6:1 on the light theme card and 3.7:1 on the dark one, so it fails WCAG AA
    for text in both. It is a shared variable used across the hub, so rather than
    change it here, this tool uses --text-secondary throughout (7.6:1 and 6.9:1),
-   which still reads as de-emphasised. */
+   which still reads as de-emphasized. */
 
 .preset-row {
     display: flex;
@@ -754,7 +754,7 @@
 }
 
 /* --- Scope disclaimer ------------------------------------------------------
-   Warning colour tinted through color-mix so it reads as a caution. Native
+   Warning color tinted through color-mix so it reads as a caution. Native
    details/summary, with the headline warning in the summary. */
 
 .disclaimer-card {

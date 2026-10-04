@@ -15,7 +15,7 @@ const P3_TOOLS = {
   'case-conversion': 'do not round-trip',
   'markdown-preview': 'the rendering that matters is the one on the',
   'color-picker': 'no ink',
-  'encoding': 'is not an XSS defence',
+  'encoding': 'is not an XSS defense',
   'json-formatter': 'comes back changed rather than rejected',
   'token-throughput-visualizer': 'nothing on screen measures a model',
   'base-converter': 'truncated at the high byte rather than rejected',

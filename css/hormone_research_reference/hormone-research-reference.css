@@ -77,7 +77,7 @@ body.splash-active {
     margin: 0;
 }
 
-.acknowledgement-line {
+.acknowledgment-line {
     display: grid;
     grid-template-columns: 18px minmax(0, 1fr);
     gap: 10px;
@@ -92,7 +92,7 @@ body.splash-active {
     font-weight: 700;
 }
 
-.acknowledgement-line input {
+.acknowledgment-line input {
     margin-top: 3px;
 }
 

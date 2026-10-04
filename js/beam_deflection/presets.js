@@ -17,7 +17,7 @@ export const PRESETS = [
     {
         id: 'joist-2x10',
         name: 'Floor joist',
-        summary: '2x10 Douglas fir at 16 in centres, 12 ft span',
+        summary: '2x10 Douglas fir at 16 in centers, 12 ft span',
         teaches: 'The deflection limit is what governs a floor, not the stress. This joist runs at about three quarters of its bending capacity while sitting comfortably inside L/360. Span tables are written around deflection for that reason.',
         units: 'us',
         state: {
@@ -49,9 +49,9 @@ export const PRESETS = [
         section: { b: 40, h: 40, t: 3 },
     },
     {
-        id: 'off-centre-rail',
-        name: 'Off-centre load',
-        summary: 'Aluminium tube, 1 m span, 500 N a quarter of the way along',
+        id: 'off-center-rail',
+        name: 'Off-center load',
+        summary: 'Aluminum tube, 1 m span, 500 N a quarter of the way along',
         teaches: 'The maximum deflection is not under the load and not at midspan; it sits between them. This is the case a table lookup gets wrong, because the tabulated formula assumes the load is on the longer side of the span.',
         units: 'si',
         state: {
@@ -86,7 +86,7 @@ export const PRESETS = [
         id: 'printed-bracket',
         name: 'Printed PLA bracket',
         summary: '20 x 6 mm bar, 80 mm arm, 20 N load',
-        teaches: 'The stress check passes easily and the part is still useless: it moves millimetres on an 80 mm arm. Stiffness and strength are different problems, and for plastics the creep warning means the number here is a lower bound that grows under sustained load.',
+        teaches: 'The stress check passes easily and the part is still useless: it moves millimeters on an 80 mm arm. Stiffness and strength are different problems, and for plastics the creep warning means the number here is a lower bound that grows under sustained load.',
         units: 'si',
         state: {
             support: 'cantilever',

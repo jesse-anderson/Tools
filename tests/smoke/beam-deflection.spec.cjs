@@ -5,7 +5,7 @@
 //  1. Goldens. Every tabulated closed form against a value computed by hand on
 //     a fixed reference beam, so a transcription slip shows up as a number.
 //  2. Invariants and limits. A general off-center form must collapse onto the
-//     tabulated centre form, deflection must scale as L^3 or L^4, mirroring a
+//     tabulated center form, deflection must scale as L^3 or L^4, mirroring a
 //     load must mirror the answer. These catch the typo that is self-consistent
 //     and so invisible to a golden written from the same bad source.
 //  3. The two normalization and coefficient defects the SOW was audited for,
@@ -148,7 +148,7 @@ test.describe('section 3 goldens', () => {
 });
 
 test.describe('invariants and limits', () => {
-  test('T1 simply supported off-center at a = b = L/2 collapses onto the centre form', async ({ page }) => {
+  test('T1 simply supported off-center at a = b = L/2 collapses onto the center form', async ({ page }) => {
     await openTool(page);
     const got = await page.evaluate((args) => {
       const B = window.BeamDeflection;
@@ -357,7 +357,7 @@ test.describe('the audited defects', () => {
     expect(Math.abs(got.coeff - 1 / 185) / (1 / 185)).toBeGreaterThan(1.9e-3);
   });
 
-  test('T20 propped off-center curve reproduces the centre case at a = L/2', async ({ page }) => {
+  test('T20 propped off-center curve reproduces the center case at a = L/2', async ({ page }) => {
     await openTool(page);
     const got = await page.evaluate((args) => {
       const B = window.BeamDeflection;
@@ -375,7 +375,7 @@ test.describe('the audited defects', () => {
     expectRel(got.gd, got.closed, 1e-9);
     expectRel(got.gx, got.tx, 1e-8);
     expectRel(got.gm, got.tm, 1e-12);
-    // Fixed-end moment is 3PL/16 for the centre case.
+    // Fixed-end moment is 3PL/16 for the center case.
     expectRel(Math.abs(got.gm), (3 * P * L) / 16, 1e-9);
     // Location is L(1 - 1/sqrt5) from the fixed end, not 0.4472L.
     expectRel(got.xRatio, 0.5527864045000421, 1e-12);
@@ -870,7 +870,7 @@ test.describe('materials', () => {
     await expect(page.locator('#materialFacts')).toContainText('Yield strength');
     await expect(page.locator('#materialFacts')).toContainText('Source:');
 
-    // A brittle row is labelled as rupture, not as yield.
+    // A brittle row is labeled as rupture, not as yield.
     await page.locator('#material').selectOption('glass-soda-lime');
     await expect(page.locator('#materialFacts')).toContainText('Modulus of rupture');
     await expect(page.locator('#results')).toContainText('fails by fracture');
@@ -948,9 +948,9 @@ test.describe('independent numerical cross-check', () => {
         // AISC case 1, simple beam, uniformly distributed: 5wl^4 / 384EI
         simpleUDL: B.solve({ support: 'simple', loadType: 'udl', L, E, I, w }).deltaMax,
         simpleUDLBook: (5 * w * L ** 4) / (384 * EI),
-        // AISC case 7, simple beam, concentrated load at centre: Pl^3 / 48EI
-        simpleCentre: B.solve({ support: 'simple', loadType: 'point-standard', L, E, I, P }).deltaMax,
-        simpleCentreBook: (P * L ** 3) / (48 * EI),
+        // AISC case 7, simple beam, concentrated load at center: Pl^3 / 48EI
+        simpleCenter: B.solve({ support: 'simple', loadType: 'point-standard', L, E, I, P }).deltaMax,
+        simpleCenterBook: (P * L ** 3) / (48 * EI),
         // AISC case 15, beam fixed at both ends, uniformly distributed:
         // wl^4 / 384EI
         fixedUDL: B.solve({ support: 'fixed-fixed', loadType: 'udl', L, E, I, w }).deltaMax,
@@ -964,7 +964,7 @@ test.describe('independent numerical cross-check', () => {
     }, { L, E, I, P, w });
 
     expectRel(got.simpleUDL, got.simpleUDLBook, 1e-12);
-    expectRel(got.simpleCentre, got.simpleCentreBook, 1e-12);
+    expectRel(got.simpleCenter, got.simpleCenterBook, 1e-12);
     expectRel(got.fixedUDL, got.fixedUDLBook, 1e-12);
     // The published location is quoted to four figures, so it pins ours to that.
     expect(got.proppedX).toBeCloseTo(got.proppedXBook, 4);
@@ -1195,7 +1195,7 @@ test.describe('worked examples', () => {
     await expect(page.locator('#span')).toHaveValue('12');
     await expect(page.locator('#sec-h')).toHaveValue('9.25');
 
-    // 2x10 DF-L No.2 at 16 in centres over 12 ft: about 0.21 in, comfortably
+    // 2x10 DF-L No.2 at 16 in centers over 12 ft: about 0.21 in, comfortably
     // inside L/360 = 0.4 in, which is the point the example makes.
     const primary = page.locator('#results .result-box.primary');
     await expect(primary).toContainText(' in');
@@ -1330,7 +1330,7 @@ test.describe('accessibility', () => {
       await page.evaluate((t) => document.documentElement.setAttribute('data-theme', t), theme);
       // .support-card transitions its background, and getComputedStyle during a
       // running transition returns the interpolated value, so measuring straight
-      // after the swap reads the outgoing theme's colour and reports a false
+      // after the swap reads the outgoing theme's color and reports a false
       // contrast failure. Wait the 150ms transition out.
       await page.waitForTimeout(300);
       return page.evaluate(() => {
@@ -1447,7 +1447,7 @@ test.describe('responsive, themes, and CSP', () => {
     await openTool(page);
     // Exercise the paths that build DOM and run the numerical solve, since a
     // CSP break is likelier there than at first load.
-    await page.locator('[data-preset="off-centre-rail"]').click();
+    await page.locator('[data-preset="off-center-rail"]').click();
     await page.locator('#unitSystem').selectOption('us');
     await page.locator('#sectionType').selectOption('ibeam');
     await page.locator('#verifyBtn').click();
@@ -1524,7 +1524,7 @@ test.describe('partial distributed load', () => {
   test('a golden partial band, computed by hand', async ({ page }) => {
     await openTool(page);
     // Simply supported, L = 3, EI = 2e6, w = 5 kN/m over [1, 2].
-    // W = 5000 N centred on midspan, so R0 = 2500 N and the maximum is at 1.5.
+    // W = 5000 N centered on midspan, so R0 = 2500 N and the maximum is at 1.5.
     //   Q2(1.5) = -(w/24)(0.5)^4              = -13.020833...
     //   Q2(3)   = -(w/24)(2^4 - 1^4)          = -3125
     //   C1      = (R0 L^3/6 + Q2(3)) / L      = 2708.3333...
@@ -2095,7 +2095,7 @@ test.describe('scope disclaimer', () => {
     await expect(page.locator('.disclaimer-lead')).toContainText('load-bearing member');
     expect(await card.evaluate((n) => n.open)).toBe(false);
 
-    // No modal, no overlay, no acknowledgement step.
+    // No modal, no overlay, no acknowledgment step.
     await expect(page.locator('#disclaimerSplash')).toHaveCount(0);
     await expect(page.locator('.liability-banner')).toHaveCount(0);
 
@@ -2118,7 +2118,7 @@ test.describe('scope disclaimer', () => {
     // Near enough to the top of the page that it is on screen without scrolling.
     await expect(page.locator('.disclaimer-card summary')).toBeInViewport();
 
-    // Styled as a caution in the theme warning colour, tinted rather than
+    // Styled as a caution in the theme warning color, tinted rather than
     // painted on as a solid error slab. A hard red block here reads as a
     // failure state and was what made the first attempt look harsh.
     const paint = await page.evaluate(() => {
@@ -2132,7 +2132,7 @@ test.describe('scope disclaimer', () => {
         headerBg: parse(head.backgroundColor),
       };
     });
-    // The heading takes the warning colour, not the error colour.
+    // The heading takes the warning color, not the error color.
     expect(paint.titleColor).not.toBe('rgb(239, 68, 68)');
     // A tint, so the header background is nowhere near fully saturated.
     expect(paint.headerBg.length).toBeGreaterThanOrEqual(3);
@@ -2319,7 +2319,7 @@ test.describe('load entered as mass', () => {
     await expect(note).toBeHidden();
   });
 
-  test('the load entry control is labelled and clears the active example', async ({ page }) => {
+  test('the load entry control is labeled and clears the active example', async ({ page }) => {
     await openTool(page);
     const label = await page.evaluate(() =>
       document.querySelector('label[for="loadEntry"]').textContent.trim());
@@ -2412,7 +2412,7 @@ test.describe('foldable result sections', () => {
 // Each of these produced a plausible-looking screen rather than an obvious
 // failure, which is why they survived the build: an upward load reported a
 // negative deflection and then passed its own limit check, a negative safety
-// factor divided by one while labelling itself zero, the per-case numbers on
+// factor divided by one while labeling itself zero, the per-case numbers on
 // the selector cards stayed on screen next to an input error, and the propped
 // cantilever's two ends were named differently depending on the load type.
 // ---------------------------------------------------------------------------

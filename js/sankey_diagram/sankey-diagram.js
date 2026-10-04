@@ -157,13 +157,14 @@ function fillTables(view) {
     const where = {
         output: (end) => end.name,
         missing: (end) => `Not accounted for at ${end.name}`,
+        unstated: (end) => `Reaches ${end.name}; the list does not say where it goes from there`,
         traced: (end) => `Into ${end.name}, traced separately`,
         returned: (end) => `Back to ${end.name} by a recycle`
     };
     el('traceCard').hidden = model.traces.length === 0;
-    el('traceNote').textContent = model.traces.some((t) => t.mixedAt.length)
-        ? 'An estimate: where several inputs meet and split again, each output is taken to carry them in the proportions they arrived.'
-        : 'Exact for this list: nothing traced is mixed with another input and then split.';
+    el('traceNote').textContent = model.traces.some((t) => t.stoppedAt.length)
+        ? 'Only what the flow list settles is followed, and nothing is estimated. Where streams meet and leave by more than one way, write each flow with its source, as in "Applied [12 from Referral] Screen", and the trace goes on.'
+        : 'Followed all the way: the flow list settles where every traced amount goes, and nothing is estimated.';
     el('traceTable').tBodies[0].replaceChildren(...model.traces.flatMap((trace) => trace.ends.map((end, i) => {
         const tr = document.createElement('tr');
         const th = document.createElement('th');
@@ -578,7 +579,7 @@ function init() {
     el('projectImport').addEventListener('click', () => el('projectFile').click());
     el('projectFile').addEventListener('change', (event) => {
         const input = event.target;
-        // Cleared afterwards so choosing the same file twice still fires.
+        // Cleared afterward so choosing the same file twice still fires.
         importProject(input.files[0]).finally(() => { input.value = ''; });
     });
     el('projectSave').addEventListener('click', () => {

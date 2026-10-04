@@ -81,7 +81,7 @@ test('material helper fills ε/D from roughness and diameter', async ({ page }) 
 });
 
 // --- scope disclaimer -----------------------------------------------------
-// The page previously carried one grey paragraph under the footer, on
+// The page previously carried one gray paragraph under the footer, on
 // --text-muted, saying the tool was educational and unwarranted. It named no
 // limit of the correlation and nothing the tool must not be used for.
 

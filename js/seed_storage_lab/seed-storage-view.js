@@ -110,7 +110,7 @@ function renderChart(dom, storage) {
     root.appendChild(svg("line", { class: "viability-target", x1: CHART.left, x2: CHART.left + plotW,
         y1: y(OXYGEN_LIMITS.floorPct), y2: y(OXYGEN_LIMITS.floorPct) }));
     root.appendChild(svg("text", { class: "viability-tick", x: CHART.left + 6, y: y(OXYGEN_LIMITS.floorPct) - 5, "text-anchor": "start" },
-        "1%, lowest level modelled"));
+        "1%, lowest level modeled"));
 
     if (decay) {
         const measured = x(Math.min(LETTUCE_UPTAKE.observedDays, horizonDays));

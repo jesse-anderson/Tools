@@ -369,7 +369,7 @@ test('oral-multidose disclaimer names its specific omissions', async ({ page }) 
   await page.locator('#scopeDisclaimer').evaluate((el) => { el.open = true; });
   const body = page.locator('#scopeDisclaimer .disclaimer-body');
 
-  for (const phrase of ['Multi-compartment behaviour', 'Active metabolites', 'First-pass and formulation', 'Interactions', 'therapeutic window', 'missed dose is safe to double', 'poisons information centre']) {
+  for (const phrase of ['Multi-compartment behavior', 'Active metabolites', 'First-pass and formulation', 'Interactions', 'therapeutic window', 'missed dose is safe to double', 'poisons information center']) {
     await expect(body).toContainText(phrase);
   }
 });

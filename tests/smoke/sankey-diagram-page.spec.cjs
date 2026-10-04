@@ -91,7 +91,7 @@ test.describe('renderer and export', () => {
     await expect(page.locator('#flowsTable tbody th')).toHaveText('A <img src=x onerror=alert(1)>');
   });
 
-  test('colours come from the palette for the theme, and an override wins', async ({ page }) => {
+  test('colors come from the palette for the theme, and an override wins', async ({ page }) => {
     const light = await svgFor(page, 'A [1] B\n: B #123456', {}, 'light');
     const dark = await svgFor(page, 'A [1] B\n: B #123456', {}, 'dark');
     expect(light).toContain('class="sankey-bg" width="960" height="540" fill="#ffffff"');
@@ -104,14 +104,14 @@ test.describe('renderer and export', () => {
     expect(transparent).not.toContain('sankey-bg');
   });
 
-  test('a node keeps its colour when a flow is added after it', async ({ page }) => {
-    const colours = (text) => page.evaluate((t) => {
+  test('a node keeps its color when a flow is added after it', async ({ page }) => {
+    const colors = (text) => page.evaluate((t) => {
       const S = window.SankeyDiagram;
       const m = S.buildModel(t);
       return Object.fromEntries(m.graph.nodes.map((n, i) => [n.name, S.nodeColors(m, S.PALETTES.light)[i]]));
     }, text);
-    const before = await colours('A [5] B\nB [5] C');
-    const after = await colours('A [5] B\nB [5] C\nA [2] D\nD [2] C');
+    const before = await colors('A [5] B\nB [5] C');
+    const after = await colors('A [5] B\nB [5] C\nA [2] D\nD [2] C');
     for (const name of ['A', 'B', 'C']) expect(after[name]).toBe(before[name]);
   });
 
@@ -132,7 +132,7 @@ test.describe('renderer and export', () => {
   });
 
   test('labels in the two middle columns do not face each other', async ({ page }) => {
-    // Flipping labels at the midline made neighbouring columns write over one another.
+    // Flipping labels at the midline made neighboring columns write over one another.
     await page.selectOption('#presetSelect', 'recycle');
     const anchors = await page.locator('#diagramHost text.sankey-label').evaluateAll((els) =>
       els.map((e) => [e.querySelector('tspan').textContent, e.getAttribute('text-anchor')]));
@@ -1139,7 +1139,7 @@ test.describe('font in the PNG', () => {
     expect(out.again.hash).toBe(out.withFace.hash);
   });
 
-  test('the vendored font is the file its licence note says it is', async () => {
+  test('the vendored font is the file its license note says it is', async () => {
     const dir = require('node:path').join(__dirname, '..', '..', 'js', 'vendor', 'space_grotesk');
     const bytes = fs.readFileSync(require('node:path').join(dir, 'space-grotesk-latin.woff2'));
     const sha = require('node:crypto').createHash('sha256').update(bytes).digest('hex');

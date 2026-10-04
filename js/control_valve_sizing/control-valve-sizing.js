@@ -49,7 +49,7 @@ function readInputs() {
     if (service === 'liquid') {
         if (direction === 'size') input.q = units.toInternal('volumeFlow', system, num('q'));
         input.relativeDensity = num('relativeDensity');
-        // Vapour and critical pressure are absolute by nature, so a gauge entry
+        // Vapor and critical pressure are absolute by nature, so a gauge entry
         // is not converted twice: both are read as absolute regardless of the
         // basis selector.
         const pv = num('pv');
@@ -238,7 +238,7 @@ function render() {
     ]);
 
     rows(el('cavitationDetail'), [
-        ['Cavitation index sigma', result.sigma === null ? 'not run, no vapour pressure' : fmt(result.sigma, 3)],
+        ['Cavitation index sigma', result.sigma === null ? 'not run, no vapor pressure' : fmt(result.sigma, 3)],
         ['Definition', '(P1 - Pv) / (P1 - P2), ISA-RP75.23. Lower is more severe.'],
         ['Vena contracta pressure', result.Pvc === null ? DASH : P(result.Pvc)],
         ['Published incipient limit', 'none available for this style'],
@@ -284,9 +284,9 @@ function renderCharacteristicChart(ch) {
     chart.append(svg('line', { x1: CHART.x0, y1: CHART.y0, x2: CHART.x0, y2: CHART.y1, class: 'chart-axis' }));
 
     // The inherent curve is dashed and the installed one solid, so the two are
-    // separable without relying on colour. Same reasoning as the regime badge.
-    chart.append(svg('polyline', { points: path(ch.inherentNormalised), class: 'chart-line chart-inherent' }));
-    chart.append(svg('polyline', { points: path(ch.installedNormalised), class: 'chart-line chart-installed' }));
+    // separable without relying on color. Same reasoning as the regime badge.
+    chart.append(svg('polyline', { points: path(ch.inherentNormalized), class: 'chart-line chart-inherent' }));
+    chart.append(svg('polyline', { points: path(ch.installedNormalized), class: 'chart-line chart-installed' }));
 
     if (Number.isFinite(ch.travel) && ch.travel >= 0 && ch.travel <= 1) {
         chart.append(svg('line', {
@@ -449,7 +449,7 @@ function applyStyle() {
     // holding whatever was there before. It now carries it, but only from the
     // rows where the quoted coefficient is the full-open one: a 60 degree rotary
     // Cv is about a third of the same valve at 90, and dropping it into a field
-    // labelled "at full open" would distort every curve drawn from it.
+    // labeled "at full open" would distort every curve drawn from it.
     if (isRatedAtFullOpen(style)) {
         el('crated').value = String(style.Cv);
         el('styleNote').textContent = `${preamble} Rated Cv ${style.Cv} at ${style.opening}, carried into the characteristic block below.`;
@@ -489,7 +489,7 @@ function applyGas() {
 }
 
 /**
- * Water vapour pressure from the vendored curve, which the page previously had
+ * Water vapor pressure from the vendored curve, which the page previously had
  * no way to reach: a water service still needed a hand-entered Pv.
  *
  * Outside the tabulated range the fields are left alone, never cleared and never
@@ -504,12 +504,12 @@ function applyLiquidTemperature() {
         el('tLiquidNote').textContent = `Outside the tabulated range of ${
             fmt(units.fromInternal('temperature', system, fluids.WATER_RANGE_K.min), 2)} to ${
             fmt(units.fromInternal('temperature', system, fluids.WATER_RANGE_K.max), 2)} ${
-            units.unitLabel('temperature', system)}, so the vapour pressure below was left as you entered it rather than extrapolated.`;
+            units.unitLabel('temperature', system)}, so the vapor pressure below was left as you entered it rather than extrapolated.`;
         return;
     }
     el('pv').value = String(Number(units.fromInternal('pressure', system, Psat).toPrecision(6)));
     el('pc').value = String(Number(units.fromInternal('pressure', system, fluids.WATER_CRITICAL.P_kPa).toPrecision(6)));
-    el('tLiquidNote').textContent = `Vapour pressure ${fmt(units.fromInternal('pressure', system, Psat), 3)} ${
+    el('tLiquidNote').textContent = `Vapor pressure ${fmt(units.fromInternal('pressure', system, Psat), 3)} ${
         units.unitLabel('pressure', system)} from the vendored saturation table, interpolated in log P. Critical pressure is water's.`;
 }
 

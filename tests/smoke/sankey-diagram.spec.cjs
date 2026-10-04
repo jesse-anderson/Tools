@@ -168,13 +168,13 @@ test.describe('flow parser', () => {
     expect(out.warnings.map((w) => [w.line, w.code])).toEqual([[2, 'ZERO_FLOW']]);
   });
 
-  test('warns when two names differ only by capitalisation', async ({ page }) => {
+  test('warns when two names differ only by capitalization', async ({ page }) => {
     const out = await parse(page, 'Feed [10] Steam\nsteam [10] Vent');
     expect(out.warnings.map((w) => w.code)).toContain('CASE_VARIANTS');
     expect(out.warnings.find((w) => w.code === 'CASE_VARIANTS').message).toContain('"Steam" and "steam"');
   });
 
-  test('reads notes, colours and positions, and flags one that names no node', async ({ page }) => {
+  test('reads notes, colors and positions, and flags one that names no node', async ({ page }) => {
     const out = await parse(page, 'A [10] B\n@ B: runs hot\n: A #4A3AA7\n~ B: 40%, 25.5\n: Ghost #fff');
     expect(out.errors).toEqual([]);
     expect(out.notes).toEqual({ B: 'runs hot' });
@@ -437,7 +437,7 @@ test.describe('layout', () => {
     const text = await page.evaluate(() => window.SankeyDiagram.PRESETS[0].text);
     const layers = (m) => Object.fromEntries(m.layout.nodes.map((n) => [n.name, n.layer]));
     expect(layers(await build(page, text, { align: 'justify' }))).toEqual({
-      'Dilute feed': 0, 'Effect 1': 1, 'Vapour 1': 2, 'Effect 2': 2, 'Vapour 2': 3, Concentrate: 4, Condensate: 4
+      'Dilute feed': 0, 'Effect 1': 1, 'Vapor 1': 2, 'Effect 2': 2, 'Vapor 2': 3, Concentrate: 4, Condensate: 4
     });
     expect(layers(await build(page, text, { align: 'left' })).Concentrate).toBe(3);
   });
@@ -697,14 +697,14 @@ test.describe('layout', () => {
       svg.appendChild(path);
       document.body.appendChild(svg);
       const box = path.getBBox();
-      const centre = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-      centre.setAttribute('d', S.engine.centrePath(link));
-      svg.appendChild(centre);
-      // The centre line stays strictly inside the ribbon the whole way round.
+      const center = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      center.setAttribute('d', S.engine.centerPath(link));
+      svg.appendChild(center);
+      // The center line stays strictly inside the ribbon the whole way round.
       let inside = 0;
-      const total = centre.getTotalLength();
+      const total = center.getTotalLength();
       for (let i = 1; i < 100; i++) {
-        const p = centre.getPointAtLength((total * i) / 100);
+        const p = center.getPointAtLength((total * i) / 100);
         if (path.isPointInFill(new DOMPoint(p.x, p.y))) inside += 1;
       }
       svg.remove();

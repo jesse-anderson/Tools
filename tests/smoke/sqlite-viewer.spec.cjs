@@ -47,7 +47,7 @@ test('scope disclaimer qualifies the local-only claim the page makes elsewhere',
   await expect(body).toContainText('Extensions with host access');
   await expect(body).toContainText('lands unencrypted in your downloads folder');
   await expect(body).toContainText('session restore');
-  await expect(body).toContainText('Local is about transmission, not authorisation');
+  await expect(body).toContainText('Local is about transmission, not authorization');
 });
 
 test('the CDN caveat matches how the page actually loads sql.js', async ({ page, baseURL }) => {
@@ -90,7 +90,7 @@ test('scope disclaimer names the uses it is not for', async ({ page, baseURL }) 
   // Forensics is the use where "I opened it in a browser viewer" destroys the
   // thing it was trying to establish.
   await expect(body).toContainText('no write blocking, no hashing and no chain of custody');
-  await expect(body).toContainText('Opening a file you are not authorised to read');
+  await expect(body).toContainText('Opening a file you are not authorized to read');
 });
 
 test('scope disclaimer opens by keyboard and carries a touchpoint by the upload panel', async ({ page, baseURL }) => {

@@ -321,7 +321,7 @@ test('steam tables lookup computes states and passes internal consistency checks
 });
 
 // --- scope disclaimer --------------------------------------------------------
-// The only disclaimer-classed element on this page used to be an MIT licence
+// The only disclaimer-classed element on this page used to be an MIT license
 // notice for the vendored CSVs, which trips every legal keyword and is not a
 // disclaimer. The real caveat was a p.trace-note in a sidebar foldable. Both the
 // caveat and its placement are now the shared card.

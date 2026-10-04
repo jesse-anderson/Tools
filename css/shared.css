@@ -988,7 +988,7 @@ footer {
    The one component defined here rather than per tool, because ten copies had
    drifted from 1 rule to 29 and the contrast defect below was in some and not
    others. A tool still overrides these from its own stylesheet, which loads
-   afterwards. Reference implementations: control-valve-sizing, beam-deflection.
+   afterward. Reference implementations: control-valve-sizing, beam-deflection.
    ------------------------------------------------------------ */
 
 :root {
@@ -1108,8 +1108,8 @@ p.disclaimer {
 }
 p.disclaimer strong { color: var(--text-primary); }
 
-/* Link colour on the amber tint measures badly in light theme, so the link takes
-   the body colour and is carried by the underline. */
+/* Link color on the amber tint measures badly in light theme, so the link takes
+   the body color and is carried by the underline. */
 p.disclaimer a {
     color: var(--text-primary);
     text-decoration: underline;

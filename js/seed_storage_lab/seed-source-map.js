@@ -95,7 +95,7 @@ export const SEED_REFERENCES = Object.freeze({
         kind: "paper"
     },
 
-    // ---- Storage behaviour -----------------------------------------------
+    // ---- Storage behavior -----------------------------------------------
     ipgri1996: {
         label: "Hong, Linington & Ellis 1996, Seed Storage Behaviour: a Compendium",
         url: "https://cgspace.cgiar.org/items/9148afd5-2def-4ae8-bb01-567eaff5c538",
@@ -191,7 +191,7 @@ export const SEED_REFERENCES = Object.freeze({
 export const SEED_CLAIM_AUDIT = Object.freeze([
     {
         area: "Scope",
-        claim: "The longevity model runs only for seeds with orthodox storage behaviour.",
+        claim: "The longevity model runs only for seeds with orthodox storage behavior.",
         support: "Recalcitrant seeds die on drying and are kept moist: about -3 to 5 C for temperate species (oak over 3 years at -3 C) and 7-17 C for tropical ones (1996 compendium, section 4.2). Intermediate seeds tolerate drying to about 7-12% moisture and keep worse below that; tropical ones also keep worse below about 10 C (section 5). Applying Harrington or Ellis-Roberts to dried acorns predicts decades of life for seed that drying has killed.",
         sourceKeys: ["ipgri1996", "kewCompendium1998", "deVitis2020"],
         implementation: "seed-model.js -> evaluateSpeciesGate. Seed counts still display for gated species; only the longevity math refuses."
@@ -250,14 +250,14 @@ export const SEED_CLAIM_AUDIT = Object.freeze([
         claim: "Where sources disagree on seed count, the tool shows every determination instead of averaging.",
         support: "32 of the 53 species with more than one count source disagree, from 1.32x up to 14.25x for coriander; lettuce spans 13.5x across three determinations. Averaging a transcription error with a correct value produces a number that is wrong and looks authoritative.",
         sourceKeys: ["unlG2090", "osborne", "johnnys"],
-        implementation: "Generated data keeps one entry per source with its crop label. seed-model.js -> summariseCounts reports the spread and flags disagreement above 1.3x."
+        implementation: "Generated data keeps one entry per source with its crop label. seed-model.js -> summarizeCounts reports the spread and flags disagreement above 1.3x."
     },
     {
         area: "Scope",
-        claim: "Where the resolved storage behaviour contradicts a lower-precedence source, the gate names the source it overruled.",
+        claim: "Where the resolved storage behavior contradicts a lower-precedence source, the gate names the source it overruled.",
         support: "42 taxa resolve against a source that disagrees. Four leave a recalcitrant Carya or Juglans genus flag for an orthodox species record in the 1998 compendium and still receive a projection: pecan, shagbark hickory, shellbark hickory and little walnut. Species-level sourced data is the better evidence and stands, but discarding the loser hid a desiccation-sensitivity warning behind a clean result.",
         sourceKeys: ["ipgri1996", "kewCompendium1998"],
-        implementation: "scripts/build-seed-species-data.py attaches the losing flag as behaviour.overruled. seed-model.js -> evaluateSpeciesGate appends it to the detail and drops an overruled recalcitrant flag from ok to caution."
+        implementation: "scripts/build-seed-species-data.py attaches the losing flag as behavior.overruled. seed-model.js -> evaluateSpeciesGate appends it to the detail and drops an overruled recalcitrant flag from ok to caution."
     },
     {
         area: "Seed counts",
@@ -269,14 +269,14 @@ export const SEED_CLAIM_AUDIT = Object.freeze([
     {
         area: "Viability constants",
         claim: "K_E, C_W, C_H and C_Q are bound together as one parameter set and never mixed across sources.",
-        support: "Barley has two valid published parameterisations whose predictions differ by 3.66x. Taking K_E and C_W from one and C_H and C_Q from the other produces a third answer supported by nobody.",
+        support: "Barley has two valid published parameterizations whose predictions differ by 3.66x. Taking K_E and C_W from one and C_H and C_Q from the other produces a third answer supported by nobody.",
         sourceKeys: ["ellisRoberts1980", "dickieEllis1990", "hayViabilityEquations"],
         implementation: "Each constants entry in the generated data carries all four values plus its own source. The engine takes a whole entry or none."
     },
     {
         area: "Viability constants",
         claim: "Lettuce K_E is corrected to 6.895 from the 6-985 printed in the scanned source.",
-        support: "An OCR artefact in the Dickie & Ellis scan. Hay's worked examples reproduce 56,040 d and 12,404 d only with 6.895, and the 1996 compendium appendix independently prints 6.895.",
+        support: "An OCR artifact in the Dickie & Ellis scan. Hay's worked examples reproduce 56,040 d and 12,404 d only with 6.895, and the 1996 compendium appendix independently prints 6.895.",
         sourceKeys: ["dickieEllis1990", "hayViabilityEquations", "kewAppendix1"],
         implementation: "scripts/build-seed-species-data.py -> KE_OVERRIDES. The CSV keeps the scan verbatim; only the bundle is corrected."
     },
@@ -310,7 +310,7 @@ export const SEED_CLAIM_AUDIT = Object.freeze([
     },
     {
         area: "Scope",
-        claim: "A woody species with no storage-behaviour record is withheld a Harrington projection but still runs the viability equation if constants exist.",
+        claim: "A woody species with no storage-behavior record is withheld a Harrington projection but still runs the viability equation if constants exist.",
         support: "Published constants are fitted from experiments in which the seed was dried and stored, which is direct evidence it tolerates drying over the tested range. A recalcitrant, intermediate or not-applicable flag still refuses both models.",
         sourceKeys: ["kewAppendix1", "ipgri1996"],
         implementation: "seed-model.js -> evaluateViability. The result carries admittedByConstants and the card says so."
@@ -318,7 +318,7 @@ export const SEED_CLAIM_AUDIT = Object.freeze([
     {
         area: "Storage tier",
         claim: "Lowering oxygen multiplies storage life by (20.9 / O2%)^0.782, held at 1% oxygen.",
-        support: "Groot et al. 2025: each halving of oxygen extended the shelf life of primed celery 1.72-fold over 16 to 43% eRH and 5 to 30 C, and dropping to 1% gave about 11-fold. log2(1.72) = 0.782 reproduces both. Below 1% the oxygen meter's 1% error made the level uncertain, so nothing lower was modelled.",
+        support: "Groot et al. 2025: each halving of oxygen extended the shelf life of primed celery 1.72-fold over 16 to 43% eRH and 5 to 30 C, and dropping to 1% gave about 11-fold. log2(1.72) = 0.782 reproduces both. Below 1% the oxygen meter's 1% error made the level uncertain, so nothing lower was modeled.",
         sourceKeys: ["groot2025Oxygen"],
         implementation: "seed-storage-tiers.js -> OXYGEN_EXPONENT, oxygenMultiplier."
     },

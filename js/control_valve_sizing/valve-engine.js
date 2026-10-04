@@ -94,7 +94,7 @@ export const STANDARD_CONDITIONS = Object.freeze({ P_kPa: 101.325, T_K: 288.15 }
 export const CODES = Object.freeze({
     REVERSE_DIFFERENTIAL: 'REVERSE_DIFFERENTIAL',
     NON_POSITIVE_INLET: 'NON_POSITIVE_INLET',
-    VAPOUR_ABOVE_INLET: 'VAPOUR_ABOVE_INLET',
+    VAPOR_ABOVE_INLET: 'VAPOR_ABOVE_INLET',
     NON_POSITIVE_PROPERTY: 'NON_POSITIVE_PROPERTY',
     FLASHING: 'FLASHING',
     BAD_GEOMETRY: 'BAD_GEOMETRY',
@@ -154,7 +154,7 @@ export const LIMITS = Object.freeze({
 //
 // 200 covers Fp down to roughly 0.33. Below that the valve is drastically
 // undersized against its pipe, and non-convergence is a real signal instead of
-// a budget artefact. Each pass is a handful of floating point operations, so the
+// a budget artifact. Each pass is a handful of floating point operations, so the
 // larger budget costs nothing measurable.
 //
 // The same expression also shows the iteration converges exactly when a solution
@@ -278,8 +278,8 @@ function guard(input) {
     if (P2 >= P1) return err(CODES.REVERSE_DIFFERENTIAL, 'Outlet pressure must be below inlet pressure. Zero or reverse differential is a domain error, not a small-flow case: the sizing equations divide by the differential and take its square root.');
     if (P2 <= 0) return err(CODES.NON_POSITIVE_INLET, 'Outlet pressure must be positive. Pressures here are absolute.');
     if (Pv !== null && Pv !== undefined) {
-        if (!isNum(Pv) || Pv <= 0) return err(CODES.NON_POSITIVE_PROPERTY, 'Vapour pressure must be a positive absolute pressure, or omitted.');
-        if (Pv > P1) return err(CODES.VAPOUR_ABOVE_INLET, 'Vapour pressure exceeds inlet pressure, so the liquid is already boiling at the stated inlet condition and there is no liquid service to size.');
+        if (!isNum(Pv) || Pv <= 0) return err(CODES.NON_POSITIVE_PROPERTY, 'Vapor pressure must be a positive absolute pressure, or omitted.');
+        if (Pv > P1) return err(CODES.VAPOR_ABOVE_INLET, 'Vapor pressure exceeds inlet pressure, so the liquid is already boiling at the stated inlet condition and there is no liquid service to size.');
     }
     if (Pc !== null && Pc !== undefined) {
         if (!isNum(Pc) || Pc <= 0) return err(CODES.NON_POSITIVE_PROPERTY, 'Critical pressure must be a positive absolute pressure, or omitted.');
@@ -299,7 +299,7 @@ function guard(input) {
  * The physical statement is that further pressure drop produces no further
  * flow. Everything downstream of this in the pipeline depends on the cap being
  * applied to dP before the flow equation sees it, and not to the answer
- * afterwards, which is what makes the flow curve go exactly flat instead of
+ * afterward, which is what makes the flow curve go exactly flat instead of
  * nearly flat.
  */
 function liquidChokePoint(input, Fp, FLP) {
@@ -313,16 +313,16 @@ function liquidChokePoint(input, Fp, FLP) {
 /**
  * Which inputs the liquid choke check is waiting on.
  *
- * FF needs BOTH the vapour pressure and the critical pressure, and only one of
+ * FF needs BOTH the vapor pressure and the critical pressure, and only one of
  * them used to be reported. A service with Pv supplied and Pc blank sized 9%
- * smaller than the same service with both, said nothing about it, and labelled
- * the empty choke row "no vapour pressure" when the vapour pressure was the one
+ * smaller than the same service with both, said nothing about it, and labeled
+ * the empty choke row "no vapor pressure" when the vapor pressure was the one
  * input present. The missing name is now carried on the result so the advisory
  * and the panel can both say the true thing.
  */
 export function missingChokeInputs(input) {
     const missing = [];
-    if (!isNum(input.Pv)) missing.push('vapour pressure');
+    if (!isNum(input.Pv)) missing.push('vapor pressure');
     if (!isNum(input.Pc)) missing.push('critical pressure');
     return missing;
 }
@@ -422,7 +422,7 @@ export function size(input) {
         // now says so.
         if (!isNum(input.FL)) return err(CODES.FL_OUT_OF_RANGE, 'The liquid recovery factor FL is required. It sets the choke point and the vena contracta pressure, so without it neither the choking nor the cavitation check can run. Take it from the valve data sheet, or pick a style from the library.');
         if (isNum(input.Pv) && input.P2 < input.Pv) {
-            return err(CODES.FLASHING, 'This service flashes: the outlet pressure is below the vapour pressure, so the fluid is two-phase downstream. The single-phase sizing equations do not apply and returning a coefficient for them would be a confident wrong answer.', REGIMES.FLASHING);
+            return err(CODES.FLASHING, 'This service flashes: the outlet pressure is below the vapor pressure, so the fluid is two-phase downstream. The single-phase sizing equations do not apply and returning a coefficient for them would be a confident wrong answer.', REGIMES.FLASHING);
         }
     } else {
         if (!isNum(input.gamma)) return err(CODES.GAMMA_OUT_OF_RANGE, 'The specific heat ratio is required for compressible service. It sets Fgamma and therefore the terminal pressure drop ratio at which the flow chokes.');
@@ -575,7 +575,7 @@ export function rate(input) {
         if (!isNum(input.relativeDensity) || input.relativeDensity <= 0) return err(CODES.BAD_INPUT, 'Relative density must be positive.');
         if (!isNum(input.FL)) return err(CODES.FL_OUT_OF_RANGE, 'The liquid recovery factor FL is required. Rating a valve without it would return a flow that ignores the choke point entirely.');
         if (isNum(input.Pv) && input.P2 < input.Pv) {
-            return err(CODES.FLASHING, 'This service flashes: the outlet pressure is below the vapour pressure. The single-phase equations do not describe it.', REGIMES.FLASHING);
+            return err(CODES.FLASHING, 'This service flashes: the outlet pressure is below the vapor pressure. The single-phase equations do not describe it.', REGIMES.FLASHING);
         }
         const g = geometry(input, C);
         const choke = liquidChokePoint(input, g.Fp, g.FLP);

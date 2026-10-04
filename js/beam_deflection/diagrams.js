@@ -1,7 +1,7 @@
 // Inline SVG schematics for the beam deflection tool.
 //
 // Hand-authored, no library, no external image files, so the strict CSP on the
-// page holds. Colours come from currentColor and the shared CSS variables via
+// page holds. Colors come from currentColor and the shared CSS variables via
 // classes, so both themes work with no JavaScript involved.
 //
 // The deflected shape is not drawn by eye: it is sampled from the engine itself

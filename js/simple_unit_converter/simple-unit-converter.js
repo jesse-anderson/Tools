@@ -15,14 +15,14 @@
 // shows up in the tool's 10 sig fig display. Only these anchors, pure metric
 // decade factors, and conventional reference constants (mmHg, inHg, Mach, c,
 // eV) stay as literals.
-const IN = 0.0254;               // metre, international inch (exact)
+const IN = 0.0254;               // meter, international inch (exact)
 const FT = 12 * IN;              // 0.3048 m, foot
 const YD = 3 * FT;               // 0.9144 m, yard
 const MI = 5280 * FT;            // 1609.344 m, statute mile
 const LB = 0.45359237;           // kilogram, avoirdupois pound (exact)
 const G0 = 9.80665;              // m/s^2, standard gravity (exact)
 const LBF = LB * G0;             // 4.4482216152605 N, pound-force
-const GAL = 3.785411784;         // litre, US gallon = 231 in^3 (exact)
+const GAL = 3.785411784;         // liter, US gallon = 231 in^3 (exact)
 const FT3 = 1000 * FT * FT * FT; // 28.316846592 L, cubic foot
 const CAL_TH = 4.184;            // joule, thermochemical calorie (exact)
 const CAL_IT = 4.1868;           // joule, International Table calorie (exact)

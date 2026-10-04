@@ -85,7 +85,7 @@ test('scope disclaimer names the uses it is not for, and keeps the statistician 
   await expect(body).toContainText('Regulatory submissions');
   await expect(body).toContainText('Forensic or legal evidence');
   // A fitted coefficient turned into a rule about people is the case worth
-  // naming explicitly rather than leaving to "professional judgement".
+  // naming explicitly rather than leaving to "professional judgment".
   await expect(body).toContainText('hiring, credit, insurance or benefits');
 });
 

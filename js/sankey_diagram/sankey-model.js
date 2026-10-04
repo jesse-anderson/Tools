@@ -108,7 +108,7 @@ export function balanceSummary(balance, unit = '', decimals = 'auto') {
     }
     if (balance.closes) {
         // Offsetting errors: the totals agree while individual nodes do not.
-        return `${totals}. The totals agree, but ${nodesPart} at a ${tol} tolerance, so errors inside the system are cancelling out.`;
+        return `${totals}. The totals agree, but ${nodesPart} at a ${tol} tolerance, so errors inside the system are canceling out.`;
     }
     const gap = formatValue(Math.abs(balance.residual), decimals);
     const direction = balance.residual > 0 ? 'more enters than leaves' : 'more leaves than enters';

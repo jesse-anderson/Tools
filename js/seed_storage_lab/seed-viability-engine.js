@@ -58,7 +58,7 @@ function upperTail(z) {
     return normalPdf(z) / fraction;
 }
 
-/** Standard normal CDF. Series near the centre, continued fraction in the tails. */
+/** Standard normal CDF. Series near the center, continued fraction in the tails. */
 export function normalCdf(z) {
     if (!isNumber(z)) return NaN;
     if (z > TAIL_SWITCH) return 1 - upperTail(z);
@@ -199,7 +199,7 @@ function resolveTemperature(constants, temperatureC, flags) {
         applied = coldest;
         flags.push(turn > limits.temperatureFloorC
             ? flag("turning-point", `This determination's temperature curve turns over at ${fmt(turn)} °C: `
-                + "below that the fitted equation predicts colder storage shortens life, which is an artefact of the fit. "
+                + "below that the fitted equation predicts colder storage shortens life, which is an artifact of the fit. "
                 + `Held at ${fmt(turn)} °C.`)
             : flag("temperature-floor", `No archived source evaluates the equation below ${limits.temperatureFloorC} °C. `
                 + `Held at ${limits.temperatureFloorC} °C.`));

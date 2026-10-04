@@ -1,17 +1,17 @@
 // SVG renderer for the Sankey diagram builder.
 //
-// Every colour is a literal presentation attribute, never a CSS variable or a
+// Every color is a literal presentation attribute, never a CSS variable or a
 // style attribute. That is what lets the same element be serialized to a file
 // and what keeps it legal under a style-src with no unsafe-inline.
 
-import { ribbonPath, centrePath, centrePoints, linkBand, linkLabelPoint, formatValue, formatPercent } from './sankey-engine.js';
+import { ribbonPath, centerPath, centerPoints, linkBand, linkLabelPoint, formatValue, formatPercent } from './sankey-engine.js';
 import { balanceSummary } from './sankey-model.js';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 const FONT = "'Space Grotesk', system-ui, 'Segoe UI', Arial, sans-serif";
 
 // Categorical slots in a fixed order, validated on each surface for
-// colour-vision separation between neighbours. Three light slots sit under 3:1
+// color-vision separation between neighbors. Three light slots sit under 3:1
 // on white, which is why every node carries a text label.
 export const PALETTES = Object.freeze({
     light: Object.freeze({
@@ -47,7 +47,7 @@ const BAND_MIN_PX = 1;
 // Distance between the marks along a traced stream, and half a mark's size, in px.
 const MARK_SPACING = 44;
 const MARK_RADIUS = 4.5;
-// Where along the spacing each stream starts, so neighbours sit half a step apart.
+// Where along the spacing each stream starts, so neighbors sit half a step apart.
 const MARK_PHASES = [0, 0.5, 0.25, 0.75];
 
 const polygon = (points) => `M${points.map(([x, y]) => `${Math.round(x * 100) / 100},${Math.round(y * 100) / 100}`).join('L')}Z`;
@@ -74,7 +74,7 @@ export const TRACE_SHAPES = Object.freeze([
     { id: 'hexagon', plural: 'hexagons', path: (x, y, r) => ring(x, y, 6, r, 0) }
 ]);
 
-/** Path for the mark of the n-th traced node, centred on x, y. */
+/** Path for the mark of the n-th traced node, centered on x, y. */
 export function traceMarkPath(n, x, y, radius = MARK_RADIUS) {
     return TRACE_SHAPES[n % TRACE_SHAPES.length].path(x, y, radius);
 }
@@ -86,10 +86,10 @@ function footnoteText(layout, traces = [], style = 'both') {
         const marked = style !== 'band';
         const one = (t, i) => (marked ? `${t.name} (${TRACE_SHAPES[i % TRACE_SHAPES.length].plural})` : t.name);
         const names = traces.length <= 3 ? traces.map(one).join(', ') : (marked ? 'the node carrying the same mark' : 'the traced nodes');
-        const how = traces.some((t) => t.mixedAt.length) ? ', if each node passes on its inputs evenly mixed' : '';
         parts.push(style === 'line'
-            ? `Marked lines run through each flow that carries something from ${names}${how}.`
-            : `Solid bands are the part of each flow that came through ${names}${how}.`);
+            ? `Marked lines run through each flow that carries something from ${names}.`
+            : `Solid bands are the part of each flow that came through ${names}.`);
+        if (traces.some((t) => t.stoppedAt.length)) parts.push('A trace ends where the flow list does not say which way it went.');
     }
     if (layout.widthMode === 'equal') parts.push('Every flow is drawn the same width. Widths are not amounts.');
     if (layout.widthMode === 'root') parts.push('Widths follow the square root of each amount. They are not to scale.');
@@ -122,7 +122,7 @@ export const VIEW_DEFAULTS = Object.freeze({
     interactive: false
 });
 
-/** Colour of each node: an explicit override, else its palette slot. */
+/** Color of each node: an explicit override, else its palette slot. */
 export function nodeColors(model, palette, mode = 'node') {
     return model.graph.nodes.map((node) => {
         const override = model.parsed.colors[node.name];
@@ -218,7 +218,7 @@ export function renderSankey(doc, model, viewOptions = {}, palette = PALETTES.li
         const kind = link.recycle ? ' sankey-recycle' : '';
         const path = link.hairline
             ? make(doc, 'path', {
-                class: `sankey-link sankey-hairline${kind}`, d: centrePath(link), fill: 'none',
+                class: `sankey-link sankey-hairline${kind}`, d: centerPath(link), fill: 'none',
                 stroke: paint, 'stroke-width': 1, 'stroke-dasharray': '4 3', 'data-link': link.index
             })
             : make(doc, 'path', {
@@ -254,12 +254,12 @@ export function renderSankey(doc, model, viewOptions = {}, palette = PALETTES.li
                 let el;
                 if (thin) {
                     el = make(doc, 'path', {
-                        class: 'sankey-trace sankey-trace-thin', d: centrePath(band), fill: 'none', stroke: paint,
+                        class: 'sankey-trace sankey-trace-thin', d: centerPath(band), fill: 'none', stroke: paint,
                         'stroke-width': 1.5, 'stroke-dasharray': '4 3', 'data-link': link.index, 'data-trace': trace.node
                     });
                 } else if (view.traceStyle === 'line') {
                     el = make(doc, 'path', {
-                        class: 'sankey-trace sankey-trace-line', d: centrePath(band), fill: 'none', stroke: paint,
+                        class: 'sankey-trace sankey-trace-line', d: centerPath(band), fill: 'none', stroke: paint,
                         'stroke-width': 2, 'data-link': link.index, 'data-trace': trace.node
                     });
                 } else {
@@ -272,7 +272,7 @@ export function renderSankey(doc, model, viewOptions = {}, palette = PALETTES.li
                 bandGroup.appendChild(el);
                 if (view.traceStyle === 'band') continue;
                 // The stream's own shape, repeated along the middle of its band.
-                for (const at of centrePoints(band, MARK_SPACING, MARK_PHASES[order % MARK_PHASES.length])) {
+                for (const at of centerPoints(band, MARK_SPACING, MARK_PHASES[order % MARK_PHASES.length])) {
                     marks.push(make(doc, 'path', {
                         class: 'sankey-trace-mark', d: traceMarkPath(order, at.x, at.y), fill: palette.surface,
                         stroke: palette.ink, 'stroke-width': 1.1, 'stroke-linejoin': 'round', 'pointer-events': 'none',
@@ -281,7 +281,7 @@ export function renderSankey(doc, model, viewOptions = {}, palette = PALETTES.li
                 }
             }
         }
-        // Marks go on after every band, so a neighbouring band never covers one.
+        // Marks go on after every band, so a neighboring band never covers one.
         bandGroup.append(...marks);
         svg.appendChild(bandGroup);
     }
@@ -322,7 +322,7 @@ export function renderSankey(doc, model, viewOptions = {}, palette = PALETTES.li
         rect.appendChild(make(doc, 'title', {}, `${node.name}: ${detail}`));
         if (view.interactive) {
             // Invisible grab area: half the column padding above and below, so
-            // neighbours in a column never claim each other's pointer.
+            // neighbors in a column never claim each other's pointer.
             const reach = Math.min(HIT_REACH, layout.padding / 2);
             nodeGroup.appendChild(make(doc, 'rect', {
                 class: 'sankey-node-hit', x: node.x0 - HIT_SIDE, y: node.y0 - reach,
@@ -413,7 +413,7 @@ export function renderSankey(doc, model, viewOptions = {}, palette = PALETTES.li
         const clear = (box) => box.y0 >= labelTop && box.y1 <= height - 2
             && obstacles.every((p) => p.owner === node.index || box.x1 < p.x0 || box.x0 > p.x1 || box.y1 < p.y0 || box.y0 > p.y1);
         const fits = (right) => (right ? node.x1 + 6 + blockWidth <= width - 2 : node.x0 - 6 - blockWidth >= 2);
-        const centred = (node.y0 + node.y1) / 2 - (lines.length * lineHeight) / 2 + view.fontSize * 0.35;
+        const centered = (node.y0 + node.y1) / 2 - (lines.length * lineHeight) / 2 + view.fontSize * 0.35;
         const room = Math.floor(Math.max(0, node.height - blockHeight) / 2 / lineHeight);
         const sides = [preferRight, !preferRight].filter((right) => right === preferRight || fits(right));
         const tries = [];
@@ -424,9 +424,9 @@ export function renderSankey(doc, model, viewOptions = {}, palette = PALETTES.li
         for (const right of sides) {
             for (let k = room + 1; k <= room + LABEL_LIFT; k++) tries.push([right, -k], [right, k]);
         }
-        const [onRight, shift] = tries.find(([right, k]) => clear(boxAt(right, centred + k * lineHeight))) || [preferRight, 0];
+        const [onRight, shift] = tries.find(([right, k]) => clear(boxAt(right, centered + k * lineHeight))) || [preferRight, 0];
         const x = anchor(onRight);
-        const first = centred + shift * lineHeight;
+        const first = centered + shift * lineHeight;
         obstacles.push({ ...boxAt(onRight, first), owner: -1 });
 
         if (Math.abs(shift) > room) {

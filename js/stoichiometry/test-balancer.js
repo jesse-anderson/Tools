@@ -38,7 +38,7 @@ try {
     // Multiple free variables, wait, H2+O2 -> H2O2+H2O has O and H on both sides
     // If it throws or passes with some valid combo, that's fine.
 } catch (e) {
-    console.log("Expected complex reaction behaviour:", e.message);
+    console.log("Expected complex reaction behavior:", e.message);
 }
 
 console.log("All balancer tests passed!");

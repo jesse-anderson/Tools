@@ -10,12 +10,12 @@ export const PRESETS = Object.freeze([
         text: [
             '// Source [amount] Target',
             'Dilute feed [1000] Effect 1',
-            'Effect 1 [380] Vapour 1',
+            'Effect 1 [380] Vapor 1',
             'Effect 1 [620] Effect 2',
-            'Effect 2 [370] Vapour 2',
+            'Effect 2 [370] Vapor 2',
             'Effect 2 [250] Concentrate',
-            'Vapour 1 [380] Condensate',
-            'Vapour 2 [370] Condensate',
+            'Vapor 1 [380] Condensate',
+            'Vapor 2 [370] Condensate',
             '',
             '@ Concentrate: 40% solids'
         ].join('\n')

@@ -188,7 +188,7 @@ async function readDownloadText(download) {
  *     `rgb(0-255)`. Misparsing makes a mid amber measure 20.96:1, not 2.56:1.
  *  2. The tinted cards are translucent, so composite up the ancestor chain.
  *  3. shared.css transitions background-color, so a read straight after a theme
- *     switch returns the mid-animation colour. Hence the wait.
+ *     switch returns the mid-animation color. Hence the wait.
  *
  * Every `details` is opened first: innerText on a collapsed one returns only the
  * summary.

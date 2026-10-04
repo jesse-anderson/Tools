@@ -1,7 +1,7 @@
 // Cross-section properties for the beam deflection tool.
 //
-// Strict SI, like the engine: dimensions in metres, areas in m^2, second moments
-// in m^4. The controller converts from millimetres at the DOM boundary.
+// Strict SI, like the engine: dimensions in meters, areas in m^2, second moments
+// in m^4. The controller converts from millimeters at the DOM boundary.
 //
 // Bending is about the strong (horizontal) axis in every case. Weak-axis bending
 // is not offered.
@@ -148,11 +148,11 @@ export const SECTIONS = {
         label: 'Custom (enter I and c)',
         fields: [
             { key: 'I', label: 'Second moment I', quantity: 'secondMoment', nominal: 4166667 },
-            { key: 'c', label: 'Distance to extreme fibre c', quantity: 'sectionDim', nominal: 50 },
+            { key: 'c', label: 'Distance to extreme fiber c', quantity: 'sectionDim', nominal: 50 },
             { key: 'depth', label: 'Depth (optional)', quantity: 'sectionDim', nominal: 100, optional: true },
         ],
         compute: ({ I, c, depth }) => {
-            const bad = positive(I, 'Second moment I') || positive(c, 'Distance to extreme fibre c');
+            const bad = positive(I, 'Second moment I') || positive(c, 'Distance to extreme fiber c');
             if (bad) return err(bad);
             // Depth feeds nothing but the span-to-depth guard. Left blank, that
             // guard reports itself as not checked rather than quietly passing.
@@ -172,7 +172,7 @@ export const SECTIONS = {
  * Section properties from a section type and its dimensions.
  *
  * @param {string} type  key of SECTIONS
- * @param {object} dims  dimensions in SI (metres, or m^4 for a custom I)
+ * @param {object} dims  dimensions in SI (meters, or m^4 for a custom I)
  * @returns {object} { ok: true, A, I, c, S, depth } or { ok: false, error }
  */
 export function sectionProperties(type, dims) {

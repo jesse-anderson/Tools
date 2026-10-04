@@ -74,8 +74,8 @@ test('recalcitrant species are refused a storage life but keep their seed counts
   // Temperate recalcitrant seed keeps moist near freezing (1996 compendium, 4.2).
   await expect(page.locator('#gateDetail')).toContainText('over 3 years at -3 °C');
   await expect(page.locator('#gateDetail')).not.toContainText('cannot be stored cold');
-  await expect(page.locator('#longevityValue')).toContainText('Not modelled');
-  await expect(page.locator('#behaviourValue')).toContainText('recalcitrant');
+  await expect(page.locator('#longevityValue')).toContainText('Not modeled');
+  await expect(page.locator('#behaviorValue')).toContainText('recalcitrant');
 
   // The count question is still answerable and must not be suppressed. WPSM
   // rows that carry only a low-high range once vanished here, taking 34 oak
@@ -99,7 +99,7 @@ test('a genus record points at the species that hold the numbers', async ({ page
   await expect(page.locator('#countsTableBody')).toContainText('Quercus species in this dataset do');
 });
 
-test('species-level behaviour beats the genus for Acer', async ({ page, baseURL }) => {
+test('species-level behavior beats the genus for Acer', async ({ page, baseURL }) => {
   await expectPageToLoadCleanly(page, baseURL, '/tools/seed-storage-lab.html');
 
   await pickSpecies(page, 'Acer saccharinum', 'Acer saccharinum');
@@ -107,7 +107,7 @@ test('species-level behaviour beats the genus for Acer', async ({ page, baseURL 
 
   await pickSpecies(page, 'Acer platanoides', 'Acer platanoides');
   await expect(page.locator('#gateBanner')).toHaveAttribute('data-status', 'ok');
-  await expect(page.locator('#longevityValue')).not.toContainText('Not modelled');
+  await expect(page.locator('#longevityValue')).not.toContainText('Not modeled');
 });
 
 test('vegetatively propagated crops explain themselves instead of returning nothing', async ({ page, baseURL }) => {
@@ -120,7 +120,7 @@ test('vegetatively propagated crops explain themselves instead of returning noth
   // The curated note names the actual propagation route; the gate surfaces
   // that instead of restating the raw field value ("Propagated vegetative.").
   await expect(page.locator('#gateDetail')).toContainText('Propagated from cloves');
-  await expect(page.locator('#longevityValue')).toContainText('Not modelled');
+  await expect(page.locator('#longevityValue')).toContainText('Not modeled');
 });
 
 test('an orthodox but vegetatively grown crop says so', async ({ page, baseURL }) => {
@@ -132,20 +132,20 @@ test('an orthodox but vegetatively grown crop says so', async ({ page, baseURL }
 
   await expect(page.locator('#gateBanner')).toHaveAttribute('data-status', 'ok');
   await expect(page.locator('#gateDetail')).toContainText('grown from cuttings, runners or offsets');
-  await expect(page.locator('#longevityValue')).not.toContainText('Not modelled');
+  await expect(page.locator('#longevityValue')).not.toContainText('Not modeled');
 });
 
 test('unflagged woody species are refused a projection', async ({ page, baseURL }) => {
   await expectPageToLoadCleanly(page, baseURL, '/tools/seed-storage-lab.html');
 
-  // Ulmus carpinifolia has no storage-behaviour record and its only seed count
+  // Ulmus carpinifolia has no storage-behavior record and its only seed count
   // comes from the figshare dataset, so a WPSM-source test misses it. Woody
   // status is matched on genus for this reason.
   await pickSpecies(page, 'Ulmus carpinifolia', 'Ulmus carpinifolia');
 
   await expect(page.locator('#gateBanner')).toHaveAttribute('data-status', 'caution');
   await expect(page.locator('#gateHeadline')).toContainText('unrecorded for this woody species');
-  await expect(page.locator('#longevityValue')).toContainText('Not modelled');
+  await expect(page.locator('#longevityValue')).toContainText('Not modeled');
 });
 
 test('an overruled recalcitrant flag is named and costs the species its ok status', async ({ page, baseURL }) => {
@@ -160,7 +160,7 @@ test('an overruled recalcitrant flag is named and costs the species its ok statu
   await expect(page.locator('#gateBanner')).toHaveAttribute('data-status', 'caution');
   await expect(page.locator('#gateDetail')).toContainText('A second source disagrees');
   await expect(page.locator('#gateDetail')).toContainText('Carya is listed recalcitrant at genus level');
-  await expect(page.locator('#longevityValue')).not.toContainText('Not modelled');
+  await expect(page.locator('#longevityValue')).not.toContainText('Not modeled');
 
   // Red oak keeps a plain block: nothing was overruled, so nothing is claimed.
   await pickSpecies(page, 'Quercus rubra', 'Quercus rubra');
@@ -495,7 +495,7 @@ test('the normal distribution matches independent reference values', async ({ pa
   }), { cdfPoints: cdf, invPoints: inv });
 
   cdf.forEach(([z, want], index) => {
-    // Relative, so the 3e-7 tail value is held as tightly as the centre.
+    // Relative, so the 3e-7 tail value is held as tightly as the center.
     expect(Math.abs(got.cdf[index] / want - 1), `cdf(${z})`).toBeLessThan(1e-11);
   });
   inv.forEach(([p, want], index) => {
@@ -819,7 +819,7 @@ test('species without constants, and refused species, say so', async ({ page, ba
 
   // Intermediate seed with published constants: the gate still wins.
   await pickSpecies(page, 'Khaya', 'Khaya senegalensis');
-  await expect(page.locator('#viabilityValue')).toHaveText('Not modelled');
+  await expect(page.locator('#viabilityValue')).toHaveText('Not modeled');
   await expect(page.locator('#viabilityMeta')).toContainText('intermediate seed');
   await expect(page.locator('#viabilityChart')).toBeHidden();
 
@@ -836,8 +836,8 @@ test('an unrecorded woody species runs on its constants and says why', async ({ 
   await pickSpecies(page, 'Pinus occidentalis', 'Pinus occidentalis');
 
   // Harrington stays withheld; the equation runs because constants exist.
-  await expect(page.locator('#longevityValue')).toHaveText('Not modelled');
-  await expect(page.locator('#viabilityValue')).not.toHaveText('Not modelled');
+  await expect(page.locator('#longevityValue')).toHaveText('Not modeled');
+  await expect(page.locator('#viabilityValue')).not.toHaveText('Not modeled');
   await expect(page.locator('#viabilityValue')).not.toHaveText('--');
   await expect(page.locator('#viabilityMeta')).toContainText('fitted from dry-storage experiments');
 
@@ -847,7 +847,7 @@ test('an unrecorded woody species runs on its constants and says why', async ({ 
   await expect(page.locator('#warningList')).toContainText('turns over at -8.2 °C');
 });
 
-test('the viability detail card does not overflow a phone and its controls are labelled', async ({ page, baseURL }) => {
+test('the viability detail card does not overflow a phone and its controls are labeled', async ({ page, baseURL }) => {
   await page.setViewportSize({ width: 375, height: 800 });
   await openSeedLab(page, baseURL);
   await page.locator('#viabilityCard summary').click();
@@ -860,8 +860,8 @@ test('the viability detail card does not overflow a phone and its controls are l
   expect(chartWidth).toBeLessThanOrEqual(375);
 
   for (const id of ['initialGermination', 'targetGermination']) {
-    const labelled = await page.locator(`#${id}`).evaluate((node) => Boolean(node.closest('label')));
-    expect(labelled, id).toBe(true);
+    const labeled = await page.locator(`#${id}`).evaluate((node) => Boolean(node.closest('label')));
+    expect(labeled, id).toBe(true);
     await expect(page.locator(`[aria-describedby="help-${id}"]`)).toHaveCount(1);
   }
 });
@@ -1002,7 +1002,7 @@ test('sealing wet seed, an absorber alone and treated seed are each stopped', as
   const before = await page.locator('#longevityValue').textContent();
   await page.locator('#oxygenAbsorber').check();
   await page.locator('#desiccant').uncheck();
-  await expect(page.locator('#longevityValue')).toHaveText('Not modelled');
+  await expect(page.locator('#longevityValue')).toHaveText('Not modeled');
   await expect(page.locator('#viabilityValue')).toHaveText('Outside the equation');
   await expect(page.locator('#warningList li.block')).toContainText('88% within 2 days');
 
@@ -1022,7 +1022,7 @@ test('sealing wet seed, an absorber alone and treated seed are each stopped', as
   await expect(page.locator('#longevityMeta')).toContainText('Capped at one year');
   await expect(page.locator('#viabilityValue')).toHaveText('Outside the equation');
   await page.selectOption('#seedTreatment', 'primed');
-  await expect(page.locator('#longevityValue')).toHaveText('Not modelled');
+  await expect(page.locator('#longevityValue')).toHaveText('Not modeled');
   await expect(page.locator('#warningList')).toContainText('within weeks');
 });
 
@@ -1119,8 +1119,8 @@ test('the oxygen chart falls, the settings persist, and a phone does not overflo
   await expect(page.locator('#vacuumResidual')).toHaveValue('100');
 
   for (const id of ['containerType', 'vacuumResidual', 'oxygenAbsorber', 'desiccant', 'containerVolume', 'seedMass', 'seedVolume', 'storageHorizon', 'seedTreatment']) {
-    const labelled = await page.locator(`#${id}`).evaluate((node) => Boolean(node.closest('label')));
-    expect(labelled, id).toBe(true);
+    const labeled = await page.locator(`#${id}`).evaluate((node) => Boolean(node.closest('label')));
+    expect(labeled, id).toBe(true);
     await expect(page.locator(`[aria-describedby="help-${id}"]`), id).toHaveCount(1);
   }
 });
@@ -1347,7 +1347,7 @@ test('a nursery grouping is not reported as intermediate seed', async ({ page, b
   // Holmes & Buszewicz 1958 group 2 is "moist briefly or dry for long", which
   // Roberts' scheme calls orthodox; the species records agree 33 of 34.
   for (const g of [result.cherry, result.hawthorn]) {
-    expect(g.behaviour).toBe('unconfirmed');
+    expect(g.behavior).toBe('unconfirmed');
     expect(g.status).toBe('caution');
     expect(g.allowLongevity).toBe(false);
     expect(g.detail).toContain('Holmes & Buszewicz 1958');

@@ -201,7 +201,7 @@ test.describe('helpers: percent, series order, rect', () => {
 });
 
 // --- scope disclaimer --------------------------------------------------------
-// Digitised values get cited as if they were measured. The disclaimer covers where
+// Digitized values get cited as if they were measured. The disclaimer covers where
 // the error comes from, what is never captured, and the copyright position, which
 // no other tool in this repo needs.
 
@@ -256,7 +256,7 @@ test('scientific-graph-digitizer carries a second touchpoint beside the output',
   await page.goto('/tools/scientific-graph-digitizer.html', { waitUntil: 'domcontentloaded' });
   const touchpoint = page.locator('p.disclaimer');
   await expect(touchpoint).toHaveCount(1);
-  await expect(touchpoint).toContainText('Digitised, not measured');
+  await expect(touchpoint).toContainText('Digitized, not measured');
   await expect(touchpoint).toBeVisible();
 });
 

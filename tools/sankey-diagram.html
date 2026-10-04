@@ -145,8 +145,8 @@ Last Updated: October 2026
                         <h3>What the picture can mislead about</h3>
                         <ul>
                             <li><strong>Thin flows.</strong> A flow under one pixel wide is drawn as a dashed line and is not to scale. Small does not mean unimportant: a trace stream can be the one that matters.</li>
-                            <li><strong>Traced bands.</strong> A flow list records what passes between neighbours, not which input became which output. Where a traced stream is mixed with others and then split, the band is an estimate that takes every output to carry the inputs in the proportions they arrived. A real process that sorts, separates or prioritises does not do that. The page says when the estimate was used and where.</li>
-                            <li><strong>Colour.</strong> The palette has eight colours and repeats after that. Two nodes sharing a colour are not related. Read the labels.</li>
+                            <li><strong>Traces.</strong> A flow list records totals between neighbors, not which input became which output. A trace follows only what the list settles and stops where streams meet and leave by more than one way, unless the flows there are written with their source. Nothing is estimated. A trace that stops is not a stream that stops, and an amount written with a source is drawn as given: the tool cannot check it beyond its adding up.</li>
+                            <li><strong>Color.</strong> The palette has eight colors and repeats after that. Two nodes sharing a color are not related. Read the labels.</li>
                             <li><strong>Position and length.</strong> Only ribbon width carries a quantity. Ribbon length, node order, crossings and the height of a column mean nothing, and a node you have dragged can make a ribbon run backwards.</li>
                             <li><strong>Exports.</strong> A PNG carries the page font for Latin text only; other scripts fall back to your system font, and an SVG uses whatever fonts the program opening it has, so labels can sit slightly differently from the screen. Check an export before it goes into a report.</li>
                         </ul>
@@ -176,7 +176,7 @@ Last Updated: October 2026
 
                     <div class="disclaimer-footer">
                         <p><strong>No warranty. No liability. You assume all risk.</strong> This page and everything it draws or computes are provided as-is and as-available, without warranty of any kind, express or implied, including accuracy, completeness, timeliness, reliability, fitness for a particular purpose, merchantability, engineering or professional suitability, regulatory or reporting acceptability, or non-infringement. To the maximum extent permitted by law, the author accepts no liability for any loss, injury, damage, cost or claim arising from use of or reliance on this page.</p>
-                        <p><strong>Independent verification required.</strong> Verify every figure against the source measurements, an independent calculation and qualified professional judgement before acting on it. The source data, the governing standard and professional judgement control; where this page disagrees with them, this page is wrong.</p>
+                        <p><strong>Independent verification required.</strong> Verify every figure against the source measurements, an independent calculation and qualified professional judgment before acting on it. The source data, the governing standard and professional judgment control; where this page disagrees with them, this page is wrong.</p>
                         <p><strong>Consequential damages excluded.</strong> To the maximum extent permitted by law, in no event will the author or maintainers be liable for any direct, indirect, incidental, special, exemplary, punitive or consequential damages, including misreporting, regulatory exposure, audit outcome, business decision, lost or corrupted project data, or loss of use, data, profits or business interruption, however caused and on any theory of liability, whether in contract, strict liability or tort including negligence, arising out of or in connection with this page, even if advised of the possibility of such damage.</p>
                         <p><strong>Indemnity.</strong> By using this page you agree to indemnify and hold harmless the author and maintainers against any claim, demand, loss or expense arising out of your use of it or of anything derived from it.</p>
                         <p><strong>Severability.</strong> If any part of this notice is held unenforceable, the remainder continues to apply, and the unenforceable part is limited to the least extent necessary rather than struck out.</p>
@@ -241,15 +241,17 @@ Last Updated: October 2026
                         <dt><code>@ Reactor: runs at 80 C</code></dt>
                         <dd>A note printed under that node's label.</dd>
                         <dt><code>: Reactor #4a3aa7</code></dt>
-                        <dd>A colour for that node.</dd>
+                        <dd>A color for that node.</dd>
                         <dt><code>~ Reactor: 40, 25</code></dt>
                         <dd>A fixed place for that node, as percent across and percent down. Dragging a node writes this line for you.</dd>
                         <dt><code>&gt; Reactor: 3</code></dt>
                         <dd>The column for that node, counted from 1 at the left. A node cannot sit left of something that feeds it, so it and everything after it move right if they must.</dd>
                         <dt><code>* Feed</code></dt>
-                        <dd>Trace that node: the part of every later flow that came through it is drawn as a solid band in its colour, carrying a shape of its own (circles, triangles, squares, stars and so on, in the order the lines are typed), and a table lists where it ends up. Double-clicking a node, or pressing T on it, writes this line for you, and "Trace inputs" writes one for every input.</dd>
+                        <dd>Trace that node. The part of every later flow that came through it is drawn as a solid band in its color, carrying a shape of its own (circles, triangles, squares, stars and so on, in the order the lines are typed), and a table lists where it ends up. A trace is followed only as far as the list settles it: it stops at a node where streams meet and leave by more than one way, unless the flows there are written with their source. Double-clicking a node, or pressing T on it, writes this line for you, and "Trace inputs" writes one for every input.</dd>
+                        <dt><code>Applied [12 from Referral] Screen</code></dt>
+                        <dd>Of the flow from Applied to Screen, 12 came through Referral. Write the same pair again for each source and the lines add up to one flow. As CSV the source is a fourth field: <code>Applied,Screen,12,Referral</code>. This is what lets a trace go on past a node where streams meet and split.</dd>
                         <dt><code>// comment</code></dt>
-                        <dd>Ignored, as is a line starting with <code>#</code>.</dd>
+                        <dd>Ignored, as is a line starting with <code>#</code>, so a node name cannot start with either. A comment has to be on a line of its own: after a flow it is read as part of the name.</dd>
                     </dl>
                     <p>A node with nothing entering it is a system input, and a node with nothing leaving it is a system output. An amount written as <code>1,5</code> or <code>1,234.5</code> is read as a number and listed under "Check these" with the reading used. One comma on its own is always a decimal point, so <code>1,234</code> is 1.234.</p>
                 </details>
@@ -345,7 +347,7 @@ Last Updated: October 2026
                         </div>
                     </div>
 
-                    <h3>Colour</h3>
+                    <h3>Color</h3>
                     <div class="field-grid">
                         <div class="input-group">
                             <label for="nodeColor">Nodes</label>
@@ -357,10 +359,10 @@ Last Updated: October 2026
                         <div class="input-group">
                             <label for="linkColor">Ribbons</label>
                             <select id="linkColor">
-                                <option value="source" selected>Source colour</option>
-                                <option value="target">Target colour</option>
+                                <option value="source" selected>Source color</option>
+                                <option value="target">Target color</option>
                                 <option value="gradient">Source to target</option>
-                                <option value="neutral">Grey</option>
+                                <option value="neutral">Gray</option>
                             </select>
                         </div>
                         <div class="input-group">
@@ -376,7 +378,7 @@ Last Updated: October 2026
                             </select>
                         </div>
                     </div>
-                    <p class="helper-text">The palette has eight colours and repeats after that, so a node is always identified by its label and never by colour alone.</p>
+                    <p class="helper-text">The palette has eight colors and repeats after that, so a node is always identified by its label and never by color alone.</p>
 
                     <h3>Export</h3>
                     <div class="field-grid">
@@ -385,7 +387,7 @@ Last Updated: October 2026
                             <select id="pngScale" aria-describedby="pngSizeNote"></select>
                         </div>
                         <div class="input-group">
-                            <label for="exportTheme">Colours</label>
+                            <label for="exportTheme">Colors</label>
                             <select id="exportTheme">
                                 <option value="current" selected>As shown</option>
                                 <option value="light">Light</option>

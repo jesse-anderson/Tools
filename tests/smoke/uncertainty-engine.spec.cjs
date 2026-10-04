@@ -211,7 +211,7 @@ test.describe('scope disclaimer', () => {
     const body = card.locator('.disclaimer-body');
 
     await expect(body).toContainText('first-order propagation for independent variables');
-    await expect(body).toContainText('Correlated inputs are not modelled');
+    await expect(body).toContainText('Correlated inputs are not modeled');
     await expect(body).toContainText('accurate when uncertainties are small relative to the values');
     await expect(body).toContainText('trust the sampled spread');
     // The lead has to carry the linearity condition too, since it is the one

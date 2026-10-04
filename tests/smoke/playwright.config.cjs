@@ -58,6 +58,7 @@ module.exports = defineConfig({
     'sankey-diagram.spec.cjs',
     'sankey-diagram-page.spec.cjs',
     'sankey-diagram-trace.spec.cjs',
+    'sankey-diagram-accuracy.spec.cjs',
     'process-flow-mapper.spec.cjs',
     'process-flow-mapper-layout.spec.cjs',
     'process-flow-mapper-page.spec.cjs',

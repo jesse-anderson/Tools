@@ -1,7 +1,8 @@
 // Flow text parser for the Sankey diagram builder. Pure, no DOM.
 //
 // Accepts one flow per line as `Source [amount] Target` or as three delimited
-// fields `source,target,amount` (comma or tab). Every problem carries the line
+// fields `source,target,amount` (comma or tab). A flow can name the node its
+// amount came through, as `Source [amount from Node] Target` or a fourth field. Every problem carries the line
 // it came from, so the page can point at it.
 
 export const LIMITS = Object.freeze({
@@ -19,6 +20,10 @@ const POSITION_LINE = /^~\s*([^:]+?)\s*:\s*(-?\d+\.?\d*)\s*%?\s*,\s*(-?\d+\.?\d*
 const COLUMN_LINE = /^>\s*([^:]+?)\s*:\s*(\d+)$/;
 const AMOUNT =/^[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?$/;
 const GROUPED = /^[+-]?\d{1,3}([.,]\d{3})+$/;
+// The amount of a flow that came through a named node: "12 from Referral".
+const STATED = /^(.*\S)\s+from\s+(\S.*)$/i;
+// A fourth field that is still part of a number, as in 1,234.
+const NUMBER_PART = /^[0-9\s.,+eE-]*$/;
 const HEADER_WORDS = new Set(['value', 'amount', 'flow', 'weight', 'qty', 'quantity', 'mass']);
 
 const cleanName = (raw) => String(raw).replace(/\s+/g, ' ').trim();
@@ -114,12 +119,28 @@ export function splitDelimited(line, delimiter) {
 }
 
 function readFlowLine(line) {
-    const bracket = FLOW_LINE.exec(line);
+    const delimiter = line.includes('\t') ? '\t' : (line.includes(',') ? ',' : null);
+    const fields = delimiter ? splitDelimited(line, delimiter) : [];
+    const withOrigin = fields.length === 4 && !NUMBER_PART.test(fields[3]);
+    // Delimited fields with a number third are a row, even when a name holds
+    // brackets: "Stage [1],Stage [2],100" is not a flow of 1 out of "Stage".
+    const isRow = (fields.length === 3 || withOrigin) && parseAmount(fields[2]).ok;
+
+    let bracket = FLOW_LINE.exec(line);
+    if (bracket && isRow) {
+        // Both readings hold. A target that starts with the delimiter is a row
+        // cut in the wrong place; anything else is read as typed and flagged.
+        const after = line.slice(line.indexOf(']', bracket[1].length) + 1).replace(/^ */, '');
+        const sound = parseAmount(bracket[2].replace(STATED, '$1')).ok && !after.startsWith(delimiter);
+        if (!sound) bracket = null;
+        else return { source: bracket[1], amount: bracket[2], target: bracket[3], ambiguous: true };
+    }
     if (bracket) return { source: bracket[1], amount: bracket[2], target: bracket[3] };
 
-    const delimiter = line.includes('\t') ? '\t' : (line.includes(',') ? ',' : null);
     if (!delimiter) return null;
-    const fields = splitDelimited(line, delimiter);
+    if (withOrigin) {
+        return { source: fields[0], target: fields[1], amount: fields[2], origin: fields[3], delimited: true };
+    }
     if (fields.length !== 3) return { fieldCount: fields.length, delimiter };
     return { source: fields[0], target: fields[1], amount: fields[2], delimited: true };
 }
@@ -144,7 +165,19 @@ export function parseFlows(text) {
     lines.forEach((rawLine, i) => {
         const lineNo = i + 1;
         const line = rawLine.trim();
-        if (line === '' || line.startsWith('//') || line.startsWith('#')) return;
+        if (line === '' || line.startsWith('//')) return;
+        if (line.startsWith('#')) {
+            // "#1 fuel oil [50] Boiler" is a flow someone meant, dropped without a word.
+            const hidden = /^#[^\s#]/.test(line) ? readFlowLine(line) : null;
+            if (hidden && hidden.fieldCount === undefined) {
+                warnings.push({
+                    line: lineNo,
+                    code: 'COMMENT_LOOKS_LIKE_FLOW',
+                    message: 'starts with "#", so it is ignored as a comment and is not in the diagram or the balance. A node name cannot start with "#". If this is a comment, put a space after the "#" and this note goes away'
+                });
+            }
+            return;
+        }
 
         const color = COLOR_LINE.exec(line);
         if (color) {
@@ -152,7 +185,7 @@ export function parseFlows(text) {
             return;
         }
         if (line.startsWith(':')) {
-            errors.push({ line: lineNo, code: 'COLOR_NOT_UNDERSTOOD', message: 'a colour line reads ": Node name #rrggbb"' });
+            errors.push({ line: lineNo, code: 'COLOR_NOT_UNDERSTOOD', message: 'a color line reads ": Node name #rrggbb"' });
             return;
         }
 
@@ -243,12 +276,41 @@ export function parseFlows(text) {
             errors.push({ line: lineNo, code: 'NAME_TOO_LONG', message: `a node name is limited to ${LIMITS.maxNameLength} characters` });
             return;
         }
+        if (parts.ambiguous) {
+            warnings.push({
+                line: lineNo,
+                code: 'LINE_AMBIGUOUS',
+                message: `could be a flow written with brackets or a row of fields. It is read as "${source}" to "${target}"`
+            });
+        }
+        for (const name of [source, target]) {
+            if (/\s\/\//.test(name)) {
+                warnings.push({
+                    line: lineNo,
+                    code: 'NAME_HOLDS_COMMENT',
+                    message: `"${name}" is read as one node name, "//" and all. A comment has to be on a line of its own`
+                });
+            }
+        }
         if (source === target) {
             errors.push({ line: lineNo, code: 'SELF_LOOP', message: `"${source}" flows into itself, which a Sankey diagram cannot draw` });
             return;
         }
 
-        const amount = parseAmount(parts.amount);
+        // Where this amount came from, when the line says.
+        let amountText = parts.amount;
+        let origin = parts.origin === undefined ? '' : cleanName(parts.origin);
+        const stated = parts.delimited ? null : STATED.exec(amountText);
+        if (stated) {
+            amountText = stated[1];
+            origin = cleanName(stated[2]);
+        }
+        if (origin.length > LIMITS.maxNameLength) {
+            errors.push({ line: lineNo, code: 'NAME_TOO_LONG', message: `a node name is limited to ${LIMITS.maxNameLength} characters` });
+            return;
+        }
+
+        const amount = parseAmount(amountText);
         if (!amount.ok) {
             errors.push({ line: lineNo, code: amount.code, message: amount.message });
             return;
@@ -264,7 +326,9 @@ export function parseFlows(text) {
             warnings.push({ line: lineNo, code: 'ZERO_FLOW', message: `${source} to ${target} is zero and is not drawn` });
             return;
         }
-        flows.push({ source, target, value: amount.value, line: lineNo });
+        const flow = { source, target, value: amount.value, line: lineNo };
+        if (origin) flow.origin = origin;
+        flows.push(flow);
     });
 
     if (flows.length > LIMITS.maxFlows) {
@@ -287,15 +351,19 @@ export function parseFlows(text) {
     for (const names of byFolded.values()) {
         if (names.size > 1) {
             const list = [...names].map((n) => `"${n}"`).join(' and ');
-            warnings.push({ line: null, code: 'CASE_VARIANTS', message: `${list} differ only by capitalisation and are drawn as separate nodes` });
+            warnings.push({ line: null, code: 'CASE_VARIANTS', message: `${list} differ only by capitalization and are drawn as separate nodes` });
         }
     }
 
     const known = new Set(flows.flatMap((f) => [f.source, f.target]));
     for (const name of new Set([...Object.keys(colors), ...Object.keys(notes), ...Object.keys(positions), ...Object.keys(columns), ...traces])) {
         if (!known.has(name)) {
-            warnings.push({ line: null, code: 'UNKNOWN_NODE', message: `"${name}" has a colour, note, position, column or trace but appears in no flow` });
+            warnings.push({ line: null, code: 'UNKNOWN_NODE', message: `"${name}" has a color, note, position, column or trace but appears in no flow` });
         }
+    }
+
+    for (const name of new Set(flows.filter((f) => f.origin && !known.has(f.origin)).map((f) => f.origin))) {
+        warnings.push({ line: null, code: 'ORIGIN_UNKNOWN', message: `a flow is written as coming from "${name}", which appears in no flow` });
     }
 
     return { flows, colors, notes, positions, columns, traces, errors, warnings };

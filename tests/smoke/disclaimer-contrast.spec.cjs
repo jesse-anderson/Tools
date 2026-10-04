@@ -5,7 +5,7 @@
 const { test, expect } = require('@playwright/test');
 const { measureContrast } = require('./helpers.cjs');
 
-// Heading and body styles inside a disclaimer that carry a non-default colour.
+// Heading and body styles inside a disclaimer that carry a non-default color.
 // --text-primary and --text-secondary elements are included deliberately:
 // linear-thermal-expansion's .disclaimer-note was on --text-muted and failed
 // in BOTH themes, which a heading-only selector list would have missed.

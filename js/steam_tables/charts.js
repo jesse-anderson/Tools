@@ -136,7 +136,7 @@ function renderQualityCurves(curves, scaleX, scaleY) {
 
 function renderQualityLabel(curve, scaleX, scaleY) {
     // Anchor each label at the LOWEST point of its curve. Quality curves all
-    // converge near the critical point at the top of the dome; labelling
+    // converge near the critical point at the top of the dome; labeling
     // there piles every label on top of CP. The bottom of each curve (low T)
     // is where they're maximally spread out and there's open space.
     const bottom = curve.points.reduce((best, point) => (!best || point.dy < best.dy ? point : best), null);

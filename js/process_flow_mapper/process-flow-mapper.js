@@ -580,7 +580,7 @@ function init() {
     el('projectImport').addEventListener('click', () => el('projectFile').click());
     el('projectFile').addEventListener('change', (event) => {
         const input = event.target;
-        // Cleared afterwards so choosing the same file twice still fires.
+        // Cleared afterward so choosing the same file twice still fires.
         importProject(input.files[0]).finally(() => { input.value = ''; });
     });
     el('projectSave').addEventListener('click', () => {

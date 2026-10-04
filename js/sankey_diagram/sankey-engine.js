@@ -43,7 +43,9 @@ const RECYCLE = Object.freeze({ radius: 8, run: 4, clearance: 22, laneGap: 4, ma
 
 /**
  * Build nodes and links from parsed flows. Repeated source/target pairs are
- * summed and reported. A flow that closes a loop is kept and marked as a
+ * summed and reported, unless they differ in the source they are written as
+ * coming from, which is how a flow is split by source: link.stated then holds
+ * the amount per source. A flow that closes a loop is kept and marked as a
  * recycle: the line that closes the loop is the one drawn as the return, so
  * typing order decides which stream that is.
  */
@@ -53,6 +55,7 @@ export function buildGraph(flows) {
     const byName = new Map();
     const links = [];
     const byPair = new Map();
+    const repeats = new Map();
     const forward = [];
 
     const nodeFor = (name) => {
@@ -82,16 +85,25 @@ export function buildGraph(flows) {
         const source = nodeFor(flow.source);
         const target = nodeFor(flow.target);
         const key = `${source}>${target}`;
-        if (byPair.has(key)) {
-            const link = links[byPair.get(key)];
+        let link = byPair.has(key) ? links[byPair.get(key)] : null;
+        if (link) {
             link.value += flow.value;
             link.lines.push(flow.line);
-            continue;
+        } else {
+            const recycle = reaches(target, source);
+            if (!recycle) forward[source].push(target);
+            byPair.set(key, links.length);
+            link = { index: links.length, source, target, value: flow.value, lines: [flow.line], recycle };
+            links.push(link);
         }
-        const recycle = reaches(target, source);
-        if (!recycle) forward[source].push(target);
-        byPair.set(key, links.length);
-        links.push({ index: links.length, source, target, value: flow.value, lines: [flow.line], recycle });
+        // Lines for one pair repeat by design when each names a different source.
+        const sameOrigin = `${key}>${flow.origin || ''}`;
+        if (!repeats.has(sameOrigin)) repeats.set(sameOrigin, { link, lines: [] });
+        repeats.get(sameOrigin).lines.push(flow.line);
+        if (flow.origin) {
+            if (!link.stated) link.stated = Object.create(null);
+            link.stated[flow.origin] = (link.stated[flow.origin] || 0) + flow.value;
+        }
     }
 
     for (const link of links) {
@@ -100,11 +112,12 @@ export function buildGraph(flows) {
         nodes[link.source].outflow += link.value;
         nodes[link.target].inflow += link.value;
         const pair = `${nodes[link.source].name} to ${nodes[link.target].name}`;
-        if (link.lines.length > 1) {
+        for (const repeat of repeats.values()) {
+            if (repeat.link !== link || repeat.lines.length < 2) continue;
             warnings.push({
-                line: link.lines[link.lines.length - 1],
+                line: repeat.lines[repeat.lines.length - 1],
                 code: 'DUPLICATE_SUMMED',
-                message: `${pair} appears on lines ${link.lines.join(', ')} and was summed to one flow`
+                message: `${pair} appears on lines ${repeat.lines.join(', ')} and was summed to one flow`
             });
         }
         if (link.recycle) {
@@ -252,7 +265,7 @@ export function assignLayers(graph, align = 'justify', columns = {}) {
 const ORDER_SWEEPS = 6;
 
 /**
- * Order each column to cut ribbon crossings: barycentre sweeps left to right
+ * Order each column to cut ribbon crossings: barycenter sweeps left to right
  * and back, keeping the order with the least crossed flow. measure holds each
  * item's place down its column as a 0 to 1 fraction; a moved node's is fixed.
  */
@@ -265,18 +278,18 @@ function orderColumns(columns, ups, downs, measure) {
             run += item.value;
         }
     };
-    const sortBy = (column, neighbours) => {
+    const sortBy = (column, neighbors) => {
         const key = new Map();
         column.forEach((item, rank) => {
             let weight = 0;
             let sum = 0;
-            for (const e of neighbours[item.index]) { sum += measure[e.to] * e.value; weight += e.value; }
+            for (const e of neighbors[item.index]) { sum += measure[e.to] * e.value; weight += e.value; }
             key.set(item, [weight > 0 ? sum / weight : measure[item.index], rank]);
         });
         column.sort((a, b) => (key.get(a)[0] - key.get(b)[0]) || (key.get(a)[1] - key.get(b)[1]));
         place(column);
     };
-    // Flow crossed between neighbouring columns, counting the smaller of each pair.
+    // Flow crossed between neighboring columns, counting the smaller of each pair.
     const crossed = () => {
         let total = 0;
         for (let c = 1; c < columns.length; c++) {
@@ -489,15 +502,15 @@ export function computeLayout(graph, balance, options = {}, positions = {}, colu
         }
     }
 
-    const centre = (node) => node.y0 + node.height / 2;
-    const pull = (node, neighbours, alpha) => {
+    const center = (node) => node.y0 + node.height / 2;
+    const pull = (node, neighbors, alpha) => {
         let weight = 0;
         let sum = 0;
-        for (const e of neighbours[node.index]) {
-            sum += centre(items[e.to]) * e.value;
+        for (const e of neighbors[node.index]) {
+            sum += center(items[e.to]) * e.value;
             weight += e.value;
         }
-        if (weight > 0) node.y0 += (sum / weight - centre(node)) * alpha;
+        if (weight > 0) node.y0 += (sum / weight - center(node)) * alpha;
     };
 
     for (let i = 0; i < opt.iterations; i++) {
@@ -550,8 +563,8 @@ export function computeLayout(graph, balance, options = {}, positions = {}, colu
     const laneOrder = links.filter((l) => l.recycle).sort((a, b) =>
         ((nodes[a.source].layer - nodes[a.target].layer) - (nodes[b.source].layer - nodes[b.target].layer))
         || (nodes[b.target].layer - nodes[a.target].layer)
-        || (centre(nodes[b.source]) - centre(nodes[a.source]))
-        || (centre(nodes[b.target]) - centre(nodes[a.target]))
+        || (center(nodes[b.source]) - center(nodes[a.source]))
+        || (center(nodes[b.target]) - center(nodes[a.target]))
         || (a.index - b.index));
     const lane = new Map(laneOrder.map((l, i) => [l.index, i]));
     const outerFirst = (a, b) => lane.get(b) - lane.get(a);
@@ -566,15 +579,15 @@ export function computeLayout(graph, balance, options = {}, positions = {}, colu
             if (!slots.length) return nodes[links[li][end]];
             return end === 'target' ? slots[0] : slots[slots.length - 1];
         };
-        const byFarCentre = (end) => (a, b) => (centre(far(a, end)) - centre(far(b, end))) || (a - b);
+        const byFarCenter = (end) => (a, b) => (center(far(a, end)) - center(far(b, end))) || (a - b);
 
-        const out = g.outLinks.filter((li) => !links[li].recycle).sort(byFarCentre('target'));
+        const out = g.outLinks.filter((li) => !links[li].recycle).sort(byFarCenter('target'));
         const outBack = g.outLinks.filter((li) => links[li].recycle).sort(outerFirst);
         let y = node.y0;
         for (const li of [...out, ...outBack]) { links[li].sy0 = y; y += links[li].width; links[li].sy1 = y; }
         const outBottom = y;
 
-        const inn = g.inLinks.filter((li) => !links[li].recycle).sort(byFarCentre('source'));
+        const inn = g.inLinks.filter((li) => !links[li].recycle).sort(byFarCenter('source'));
         const innBack = g.inLinks.filter((li) => links[li].recycle).sort(outerFirst);
         y = node.y0;
         for (const li of [...inn, ...innBack]) { links[li].ty0 = y; y += links[li].width; links[li].ty1 = y; }
@@ -735,7 +748,7 @@ function loopRibbonPath(link) {
         + 'Z';
 }
 
-function loopCentrePath(link) {
+function loopCenterPath(link) {
     const g = loopGeometry(link);
     const h = g.w / 2;
     const arc = (radius, x, y) => `A${r2(radius)},${r2(radius)} 0 0 1 ${r2(x)},${r2(y)}`;
@@ -785,7 +798,7 @@ export function ribbonPath(link) {
 
 /**
  * The part of a link between two fractions of its width, measured from its
- * upper edge at the source, as a link that ribbonPath and centrePath can draw.
+ * upper edge at the source, as a link that ribbonPath and centerPath can draw.
  */
 export function linkBand(link, from, to) {
     const cut = (top, bottom) => [top + (bottom - top) * from, top + (bottom - top) * to];
@@ -812,9 +825,9 @@ export function linkBand(link, from, to) {
     return band;
 }
 
-/** Centre line of a link, used for the not-to-scale hairline. */
-export function centrePath(link) {
-    if (link.recycle) return loopCentrePath(link);
+/** Center line of a link, used for the not-to-scale hairline. */
+export function centerPath(link) {
+    if (link.recycle) return loopCenterPath(link);
     const s = stops(link);
     const mid = (stop) => (stop.top + stop.bottom) / 2;
     let d = `M${r2(s[0].xOut)},${r2(mid(s[0]))}`;
@@ -826,8 +839,8 @@ export function centrePath(link) {
     return d;
 }
 
-// The centre line as a polyline fine enough to measure along.
-function centreLine(link) {
+// The center line as a polyline fine enough to measure along.
+function centerLine(link) {
     const pts = [];
     if (link.recycle) {
         const g = loopGeometry(link);
@@ -873,13 +886,13 @@ function centreLine(link) {
 }
 
 /**
- * Points a fixed distance apart along a link's centre line, where the marks
+ * Points a fixed distance apart along a link's center line, where the marks
  * that tell traced streams apart are put. phase, from 0 to 1, shifts them so
- * the marks of neighbouring streams do not line up. A link shorter than the
+ * the marks of neighboring streams do not line up. A link shorter than the
  * spacing gets one point, at its middle.
  */
-export function centrePoints(link, spacing, phase = 0) {
-    const line = centreLine(link);
+export function centerPoints(link, spacing, phase = 0) {
+    const line = centerLine(link);
     const lengths = [0];
     for (let i = 1; i < line.length; i++) {
         lengths.push(lengths[i - 1] + Math.hypot(line[i].x - line[i - 1].x, line[i].y - line[i - 1].y));
@@ -914,7 +927,12 @@ export function linkLabelPoint(link) {
 /** Format a quantity. 'auto' keeps six significant figures. */
 export function formatValue(value, decimals = 'auto') {
     if (!Number.isFinite(value)) return 'n/a';
-    if (decimals === 'auto') return value.toLocaleString('en-US', { maximumSignificantDigits: 6 });
+    if (decimals === 'auto') {
+        // Six figures, but never fewer than the whole part has: 1234567 is not 1,234,570.
+        return Math.abs(value) >= 1e6
+            ? value.toLocaleString('en-US', { maximumFractionDigits: 0 })
+            : value.toLocaleString('en-US', { maximumSignificantDigits: 6 });
+    }
     const d = Math.round(clamp(Number(decimals) || 0, [0, 6]));
     return value.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
 }
@@ -922,5 +940,14 @@ export function formatValue(value, decimals = 'auto') {
 export function formatPercent(fraction) {
     if (!Number.isFinite(fraction)) return 'n/a';
     const pct = fraction * 100;
-    return `${pct.toLocaleString('en-US', { maximumFractionDigits: Math.abs(pct) < 10 ? 1 : 0 })}%`;
+    const shown = (digits) => pct.toLocaleString('en-US', { maximumFractionDigits: digits });
+    // Rounding must not turn a near miss into 100%, or a small share into 0%.
+    const hides = (text) => (text === '100' && Math.abs(pct - 100) > 1e-9)
+        || ((text === '0' || text === '-0') && Math.abs(pct) > 1e-9);
+    let digits = Math.abs(pct) < 10 ? 1 : 0;
+    while (digits < 4 && hides(shown(digits))) digits += 1;
+    const text = shown(digits);
+    if (!hides(text)) return `${text}%`;
+    if (text === '100') return pct < 100 ? 'just under 100%' : 'just over 100%';
+    return 'under 0.0001%';
 }

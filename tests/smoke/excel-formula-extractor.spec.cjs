@@ -364,7 +364,7 @@ test('excel formula extractor limits large output sections to ten rows until exp
 // The page had no caveat at all while carrying a "100% Local | No Uploads"
 // badge in the header. The claim is true of the workbook and not of SheetJS,
 // which is fetched from cdn.sheetjs.com on every visit. The larger gap was that
-// the tool reads cells, and a modern workbook keeps most of its behaviour
+// the tool reads cells, and a modern workbook keeps most of its behavior
 // somewhere else: macros, Power Query, connections, conditional formatting.
 
 const DISCLAIMER_PAGE = '/tools/excel-formula-extractor.html';
@@ -390,7 +390,7 @@ test('scope disclaimer names what the parser cannot see', async ({ page, baseURL
   await card.evaluate((el) => { el.open = true; });
   const body = card.locator('.disclaimer-body');
 
-  // Each of these is somewhere a modern workbook keeps behaviour that this
+  // Each of these is somewhere a modern workbook keeps behavior that this
   // tool, which reads cells, will never list. Assert the consequence rather
   // than the bold label: a mutation that gutted the sentence after "VBA
   // macros, add-ins and custom functions" left a label-only assertion green.

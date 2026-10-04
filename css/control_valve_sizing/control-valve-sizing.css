@@ -116,7 +116,7 @@ header h1 { font-family: 'Space Grotesk', system-ui, sans-serif; font-size: 2rem
 /* --- installed characteristic plot ----------------------------------------
  * Fixed viewBox with preserveAspectRatio, so the figure scales with its
  * container rather than needing a responsive redraw. The two curves are
- * separated by dash pattern as well as colour, for the same reason the regime
+ * separated by dash pattern as well as color, for the same reason the regime
  * badge carries an icon shape.
  */
 /* min-width matters as much as the type size below. The labels are sized in

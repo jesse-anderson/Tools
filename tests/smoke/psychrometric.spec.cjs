@@ -193,7 +193,7 @@ test('psychrometric calculator keeps unit paths and Tdb plus W wet bulb consiste
 
 // --- scope disclaimer -----------------------------------------------------
 // The page carried a warranty/risk/verification box in the controls sidebar
-// and a grey paragraph under the footer. Both said the calculation might be
+// and a gray paragraph under the footer. Both said the calculation might be
 // wrong; neither said what the tool must not be used for, and neither named
 // the input people actually get wrong, which is barometric pressure.
 

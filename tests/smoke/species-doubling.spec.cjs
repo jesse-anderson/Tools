@@ -204,7 +204,7 @@ test('scope disclaimer keeps the cofermentation caveat with its named starter pa
   await card.evaluate((el) => { el.open = true; });
   const body = card.locator('.disclaimer-body');
 
-  await expect(body).toContainText('Protocooperation and cofermentation can yield effective doubling behaviour far shorter');
+  await expect(body).toContainText('Protocooperation and cofermentation can yield effective doubling behavior far shorter');
   await expect(body).toContainText('S. thermophilus');
   await expect(body).toContainText('L. bulgaricus');
   await expect(body).toContainText('not a model of what happens in a vat');

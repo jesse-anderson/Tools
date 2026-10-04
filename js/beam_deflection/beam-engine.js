@@ -1,7 +1,7 @@
 // Pure math for the beam deflection tool.
 //
 // Nothing here touches the DOM. Every function takes and returns strict SI:
-// newtons, metres, pascals, metres^4. All unit conversion happens in the
+// newtons, meters, pascals, meters^4. All unit conversion happens in the
 // controller at the DOM boundary. Mixed units are the classic way a beam
 // calculator returns a confident answer that is wrong by three orders of
 // magnitude, so the rule is absolute: no other unit enters this file.
@@ -551,8 +551,8 @@ export function solve(input) {
     // deflection check divides by it, and the comparison bars scale against it.
     // An upward load ran all of that in reverse and produced a negative
     // deflection that still passed its limit check, so it is rejected instead.
-    if (isPoint && input.P < 0) return err('Point load P must not be negative. Loads act downward, and an upward load is not modelled.');
-    if (!isPoint && input.w < 0) return err('Distributed load w must not be negative. Loads act downward, and an upward load is not modelled.');
+    if (isPoint && input.P < 0) return err('Point load P must not be negative. Loads act downward, and an upward load is not modeled.');
+    if (!isPoint && input.w < 0) return err('Distributed load w must not be negative. Loads act downward, and an upward load is not modeled.');
     if (isPartial) {
         if (!isFiniteNumber(input.a)) return err('Load start position must be a number.');
         if (!isFiniteNumber(input.c)) return err('Loaded length must be a number.');
@@ -734,7 +734,7 @@ export function selfWeightUDL(rho, area) {
     return rho * area * G;
 }
 
-/** Samples the deflected shape for plotting. Returns downward-positive metres. */
+/** Samples the deflected shape for plotting. Returns downward-positive meters. */
 export function sampleCurve(result, samples = 80) {
     if (!result || !result.ok) return [];
     const pts = [];

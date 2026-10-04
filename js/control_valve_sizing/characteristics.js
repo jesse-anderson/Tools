@@ -6,7 +6,7 @@
 // tool can currently show it.
 //
 // It is also the part with the weakest claim on reality, and the tool says so.
-// C(h) is an idealisation. Real trim is manufactured to a tolerance on it, and
+// C(h) is an idealization. Real trim is manufactured to a tolerance on it, and
 // the quick-opening form especially varies enough between manufacturers that it
 // serves as a teaching curve and should not be read as a prediction.
 
@@ -20,7 +20,7 @@ export const DEFAULT_RANGEABILITY = 50;
  * from any system.
  *
  * Note what happens at h = 0. Linear and quick-opening close to zero, but equal
- * percentage lands on C_rated / R, which is not a rounding artefact: it is the
+ * percentage lands on C_rated / R, which is not a rounding artifact: it is the
  * DEFINITION of rangeability, the ratio of maximum to minimum controllable
  * flow. A trim that reached zero would have infinite rangeability.
  */
@@ -122,7 +122,7 @@ export function installedCharacteristic({
         installed.push([h, Math.sqrt(dPTotal / (valveTerm + Ksys))]);
     }
 
-    // Normalised so the two curves can share an axis: inherent as a fraction of
+    // Normalized so the two curves can share an axis: inherent as a fraction of
     // rated coefficient, installed as a fraction of the flow at full open.
     const qMax = installed[installed.length - 1][1];
     return {
@@ -132,11 +132,11 @@ export function installedCharacteristic({
         qMax,
         inherent,
         installed,
-        inherentNormalised: inherent.map(([h, C]) => [h, C / Crated]),
-        installedNormalised: installed.map(([h, q]) => [h, qMax > 0 ? q / qMax : 0]),
+        inherentNormalized: inherent.map(([h, C]) => [h, C / Crated]),
+        installedNormalized: installed.map(([h, q]) => [h, qMax > 0 ? q / qMax : 0]),
         // Distortion is what the plot exists to show, so it is also a number:
         // how far the installed curve departs from the inherent one, at worst,
-        // once both are normalised. An authority of 1 gives exactly zero.
+        // once both are normalized. An authority of 1 gives exactly zero.
         maxDistortion: inherent.reduce((worst, [h, C], i) => {
             const a = C / Crated;
             const b = qMax > 0 ? installed[i][1] / qMax : 0;

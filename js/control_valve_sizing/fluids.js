@@ -4,7 +4,7 @@
 // arbitrary fluids it has signed up for a thermodynamic property package, which
 // is the reasoning that kept VLE out of scope in the first place. So: water
 // saturation is vendored and verified, gas constants come from a cited table,
-// and everything else is a user-entered vapour pressure.
+// and everything else is a user-entered vapor pressure.
 //
 // Water saturation is vendored here instead of imported, for a structural
 // reason. js/steam_tables/ has the verified data, but
@@ -181,4 +181,4 @@ export function molecularWeightFromFormula(formula) {
 }
 
 /** What the tool tells the user about every liquid that is not water. */
-export const LIQUID_NOTE = 'Only water carries a built-in vapour pressure curve. For anything else, enter Pv at the inlet temperature. Leave it blank and the choking, cavitation and flashing checks are reported as not run rather than assumed to pass. Culture media is close enough to water for screening purposes.';
+export const LIQUID_NOTE = 'Only water carries a built-in vapor pressure curve. For anything else, enter Pv at the inlet temperature. Leave it blank and the choking, cavitation and flashing checks are reported as not run rather than assumed to pass. Culture media is close enough to water for screening purposes.';

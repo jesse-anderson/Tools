@@ -20,7 +20,7 @@ test('scope disclaimer is visible, closed, and above the inputs', async ({ page,
   expect(box.y).toBeLessThan(controls.y);
 
   await expect(card.locator('.disclaimer-title')).toContainText('Not food safety advice');
-  await expect(card.locator('.disclaimer-lead')).toContainText('a modelled pH is not a pH reading');
+  await expect(card.locator('.disclaimer-lead')).toContainText('a modeled pH is not a pH reading');
 });
 
 test('scope disclaimer keeps the model scope and batch variance the old block named', async ({ page, baseURL }) => {
@@ -53,7 +53,7 @@ test('scope disclaimer says what the model does not represent', async ({ page, b
   // things that make food unsafe are not in it.
   await expect(body).toContainText('It models the starter, not the contaminants');
   await expect(body).toContainText('A batch can look perfect on this page and be unsafe');
-  await expect(body).toContainText('A modelled pH is not a measured pH');
+  await expect(body).toContainText('A modeled pH is not a measured pH');
   await expect(body).toContainText('CFU here is not a plate count');
   await expect(body).toContainText('fermentation does not make it safe');
 
@@ -86,7 +86,7 @@ test('scope disclaimer opens by keyboard and carries a touchpoint above the metr
   const touch = page.locator('p.disclaimer');
   await expect(touch).toHaveCount(1);
   await expect(touch).toBeVisible();
-  await expect(touch).toContainText('Modelled trends, not measurements');
+  await expect(touch).toContainText('Modeled trends, not measurements');
   await expect(touch).toContainText('when in doubt about a batch, throw it out');
 
   const metrics = await page.locator('.metrics-grid').boundingBox();

@@ -269,7 +269,7 @@ export function buildModel(text, settings = {}, measure = undefined, runSpread =
     }
 
     // What is printed on each exit. A lone exit with no label says nothing.
-    // A plus marks an exit taken together with its neighbours.
+    // A plus marks an exit taken together with its neighbors.
     const labels = links.map((l) => {
         if (settings.showShares === false) return '';
         const lone = nodes[l.source].outLinks.length === 1;

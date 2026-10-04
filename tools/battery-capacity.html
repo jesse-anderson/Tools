@@ -97,7 +97,7 @@ Features:
                 <div class="disclaimer-body">
                     <div class="disclaimer-section">
                         <h3>What this tool actually does</h3>
-                        <p><strong>Runtime estimation and first-pass power budgeting only.</strong> It produces estimates from the values you enter and a small set of simplifying assumptions. It is not a replacement for discharge testing, regulator thermal review, or oscilloscope and current-probe validation of transient behaviour.</p>
+                        <p><strong>Runtime estimation and first-pass power budgeting only.</strong> It produces estimates from the values you enter and a small set of simplifying assumptions. It is not a replacement for discharge testing, regulator thermal review, or oscilloscope and current-probe validation of transient behavior.</p>
                         <ul>
                             <li><strong>Usable fraction</strong> is a design reserve you choose, not a chemistry model. Nothing here knows where your cell's knee is.</li>
                             <li><strong>Fixed-efficiency regulator mode</strong> is a simplification: a real converter's efficiency moves with input voltage, load current and temperature, and is worst exactly where a low battery leaves it.</li>
@@ -107,15 +107,15 @@ Features:
                     </div>
 
                     <div class="disclaimer-section">
-                        <h3>Not modelled at all</h3>
+                        <h3>Not modeled at all</h3>
                         <ul>
                             <li>Detailed discharge curves and voltage sag under load.</li>
                             <li>Cell aging, cycle life and capacity fade.</li>
                             <li>Temperature derating and self-discharge.</li>
-                            <li>Regulator transient response and inrush behaviour.</li>
+                            <li>Regulator transient response and inrush behavior.</li>
                             <li>Parasitic load, charger losses and BMS overhead.</li>
                             <li>Cell-to-cell variation, manufacturing tolerance and ambient conditions.</li>
-                            <li><strong>The safety, fire or thermal-runaway behaviour of any chemistry.</strong></li>
+                            <li><strong>The safety, fire or thermal-runaway behavior of any chemistry.</strong></li>
                         </ul>
                         <p class="disclaimer-note">Battery and regulator datasheets, cell-to-cell variation, real load profiles and ambient conditions can shift actual runtime substantially in either direction. A runtime that comes out comfortable here can still be short in the field, and a pack that runs long enough can still be unsafe.</p>
                     </div>
@@ -139,7 +139,7 @@ Features:
 
                     <div class="disclaimer-footer">
                         <p><strong>No warranty. No liability. You assume all risk.</strong> This page and its estimates are provided as-is and as-available, without warranty of any kind, express or implied, including accuracy, completeness, timeliness, reliability, fitness for a particular purpose, merchantability, engineering or professional suitability, regulatory or certification acceptability, or non-infringement. To the maximum extent permitted by law, the author accepts no liability for any loss, injury, death, damage, cost or claim arising from use of or reliance on this page.</p>
-                        <p><strong>Independent verification required.</strong> Verify every figure against vendor datasheets, measured behaviour and qualified engineering judgement before acting on it. The datasheet, the governing standard and professional judgement control; where this page disagrees with them, this page is wrong.</p>
+                        <p><strong>Independent verification required.</strong> Verify every figure against vendor datasheets, measured behavior and qualified engineering judgment before acting on it. The datasheet, the governing standard and professional judgment control; where this page disagrees with them, this page is wrong.</p>
                         <p><strong>Consequential damages excluded.</strong> To the maximum extent permitted by law, in no event will the author or maintainers be liable for any direct, indirect, incidental, special, exemplary, punitive or consequential damages, including fire, equipment failure, mission failure, downtime, regulatory exposure, certification outcome, business decision, or loss of use, data, profits or business interruption, however caused and on any theory of liability, whether in contract, strict liability or tort including negligence, arising out of or in connection with this page, even if advised of the possibility of such damage.</p>
                         <p><strong>Indemnity.</strong> By using this page you agree to indemnify and hold harmless the author and maintainers against any claim, demand, loss or expense arising out of your use of it or of anything derived from it.</p>
                         <p><strong>Severability.</strong> If any part of this notice is held unenforceable, the remainder continues to apply, and the unenforceable part is limited to the least extent necessary rather than struck out.</p>
@@ -492,7 +492,7 @@ Features:
 
                     <div class="results-section">
                         <h3>Estimate Results</h3>
-                        <p class="disclaimer"><strong>Estimates only, used at your own risk.</strong> These figures come from nominal pack values and average currents. Voltage sag, cell aging, temperature derating, self-discharge, inrush and BMS overhead are not modelled, and nothing here assesses fire or thermal-runaway risk. Confirm with measured discharge data and a calibrated current probe before you commit to a build, a flight envelope or a deployment.</p>
+                        <p class="disclaimer"><strong>Estimates only, used at your own risk.</strong> These figures come from nominal pack values and average currents. Voltage sag, cell aging, temperature derating, self-discharge, inrush and BMS overhead are not modeled, and nothing here assesses fire or thermal-runaway risk. Confirm with measured discharge data and a calibrated current probe before you commit to a build, a flight envelope or a deployment.</p>
                         <div id="resultContainer" class="result-container" aria-live="polite" aria-atomic="false">
                             <div class="results-grid">
                                 <div class="metric-card">

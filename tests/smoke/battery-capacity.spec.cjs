@@ -277,7 +277,7 @@ test('scope disclaimer keeps every unmodelled effect the old block named', async
   }
 
   // The one that is a safety statement rather than an accuracy statement.
-  await expect(body).toContainText('safety, fire or thermal-runaway behaviour of any chemistry');
+  await expect(body).toContainText('safety, fire or thermal-runaway behavior of any chemistry');
 
   // The simplifications are named individually; "it is a simplification" is
   // not the same warning as saying where the error lives.

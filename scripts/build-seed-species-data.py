@@ -146,7 +146,7 @@ for row in index_rows:
         "longevity": [],
         "germination": [],
         "constants": [],
-        "behaviour": None,
+        "behavior": None,
         "notes": [],
     }
     by_scientific[name.lower()] = name
@@ -539,7 +539,7 @@ for record in species.values():
     dedupe_constants(record)
 
 # --------------------------------------------------------------------------
-# Storage behaviour: the safety gate
+# Storage behavior: the safety gate
 # --------------------------------------------------------------------------
 
 # Curated flags win over the bulk vol-2 extraction, and a species-level flag
@@ -549,14 +549,14 @@ for record in species.values():
 genus_flags = {}
 species_flags = {}
 
-behaviour_rows = load("storage_behaviour_flags.csv")
+behavior_rows = load("storage_behaviour_flags.csv")
 
 # 39 of the curated flag taxa never appear in species_index.csv, because the
 # index is built from datasets that carry numbers and these taxa have none: garlic, potato and banana are grown vegetatively, mango and
 # avocado are recalcitrant. They still have to be searchable, or the tool
 # answers "not found" to "garlic" when the honest answer is "grown from
 # cloves, not seed". Each one is admitted as its own record.
-for row in behaviour_rows:
+for row in behavior_rows:
     taxon = clean(row["taxon"])
     if not taxon or taxon in species:
         continue
@@ -570,20 +570,20 @@ for row in behaviour_rows:
         "longevity": [],
         "germination": [],
         "constants": [],
-        "behaviour": None,
+        "behavior": None,
         "notes": [],
     }
     by_scientific[taxon.lower()] = taxon
     for common in commons:
         by_common.setdefault(common.lower(), set()).add(taxon)
 
-for row in behaviour_rows:
+for row in behavior_rows:
     taxon = clean(row["taxon"])
-    # in_scope is an editorial verdict the gate re-derives from `behaviour` and
+    # in_scope is an editorial verdict the gate re-derives from `behavior` and
     # `propagation`, so it stays in the CSV and out of the bundle. Shipping a
     # field nothing reads invites a future reader to trust it.
     record = {
-        "behaviour": clean(row["behaviour"]),
+        "behavior": clean(row["behaviour"]),
         "propagation": clean(row["propagation"]),
         "matchedRank": clean(row["rank"]),
         "matchedTaxon": taxon,
@@ -612,7 +612,7 @@ def clip(text, limit):
 vol2 = {}
 for row in load("kew_1998_storage_behaviour_vol2.csv"):
     vol2[clean(row["species"])] = {
-        "behaviour": clean(row["behaviour"]),
+        "behavior": clean(row["behaviour"]),
         "uncertain": clean(row["uncertain"]) == "yes",
         "provisional": clean(row["provisional"]) == "yes",
         "matchedRank": "species",
@@ -626,7 +626,7 @@ for row in load("kew_1998_storage_behaviour_vol2.csv"):
 # genus flag to orthodox that way: Carya illinoensis, C. laciniosa, C. ovata
 # and Juglans microcarpa all leave a recalcitrant genus flag behind and collect
 # a full storage-life projection. Sourced species data does beat a genus
-# generalisation, so the winner stands. But the tool's rule is that disagreeing
+# generalization, so the winner stands. But the tool's rule is that disagreeing
 # sources are both carried and the disagreement reported, and that rule was
 # being applied to seed counts while the higher-stakes field discarded the
 # loser. The overruled flag now travels with the winner.
@@ -636,7 +636,7 @@ for name, record in species.items():
     flag = next((candidate for candidate in ranked if candidate), None)
     if not flag:
         continue
-    record["behaviour"] = dict(flag)
+    record["behavior"] = dict(flag)
     # not_applicable answers a different question from the other three. Potato
     # true seed is orthodox and potatoes are still grown from tubers, so vol 2
     # calling Solanum tuberosum orthodox does not contradict the curated flag
@@ -645,14 +645,14 @@ for name, record in species.items():
         (candidate for candidate in ranked
          if candidate is not None
          and candidate is not flag
-         and candidate["behaviour"] != flag["behaviour"]
-         and "not_applicable" not in (candidate["behaviour"], flag["behaviour"])
-         and "unconfirmed" not in (candidate["behaviour"], flag["behaviour"])),
+         and candidate["behavior"] != flag["behavior"]
+         and "not_applicable" not in (candidate["behavior"], flag["behavior"])
+         and "unconfirmed" not in (candidate["behavior"], flag["behavior"])),
         None,
     )
     if overruled:
-        record["behaviour"]["overruled"] = {
-            "behaviour": overruled["behaviour"],
+        record["behavior"]["overruled"] = {
+            "behavior": overruled["behavior"],
             "matchedRank": overruled["matchedRank"],
             "matchedTaxon": overruled["matchedTaxon"],
             "sourceKey": overruled["sourceKey"],
@@ -666,7 +666,7 @@ CONFLICT_NOTES = {
     "Lactuca sativa": "Three seed-count determinations spanning 13.5x. G2090 gives 25,000/oz "
                       "and the thousand-seed-weight data 25,267/oz; Osborne gives 1,875-3,125/oz. "
                       "Two independent sources agree, so Osborne is the outlier. Do not average.",
-    "Cucumis melo": "Two published viability parameterisations differ by roughly 3x "
+    "Cucumis melo": "Two published viability parameterizations differ by roughly 3x "
                     "in predicted longevity. Both are shown; they are not interchangeable.",
     "Hordeum vulgare": "One parameter set is held here (K_E 9.144, C_W 5.342, universal C_H/C_Q). "
                        "Ellis & Roberts 1980b publish a second, non-interchangeable set whose "
@@ -702,8 +702,8 @@ records = []
 for name in sorted(species):
     record = prune(species[name])
     if not any(record.get(key) for key in ("counts", "longevity", "constants", "germination")):
-        # A behaviour flag alone still matters: it is how the gate refuses.
-        if not record.get("behaviour"):
+        # A behavior flag alone still matters: it is how the gate refuses.
+        if not record.get("behavior"):
             continue
     # Redundancy trimmed on the way out: "species" is the default rank, and a
     # crop label that repeats the binomial carries nothing. The UI restores
@@ -754,7 +754,7 @@ counts_n = sum(1 for r in records if r.get("counts"))
 long_n = sum(1 for r in records if r.get("longevity"))
 const_n = sum(1 for r in records if r.get("constants"))
 germ_n = sum(1 for r in records if r.get("germination"))
-gated = [r for r in records if (r.get("behaviour") or {}).get("behaviour") == "recalcitrant"]
+gated = [r for r in records if (r.get("behavior") or {}).get("behavior") == "recalcitrant"]
 gated_with_counts = [r for r in gated if r.get("counts")]
 
 print(f"wrote {OUT}")

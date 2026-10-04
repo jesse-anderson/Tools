@@ -78,7 +78,7 @@ export const unreviewedCount = () => VALVE_STYLES.filter((s) => !s.reviewed).len
  * Nine globe rows are quoted at rated travel and six rotary rows at 90 degrees,
  * which are both full open. The other six rotary rows are quoted at 60 degrees,
  * which is not, and their Cv is roughly a third of the same valve's 90 degree
- * figure. Carrying a 60 degree Cv into a field labelled "rated Cv at full open"
+ * figure. Carrying a 60 degree Cv into a field labeled "rated Cv at full open"
  * would understate the trim by that factor and silently distort every installed
  * characteristic drawn from it, so the interface fills the field only from the
  * rows where the two genuinely mean the same thing.

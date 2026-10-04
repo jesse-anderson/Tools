@@ -15,7 +15,7 @@ import {
     hundredRule,
     runSeedModel,
     searchSpecies,
-    summariseCounts,
+    summarizeCounts,
     cropGroups,
     cropGroupKey,
     cToF
@@ -36,7 +36,7 @@ export function evaluateSeedChecks() {
     // ---- Safety gate ------------------------------------------------------
 
     const recalcitrant = SEED_SPECIES.filter(
-        (record) => record.behaviour && record.behaviour.behaviour === "recalcitrant"
+        (record) => record.behavior && record.behavior.behavior === "recalcitrant"
     );
     const recalcitrantWithCounts = recalcitrant.filter((record) => record.counts && record.counts.length);
     const anyProjected = recalcitrantWithCounts.some(
@@ -54,7 +54,7 @@ export function evaluateSeedChecks() {
             : `All ${recalcitrantWithCounts.length} are blocked, and all still report their seed counts.`
     }));
 
-    const oakCounts = summariseCounts(getSpeciesById("quercus-rubra"));
+    const oakCounts = summarizeCounts(getSpeciesById("quercus-rubra"));
     checks.push(check({
         id: "gate-keeps-counts",
         title: "Gated species still answer the seed-count question",
@@ -71,7 +71,7 @@ export function evaluateSeedChecks() {
     const norway = evaluateSpeciesGate(getSpeciesById("acer-platanoides"));
     checks.push(check({
         id: "gate-species-over-genus",
-        title: "Species-level behaviour overrides the genus",
+        title: "Species-level behavior overrides the genus",
         reference: SEED_REFERENCES.ipgri1996,
         fixture: "Fixture: Acer saccharinum (recalcitrant) against Acer platanoides (orthodox).",
         benchmark: "A genus-wide rule would be wrong in both directions for Acer.",
@@ -91,20 +91,20 @@ export function evaluateSeedChecks() {
         detail: garlicGate ? garlicGate.headline : "Garlic was not findable at all."
     }));
 
-    const overruled = SEED_SPECIES.filter((record) => record.behaviour && record.behaviour.overruled);
+    const overruled = SEED_SPECIES.filter((record) => record.behavior && record.behavior.overruled);
     const silentConflicts = overruled.filter((record) => {
         const gate = evaluateSpeciesGate(record);
-        return !gate.conflict || !gate.detail.includes(record.behaviour.overruled.matchedTaxon);
+        return !gate.conflict || !gate.detail.includes(record.behavior.overruled.matchedTaxon);
     });
     const downgraded = overruled.filter(
-        (record) => record.behaviour.overruled.behaviour === "recalcitrant"
-            && record.behaviour.behaviour === "orthodox"
+        (record) => record.behavior.overruled.behavior === "recalcitrant"
+            && record.behavior.behavior === "orthodox"
     );
     checks.push(check({
-        id: "behaviour-conflicts-reported",
-        title: "An overruled storage-behaviour source is named, not discarded",
+        id: "behavior-conflicts-reported",
+        title: "An overruled storage-behavior source is named, not discarded",
         reference: SEED_REFERENCES.kewCompendium1998,
-        fixture: `Fixture: all ${overruled.length} taxa whose resolved behaviour disagrees with a lower-precedence source.`,
+        fixture: `Fixture: all ${overruled.length} taxa whose resolved behavior disagrees with a lower-precedence source.`,
         benchmark: `Every one states what it overruled. ${downgraded.length} taxa leave a recalcitrant genus flag for an orthodox species record and still receive a projection, so the disagreement has to be on screen.`,
         pass: silentConflicts.length === 0,
         detail: silentConflicts.length
@@ -200,9 +200,9 @@ export function evaluateSeedChecks() {
                 for (const key of entry.corroboratedBy || []) usedKeys.add(key);
             }
         }
-        if (record.behaviour) {
-            usedKeys.add(record.behaviour.sourceKey);
-            if (record.behaviour.overruled) usedKeys.add(record.behaviour.overruled.sourceKey);
+        if (record.behavior) {
+            usedKeys.add(record.behavior.sourceKey);
+            if (record.behavior.overruled) usedKeys.add(record.behavior.overruled.sourceKey);
         }
     }
     const orphanKeys = [...usedKeys].filter((key) => !SEED_REFERENCES[key]);
@@ -231,7 +231,7 @@ export function evaluateSeedChecks() {
             : "Every count entry resolves to a weight basis."
     }));
 
-    const tomato = summariseCounts(getSpeciesById("solanum-lycopersicum"));
+    const tomato = summarizeCounts(getSpeciesById("solanum-lycopersicum"));
     const correctedRow = tomato.rows.find((row) => row.sourceKey === "unlG2090" && row.correction);
     checks.push(check({
         id: "g2090-correction-applied",
@@ -265,7 +265,7 @@ export function evaluateSeedChecks() {
             : `All ${multiCrop.length} resolve to a single crop before any number is reported.`
     }));
 
-    const lettuce = summariseCounts(getSpeciesById("lactuca-sativa"));
+    const lettuce = summarizeCounts(getSpeciesById("lactuca-sativa"));
     checks.push(check({
         id: "conflicts-preserved",
         title: "Conflicting sources are kept apart, not averaged",
@@ -278,13 +278,13 @@ export function evaluateSeedChecks() {
 
     // ---- Viability equation ------------------------------------------------
 
-    const refusedBehaviours = new Set(["recalcitrant", "intermediate", "unconfirmed", "not_applicable"]);
+    const refusedBehaviors = new Set(["recalcitrant", "intermediate", "unconfirmed", "not_applicable"]);
     const withConstants = SEED_SPECIES.filter((record) => record.constants && record.constants.length);
     const leaked = withConstants.filter((record) =>
-        record.behaviour && refusedBehaviours.has(record.behaviour.behaviour)
+        record.behavior && refusedBehaviors.has(record.behavior.behavior)
         && runSeedModel({ speciesId: record.id }).viability.ok);
     const refusedWithConstants = withConstants.filter((record) =>
-        record.behaviour && refusedBehaviours.has(record.behaviour.behaviour));
+        record.behavior && refusedBehaviors.has(record.behavior.behavior));
     checks.push(check({
         id: "viability-respects-gate",
         title: "Published constants do not override a refusal",
@@ -503,7 +503,7 @@ export function evaluateSeedChecks() {
     return checks;
 }
 
-export function summariseSeedChecks(checks) {
+export function summarizeSeedChecks(checks) {
     const failed = checks.filter((entry) => entry.status === "fail");
     return {
         total: checks.length,

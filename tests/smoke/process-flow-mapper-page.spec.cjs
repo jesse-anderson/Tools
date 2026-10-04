@@ -782,7 +782,7 @@ test.describe('scope disclaimer', () => {
     await expect(card.locator('.disclaimer-footer')).toBeVisible();
   });
 
-  test('names what is not modelled and what it must not be used for, with a second touchpoint by the result', async ({ page }) => {
+  test('names what is not modeled and what it must not be used for, with a second touchpoint by the result', async ({ page }) => {
     await openTool(page);
     const body = page.locator('#scopeDisclaimer .disclaimer-body');
     for (const phrase of [

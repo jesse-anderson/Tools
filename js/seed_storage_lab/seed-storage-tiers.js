@@ -11,7 +11,7 @@ export const OXYGEN_HALVING_FACTOR = 1.72;
 export const OXYGEN_EXPONENT = Math.log2(OXYGEN_HALVING_FACTOR);
 
 export const OXYGEN_LIMITS = Object.freeze({
-    // Lowest level Groot modelled; the meter read 0.1 to 1% with a 1% error.
+    // Lowest level Groot modeled; the meter read 0.1 to 1% with a 1% error.
     floorPct: 1,
     // Full effect through 43% eRH, hardly any at 60%; nothing measured between.
     fullEffectMaxRhPct: 43,
@@ -180,13 +180,13 @@ export function evaluateStorage(inputs = {}) {
     }
     if (tier === "leaky-closure") {
         note("warn", "screw-cap",
-            "Groot et al. 2015 found plastic screw caps kept out water vapour for three months but let oxygen back in, with large differences between jars. "
+            "Groot et al. 2015 found plastic screw caps kept out water vapor for three months but let oxygen back in, with large differences between jars. "
             + "A jar with a rubber ring or a lined twist-off lid held its oxygen level. No oxygen benefit is credited here.");
     }
     if (tier === "absorber-only") {
         note("block", "absorber-only",
-            "Most oxygen absorbers contain a moisturiser to speed the iron reaction. In a sealed jar with an absorber and no desiccant, RH rose to 88% within 2 days (Groot et al. 2015), "
-            + "and primed celery stored that way did no better than without the absorber. Add a desiccant, or use an absorber sold without a moisturiser.");
+            "Most oxygen absorbers contain a moisturizer to speed the iron reaction. In a sealed jar with an absorber and no desiccant, RH rose to 88% within 2 days (Groot et al. 2015), "
+            + "and primed celery stored that way did no better than without the absorber. Add a desiccant, or use an absorber sold without a moisturizer.");
     }
     if (tier === "desiccant-only" && seedTreatment !== "raw") {
         note("warn", "desiccant-treated",

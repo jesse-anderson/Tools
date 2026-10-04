@@ -161,7 +161,7 @@ function redrawDiagrams(aFrac, cFrac) {
 //
 // A preset overwrites the whole form, including the unit system, so it is
 // written in one direction only: state first, then the controls that are
-// rebuilt from state, then the raw field values. Touching any input afterwards
+// rebuilt from state, then the raw field values. Touching any input afterward
 // clears the active mark, because the form no longer matches the example.
 // ---------------------------------------------------------------------------
 
@@ -582,7 +582,7 @@ function renderSectionProps(section) {
         host.append(row('Area A', `${fmt(fromSI(section.A, 'area', U()), 1)} ${unitLabel('area', U())}`));
     }
     host.append(row('Second moment I', `${fmt(fromSI(section.I, 'secondMoment', U()), 1)} ${unitLabel('secondMoment', U())}`));
-    host.append(row('Extreme fibre c', `${fmt(fromSI(section.c, 'sectionDim', U()), 2)} ${unitLabel('sectionDim', U())}`));
+    host.append(row('Extreme fiber c', `${fmt(fromSI(section.c, 'sectionDim', U()), 2)} ${unitLabel('sectionDim', U())}`));
     host.append(row('Section modulus S', `${fmt(fromSI(section.S, 'sectionModulus', U()), 1)} ${unitLabel('sectionModulus', U())}`));
 }
 
@@ -668,7 +668,7 @@ function renderStress(result, section, material) {
     // factor was given. Reading it once and coercing once keeps the number the
     // allowable is divided by identical to the number reported beside it: the
     // two used to be computed separately, so a negative entry divided by 1 and
-    // then labelled itself "safety factor 0".
+    // then labeled itself "safety factor 0".
     const entered = readNumber('safetyFactor');
     const safetyFactor = Number.isFinite(entered) && entered > 0 ? entered : 1;
     const check = stressCheck({
@@ -685,7 +685,7 @@ function renderStress(result, section, material) {
     host.append(row(
         'Maximum bending stress',
         `${fmt(fromSI(check.sigma, 'stress', U()), 2)} ${unitLabel('stress', U())}`,
-        'sigma = |M| / S at the extreme fibre',
+        'sigma = |M| / S at the extreme fiber',
     ));
 
     if (check.skipped) {
@@ -752,7 +752,7 @@ function renderResults(result, section, material, baseInput) {
     ));
 
     // Midspan is not always the worst case. Show it whenever the two differ by
-    // more than a rounding threshold, labelled so they cannot be confused.
+    // more than a rounding threshold, labeled so they cannot be confused.
     const differs = Math.abs(deltaMaxDisp - deltaMidDisp) > Math.max(1e-6, Math.abs(deltaMaxDisp) * 1e-9);
     if (differs) {
         primary.append(row(
@@ -905,7 +905,7 @@ function recompute() {
     // The engine rejects this too, but its message names P or w. This one names
     // whatever the field in front of the user currently says, which may be a
     // mass rather than a force.
-    if (magnitude < 0) return showError('The load must not be negative. Loads act downward here, and an upward load is not modelled.');
+    if (magnitude < 0) return showError('The load must not be negative. Loads act downward here, and an upward load is not modeled.');
     if (!section.ok) return showError(section.error);
     if (state.loadType === 'point-at') {
         if (!Number.isFinite(aRaw)) return showError('Enter a load position.');

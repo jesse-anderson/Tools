@@ -18,7 +18,7 @@ import {
     hundredRule,
     runSeedModel,
     searchSpecies,
-    summariseCounts,
+    summarizeCounts,
     GRAMS_PER_LB,
     OZ_PER_LB
 } from "./seed-model.js";
@@ -208,7 +208,7 @@ export const SEED_EQUATION_SPECS = Object.freeze([
     {
         id: "species-gate-recalcitrant",
         title: "Species gate refuses recalcitrant seed",
-        equation: "allowLongevity = behaviour ∈ {orthodox, unrecorded-and-not-woody}",
+        equation: "allowLongevity = behavior ∈ {orthodox, unrecorded-and-not-woody}",
         rationale:
             "Recalcitrant seeds are killed by the drying that dry storage requires; they cannot be held at low "
             + "moisture at any temperature. Both Harrington's rules and the Ellis-Roberts equation assume orthodox "
@@ -242,11 +242,11 @@ export const SEED_EQUATION_SPECS = Object.freeze([
         rationale:
             "Acer saccharinum (silver maple) is recalcitrant while Acer platanoides (Norway maple) is orthodox and "
             + "has published viability constants. A genus-wide rule would be wrong in both directions: refusing a "
-            + "species the literature can model, and modelling one it cannot. Precedence is resolved once, in the "
+            + "species the literature can model, and modeling one it cannot. Precedence is resolved once, in the "
             + "data generator, so the browser cannot re-derive it differently.",
         sources: ["ipgri1996", "kewAppendix1"],
         implementation: "scripts/build-seed-species-data.py (flag resolution) → seed-model.js → evaluateSpeciesGate.",
-        fixture: "Both maples, which share a genus and disagree on storage behaviour.",
+        fixture: "Both maples, which share a genus and disagree on storage behavior.",
         expected: "A. saccharinum blocked; A. platanoides allowed.",
         run() {
             const silver = evaluateSpeciesGate(getSpeciesById("acer-saccharinum"));
@@ -256,34 +256,34 @@ export const SEED_EQUATION_SPECS = Object.freeze([
                 expected: "saccharinum blocked, platanoides allowed",
                 actual: `saccharinum ${silver.status}, platanoides ${norway.status}`,
                 units: "",
-                message: "Same genus, opposite storage behaviour, resolved at species level."
+                message: "Same genus, opposite storage behavior, resolved at species level."
             });
         }
     },
     {
-        id: "behaviour-conflict-reported",
-        title: "An overruled behaviour source is named, not dropped",
+        id: "behavior-conflict-reported",
+        title: "An overruled behavior source is named, not dropped",
         equation: "flag = winner ; flag.overruled = highest-ranked disagreeing source",
         rationale:
             "The 1996 compendium flags Carya and Juglans recalcitrant at genus level. The 1998 compendium lists "
             + "Carya illinoensis, C. laciniosa, C. ovata and Juglans microcarpa orthodox at species level. Species "
             + "beats genus, so pecan and the hickories are projected, which is defensible: sourced species data is "
-            + "better evidence than a genus generalisation. Dropping the loser was not. The same rule that keeps "
+            + "better evidence than a genus generalization. Dropping the loser was not. The same rule that keeps "
             + "conflicting seed counts apart applies here, where the stakes are higher, so the overruled flag "
             + "travels with the winner and costs an overruled recalcitrant species its ok status.",
         sources: ["ipgri1996", "kewCompendium1998"],
-        implementation: "scripts/build-seed-species-data.py sets behaviour.overruled; seed-model.js → evaluateSpeciesGate reports it.",
+        implementation: "scripts/build-seed-species-data.py sets behavior.overruled; seed-model.js → evaluateSpeciesGate reports it.",
         fixture: "Carya illinoensis (pecan), orthodox by species record inside a recalcitrant genus.",
         expected: "Projection allowed, status caution, detail names the recalcitrant Carya flag.",
         run() {
             const gate = evaluateSpeciesGate(getSpeciesById("carya-illinoensis"));
             const names = Boolean(gate.conflict)
-                && gate.conflict.behaviour === "recalcitrant"
+                && gate.conflict.behavior === "recalcitrant"
                 && gate.detail.includes("Carya");
             return makeResult({
                 pass: gate.allowLongevity === true && gate.status === "caution" && names,
                 expected: "caution, projected, conflict named",
-                actual: `${gate.status}, allow=${gate.allowLongevity}, conflict=${gate.conflict ? gate.conflict.behaviour : "none"}`,
+                actual: `${gate.status}, allow=${gate.allowLongevity}, conflict=${gate.conflict ? gate.conflict.behavior : "none"}`,
                 units: "",
                 message: gate.detail
             });
@@ -292,7 +292,7 @@ export const SEED_EQUATION_SPECS = Object.freeze([
     {
         id: "vegetative-not-applicable",
         title: "Vegetatively propagated crops answer honestly",
-        equation: "behaviour = not_applicable → explain, do not report \"not found\"",
+        equation: "behavior = not_applicable → explain, do not report \"not found\"",
         rationale:
             "Garlic, potato, banana and several others are grown from cloves, tubers and offsets rather than stored "
             + "seed. None of them appears in any seed-count dataset, so a naive lookup returns \"not found\" and "
@@ -325,11 +325,11 @@ export const SEED_EQUATION_SPECS = Object.freeze([
             + "thousand-seed-weight dataset lands at 25,267 seeds/oz, corroborating G2090 and isolating Osborne. "
             + "An average would have destroyed that signal.",
         sources: ["unlG2090", "osborne", "figshareTsw"],
-        implementation: "seed-model.js → summariseCounts; the generator keeps one entry per source.",
+        implementation: "seed-model.js → summarizeCounts; the generator keeps one entry per source.",
         fixture: "Lactuca sativa, the largest conflict carrying three independent determinations.",
         expected: "Three sources, disagreement flagged, overall span ≈13.5×.",
         run() {
-            const summary = summariseCounts(getSpeciesById("lactuca-sativa"));
+            const summary = summarizeCounts(getSpeciesById("lactuca-sativa"));
             return makeResult({
                 pass: summary.rows.length === 3 && summary.disagreement === true
                     && approxEqual(summary.ratio, 13.48, 0.05),
@@ -354,7 +354,7 @@ export const SEED_EQUATION_SPECS = Object.freeze([
         fixture: "Tomato, published at 250-430 seeds/gram.",
         expected: "About 7,100-12,200 seeds/oz, carrying a correction note.",
         run() {
-            const summary = summariseCounts(getSpeciesById("solanum-lycopersicum"));
+            const summary = summarizeCounts(getSpeciesById("solanum-lycopersicum"));
             const corrected = summary.rows.find((row) => row.sourceKey === "unlG2090" && row.correction);
             const ok = Boolean(corrected)
                 && corrected.perOz.low > 6500 && corrected.perOz.high < 13000;
@@ -427,7 +427,7 @@ export const SEED_EQUATION_SPECS = Object.freeze([
             + "worst and best corners on the 10 °F reading and 524,000× on the 5 °C one. Applied to a three-year "
             + "vendor figure that is up to 1.6 million years. No stored seed "
             + "lot has been followed for anywhere near a millennium, so anything past one is arithmetic, and is "
-            + "labelled as such.",
+            + "labeled as such.",
         sources: ["harrington1972", "ellis2022SST", "solberg2020"],
         implementation: "seed-model.js → EVIDENCE_HORIZON_YEARS and projectLongevity warnings.",
         fixture:
@@ -616,7 +616,7 @@ export const SEED_EQUATION_SPECS = Object.freeze([
             "The temperature term is a quadratic, so it has a maximum. With the universal constants that is "
             + "-34.4 °C and out of reach, but five published sets turn over warmer than -25 °C and one sweetgum "
             + "set at -2.7 °C. Below the turning point the raw equation says a freezer shortens life, which is an "
-            + "artefact of fitting a parabola to warm data. The engine holds the prediction at the turning point "
+            + "artifact of fitting a parabola to warm data. The engine holds the prediction at the turning point "
             + "and says so. Nothing is evaluated below -20 °C, the coldest any archived source takes the equation.",
         sources: ["dickieEllis1990", "ellis2022SST", "kewAppendix1"],
         implementation: "seed-viability-engine.js → turningPointC, predictDetermination.",
@@ -692,7 +692,7 @@ export const SEED_EQUATION_SPECS = Object.freeze([
             "Groot et al. 2025 stored primed celery for up to seven years at six oxygen levels and found log shelf life "
             + "falling in a straight line with log oxygen. They report two figures: each halving of oxygen gives 1.72 "
             + "times the shelf life, and dropping to 1% gives about 11 times. One exponent has to produce both, and "
-            + "log2(1.72) does: (20.9/1)^0.782 = 10.8. Below 1% nothing was modelled, so the factor stops there.",
+            + "log2(1.72) does: (20.9/1)^0.782 = 10.8. Below 1% nothing was modeled, so the factor stops there.",
         sources: ["groot2025Oxygen"],
         implementation: "seed-storage-tiers.js → oxygenMultiplier.",
         fixture: "Air halved to 10.45%, and air reduced to 1% and to 0.1%, at 30% RH.",
@@ -877,7 +877,7 @@ export const SEED_EQUATION_SPECS = Object.freeze([
         equation: "1 lb = 16 oz = 453.59237 g",
         rationale:
             "The datasets state counts per ounce, per pound, per gram and per kilogram depending on origin, and the "
-            + "tool normalises everything to seeds per pound internally before comparing sources. A conversion slip "
+            + "tool normalizes everything to seeds per pound internally before comparing sources. A conversion slip "
             + "here would manufacture cross-source disagreements that do not exist, or hide ones that do.",
         sources: ["nrcsTx", "wpsm"],
         implementation: "seed-model.js → quantityToLb, entryToPerLb.",

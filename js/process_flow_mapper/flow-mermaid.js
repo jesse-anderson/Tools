@@ -29,7 +29,7 @@ export function toMermaid(model, title = '') {
         out.push('    end');
     }
 
-    // Dotted is rework, thick is an exit taken together with its neighbours.
+    // Dotted is rework, thick is an exit taken together with its neighbors.
     for (const link of graph.links) {
         const arrow = link.rework ? '-.->' : (link.parallel ? '==>' : '-->');
         const label = labels[link.index] ? `|"${safe(labels[link.index])}"|` : '';

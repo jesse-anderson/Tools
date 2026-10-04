@@ -1,5 +1,5 @@
 // The two GPIO pinout references, esp32-pinout and rpi-pinout: the same tool with
-// different data, so one spec parameterises the shared parts and asserts the
+// different data, so one spec parameterizes the shared parts and asserts the
 // board-specific warnings per tool. A pin map that omits 5 V tolerance or
 // strapping pins costs someone a board.
 const { test, expect } = require('@playwright/test');

@@ -1,5 +1,5 @@
 // DBSCAN visualizer: the scope disclaimer. The risk here is not bad arithmetic.
-// DBSCAN partitions any data at any parameters, so coloured groups are
+// DBSCAN partitions any data at any parameters, so colored groups are
 // persuasive whether or not the structure exists.
 const { test, expect } = require('@playwright/test');
 const { expectPageToLoadCleanly } = require('./helpers.cjs');

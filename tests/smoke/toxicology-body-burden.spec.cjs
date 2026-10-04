@@ -266,7 +266,7 @@ test.describe('end-to-end DOM', () => {
 // The old block had strong content including an indemnification clause, but it
 // sat in the sidebar, was not collapsible and failed AA at 3.76:1. The card
 // leads with the fact that decides whether any of it means anything: Vd is a
-// modelling construct, not a volume.
+// modeling construct, not a volume.
 
 test('toxicology-and-body-burden scope disclaimer sits above the tool and reads while collapsed', async ({ page }) => {
   await page.goto('/tools/toxicology-and-body-burden.html', { waitUntil: 'domcontentloaded' });
@@ -298,7 +298,7 @@ test('toxicology-and-body-burden disclaimer names its specific omissions', async
   await page.locator('#scopeDisclaimer').evaluate((el) => { el.open = true; });
   const body = page.locator('#scopeDisclaimer .disclaimer-body');
 
-  for (const phrase of ['Vd is not a volume', 'population means', 'One compartment', 'First-order elimination only', 'Post-mortem redistribution', 'poisons information centre']) {
+  for (const phrase of ['Vd is not a volume', 'population means', 'One compartment', 'First-order elimination only', 'Post-mortem redistribution', 'poisons information center']) {
     await expect(body).toContainText(phrase);
   }
 });

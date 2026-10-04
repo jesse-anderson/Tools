@@ -49,7 +49,7 @@ test('.disclaimer-card is always the shared component, never a div wearing its n
   expect(
     squatters,
     'A .disclaimer-card must be <details> with a <summary>. If the box is usage notes, ' +
-      'a licence list or anything else, give it its own class (.usage-note, .info-card) ' +
+      'a license list or anything else, give it its own class (.usage-note, .info-card) ' +
       'so a reader and a selector-based audit can both tell them apart.'
   ).toEqual([]);
 });

@@ -118,7 +118,7 @@ export function addProject(store, name, state, now = 0) {
     return project;
 }
 
-/** Remove a project. The active one moves to a neighbour, or to null if none are left. */
+/** Remove a project. The active one moves to a neighbor, or to null if none are left. */
 export function removeProject(store, id) {
     const at = store.projects.findIndex((p) => p.id === id);
     if (at < 0) return false;

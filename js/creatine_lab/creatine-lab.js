@@ -212,7 +212,7 @@ function bindEvents() {
 
     // Body-composition population preset: when the user picks a named
     // population, sync the underlying FFM-to-SMM and muscle Cr inputs so
-    // the advanced fields reflect the preset. Manual edits afterwards
+    // the advanced fields reflect the preset. Manual edits afterward
     // implicitly switch the user into "custom" semantics; the preset key
     // stays selected until the user changes it.
     dom.bodyCompositionPreset?.addEventListener("change", () => {

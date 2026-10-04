@@ -53,7 +53,7 @@ test.describe('layout and routing', () => {
     expect(out[2]).toEqual({ track: [], count: 0 });
   });
 
-  test('two connectors that swap rows between neighbouring columns do not lie on each other', async ({ page }) => {
+  test('two connectors that swap rows between neighboring columns do not lie on each other', async ({ page }) => {
     // A goes down to D while B goes up to C: neither order of two direct tracks works.
     const m = await build(page, 'Top: (S1) -> A\nBot: (S2) -> B\nTop: A -> D\nBot: B -> C\nTop: C\nBot: D');
     const kinds = m.layout.connectors.filter((c) => c.points.length > 2).map((c) => c.kind).sort();

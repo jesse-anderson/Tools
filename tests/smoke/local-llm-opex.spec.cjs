@@ -82,7 +82,7 @@ test('scope disclaimer names the decisions it is not for', async ({ page, baseUR
   // Measured at the wall, not a datasheet TDP, is the one specific correction
   // that changes the electricity line.
   await expect(body).toContainText('measured power draw at the wall rather than a datasheet TDP');
-  await expect(body).toContainText('at the quantisation, context length and concurrency you would actually use');
+  await expect(body).toContainText('at the quantization, context length and concurrency you would actually use');
 });
 
 test('scope disclaimer opens by keyboard and carries a touchpoint by the results', async ({ page, baseURL }) => {

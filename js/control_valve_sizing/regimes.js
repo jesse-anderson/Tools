@@ -24,7 +24,7 @@ export const SEVERITY = Object.freeze({ ERROR: 'error', WARN: 'warn', INFO: 'inf
 
 // Severity ranking, so the UI can pick a tint and an icon shape without
 // re-deriving the order. WCAG 1.4.1 is the formal reason the icon differs in
-// shape as well as colour; the practical one is that this is the output that
+// shape as well as color; the practical one is that this is the output that
 // matters most and roughly one man in twelve cannot separate the red tint from
 // the amber one.
 export const REGIME_SEVERITY = Object.freeze({
@@ -44,7 +44,7 @@ const isNum = (v) => typeof v === 'number' && Number.isFinite(v);
  * The pressure minimum inside the valve, which is what decides whether bubbles
  * form at all. P2 is the recovered pressure and is always higher, and that is why
  * a service can cavitate while every pressure the user can measure stays well
- * above the vapour pressure.
+ * above the vapor pressure.
  */
 export function venaContractaPressure(P1, P2, FL) {
     if (!isNum(FL) || FL <= 0) return null;
@@ -100,7 +100,7 @@ const w = (code, severity, message) => ({ code, severity, message });
  *
  * Section 9 of the SOW is a table, and this is that table as code. The refusals
  * protect against a wrong number; these are the entire mechanism by which a
- * right answer gets properly disbelieved, so they are tested behaviour and not
+ * right answer gets properly disbelieved, so they are tested behavior and not
  * interface decoration.
  */
 export function advisories(result, input) {
@@ -116,7 +116,7 @@ export function advisories(result, input) {
 
     if (regime === REGIMES.CAVITATING) {
         out.push(w('CAVITATING', SEVERITY.WARN,
-            'Cavitating. The pressure inside the valve falls below the vapour pressure and recovers above it, so bubbles form and collapse in the trim. Expect noise, vibration and localised trim damage.'));
+            'Cavitating. The pressure inside the valve falls below the vapor pressure and recovers above it, so bubbles form and collapse in the trim. Expect noise, vibration and localized trim damage.'));
     }
 
     // The vena contracta criterion is a LATE indicator and the tool must not let
@@ -130,7 +130,7 @@ export function advisories(result, input) {
     // what it cannot see.
     if (result.service === 'liquid' && isNum(Pv) && regime !== REGIMES.FLASHING) {
         out.push(w('CAVITATION_DETECTION_LIMIT', SEVERITY.INFO,
-            'No cavitation flag does not mean no cavitation. This check compares the estimated vena contracta pressure against the vapour pressure, which only becomes true close to the choke point. Incipient cavitation starts well before that and can only be detected against a published sigma limit for the specific trim.'));
+            'No cavitation flag does not mean no cavitation. This check compares the estimated vena contracta pressure against the vapor pressure, which only becomes true close to the choke point. Incipient cavitation starts well before that and can only be detected against a published sigma limit for the specific trim.'));
     }
 
     if (isNum(sigma)) {
@@ -156,14 +156,14 @@ export function advisories(result, input) {
             'The standard develops the non-turbulent correction for liquid service only. Gas at low Reynolds number is outside its validated scope and no correction is applied here.'));
     }
 
-    // The choke check needs both pressures, and only the vapour one used to be
+    // The choke check needs both pressures, and only the vapor one used to be
     // reported. Supplying Pv and leaving Pc blank sized 9% smaller on a measured
-    // case, said nothing, and labelled the empty choke row "no vapour pressure"
-    // when the vapour pressure was the input that had been supplied.
+    // case, said nothing, and labeled the empty choke row "no vapor pressure"
+    // when the vapor pressure was the input that had been supplied.
     if (service === 'liquid') {
         if (!isNum(Pv)) {
-            out.push(w('NO_VAPOUR_PRESSURE', SEVERITY.INFO,
-                'Vapour pressure was not supplied, so the choking, cavitation and flashing checks were not run. They are not assumed to pass.'));
+            out.push(w('NO_VAPOR_PRESSURE', SEVERITY.INFO,
+                'Vapor pressure was not supplied, so the choking, cavitation and flashing checks were not run. They are not assumed to pass.'));
         } else if (!isNum(input.Pc)) {
             out.push(w('NO_CRITICAL_PRESSURE', SEVERITY.WARN,
                 'Critical pressure was not supplied, so the liquid critical pressure ratio FF could not be formed and the CHOKE check did not run. Cavitation and flashing were still checked. A choked service sized this way comes out undersized, because it is sized at the full differential rather than at the differential the valve can actually use.'));

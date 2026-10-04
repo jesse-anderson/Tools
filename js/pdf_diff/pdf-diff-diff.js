@@ -187,7 +187,7 @@ function isModificationPair(deletedText, insertedText) {
 /**
  * Get diff statistics.
  * Region counts are what the summary UI shows (one modification = one
- * delete+insert pair, counted once, NOT halved afterwards); char counts
+ * delete+insert pair, counted once, NOT halved afterward); char counts
  * give magnitude for reports.
  * @param {Array} diffs - Diff array from computeDiff
  * @returns {Object} { insertions, deletions, modifications,

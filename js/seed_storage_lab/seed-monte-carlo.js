@@ -85,7 +85,7 @@ export function germinationPosterior(rng, observedPct, testSeeds) {
     return 100 * sampleBeta(rng, k + 0.5, testSeeds - k + 0.5);
 }
 
-function summarise(values) {
+function summarize(values) {
     const sorted = [...values].sort((a, b) => a - b);
     return {
         p10: percentileSorted(sorted, PERCENTILES.low),
@@ -166,13 +166,13 @@ export function runViabilityMonteCarlo(record, options = {}) {
             Math.max(run.initialNed - nedFromPercent(1), 1) * run.sigmaDays), PERCENTILES.mid)));
 
     for (const entry of usable) {
-        entry.daysToTarget = summarise(entry.runs.map((run) => run.daysToTarget));
-        entry.daysToHalf = summarise(entry.runs.map((run) => run.daysToHalf));
+        entry.daysToTarget = summarize(entry.runs.map((run) => run.daysToTarget));
+        entry.daysToHalf = summarize(entry.runs.map((run) => run.daysToHalf));
         entry.band = [];
         for (let i = 0; i < curvePoints; i += 1) {
             const days = (horizon * i) / (curvePoints - 1);
             const neds = entry.runs.map((run) => run.initialNed - days / run.sigmaDays);
-            const s = summarise(neds);
+            const s = summarize(neds);
             entry.band.push({ days, p10: 100 * normalCdf(s.p10), median: 100 * normalCdf(s.median), p90: 100 * normalCdf(s.p90) });
         }
         entry.flags = [...new Set(entry.runs.flatMap((run) => run.flags.map((item) => item.code)))];

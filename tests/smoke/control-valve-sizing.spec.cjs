@@ -151,7 +151,7 @@ test.describe('goldens from the handbook', () => {
 
 test.describe('internal consistency', () => {
     test('the familiar one-liner falls out when nothing is corrected', async ({ page }) => {
-        // Cv = Q sqrt(SG / dP) is the form most users will recognise, and it is
+        // Cv = Q sqrt(SG / dP) is the form most users will recognize, and it is
         // correct only for turbulent, non-choked liquid with no fittings. Here
         // it is a test case and not an assumption.
         const r = await call(page, 'rate', {
@@ -163,7 +163,7 @@ test.describe('internal consistency', () => {
         expect(r.q).toBeCloseTo(86.5, 12);
     });
 
-    test('FF is bounded and reaches 0.96 as vapour pressure vanishes', async ({ page }) => {
+    test('FF is bounded and reaches 0.96 as vapor pressure vanishes', async ({ page }) => {
         expect(await call(page, 'liquidCriticalPressureRatio', 0, 22064)).toBeCloseTo(0.96, 12);
         expect(await call(page, 'liquidCriticalPressureRatio', 22064, 22064)).toBeCloseTo(0.68, 12);
         for (const Pv of [1, 100, 1000, 10000, 22064]) {
@@ -171,7 +171,7 @@ test.describe('internal consistency', () => {
             // The bounds are approached, so they are asserted with one ulp of
             // slack: 0.96 - 0.28 evaluates to 0.6799999999999999 in binary
             // floating point, and demanding exactly 0.68 would fail a correct
-            // engine on a representation artefact.
+            // engine on a representation artifact.
             expect(FF).toBeGreaterThanOrEqual(0.68 - 1e-12);
             expect(FF).toBeLessThanOrEqual(0.96 + 1e-12);
         }
@@ -230,7 +230,7 @@ test.describe('the expansion factor', () => {
     });
 });
 
-test.describe('the defining behavioural test', () => {
+test.describe('the defining behavioral test', () => {
     // Past the choke point, more pressure drop produces no more flow. This is
     // the one test that would catch the defect the tool exists to prevent.
     // Flat means BITWISE equal, not equal within a tolerance: dP is capped
@@ -368,15 +368,15 @@ test.describe('refusals', () => {
     };
 
     // Every out-of-domain input returns a named code, never a number, never NaN
-    // and never Infinity. This is the direct analogue of the beam tool's
+    // and never Infinity. This is the direct analog of the beam tool's
     // negative-load defect, where an upward load produced a negative deflection
     // that then passed its own limit check. Same failure shape, same test shape.
     const cases = [
         ['P2 equal to P1', { P2: 1000 }, 'REVERSE_DIFFERENTIAL'],
         ['P2 above P1', { P2: 1100 }, 'REVERSE_DIFFERENTIAL'],
         ['non-positive P1', { P1: 0, P2: -10 }, 'NON_POSITIVE_INLET'],
-        ['vapour pressure above inlet', { Pv: 1500 }, 'VAPOUR_ABOVE_INLET'],
-        ['non-positive vapour pressure', { Pv: -1 }, 'NON_POSITIVE_PROPERTY'],
+        ['vapor pressure above inlet', { Pv: 1500 }, 'VAPOR_ABOVE_INLET'],
+        ['non-positive vapor pressure', { Pv: -1 }, 'NON_POSITIVE_PROPERTY'],
         ['non-positive critical pressure', { Pc: 0 }, 'NON_POSITIVE_PROPERTY'],
         ['flashing service', { P2: 50 }, 'FLASHING'],
         ['valve wider than the pipe', { d: 200 }, 'BAD_GEOMETRY'],
@@ -434,8 +434,8 @@ test.describe('regime classification', () => {
     });
 
     test('a low-recovery valve cavitates at a far lower differential', async ({ page }) => {
-        // Physical behaviour, not arithmetic. A butterfly valve recovers
-        // more pressure, so its vena contracta drops below the vapour pressure
+        // Physical behavior, not arithmetic. A butterfly valve recovers
+        // more pressure, so its vena contracta drops below the vapor pressure
         // much earlier than a globe valve's does. This is the qualitative claim
         // the style library makes, checked against the engine.
         const onset = (FL) => page.evaluate((fl) => {
@@ -462,7 +462,7 @@ test.describe('regime classification', () => {
         expect(r.Pvc).toBeCloseTo(1000 - 300 / 0.81, 9);
     });
 
-    test('missing vapour pressure leaves the checks null, never passed', async ({ page }) => {
+    test('missing vapor pressure leaves the checks null, never passed', async ({ page }) => {
         // null means the check did not run. Zero would mean it ran and returned
         // zero. The refusal posture of the whole tool depends on those two never
         // being the same value.
@@ -472,7 +472,7 @@ test.describe('regime classification', () => {
         });
         expect(r.sigma).toBeNull();
         expect(r.dPChoked).toBeNull();
-        expect(r.warnings.map((x) => x.code)).toContain('NO_VAPOUR_PRESSURE');
+        expect(r.warnings.map((x) => x.code)).toContain('NO_VAPOR_PRESSURE');
     });
 });
 
@@ -565,7 +565,7 @@ test.describe('the vendored water saturation table', () => {
             const fromCsv = csv.get(T_C);
             expect(fromCsv, `no CSV row at ${T_C} C`).toBeDefined();
             // Exact: these knots were copied from those rows, so any drift in
-            // either file is a real divergence and not a rounding artefact.
+            // either file is a real divergence and not a rounding artifact.
             expect(P_kPa).toBeCloseTo(fromCsv, 9);
         }
     });
@@ -683,7 +683,7 @@ test.describe('characteristics and authority', () => {
     // Section 3.8 of the SOW had no test anywhere in the first draft, while the
     // acceptance criteria claimed every equation in section 3 had one. This is
     // that gap closed. It is also the tool's most novel output and the one with
-    // the weakest claim on reality: C(h) is an idealisation and real trim is
+    // the weakest claim on reality: C(h) is an idealization and real trim is
     // manufactured to a tolerance on it.
 
     test('the inherent forms hit their defined endpoints', async ({ page }) => {
@@ -693,7 +693,7 @@ test.describe('characteristics and authority', () => {
         expect(await call(page, 'inherentCoefficient', 'linear', 0, 100)).toBe(0);
         expect(await call(page, 'inherentCoefficient', 'quick-opening', 0, 100)).toBe(0);
         // Equal percentage lands on Crated / R, which is not a rounding
-        // artefact: it is the DEFINITION of rangeability, the ratio of maximum
+        // artifact: it is the DEFINITION of rangeability, the ratio of maximum
         // to minimum controllable flow. Trim that reached zero would have
         // infinite rangeability.
         expect(await call(page, 'inherentCoefficient', 'equal-percentage', 0, 100, 50)).toBeCloseTo(2, 12);
@@ -739,7 +739,7 @@ test.describe('characteristics and authority', () => {
         // Ksys = 750 / qOpen^2 = 0.0400949, and at half travel C = 50 so
         // q = sqrt(1000 / (1/(N1*50)^2 + Ksys)) = 103.3873.
         //
-        // Normalised that is 0.7559 against an inherent 0.5: at HALF travel the
+        // Normalized that is 0.7559 against an inherent 0.5: at HALF travel the
         // valve already passes three quarters of its full flow. That is the
         // distortion this whole section exists to make visible, pinned as a
         // number so it cannot quietly stop happening.
@@ -750,7 +750,7 @@ test.describe('characteristics and authority', () => {
         expect(r.authority).toBeCloseTo(0.25, 12);
         expect(r.qOpen).toBeCloseTo(136.768509, 5);
         expect(r.Ksys).toBeCloseTo(0.0400948912, 9);
-        const half = r.installedNormalised.find(([h]) => Math.abs(h - 0.5) < 1e-9);
+        const half = r.installedNormalized.find(([h]) => Math.abs(h - 0.5) < 1e-9);
         expect(half[1]).toBeCloseTo(0.75592895, 7);
     });
 
@@ -804,12 +804,12 @@ test.describe('characteristics and authority', () => {
         expect(r.characteristic).toBeNull();
     });
 
-    test('the plot draws both curves and separates them by more than colour', async ({ page }) => {
+    test('the plot draws both curves and separates them by more than color', async ({ page }) => {
         await page.selectOption('#characteristic', 'equal-percentage');
         const chart = page.locator('#characteristicChart');
         await expect(chart.locator('polyline.chart-inherent')).toHaveCount(1);
         await expect(chart.locator('polyline.chart-installed')).toHaveCount(1);
-        // Dash pattern, not just stroke colour, so the two are separable
+        // Dash pattern, not just stroke color, so the two are separable
         // without relying on hue. Same reasoning as the regime badge icon.
         const dashed = await chart.locator('polyline.chart-inherent').evaluate(
             (n) => getComputedStyle(n).strokeDasharray);
@@ -1131,9 +1131,9 @@ test.describe('the audit pass', () => {
     });
 
     test('a missing critical pressure stops the choke check and says which input', async ({ page }) => {
-        // FF needs both pressures and only the vapour one used to be reported.
+        // FF needs both pressures and only the vapor one used to be reported.
         // The same service sized 9% smaller with Pc blank, said nothing, and
-        // labelled the empty choke row "no vapour pressure" when the vapour
+        // labeled the empty choke row "no vapor pressure" when the vapor
         // pressure was the input that was present.
         const both = await call(page, 'size', { ...liquid, P2: 200, Pv: 190 });
         expect(both.choked).toBe(true);
@@ -1148,8 +1148,8 @@ test.describe('the audit pass', () => {
         expect(noPc.C).toBeLessThan(both.C * 0.95);
 
         const noPv = await call(page, 'size', { ...liquid, Pv: null, Pc: null });
-        expect(noPv.missingChokeInputs).toEqual(['vapour pressure', 'critical pressure']);
-        expect(noPv.warnings.map((x) => x.code)).toContain('NO_VAPOUR_PRESSURE');
+        expect(noPv.missingChokeInputs).toEqual(['vapor pressure', 'critical pressure']);
+        expect(noPv.warnings.map((x) => x.code)).toContain('NO_VAPOR_PRESSURE');
     });
 
     test('travel off the stroke is its own condition, not a percentage', async ({ page }) => {
@@ -1298,10 +1298,10 @@ test.describe('the page, after the audit', () => {
     test('the choke row names the input it is waiting on', async ({ page }) => {
         await page.fill('#pc', '');
         await expect(page.locator('#regimeDetail')).toContainText('no critical pressure');
-        await expect(page.locator('#regimeDetail')).not.toContainText('no vapour pressure');
+        await expect(page.locator('#regimeDetail')).not.toContainText('no vapor pressure');
     });
 
-    test('water fills its own vapour pressure from the vendored curve', async ({ page }) => {
+    test('water fills its own vapor pressure from the vendored curve', async ({ page }) => {
         // The 41 verified knots had no route to the page: a water service still
         // needed a hand-entered Pv.
         await page.fill('#tLiquid', '80');
@@ -1403,7 +1403,7 @@ test.describe('the page, after the audit', () => {
         await expect(page.locator('#styleNote')).toContainText('carried into');
 
         // A 60 degree rotary Cv is about a third of the same valve at 90, so
-        // carrying it into a field labelled "at full open" would understate the
+        // carrying it into a field labeled "at full open" would understate the
         // trim and distort every curve drawn from it. It is left alone, and the
         // note says why instead of staying silent.
         await page.selectOption('#style', 'ball-vnotch-3-60');
