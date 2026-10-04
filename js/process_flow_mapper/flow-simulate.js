@@ -147,7 +147,7 @@ export function simulate(input, options = {}) {
  * within, a histogram, and the same per end. ranges says whether any time was
  * typed as a range. Null when the run walked no unit.
  */
-export function summarise(sim, ranges) {
+export function summarize(sim, ranges) {
     if (!sim.ok) return null;
     let squares = 0;
     for (const t of sim.lead) squares += (t - sim.mean) ** 2;

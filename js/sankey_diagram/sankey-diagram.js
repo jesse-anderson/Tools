@@ -6,12 +6,13 @@ import * as parser from './sankey-parse.js';
 import * as engine from './sankey-engine.js';
 import * as projects from './sankey-projects.js';
 import { buildModel, balanceSummary } from './sankey-model.js';
-import { renderSankey, nodeColors, PALETTES } from './sankey-render.js';
+import { renderSankey, nodeColors, traceMarkPath, PALETTES } from './sankey-render.js';
 import {
     serializeSvg, svgToPngBlob, downloadBlob, fileStem, pngSize, PNG_SCALES, loadFontDataUrl, embedFont
 } from './sankey-export.js';
 import { PRESETS, PRESETS_BY_ID } from './presets.js';
 import { attachDrag } from './sankey-drag.js';
+import { traceFlows } from './sankey-trace.js';
 
 const el = (id) => document.getElementById(id);
 const TEXT_DEBOUNCE_MS = 120;
@@ -22,7 +23,7 @@ const RESIZE_STEP_LARGE = 100;
 // Everything a project remembers besides the flow list.
 const FIELD_IDS = ['titleInput', 'unitInput', 'tolerance', 'widthMode', 'minLinkWidth', 'showValues', 'showPercent', 'showLinkValues',
     'showMissing', 'diagramWidth', 'diagramHeight', 'nodeWidth', 'nodePadding', 'align', 'order', 'fontSize', 'decimals',
-    'nodeColor', 'linkColor', 'linkOpacity', 'pngScale', 'exportTheme', 'exportTransparent'];
+    'nodeColor', 'linkColor', 'linkOpacity', 'traceStyle', 'pngScale', 'exportTheme', 'exportTransparent'];
 const CLAMPED_IDS = ['tolerance', 'minLinkWidth','diagramWidth', 'diagramHeight', 'nodeWidth', 'nodePadding', 'fontSize', 'linkOpacity'];
 const STARTER_TEXT = '// Source [amount] Target\nFeed [100] Process\nProcess [100] Product\n';
 
@@ -70,6 +71,7 @@ function readSettings() {
             showMissing: el('showMissing').checked,
             nodeColor: el('nodeColor').value,
             linkColor: el('linkColor').value,
+            traceStyle: el('traceStyle').value,
             linkOpacity: Math.min(1, Math.max(0.1, (opacityPct === undefined ? 45 : opacityPct) / 100)),
             fontSize: Math.min(24, Math.max(8, fontSize === undefined ? 12 : fontSize))
         }
@@ -151,6 +153,40 @@ function fillTables(view) {
         );
         return tr;
     }));
+
+    const where = {
+        output: (end) => end.name,
+        missing: (end) => `Not accounted for at ${end.name}`,
+        traced: (end) => `Into ${end.name}, traced separately`,
+        returned: (end) => `Back to ${end.name} by a recycle`
+    };
+    el('traceCard').hidden = model.traces.length === 0;
+    el('traceNote').textContent = model.traces.some((t) => t.mixedAt.length)
+        ? 'An estimate: where several inputs meet and split again, each output is taken to carry them in the proportions they arrived.'
+        : 'Exact for this list: nothing traced is mixed with another input and then split.';
+    el('traceTable').tBodies[0].replaceChildren(...model.traces.flatMap((trace) => trace.ends.map((end, i) => {
+        const tr = document.createElement('tr');
+        const th = document.createElement('th');
+        th.scope = 'row';
+        if (view.traceStyle !== 'band') {
+            // The same mark the stream carries on the diagram.
+            const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            for (const [k, v] of Object.entries({ class: 'trace-key', viewBox: '0 0 14 14', width: 14, height: 14, 'aria-hidden': 'true' })) svg.setAttribute(k, v);
+            const mark = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            for (const [k, v] of Object.entries({ d: traceMarkPath(model.traces.indexOf(trace), 7, 7), fill: 'none', stroke: 'currentColor', 'stroke-width': 1.2 })) mark.setAttribute(k, v);
+            svg.appendChild(mark);
+            th.appendChild(svg);
+        }
+        th.append(`${trace.name} (${fmt(trace.origin)}${unit})`);
+        if (i > 0) th.className = 'trace-repeat';
+        tr.append(
+            th,
+            cell(where[end.kind](end), 'balance-status'),
+            cell(fmt(end.amount), 'num'),
+            cell(engine.formatPercent(end.amount / trace.origin), 'num')
+        );
+        return tr;
+    })));
 }
 
 function clearOutput() {
@@ -158,6 +194,8 @@ function clearOutput() {
     el('totals').replaceChildren();
     el('balanceTable').tBodies[0].replaceChildren();
     el('flowsTable').tBodies[0].replaceChildren();
+    el('traceTable').tBodies[0].replaceChildren();
+    el('traceCard').hidden = true;
     el('resultStatus').textContent = '';
     el('exportStatus').textContent = '';
 }
@@ -240,6 +278,8 @@ function render(previewPositions = null) {
     el('downloadSvg').disabled = !model.ok;
     el('downloadPng').disabled = !model.ok;
     el('resetPositions').disabled = Object.keys(model.parsed.positions).length === 0;
+    el('clearTraces').disabled = model.parsed.traces.length === 0;
+    el('traceInputs').disabled = !model.ok;
 
     el('errorBox').hidden = model.ok;
     fillList(el('errorList'), model.errors);
@@ -513,6 +553,20 @@ function init() {
     el('downloadSvg').addEventListener('click', () => exportDiagram('svg'));
     el('downloadPng').addEventListener('click', () => exportDiagram('png'));
     el('resetPositions').addEventListener('click', () => setFlowText(parser.clearPositionLines(el('flowText').value)));
+    el('traceInputs').addEventListener('click', () => {
+        if (!model || !model.ok) return;
+        // Largest first, so the widest streams get the first shapes.
+        const inputs = model.balance.nodes.filter((b) => b.role === 'input').sort((a, b) => b.outflow - a.outflow);
+        const limit = parser.LIMITS.maxTraces;
+        const cleared = model.parsed.traces.reduce((text, name) => parser.setTraceLine(text, name, false), el('flowText').value);
+        setFlowText(inputs.slice(0, limit).reduce((text, b) => parser.setTraceLine(text, b.name, true), cleared));
+        el('exportStatus').textContent = inputs.length > limit
+            ? `There are ${inputs.length} inputs and ${limit} shapes, so the ${limit} largest are traced.`
+            : '';
+    });
+    el('clearTraces').addEventListener('click', () => {
+        setFlowText(model.parsed.traces.reduce((text, name) => parser.setTraceLine(text, name, false), el('flowText').value));
+    });
 
     el('projectSelect').addEventListener('input', (event) => {
         flushDraft();
@@ -550,7 +604,8 @@ function init() {
     attachDrag(el('diagramHost'), {
         getModel: () => model,
         preview: (positions) => render(positions),
-        commit: (name, position) => setFlowText(parser.setPositionLine(el('flowText').value, name, position))
+        commit: (name, position) => setFlowText(parser.setPositionLine(el('flowText').value, name, position)),
+        toggleTrace: (name) => setFlowText(parser.setTraceLine(el('flowText').value, name, !model.parsed.traces.includes(name)))
     });
 
     attachResize(el('resizeBar'));
@@ -570,9 +625,11 @@ window.SankeyDiagram = {
     engine,
     projects,
     buildModel,
+    traceFlows,
     balanceSummary,
     renderSankey,
     nodeColors,
+    traceMarkPath,
     serializeSvg,
     svgToPngBlob,
     loadFontDataUrl,

@@ -8,7 +8,8 @@ export const LIMITS = Object.freeze({
     maxFlows: 500,
     maxNameLength: 80,
     maxNoteLength: 120,
-    maxColumn: 40
+    maxColumn: 40,
+    maxTraces: 8
 });
 
 const FLOW_LINE = /^(.+?)\s*\[([^\]]*)\]\s*(.+)$/;
@@ -125,7 +126,7 @@ function readFlowLine(line) {
 
 /**
  * Parse the whole text.
- * Returns { flows, colors, notes, positions, columns, errors, warnings }. flows are
+ * Returns { flows, colors, notes, positions, columns, traces, errors, warnings }. flows are
  * { source, target, value, line }; errors and warnings are { line, code, message }.
  */
 export function parseFlows(text) {
@@ -134,6 +135,7 @@ export function parseFlows(text) {
     const notes = {};
     const positions = {};
     const columns = {};
+    const traces = [];
     const errors = [];
     const warnings = [];
     const lines = String(text == null ? '' : text).split(/\r\n|\r|\n/);
@@ -199,6 +201,16 @@ export function parseFlows(text) {
         }
 
         const parts = readFlowLine(line);
+        // A node to follow downstream. A flow whose source name starts with "*" is still a flow.
+        if (line.startsWith('*') && (!parts || parts.fieldCount !== undefined)) {
+            const name = cleanName(line.slice(1));
+            if (!name) {
+                errors.push({ line: lineNo, code: 'TRACE_NOT_UNDERSTOOD', message: 'a trace line reads "* Node name"' });
+                return;
+            }
+            if (!traces.includes(name)) traces.push(name);
+            return;
+        }
         // A flow whose source name starts with ">" is still a flow.
         if (!parts && line.startsWith('>')) {
             errors.push({ line: lineNo, code: 'COLUMN_NOT_UNDERSTOOD', message: 'a column line reads "> Node name: 3"' });
@@ -259,6 +271,10 @@ export function parseFlows(text) {
         errors.push({ line: null, code: 'TOO_MANY_FLOWS', message: `${flows.length} flows entered, the limit is ${LIMITS.maxFlows}` });
     }
 
+    if (traces.length > LIMITS.maxTraces) {
+        errors.push({ line: null, code: 'TOO_MANY_TRACES', message: `${traces.length} nodes are set to be traced, the limit is ${LIMITS.maxTraces}` });
+    }
+
     // Names that differ only by case are almost always one node typed two ways.
     const byFolded = new Map();
     for (const flow of flows) {
@@ -276,13 +292,13 @@ export function parseFlows(text) {
     }
 
     const known = new Set(flows.flatMap((f) => [f.source, f.target]));
-    for (const name of new Set([...Object.keys(colors), ...Object.keys(notes), ...Object.keys(positions), ...Object.keys(columns)])) {
+    for (const name of new Set([...Object.keys(colors), ...Object.keys(notes), ...Object.keys(positions), ...Object.keys(columns), ...traces])) {
         if (!known.has(name)) {
-            warnings.push({ line: null, code: 'UNKNOWN_NODE', message: `"${name}" has a colour, note, position or column but appears in no flow` });
+            warnings.push({ line: null, code: 'UNKNOWN_NODE', message: `"${name}" has a colour, note, position, column or trace but appears in no flow` });
         }
     }
 
-    return { flows, colors, notes, positions, columns, errors, warnings };
+    return { flows, colors, notes, positions, columns, traces, errors, warnings };
 }
 
 /**
@@ -308,4 +324,23 @@ export function clearPositionLines(text) {
     return String(text == null ? '' : text).split(/\r\n|\r|\n/)
         .filter((raw) => !POSITION_LINE.exec(raw.trim()))
         .join('\n').replace(/\n+$/, '\n');
+}
+
+/** Whether a line is the trace line for a node. A flow starting with "*" is not. */
+function isTraceLine(raw, name) {
+    const line = raw.trim();
+    if (!line.startsWith('*')) return false;
+    const parts = readFlowLine(line);
+    if (parts && parts.fieldCount === undefined) return false;
+    return cleanName(line.slice(1)) === name;
+}
+
+/** Return the text with a node's trace line added or removed. */
+export function setTraceLine(text, name, on) {
+    const kept = String(text == null ? '' : text).split(/\r\n|\r|\n/).filter((raw) => !isTraceLine(raw, name));
+    if (on) {
+        while (kept.length && kept[kept.length - 1].trim() === '') kept.pop();
+        kept.push(`* ${name}`);
+    }
+    return kept.join('\n');
 }

@@ -4,7 +4,7 @@
 // style attribute. That is what lets the same element be serialized to a file
 // and what keeps it legal under a style-src with no unsafe-inline.
 
-import { ribbonPath, centrePath, linkLabelPoint, formatValue, formatPercent } from './sankey-engine.js';
+import { ribbonPath, centrePath, centrePoints, linkBand, linkLabelPoint, formatValue, formatPercent } from './sankey-engine.js';
 import { balanceSummary } from './sankey-model.js';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
@@ -42,9 +42,55 @@ const HIT_SIDE = 8;
 const LABEL_LIFT = 4;
 // Clear space kept beside a label, in px.
 const LABEL_GAP = 6;
+// A traced band thinner than this is drawn as a dashed line instead.
+const BAND_MIN_PX = 1;
+// Distance between the marks along a traced stream, and half a mark's size, in px.
+const MARK_SPACING = 44;
+const MARK_RADIUS = 4.5;
+// Where along the spacing each stream starts, so neighbours sit half a step apart.
+const MARK_PHASES = [0, 0.5, 0.25, 0.75];
+
+const polygon = (points) => `M${points.map(([x, y]) => `${Math.round(x * 100) / 100},${Math.round(y * 100) / 100}`).join('L')}Z`;
+const ring = (x, y, count, radius, turn = -90, inner = radius) => polygon(Array.from({ length: count }, (_, i) => {
+    const a = ((turn + (360 / count) * i) * Math.PI) / 180;
+    const r = i % 2 ? inner : radius;
+    return [x + r * Math.cos(a), y + r * Math.sin(a)];
+}));
+
+// One shape per traced node, in the order the trace lines are typed. Shape is
+// what identifies a stream: the palette repeats and does not survive greyscale.
+export const TRACE_SHAPES = Object.freeze([
+    { id: 'circle', plural: 'circles', path: (x, y, r) => ring(x, y, 24, r * 0.9) },
+    { id: 'triangle', plural: 'triangles', path: (x, y, r) => ring(x, y + r * 0.15, 3, r * 1.15) },
+    { id: 'square', plural: 'squares', path: (x, y, r) => ring(x, y, 4, r * 1.15, -45) },
+    { id: 'star', plural: 'stars', path: (x, y, r) => ring(x, y, 10, r * 1.25, -90, r * 0.52) },
+    { id: 'diamond', plural: 'diamonds', path: (x, y, r) => ring(x, y, 4, r * 1.15) },
+    { id: 'cross', plural: 'crosses', path: (x, y, r) => {
+        const a = r * 0.36;
+        return polygon([[-a, -r], [a, -r], [a, -a], [r, -a], [r, a], [a, a], [a, r], [-a, r], [-a, a], [-r, a], [-r, -a], [-a, -a]]
+            .map(([dx, dy]) => [x + dx, y + dy]));
+    } },
+    { id: 'wedge', plural: 'downward triangles', path: (x, y, r) => ring(x, y - r * 0.15, 3, r * 1.15, 90) },
+    { id: 'hexagon', plural: 'hexagons', path: (x, y, r) => ring(x, y, 6, r, 0) }
+]);
+
+/** Path for the mark of the n-th traced node, centred on x, y. */
+export function traceMarkPath(n, x, y, radius = MARK_RADIUS) {
+    return TRACE_SHAPES[n % TRACE_SHAPES.length].path(x, y, radius);
+}
+
 // What the diagram says about anything on it that is not drawn to scale.
-function footnoteText(layout) {
+function footnoteText(layout, traces = [], style = 'both') {
     const parts = [];
+    if (traces.length) {
+        const marked = style !== 'band';
+        const one = (t, i) => (marked ? `${t.name} (${TRACE_SHAPES[i % TRACE_SHAPES.length].plural})` : t.name);
+        const names = traces.length <= 3 ? traces.map(one).join(', ') : (marked ? 'the node carrying the same mark' : 'the traced nodes');
+        const how = traces.some((t) => t.mixedAt.length) ? ', if each node passes on its inputs evenly mixed' : '';
+        parts.push(style === 'line'
+            ? `Marked lines run through each flow that carries something from ${names}${how}.`
+            : `Solid bands are the part of each flow that came through ${names}${how}.`);
+    }
     if (layout.widthMode === 'equal') parts.push('Every flow is drawn the same width. Widths are not amounts.');
     if (layout.widthMode === 'root') parts.push('Widths follow the square root of each amount. They are not to scale.');
     if (layout.hairlines.length) parts.push('Dashed lines are flows under 1 px wide at this size. They are not to scale.');
@@ -68,6 +114,8 @@ export const VIEW_DEFAULTS = Object.freeze({
     nodeColor: 'node',
     linkColor: 'source',
     linkOpacity: 0.45,
+    // How a traced stream is drawn: band, line, or both.
+    traceStyle: 'both',
     background: true,
     fontSize: 12,
     // On the page nodes can be focused and moved. An exported file gets none of that.
@@ -105,6 +153,7 @@ function halo(palette) {
 export function renderSankey(doc, model, viewOptions = {}, palette = PALETTES.light) {
     const view = { ...VIEW_DEFAULTS, ...viewOptions };
     const { graph, balance, layout, parsed } = model;
+    const traces = model.traces || [];
     const { width, height, margin } = layout.options;
     const unit = view.unit ? ` ${view.unit}` : '';
     const colors = nodeColors(model, palette, view.nodeColor);
@@ -185,6 +234,58 @@ export function renderSankey(doc, model, viewOptions = {}, palette = PALETTES.li
     }
     svg.appendChild(linkGroup);
 
+    // Traced bands sit inside their ribbon, stacked from its upper edge, each
+    // as wide as the share of that flow that came through the traced node.
+    if (traces.length) {
+        const bandGroup = make(doc, 'g', { class: 'sankey-traces' });
+        const marks = [];
+        for (const link of layout.links) {
+            let from = 0;
+            for (const trace of traces) {
+                const part = trace.shares[link.index];
+                if (!(part > 1e-9)) continue;
+                const to = Math.min(1, from + part);
+                const band = linkBand(link, from, to);
+                from = to;
+                const paint = colors[trace.node];
+                const order = traces.indexOf(trace);
+                const thin = link.hairline || band.width < BAND_MIN_PX;
+                const said = `${graph.nodes[link.source].name} to ${graph.nodes[link.target].name}: ${fmt(link.value * part)} of ${fmt(link.value)} came through ${trace.name} (${formatPercent(part)})`;
+                let el;
+                if (thin) {
+                    el = make(doc, 'path', {
+                        class: 'sankey-trace sankey-trace-thin', d: centrePath(band), fill: 'none', stroke: paint,
+                        'stroke-width': 1.5, 'stroke-dasharray': '4 3', 'data-link': link.index, 'data-trace': trace.node
+                    });
+                } else if (view.traceStyle === 'line') {
+                    el = make(doc, 'path', {
+                        class: 'sankey-trace sankey-trace-line', d: centrePath(band), fill: 'none', stroke: paint,
+                        'stroke-width': 2, 'data-link': link.index, 'data-trace': trace.node
+                    });
+                } else {
+                    el = make(doc, 'path', {
+                        class: 'sankey-trace', d: ribbonPath(band), fill: paint, 'fill-opacity': 0.92,
+                        'data-link': link.index, 'data-trace': trace.node
+                    });
+                }
+                el.appendChild(make(doc, 'title', {}, said));
+                bandGroup.appendChild(el);
+                if (view.traceStyle === 'band') continue;
+                // The stream's own shape, repeated along the middle of its band.
+                for (const at of centrePoints(band, MARK_SPACING, MARK_PHASES[order % MARK_PHASES.length])) {
+                    marks.push(make(doc, 'path', {
+                        class: 'sankey-trace-mark', d: traceMarkPath(order, at.x, at.y), fill: palette.surface,
+                        stroke: palette.ink, 'stroke-width': 1.1, 'stroke-linejoin': 'round', 'pointer-events': 'none',
+                        'data-link': link.index, 'data-trace': trace.node, 'data-shape': TRACE_SHAPES[order % TRACE_SHAPES.length].id
+                    }));
+                }
+            }
+        }
+        // Marks go on after every band, so a neighbouring band never covers one.
+        bandGroup.append(...marks);
+        svg.appendChild(bandGroup);
+    }
+
     if (view.showMissing && layout.stubs.length) {
         const stubGroup = make(doc, 'g', { class: 'sankey-stubs' });
         const gap = layout.maxLayer > 0 ? (layout.bounds.right - layout.bounds.left) / layout.maxLayer : 60;
@@ -215,7 +316,7 @@ export function renderSankey(doc, model, viewOptions = {}, palette = PALETTES.li
             tabindex: view.interactive ? 0 : null,
             role: view.interactive ? 'img' : null,
             'aria-label': view.interactive
-                ? `${node.name}: ${detail}. Drag, or use the arrow keys, to move it${node.pinned ? '. Delete returns it to its automatic place' : ''}`
+                ? `${node.name}: ${detail}${traces.some((t) => t.node === node.index) ? ', traced' : ''}. Drag, or use the arrow keys, to move it${node.pinned ? '. Delete returns it to its automatic place' : ''}. T traces where it goes`
                 : null
         });
         rect.appendChild(make(doc, 'title', {}, `${node.name}: ${detail}`));
@@ -230,6 +331,15 @@ export function renderSankey(doc, model, viewOptions = {}, palette = PALETTES.li
             }));
         }
         nodeGroup.appendChild(rect);
+        // A traced node wears its mark, which is the key to the marks on the flows.
+        const order = traces.findIndex((t) => t.node === node.index);
+        if (order >= 0 && view.traceStyle !== 'band') {
+            nodeGroup.appendChild(make(doc, 'path', {
+                class: 'sankey-node-mark', d: traceMarkPath(order, (node.x0 + node.x1) / 2, (node.y0 + node.y1) / 2, MARK_RADIUS + 1),
+                fill: palette.surface, stroke: palette.ink, 'stroke-width': 1.1, 'stroke-linejoin': 'round', 'pointer-events': 'none',
+                'data-node': node.index, 'data-shape': TRACE_SHAPES[order % TRACE_SHAPES.length].id
+            }));
+        }
     }
     svg.appendChild(nodeGroup);
 
@@ -259,7 +369,7 @@ export function renderSankey(doc, model, viewOptions = {}, palette = PALETTES.li
     };
     // What a label must keep off: every node, the title, the footnote, and each label once placed.
     const labelTop = view.title ? margin + 22 : 2;
-    const footnote = footnoteText(layout);
+    const footnote = footnoteText(layout, traces, view.traceStyle);
     const obstacles = layout.nodes.map((n) => ({ x0: n.x0, x1: n.x1, y0: n.y0, y1: Math.max(n.y1, n.y0 + 1), owner: n.index }));
     if (footnote) {
         obstacles.push({

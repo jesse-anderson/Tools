@@ -57,6 +57,7 @@ module.exports = defineConfig({
     'local-llm-opex.spec.cjs',
     'sankey-diagram.spec.cjs',
     'sankey-diagram-page.spec.cjs',
+    'sankey-diagram-trace.spec.cjs',
     'process-flow-mapper.spec.cjs',
     'process-flow-mapper-layout.spec.cjs',
     'process-flow-mapper-page.spec.cjs',

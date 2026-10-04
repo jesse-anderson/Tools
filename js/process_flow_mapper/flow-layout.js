@@ -38,7 +38,7 @@ export const LAYOUT_DEFAULTS = Object.freeze({
 
 // A decision is six-sided: its left and right ends come to a point this far in.
 export const DECISION_CUT = 16;
-// How far off the centre line a rework connector enters, as a share of the box height.
+// How far off the center line a rework connector enters, as a share of the box height.
 const REWORK_ENTRY = 0.25;
 const LABEL_PAD = 7;
 const PHASE_RULE_INSET = 6;
@@ -334,7 +334,7 @@ export function computeLayout(graph, options = {}, measure = estimate, labels = 
                 const ud = flowGutters[route.depGutter + 1].dep[route.depTrack];
                 const ua = flowGutters[route.arrGutter + 1].arr[route.arrTrack];
                 const vh = trackV(route.hGutter, route.hTrack);
-                // Rework comes in off the centre line, on the side it arrives from,
+                // Rework comes in off the center line, on the side it arrives from,
                 // so its arrowhead does not sit on the one already there.
                 if (link.rework) tv += Math.sign(vh - tv) * across * REWORK_ENTRY;
                 turns = [[ud, sv], [ud, vh], [ua, vh], [ua, tv]];

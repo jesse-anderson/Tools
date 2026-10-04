@@ -154,7 +154,7 @@ Last Updated: October 2026
                         <ul>
                             <li><strong>The tint is relative.</strong> The darkest step is the largest on this map, not large in any absolute sense. A map where nothing matters still has a darkest step.</li>
                             <li><strong>Position means nothing.</strong> Columns follow the order of steps, not time. Distance across the page is not duration.</li>
-                            <li><strong>Lane colour.</strong> The palette has eight colours and repeats after that.</li>
+                            <li><strong>Lane color.</strong> The palette has eight colors and repeats after that.</li>
                             <li><strong>Exports.</strong> A PNG carries the page font for Latin text only, and an SVG uses whatever fonts the program opening it has. Check an export before it goes into a report.</li>
                         </ul>
                     </div>
@@ -253,7 +253,7 @@ Last Updated: October 2026
                         <dd>A double arrow means all of these happen, at the same time. The branches must meet again at one step, which goes on when the slowest arrives. Steps on a faster branch are shown with their slack. A branch may end the work, such as <code>no 10%: (Rejected)</code>: the other branches still run, the work stops when they have, and a unit two branches both stop is counted at the first branch written. A branch can be a wait alone, such as <code>=&gt; {wait 3 d}: Assemble, Prep</code> for parts in transit while Prep is done.</dd>
                         <dt><code>Customer: (Order placed)</code></dt>
                         <dd>Brackets mark a start or an end. A step named only as a target needs a line like this to say which lane does it.</dd>
-                        <dt><code>== Fulfil ==</code></dt>
+                        <dt><code>== Fulfill ==</code></dt>
                         <dd>Starts a phase. Steps below it are grouped, and the phase gets its own share of the lead time.</dd>
                         <dt><code>in: Order form from Customer</code><br><code>out: Invoice to Customer</code></dt>
                         <dd>What the phase above takes in and from whom, and what it hands on and to whom. Several are separated by commas. Lines above the first phase are about the whole process and get a row of their own. They fill the SIPOC table and change no figure.</dd>
@@ -266,7 +266,7 @@ Last Updated: October 2026
                         <dt><code>@ Credit OK?: limit is 30 days overdue</code></dt>
                         <dd>A note kept with that step and shown when you hover over it.</dd>
                         <dt><code>: Finance #4a3aa7</code></dt>
-                        <dd>A colour for that lane.</dd>
+                        <dd>A color for that lane.</dd>
                         <dt><code>// comment</code></dt>
                         <dd>Ignored, as is a line starting with <code>#</code>.</dd>
                     </dl>
@@ -370,7 +370,7 @@ Last Updated: October 2026
                             <select id="pngScale" aria-describedby="pngSizeNote"></select>
                         </div>
                         <div class="input-group">
-                            <label for="exportTheme">Colours</label>
+                            <label for="exportTheme">Colors</label>
                             <select id="exportTheme">
                                 <option value="current" selected>As shown</option>
                                 <option value="light">Light</option>

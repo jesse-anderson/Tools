@@ -1,6 +1,6 @@
 // Swimlane SVG renderer for the process flow mapper.
 //
-// Every colour is a literal presentation attribute, never a CSS variable or a
+// Every color is a literal presentation attribute, never a CSS variable or a
 // style attribute, so the element on the page is the file that is exported and
 // it stays legal under a style-src with no unsafe-inline.
 
@@ -63,7 +63,7 @@ export const VIEW_DEFAULTS = Object.freeze({
 const LEGEND_STEPS = 5;
 const BADGE_FROM = 1.005;
 
-/** Blend two #rrggbb colours: t = 0 is a, t = 1 is b. */
+/** Blend two #rrggbb colors: t = 0 is a, t = 1 is b. */
 export function mix(a, b, t) {
     const part = (hex, i) => parseInt(hex.slice(1 + 2 * i, 3 + 2 * i), 16);
     const out = [0, 1, 2].map((i) => Math.round(part(a, i) + (part(b, i) - part(a, i)) * t));

@@ -701,7 +701,7 @@ test.describe('moving, pasting and saving tables', () => {
       return box.dispatchEvent(new ClipboardEvent('paste', { clipboardData: data, bubbles: true, cancelable: true }));
     }, text);
     const rows = ['Lane\tStep\tTouch\tWait\tNext', 'Ann\t(Start)\t\t\tDraft', 'Ann\tDraft\t30 min\t\tOK?', 'Bob\tOK?\t10 min\t1 d\tyes 75%: (Done); no 25%: Draft', 'Bob\t(Done)'].join('\n');
-    // The page handled it, so the browser's own paste is cancelled.
+    // The page handled it, so the browser's own paste is canceled.
     expect(await paste(rows)).toBe(false);
     expect(await page.inputValue('#flowText')).toBe('Ann: (Start) -> Draft\nAnn: Draft {30 min} -> OK?\nBob: OK? {10 min, wait 1 d} -> yes 75%: (Done), no 25%: Draft\nBob: (Done)\n');
     await expect(page.locator('#pasteStatus')).toHaveText('Turned 4 spreadsheet rows into step lines.');

@@ -93,7 +93,7 @@ test.describe('the simulation off the page', () => {
     // Asking again for the map already out sends nothing new.
     expect(dropped.again).toEqual({ pending: true });
     expect(dropped.second).toEqual({ pending: true });
-    expect(dropped.stats).toEqual({ here: 0, worker: 2, cancelled: 1 });
+    expect(dropped.stats).toEqual({ here: 0, worker: 2, canceled: 1 });
     expect(dropped.workers).toEqual([{ posted: ['a'], ended: true }, { posted: ['b'], ended: false }]);
 
     // On the page, the card says it is working until the run comes back.

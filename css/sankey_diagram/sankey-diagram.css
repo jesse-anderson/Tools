@@ -408,6 +408,22 @@ tr.unbalanced .balance-status {
 }
 
 /* Passing only because the tolerance allows it gets a quieter mark than failing. */
+/* The traced node is named on every row; after the first it steps back. */
+tbody th.trace-repeat {
+    font-weight: 400;
+    color: var(--text-secondary);
+}
+
+.trace-key {
+    vertical-align: -2px;
+    margin-right: 6px;
+}
+
+#traceTable .balance-status {
+    white-space: normal;
+    min-width: 9em;
+}
+
 tr.tolerated {
     box-shadow: inset 3px 0 0 var(--accent-warning);
 }

@@ -679,6 +679,8 @@ const r2 = (v) => Math.round(v * 100) / 100;
 // Every turn is a pair of concentric arcs, so the width never changes.
 function loopGeometry(link) {
     const r = RECYCLE.radius;
+    // A band inside a loop turns in its lane on a wider radius, to stay concentric.
+    const q = link.loop.laneRadius === undefined ? r : link.loop.laneRadius;
     const { sourceBottom: S, targetBottom: T, laneTop: L0, laneBottom: L1 } = link.loop;
     const eS = link.loop.sourceRun === undefined ? RECYCLE.run : link.loop.sourceRun;
     const eT = link.loop.targetRun === undefined ? RECYCLE.run : link.loop.targetRun;
@@ -688,7 +690,7 @@ function loopGeometry(link) {
     const riS = S + r - link.sy1;
     const riT = T + r - link.ty1;
     return {
-        r, w, xs, xt, S, T, L0, L1, riS, riT,
+        r, q, w, xs, xt, S, T, L0, L1, riS, riT,
         roS: riS + w,
         roT: riT + w,
         xa: xs + eS,
@@ -713,20 +715,20 @@ function loopRibbonPath(link) {
     return `M${r2(g.xs)},${r2(link.sy0)}`
         + L(g.xa, link.sy0)
         + arc(g.roS, 1, g.legOutOuter, g.S + g.r)
-        + L(g.legOutOuter, g.L0 - g.r)
-        + arc(g.r + g.w, 1, g.legOutInner - g.r, g.L1)
-        + L(g.legInInner + g.r, g.L1)
-        + arc(g.r + g.w, 1, g.legInOuter, g.L0 - g.r)
+        + L(g.legOutOuter, g.L0 - g.q)
+        + arc(g.q + g.w, 1, g.legOutInner - g.q, g.L1)
+        + L(g.legInInner + g.q, g.L1)
+        + arc(g.q + g.w, 1, g.legInOuter, g.L0 - g.q)
         + L(g.legInOuter, g.T + g.r)
         + arc(g.roT, 1, g.xb, link.ty0)
         + L(g.xt, link.ty0)
         + L(g.xt, link.ty1)
         + L(g.xb, link.ty1)
         + arc(g.riT, 0, g.legInInner, g.T + g.r)
-        + L(g.legInInner, g.L0 - g.r)
-        + arc(g.r, 0, g.legInInner + g.r, g.L0)
-        + L(g.legOutInner - g.r, g.L0)
-        + arc(g.r, 0, g.legOutInner, g.L0 - g.r)
+        + L(g.legInInner, g.L0 - g.q)
+        + arc(g.q, 0, g.legInInner + g.q, g.L0)
+        + L(g.legOutInner - g.q, g.L0)
+        + arc(g.q, 0, g.legOutInner, g.L0 - g.q)
         + L(g.legOutInner, g.S + g.r)
         + arc(g.riS, 0, g.xa, link.sy1)
         + L(g.xs, link.sy1)
@@ -741,10 +743,10 @@ function loopCentrePath(link) {
     return `M${r2(g.xs)},${r2(link.sy0 + h)}`
         + L(g.xa, link.sy0 + h)
         + arc(g.riS + h, g.legOutInner + h, g.S + g.r)
-        + L(g.legOutInner + h, g.L0 - g.r)
-        + arc(g.r + h, g.legOutInner - g.r, g.L0 + h)
-        + L(g.legInInner + g.r, g.L0 + h)
-        + arc(g.r + h, g.legInInner - h, g.L0 - g.r)
+        + L(g.legOutInner + h, g.L0 - g.q)
+        + arc(g.q + h, g.legOutInner - g.q, g.L0 + h)
+        + L(g.legInInner + g.q, g.L0 + h)
+        + arc(g.q + h, g.legInInner - h, g.L0 - g.q)
         + L(g.legInInner - h, g.T + g.r)
         + arc(g.riT + h, g.xb, link.ty0 + h)
         + L(g.xt, link.ty0 + h);
@@ -781,6 +783,35 @@ export function ribbonPath(link) {
     return `${d}Z`;
 }
 
+/**
+ * The part of a link between two fractions of its width, measured from its
+ * upper edge at the source, as a link that ribbonPath and centrePath can draw.
+ */
+export function linkBand(link, from, to) {
+    const cut = (top, bottom) => [top + (bottom - top) * from, top + (bottom - top) * to];
+    const [sy0, sy1] = cut(link.sy0, link.sy1);
+    const [ty0, ty1] = cut(link.ty0, link.ty1);
+    const band = { ...link, sy0, sy1, ty0, ty1, width: link.width * (to - from) };
+    if (link.waypoints) {
+        band.waypoints = link.waypoints.map((w) => {
+            const [y0, y1] = cut(w.y0, w.y1);
+            return { ...w, y0, y1 };
+        });
+    }
+    if (link.recycle) {
+        // The upper edge at the source is the outside of the loop, so it is the lane's lower edge.
+        const { laneTop, laneBottom } = link.loop;
+        const inner = (laneBottom - laneTop) * (1 - to);
+        band.loop = {
+            ...link.loop,
+            laneTop: laneTop + inner,
+            laneBottom: laneBottom - (laneBottom - laneTop) * from,
+            laneRadius: RECYCLE.radius + inner
+        };
+    }
+    return band;
+}
+
 /** Centre line of a link, used for the not-to-scale hairline. */
 export function centrePath(link) {
     if (link.recycle) return loopCentrePath(link);
@@ -793,6 +824,77 @@ export function centrePath(link) {
         if (i < s.length - 1) d += `L${r2(s[i].xOut)},${r2(mid(s[i]))}`;
     }
     return d;
+}
+
+// The centre line as a polyline fine enough to measure along.
+function centreLine(link) {
+    const pts = [];
+    if (link.recycle) {
+        const g = loopGeometry(link);
+        const h = g.w / 2;
+        // Quarter turns, clockwise on screen, each starting at the given angle.
+        const turn = (cx, cy, radius, start) => {
+            for (let k = 1; k <= 12; k++) {
+                const a = start + (Math.PI / 2) * (k / 12);
+                pts.push({ x: cx + radius * Math.cos(a), y: cy + radius * Math.sin(a) });
+            }
+        };
+        pts.push({ x: g.xs, y: link.sy0 + h }, { x: g.xa, y: link.sy0 + h });
+        turn(g.xa, g.S + g.r, g.riS + h, -Math.PI / 2);
+        pts.push({ x: g.legOutInner + h, y: g.L0 - g.q });
+        turn(g.legOutInner - g.q, g.L0 - g.q, g.q + h, 0);
+        pts.push({ x: g.legInInner + g.q, y: g.L0 + h });
+        turn(g.legInInner + g.q, g.L0 - g.q, g.q + h, Math.PI / 2);
+        pts.push({ x: g.legInInner - h, y: g.T + g.r });
+        turn(g.xb, g.T + g.r, g.riT + h, Math.PI);
+        pts.push({ x: g.xt, y: link.ty0 + h });
+        return pts;
+    }
+    const s = stops(link);
+    const mid = (stop) => (stop.top + stop.bottom) / 2;
+    pts.push({ x: s[0].xOut, y: mid(s[0]) });
+    for (let i = 1; i < s.length; i++) {
+        const xa = s[i - 1].xOut;
+        const xb = s[i].xIn;
+        const ya = mid(s[i - 1]);
+        const yb = mid(s[i]);
+        const xm = (xa + xb) / 2;
+        for (let k = 1; k <= 24; k++) {
+            const t = k / 24;
+            const u = 1 - t;
+            pts.push({
+                x: u * u * u * xa + 3 * u * t * xm + t * t * t * xb,
+                y: u * u * u * ya + 3 * u * u * t * ya + 3 * u * t * t * yb + t * t * t * yb
+            });
+        }
+        if (i < s.length - 1) pts.push({ x: s[i].xOut, y: yb });
+    }
+    return pts;
+}
+
+/**
+ * Points a fixed distance apart along a link's centre line, where the marks
+ * that tell traced streams apart are put. phase, from 0 to 1, shifts them so
+ * the marks of neighbouring streams do not line up. A link shorter than the
+ * spacing gets one point, at its middle.
+ */
+export function centrePoints(link, spacing, phase = 0) {
+    const line = centreLine(link);
+    const lengths = [0];
+    for (let i = 1; i < line.length; i++) {
+        lengths.push(lengths[i - 1] + Math.hypot(line[i].x - line[i - 1].x, line[i].y - line[i - 1].y));
+    }
+    const total = lengths[lengths.length - 1];
+    const wanted = [];
+    if (total < spacing * 1.5) wanted.push(total / 2);
+    else for (let d = spacing * (0.3 + phase); d < total - spacing * 0.25; d += spacing) wanted.push(d);
+    let seg = 1;
+    return wanted.map((d) => {
+        while (seg < line.length - 1 && lengths[seg] < d) seg += 1;
+        const span = lengths[seg] - lengths[seg - 1];
+        const t = span > 0 ? (d - lengths[seg - 1]) / span : 0;
+        return { x: line[seg - 1].x + (line[seg].x - line[seg - 1].x) * t, y: line[seg - 1].y + (line[seg].y - line[seg - 1].y) * t };
+    });
 }
 
 /** Where a value label sits on a link: mid-ribbon, or mid-lane for a loop. */

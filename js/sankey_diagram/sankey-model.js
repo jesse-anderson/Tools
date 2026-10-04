@@ -2,6 +2,7 @@
 
 import { parseFlows } from './sankey-parse.js';
 import { buildGraph, computeBalance, computeLayout, formatValue, formatPercent } from './sankey-engine.js';
+import { traceFlows } from './sankey-trace.js';
 
 export const TITLE_HEIGHT = 30;
 export const FOOTNOTE_HEIGHT = 22;
@@ -10,7 +11,7 @@ export const FOOTNOTE_HEIGHT = 22;
  * settings: { title, tolerance, width, height, nodeWidth, nodePadding, align, order }.
  * positions overrides the positions parsed from the text, which is how a drag
  * in progress previews without rewriting the text on every pointer move.
- * Returns { ok, errors, warnings, parsed, graph, balance, layout }. On a
+ * Returns { ok, errors, warnings, parsed, graph, balance, layout, traces }. On a
  * blocking error graph, balance and layout are null and nothing is drawn.
  */
 export function buildModel(text, settings = {}, positions = null) {
@@ -21,7 +22,7 @@ export function buildModel(text, settings = {}, positions = null) {
     if (errors.length === 0 && parsed.flows.length === 0) {
         errors.push({ line: null, code: 'NO_FLOWS', message: 'Enter at least one flow, for example "Feed [100] Product"' });
     }
-    if (errors.length) return { ok: false, errors, warnings, parsed, graph: null, balance: null, layout: null };
+    if (errors.length) return { ok: false, errors, warnings, parsed, graph: null, balance: null, layout: null, traces: [] };
 
     const graph = buildGraph(parsed.flows);
     warnings.push(...graph.warnings);
@@ -35,11 +36,14 @@ export function buildModel(text, settings = {}, positions = null) {
         });
     }
 
+    const traced = traceFlows(graph, parsed.traces);
+    warnings.push(...traced.warnings);
+
     const pins = positions || parsed.positions;
     const base = { ...settings, titleHeight: settings.title ? TITLE_HEIGHT : 0, footnoteHeight: 0 };
     let layout = computeLayout(graph, balance, base, pins, parsed.columns);
     // The not-to-scale footnote needs room, which is only known after a first pass.
-    if (layout.hairlines.length || layout.widened.length || layout.widthMode !== 'scale') {
+    if (layout.hairlines.length || layout.widened.length || layout.widthMode !== 'scale' || traced.traces.length) {
         layout = computeLayout(graph, balance, { ...base, footnoteHeight: FOOTNOTE_HEIGHT }, pins, parsed.columns);
     }
     if (layout.widthMode !== 'scale') {
@@ -74,7 +78,7 @@ export function buildModel(text, settings = {}, positions = null) {
         });
     }
 
-    return { ok: true, errors, warnings, parsed, graph, balance, layout };
+    return { ok: true, errors, warnings, parsed, graph, balance, layout, traces: traced.traces };
 }
 
 /**

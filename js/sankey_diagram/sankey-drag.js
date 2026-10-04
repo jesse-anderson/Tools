@@ -6,17 +6,21 @@
 import { positionFromPoint } from './sankey-engine.js';
 
 const DRAG_THRESHOLD_PX = 3;
+// Two clicks on a node this close together toggle its trace.
+const DOUBLE_CLICK_MS = 400;
 const KEY_STEP = 2;
 const KEY_STEP_LARGE = 10;
 const ARROWS = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
 
 /**
- * api: getModel(), preview(positions or null), commit(name, position or null).
- * preview redraws without touching the text; commit writes the position line.
+ * api: getModel(), preview(positions or null), commit(name, position or null),
+ * toggleTrace(name). preview redraws without touching the text; commit writes
+ * the position line; toggleTrace adds or removes the node's trace line.
  */
 export function attachDrag(host, api) {
     let drag = null;
     let frame = 0;
+    let lastClick = null;
 
     const nodeOf = (event) => {
         // A thin node is a poor target, so its padded hit area and its label grab it too.
@@ -84,7 +88,19 @@ export function attachDrag(host, api) {
         if (frame) { cancelAnimationFrame(frame); frame = 0; }
         host.classList.remove('dragging');
         if (host.hasPointerCapture(event.pointerId)) host.releasePointerCapture(event.pointerId);
-        if (!done.moved) return;
+        if (!done.moved) {
+            // Counted here, not from dblclick: a captured pointer sends its clicks to the host.
+            const now = event.timeStamp;
+            if (keep && lastClick && lastClick.name === done.name && now - lastClick.at <= DOUBLE_CLICK_MS) {
+                lastClick = null;
+                api.toggleTrace(done.name);
+                focusNode(done.index);
+            } else {
+                lastClick = keep ? { name: done.name, at: now } : null;
+            }
+            return;
+        }
+        lastClick = null;
         if (keep && done.position) {
             api.commit(done.name, done.position);
             focusNode(done.index);
@@ -104,6 +120,12 @@ export function attachDrag(host, api) {
         if ((event.key === 'Delete' || event.key === 'Backspace') && node.pinned) {
             event.preventDefault();
             api.commit(node.name, null);
+            focusNode(index);
+            return;
+        }
+        if ((event.key === 't' || event.key === 'T') && !event.ctrlKey && !event.metaKey && !event.altKey) {
+            event.preventDefault();
+            api.toggleTrace(node.name);
             focusNode(index);
             return;
         }

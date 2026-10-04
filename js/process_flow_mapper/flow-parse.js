@@ -164,7 +164,7 @@ export function parseFlow(text) {
 
         const color = COLOR_LINE.exec(line);
         if (color) { colors[clean(color[1])] = color[2].toLowerCase(); return undefined; }
-        if (line.startsWith(':')) return fail(lineNo, 'COLOR_NOT_UNDERSTOOD', 'a colour line reads ": Lane name #rrggbb"');
+        if (line.startsWith(':')) return fail(lineNo, 'COLOR_NOT_UNDERSTOOD', 'a color line reads ": Lane name #rrggbb"');
 
         if (line.startsWith('@')) {
             const note = NOTE_LINE.exec(line);
@@ -355,7 +355,7 @@ export function parseFlow(text) {
         for (const set of folded.values()) {
             if (set.size > 1) {
                 const list = [...set].map((n) => `"${n}"`).join(' and ');
-                warnings.push({ line: null, code: 'CASE_VARIANTS', message: `${list} differ only by capitalisation and are treated as separate ${what}` });
+                warnings.push({ line: null, code: 'CASE_VARIANTS', message: `${list} differ only by capitalization and are treated as separate ${what}` });
             }
         }
     }
@@ -364,7 +364,7 @@ export function parseFlow(text) {
         if (!byName.has(name)) warnings.push({ line: null, code: 'UNKNOWN_STEP', message: `"${name}" has a note but is not a step` });
     }
     for (const name of Object.keys(colors)) {
-        if (!lanes.includes(name)) warnings.push({ line: null, code: 'UNKNOWN_LANE', message: `"${name}" has a colour but is not a lane` });
+        if (!lanes.includes(name)) warnings.push({ line: null, code: 'UNKNOWN_LANE', message: `"${name}" has a color but is not a lane` });
     }
     for (const [name, entry] of Object.entries(staff)) {
         if (!lanes.includes(name)) warnings.push({ line: entry.line, code: 'UNKNOWN_LANE', message: `"${name}" is staffed but is not a lane` });

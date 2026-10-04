@@ -31,8 +31,8 @@ export function assignTracks(intervals) {
     return { track, count: ends.length };
 }
 
-// Grid positions on one axis: a row or column centre is odd, a gutter even.
-const centre = (i) => 2 * i + 1;
+// Grid positions on one axis: a row or column center is odd, a gutter even.
+const center = (i) => 2 * i + 1;
 const gutterAbove = (row) => 2 * row;
 const gutterRight = (col) => 2 * col + 2;
 
@@ -127,12 +127,12 @@ export function routeLinks(steps, links, cols, rows) {
 
     const dep = group(
         (i) => routes[i].depGutter,
-        (i) => span(centre(steps[links[i].source].row), gutterAbove(routes[i].hGutter)),
+        (i) => span(center(steps[links[i].source].row), gutterAbove(routes[i].hGutter)),
         (i, t) => { routes[i].depTrack = t; }
     );
     const arr = group(
         (i) => routes[i].arrGutter,
-        (i) => span(gutterAbove(routes[i].hGutter), centre(steps[links[i].target].row)),
+        (i) => span(gutterAbove(routes[i].hGutter), center(steps[links[i].target].row)),
         (i, t) => { routes[i].arrTrack = t; }
     );
     const hor = group(

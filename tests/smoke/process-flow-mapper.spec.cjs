@@ -41,7 +41,7 @@ test.describe('parser', () => {
       'Sales: (Order placed) -> Enter order',
       'Sales: Enter order {10 min, wait 2 h} -> Credit OK?',
       'Finance: Credit OK? {wait 1 d} -> yes 85%: Pick goods, no 15%: (Declined)',
-      '== Fulfil ==',
+      '== Fulfill ==',
       'Sales: Pick goods {1.5 h}',
       'Sales: (Declined)',
       '@ Credit OK?: limit is 30 days',
@@ -52,7 +52,7 @@ test.describe('parser', () => {
     expect(out.errors).toEqual([]);
     expect(out.lanes).toEqual(['Finance', 'Sales']);
     expect(out.arrivals).toEqual({ count: 30, per: 'wk', line: 2 });
-    expect(out.phases.map((p) => p.name)).toEqual(['Take order', 'Fulfil']);
+    expect(out.phases.map((p) => p.name)).toEqual(['Take order', 'Fulfill']);
     expect(out.steps.map((s) => [s.name, s.kind, s.laneName, s.phase])).toEqual([
       ['(Order placed)', 'terminator', 'Sales', 0],
       ['Enter order', 'task', 'Sales', 0],

@@ -2,7 +2,7 @@
 // one goes to a worker so typing is not held up while it walks, and the page
 // draws again when it is done. Runs are kept by what they were run on.
 
-import { simulate, summarise } from './flow-simulate.js';
+import { simulate, summarize } from './flow-simulate.js';
 
 // About 15 ms of walking on an ordinary machine. Above it, the worker.
 export const SYNC_VISITS = 250000;
@@ -20,7 +20,7 @@ export function createSpreadRunner(onReady, options = {}) {
     let worker = null;
     let waiting = null;
     let broken = !options.workerUrl || typeof Worker !== 'function';
-    const stats = { here: 0, worker: 0, cancelled: 0 };
+    const stats = { here: 0, worker: 0, canceled: 0 };
 
     const keep = (key, spread) => {
         kept.set(key, spread);
@@ -62,7 +62,7 @@ export function createSpreadRunner(onReady, options = {}) {
         if (job.visits > syncVisits && !broken) {
             if (waiting === job.key) return { pending: true };
             // Only the newest map matters: a run still going for an older one is dropped.
-            if (waiting !== null) { stop(); stats.cancelled += 1; }
+            if (waiting !== null) { stop(); stats.canceled += 1; }
             if (start()) {
                 waiting = job.key;
                 stats.worker += 1;
@@ -71,7 +71,7 @@ export function createSpreadRunner(onReady, options = {}) {
             }
         }
         stats.here += 1;
-        const spread = summarise(simulate(job.input, job.options), job.ranges);
+        const spread = summarize(simulate(job.input, job.options), job.ranges);
         keep(job.key, spread);
         return { spread };
     };

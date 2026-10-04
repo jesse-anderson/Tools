@@ -3,7 +3,7 @@
 import { parseFlow } from './flow-parse.js';
 import { buildGraph, toHours } from './flow-graph.js';
 import { solveFlow } from './flow-solve.js';
-import { simulate, summarise, SIM_DEFAULTS } from './flow-simulate.js';
+import { simulate, summarize, SIM_DEFAULTS } from './flow-simulate.js';
 import { computeLayout } from './flow-layout.js';
 
 export const TITLE_HEIGHT = 30;
@@ -75,7 +75,7 @@ let simCache = { key: null, spread: null };
 
 /** Run the walk here and now, keeping the last run for a redraw that changes no time. */
 function runHere(job) {
-    if (simCache.key !== job.key) simCache = { key: job.key, spread: summarise(simulate(job.input, job.options), job.ranges) };
+    if (simCache.key !== job.key) simCache = { key: job.key, spread: summarize(simulate(job.input, job.options), job.ranges) };
     return { spread: simCache.spread };
 }
 
@@ -99,7 +99,7 @@ function leadSpread(graph, result, seed, run = runHere) {
         blocks: graph.parallel.blocks
     };
     const options = { units: Math.min(SIM_DEFAULTS.units, Math.max(SIM_MIN_UNITS, wanted)), seed };
-    // Names, title, colours and theme do not change the walk, so a redraw for them reuses it.
+    // Names, title, colors and theme do not change the walk, so a redraw for them reuses it.
     const key = JSON.stringify([input, options]);
     const ranges = nodes.some((n) => n.touchSpread || n.waitSpread) || links.some((l) => l.waitSpread);
     // About how many steps the walk will visit, so a page can tell a quick run from a slow one.
@@ -204,7 +204,7 @@ export function buildModel(text, settings = {}, measure = undefined, runSpread =
             return {
                 index: item.index, name: item.name, steps: members.length,
                 touch: add('touch'), wait: add('wait'), lead: add('lead'),
-                // Only time on the longest path counts towards lead time.
+                // Only time on the longest path counts toward lead time.
                 share: add('share')
             };
         });
