@@ -425,7 +425,8 @@ test.describe('balance', () => {
       { id: 'dryer', ok: true, balanced: false, hairlines: 0, recycles: 0 },
       { id: 'energy', ok: true, balanced: true, hairlines: 1, recycles: 0 },
       { id: 'recycle', ok: true, balanced: true, hairlines: 0, recycles: 1 },
-      { id: 'budget', ok: true, balanced: true, hairlines: 0, recycles: 0 }
+      { id: 'budget', ok: true, balanced: true, hairlines: 0, recycles: 0 },
+      { id: 'jobsearch', ok: true, balanced: true, hairlines: 0, recycles: 0 }
     ]);
   });
 });

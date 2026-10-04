@@ -89,6 +89,45 @@ export const PRESETS = Object.freeze([
             'Income,Tax,1450',
             'Income,Savings,1280'
         ].join('\n')
+    },
+    {
+        id: 'jobsearch',
+        label: 'Job search (inputs traced to outcomes)',
+        title: 'Job search, by where each application came from',
+        unit: '',
+        // Three sources meet at one node, so the flows past it say whose they are.
+        text: [
+            '// The first flows out of each source need nothing extra.',
+            'Web apply [40] No reply',
+            'Web apply [20] Phone screen',
+            'Referral [2] No reply',
+            'Referral [10] Phone screen',
+            'Recruiter [8] Phone screen',
+            '',
+            '// Phone screen is fed by all three, so each flow out says whose it is.',
+            '// Recruiter is left unwritten: it takes what the other two leave.',
+            'Phone screen [10 from Web apply] Ghosted',
+            'Phone screen [2 from Referral] Ghosted',
+            'Phone screen [2] Ghosted',
+            'Phone screen [7 from Web apply] Rejected',
+            'Phone screen [3 from Referral] Rejected',
+            'Phone screen [2] Rejected',
+            'Phone screen [3 from Web apply] Interview',
+            'Phone screen [5 from Referral] Interview',
+            'Phone screen [4] Interview',
+            '',
+            'Interview [1 from Web apply] Offer',
+            'Interview [2 from Referral] Offer',
+            'Interview [1] Offer',
+            'Interview [2 from Web apply] Rejected',
+            'Interview [3 from Referral] Rejected',
+            'Interview [3] Rejected',
+            '',
+            '// A star traces a node. Take the "from" parts out to see where a trace stops.',
+            '* Web apply',
+            '* Referral',
+            '* Recruiter'
+        ].join('\n')
     }
 ]);
 

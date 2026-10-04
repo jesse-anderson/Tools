@@ -281,10 +281,19 @@ export function traceFlows(graph, names) {
         const node = graph.nodes[n];
         const list = who.map((w) => `"${w}"`).join(', ');
         const example = `${node.name} [amount from ${who[0]}] ${graph.nodes[graph.links[node.outLinks[0]].target].name}`;
+        // Say what it is about this node that leaves the way on unsettled.
+        const others = [...new Set(node.inLinks.map((li) => graph.nodes[graph.links[li].source].name))].filter((f) => !who.includes(f));
+        let why = `Several streams meet at "${node.name}"`;
+        if (others.length) {
+            const shown = others.slice(0, 3).map((f) => `"${f}"`).join(', ');
+            why = `"${node.name}" is also fed by ${shown}${others.length > 3 ? ` and ${others.length - 3} more` : ''}`;
+        } else if (more(node.outflow, node.inflow)) {
+            why = `"${node.name}" gives out more than it takes in (${formatValue(node.outflow)} against ${formatValue(node.inflow)}), so part of what leaves it is from a source the list does not show`;
+        }
         warnings.push({
             line: null,
             code: 'TRACE_UNSTATED',
-            message: `${list} ${who.length === 1 ? 'is' : 'are'} not followed past "${node.name}". Other streams meet there and the list does not say which way each one leaves, so nothing is drawn rather than guessed. To follow ${who.length === 1 ? 'it' : 'them'}, write the flows out of "${node.name}" with their source, for example "${example}"`
+            message: `${list} ${who.length === 1 ? 'is' : 'are'} not followed past "${node.name}". ${why}, and the list does not say which way each part leaves, so nothing is drawn rather than guessed. To follow ${who.length === 1 ? 'it' : 'them'}, write the flows out of "${node.name}" with their source, for example "${example}"`
         });
     }
     for (const t of traces) {

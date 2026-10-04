@@ -115,3 +115,82 @@ test.describe('written sources are checked even when nobody traces them', () => 
     expect(calm.traces).toEqual([]);
   });
 });
+
+test.describe('a trace through a node in the middle', () => {
+  const W = '* Web apply';
+  const drawnOn = (model) => model.graph.links.filter((l) => model.traces[0].shares[l.index] > 0)
+    .map((l) => `${model.graph.nodes[l.source].name}>${model.graph.nodes[l.target].name}`);
+
+  test('goes on through a node it alone feeds, however many ways leave it', async ({ page }) => {
+    await openTool(page);
+    const one = await build(page, `Web apply [10] Phone screen\nPhone screen [10] Ghosted\n${W}`);
+    expect(drawnOn(one)).toEqual(['Web apply>Phone screen', 'Phone screen>Ghosted']);
+    const two = await build(page, `Web apply [10] Phone screen\nPhone screen [6] Ghosted\nPhone screen [4] Interview\nInterview [4] Offer\n${W}`);
+    expect(drawnOn(two)).toEqual(['Web apply>Phone screen', 'Phone screen>Ghosted', 'Phone screen>Interview', 'Interview>Offer']);
+    expect(two.warnings).toEqual([]);
+  });
+
+  test('where it stops, the note names what else feeds the node', async ({ page }) => {
+    await openTool(page);
+    const model = await build(page, `Web apply [10] Phone screen\nReferral [5] Phone screen\nPhone screen [9] Ghosted\nPhone screen [6] Interview\n${W}`);
+    expect(drawnOn(model)).toEqual(['Web apply>Phone screen']);
+    expect(model.warnings.map((w) => w.message)).toEqual([
+      '"Web apply" is not followed past "Phone screen". "Phone screen" is also fed by "Referral", and the list does not say which way each part leaves, so nothing is drawn rather than guessed. To follow it, write the flows out of "Phone screen" with their source, for example "Phone screen [amount from Web apply] Ghosted"'
+    ]);
+  });
+
+  test('a node that gives out more than it takes in stops the trace and says that is why', async ({ page }) => {
+    await openTool(page);
+    const model = await build(page, `Web apply [10] Phone screen\nPhone screen [7] Ghosted\nPhone screen [4] Interview\n${W}`);
+    expect(drawnOn(model)).toEqual(['Web apply>Phone screen']);
+    const note = model.warnings.find((w) => w.code === 'TRACE_UNSTATED').message;
+    expect(note).toContain('"Phone screen" gives out more than it takes in (11 against 10), so part of what leaves it is from a source the list does not show');
+    expect(note).not.toContain('also fed by');
+  });
+
+  test('a source written with the wrong capitals is not followed, and the note offers the name meant', async ({ page }) => {
+    await openTool(page);
+    const model = await build(page, `Web apply [10] Phone screen\nReferral [5] Phone screen\nPhone screen [7 from web apply] Ghosted\nPhone screen [2] Ghosted\nPhone screen [6] Interview\n${W}`);
+    expect(drawnOn(model)).toEqual(['Web apply>Phone screen']);
+    expect(model.warnings.find((w) => w.code === 'ORIGIN_UNKNOWN').message)
+      .toBe('a flow is written as coming from "web apply", which appears in no flow, so it is not followed. Names are matched exactly: did you mean "Web apply"?');
+  });
+});
+
+test.describe('the traced example', () => {
+  test('the job search example follows every source to its outcomes, to the unit', async ({ page }) => {
+    await openTool(page);
+    const text = await page.evaluate(() => window.SankeyDiagram.PRESETS.find((p) => p.id === 'jobsearch').text);
+    const model = await build(page, text);
+    expect(model.warnings).toEqual([]);
+    expect(model.balance.closesExactly).toBe(true);
+    const ends = Object.fromEntries(model.traces.map((t) => [t.name, Object.fromEntries(t.ends.map((e) => [`${e.kind}:${e.name}`, e.amount]))]));
+    // Worked by hand from the lines. Recruiter is the source left unwritten.
+    expect(ends).toEqual({
+      'Web apply': { 'output:No reply': 40, 'output:Ghosted': 10, 'output:Rejected': 9, 'output:Offer': 1 },
+      Referral: { 'output:No reply': 2, 'output:Ghosted': 2, 'output:Rejected': 6, 'output:Offer': 2 },
+      Recruiter: { 'output:Ghosted': 2, 'output:Rejected': 5, 'output:Offer': 1 }
+    });
+    // Every flow is filled by the three sources between them.
+    for (const link of model.graph.links) {
+      expect(model.traces.reduce((s, t) => s + t.shares[link.index], 0), `link ${link.index}`).toBeCloseTo(1, 12);
+    }
+  });
+
+  test('choosing it on the page draws the traces and the table with no note to check', async ({ page }) => {
+    await openTool(page);
+    await page.selectOption('#presetSelect', 'jobsearch');
+    await expect(page.locator('#diagramHost .sankey-node-mark')).toHaveCount(3);
+    await expect(page.locator('#traceNote')).toContainText('Followed all the way');
+    await expect(page.locator('#traceTable tbody tr')).toHaveCount(11);
+    await expect(page.locator('#warningBox')).toBeHidden();
+  });
+
+  test('with the sources taken out of it, every trace stops at the phone screen and says why', async ({ page }) => {
+    await openTool(page);
+    const text = await page.evaluate(() => window.SankeyDiagram.PRESETS.find((p) => p.id === 'jobsearch').text);
+    const model = await build(page, text.split(' from Web apply').join('').split(' from Referral').join(''));
+    for (const trace of model.traces) expect(trace.stoppedAt.map((i) => model.graph.nodes[i].name)).toEqual(['Phone screen']);
+    expect(model.warnings.filter((w) => w.code === 'TRACE_UNSTATED')).toHaveLength(1);
+  });
+});

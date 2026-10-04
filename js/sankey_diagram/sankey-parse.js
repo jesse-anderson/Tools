@@ -363,7 +363,10 @@ export function parseFlows(text) {
     }
 
     for (const name of new Set(flows.filter((f) => f.origin && !known.has(f.origin)).map((f) => f.origin))) {
-        warnings.push({ line: null, code: 'ORIGIN_UNKNOWN', message: `a flow is written as coming from "${name}", which appears in no flow` });
+        // Names are matched exactly, so a slip of capitals is the usual cause.
+        const near = [...known].filter((k) => k.toLowerCase() === name.toLowerCase());
+        const hint = near.length ? `. Names are matched exactly: did you mean "${near[0]}"?` : '';
+        warnings.push({ line: null, code: 'ORIGIN_UNKNOWN', message: `a flow is written as coming from "${name}", which appears in no flow, so it is not followed${hint}` });
     }
 
     return { flows, colors, notes, positions, columns, traces, errors, warnings };
