@@ -194,3 +194,115 @@ test.describe('the traced example', () => {
     expect(model.warnings.filter((w) => w.code === 'TRACE_UNSTATED')).toHaveLength(1);
   });
 });
+
+test.describe('traced bands and the ribbon color setting', () => {
+  const paints = (page, linkColor, traceStyle = 'both') => page.evaluate(([lc, ts]) => {
+    const S = window.SankeyDiagram;
+    const model = S.buildModel(S.PRESETS.find((p) => p.id === 'jobsearch').text, {});
+    const svg = S.renderSankey(document, model, { linkColor: lc, traceStyle: ts }, S.PALETTES.light);
+    const colors = S.nodeColors(model, S.PALETTES.light);
+    const out = [...svg.querySelectorAll('.sankey-trace')].map((band) => {
+      const paint = band.getAttribute(band.getAttribute('fill') === 'none' ? 'stroke' : 'fill');
+      const grad = paint.startsWith('url(') ? svg.querySelector(paint.slice(4, -1)) : null;
+      const link = model.graph.links[Number(band.getAttribute('data-link'))];
+      return {
+        paint,
+        stops: grad ? [...grad.querySelectorAll('stop')].map((s) => s.getAttribute('stop-color')) : null,
+        from: colors[Number(band.getAttribute('data-trace'))],
+        to: colors[link.target]
+      };
+    });
+    return { bands: out, markup: new XMLSerializer().serializeToString(svg) };
+  }, [linkColor, traceStyle]);
+
+  test('with "Source to target", each band runs from its traced node\'s color to the color of where the flow goes', async ({ page }) => {
+    await openTool(page);
+    const drawn = await paints(page, 'gradient');
+    expect(drawn.bands.length).toBeGreaterThan(15);
+    // The palette repeats, so a band whose two ends share a color stays solid.
+    const expectPaint = (band) => (band.from === band.to ? expect(band.paint).toBe(band.from) : expect(band.stops).toEqual([band.from, band.to]));
+    drawn.bands.forEach(expectPaint);
+    // Each graded band has a gradient of its own, and the file still carries no style.
+    const graded = drawn.bands.filter((b) => b.stops);
+    expect(graded.length).toBeGreaterThan(12);
+    expect(new Set(graded.map((b) => b.paint)).size).toBe(graded.length);
+    expect(drawn.markup).not.toMatch(/var\(|style=/);
+    // Marked lines take the same gradient on their stroke.
+    const lines = await paints(page, 'gradient', 'line');
+    lines.bands.forEach(expectPaint);
+  });
+
+  test('with any other ribbon setting a band stays the traced node\'s own color', async ({ page }) => {
+    await openTool(page);
+    for (const setting of ['source', 'target', 'neutral']) {
+      const drawn = await paints(page, setting);
+      for (const band of drawn.bands) expect(band.paint, setting).toBe(band.from);
+    }
+  });
+});
+
+test.describe('node colors', () => {
+  const colorsOf = (page, text) => page.evaluate((t) => {
+    const S = window.SankeyDiagram;
+    const model = S.buildModel(t, {});
+    return {
+      colors: S.nodeColors(model, S.PALETTES.light),
+      dark: S.nodeColors(model, S.PALETTES.dark),
+      series: S.PALETTES.light.series,
+      darkSeries: S.PALETTES.dark.series,
+      names: model.graph.nodes.map((n) => n.name),
+      links: model.graph.links.map((l) => [l.source, l.target]),
+      reached: model.traces.map((tr) => [tr.node, model.graph.links.filter((l) => tr.shares[l.index] > 0).map((l) => l.target)])
+    };
+  }, text);
+
+  test('the two ends of a flow never share a color, on every example and on random lists', async ({ page }) => {
+    await openTool(page);
+    const lists = await page.evaluate(() => window.SankeyDiagram.PRESETS.map((p) => p.text));
+    // Random lists of up to 14 nodes, wrapping the palette, each node joined to a few others.
+    let seed = 7;
+    const rnd = () => { seed = (seed * 1103515245 + 12345) % 2147483648; return seed / 2147483648; };
+    for (let k = 0; k < 40; k++) {
+      const n = 6 + Math.floor(rnd() * 9);
+      const lines = [];
+      for (let i = 1; i < n; i++) lines.push(`N${Math.floor(rnd() * i)} [${1 + Math.floor(rnd() * 50)}] N${i}`);
+      for (let j = 0; j < 4; j++) {
+        const a = Math.floor(rnd() * (n - 1));
+        lines.push(`N${a} [5] N${a + 1 + Math.floor(rnd() * (n - a - 1))}`);
+      }
+      lists.push(lines.join('\n'));
+    }
+    for (const text of lists) {
+      const drawn = await colorsOf(page, text);
+      for (const [a, b] of drawn.links) expect(drawn.colors[a], `${drawn.names[a]} and ${drawn.names[b]}`).not.toBe(drawn.colors[b]);
+      // The same slots are chosen in both themes, so a node keeps its place in the palette.
+      expect(drawn.dark.map((c) => drawn.darkSeries.indexOf(c))).toEqual(drawn.colors.map((c) => drawn.series.indexOf(c)));
+    }
+  });
+
+  test('a traced node shares no color with anything its bands run into', async ({ page }) => {
+    await openTool(page);
+    const text = await page.evaluate(() => window.SankeyDiagram.PRESETS.find((p) => p.id === 'jobsearch').text);
+    const drawn = await colorsOf(page, text);
+    expect(drawn.reached).toHaveLength(3);
+    for (const [origin, targets] of drawn.reached) {
+      for (const t of targets) expect(drawn.colors[origin], `${drawn.names[origin]} and ${drawn.names[t]}`).not.toBe(drawn.colors[t]);
+    }
+    // Offer would have wrapped round to Web apply's blue.
+    expect(drawn.colors[drawn.names.indexOf('Offer')]).not.toBe(drawn.colors[drawn.names.indexOf('Web apply')]);
+  });
+
+  test('colors stay in order of first appearance wherever nothing clashes, and a typed color wins', async ({ page }) => {
+    await openTool(page);
+    const chain = await colorsOf(page, 'A [1] B\nB [1] C\nC [1] D\nD [1] E\nE [1] F\nF [1] G\nG [1] H');
+    expect(chain.colors).toEqual(chain.series);
+    // The ninth node wraps to the first color unless it touches the first node.
+    const far = await colorsOf(page, 'A [1] B\nB [1] C\nC [1] D\nD [1] E\nE [1] F\nF [1] G\nG [1] H\nH [1] I');
+    expect(far.colors[8]).toBe(far.series[0]);
+    const near = await colorsOf(page, 'A [1] B\nB [1] C\nC [1] D\nD [1] E\nE [1] F\nF [1] G\nG [1] H\nA [1] I');
+    expect(near.colors[8]).toBe(near.series[1]);
+    expect(near.colors.slice(0, 8)).toEqual(near.series);
+    const typed = await colorsOf(page, 'A [1] B\nB [1] C\n: B #123456');
+    expect(typed.colors).toEqual([typed.series[0], '#123456', typed.series[2]]);
+  });
+});

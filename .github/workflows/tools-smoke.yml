@@ -3,8 +3,9 @@ name: Tools Smoke
 on:
   push:
   pull_request:
+  # The whole suite, once a week. A push runs only what it touched.
   schedule:
-    - cron: '0 10 * * *'
+    - cron: '0 10 * * 1'
   workflow_dispatch:
 
 jobs:
@@ -18,6 +19,9 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+        with:
+          # The diff against the commit before the push needs history.
+          fetch-depth: 0
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -30,8 +34,33 @@ jobs:
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
 
-      - name: Run tools smoke suite
+      # A push or pull request runs the specs for the tools it changed, plus the
+      # ones that cover every page. A change to shared files, or one the picker
+      # cannot place, runs everything. So does the schedule and a manual run.
+      - name: Pick the specs to run
+        id: pick
+        env:
+          EVENT: ${{ github.event_name }}
+          BEFORE: ${{ github.event.before }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+        run: |
+          SPECS=ALL
+          BASE=""
+          if [ "$EVENT" = "push" ]; then BASE="$BEFORE"; fi
+          if [ "$EVENT" = "pull_request" ]; then BASE="$PR_BASE"; fi
+          if [ -n "$BASE" ] && git cat-file -e "$BASE^{commit}" 2>/dev/null; then
+            SPECS=$(git diff --name-only "$BASE" "$GITHUB_SHA" | node select-specs.cjs)
+          fi
+          echo "Running: $SPECS"
+          echo "specs=$SPECS" >> "$GITHUB_OUTPUT"
+
+      - name: Run the whole suite
+        if: steps.pick.outputs.specs == 'ALL'
         run: npm run test:tools-smoke
+
+      - name: Run the specs this change touched
+        if: steps.pick.outputs.specs != 'ALL'
+        run: npx playwright test --config=playwright.config.cjs ${{ steps.pick.outputs.specs }}
 
       - name: Upload Playwright report
         if: always()

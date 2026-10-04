@@ -124,13 +124,30 @@ export const VIEW_DEFAULTS = Object.freeze({
 
 /** Color of each node: an explicit override, else its palette slot. */
 export function nodeColors(model, palette, mode = 'node') {
-    return model.graph.nodes.map((node) => {
+    const { nodes, links } = model.graph;
+    const count = palette.series.length;
+    // Nodes that must not look alike: the two ends of a flow, and a traced
+    // node and everything its bands run into.
+    const apart = nodes.map(() => new Set());
+    const keep = (a, b) => { if (a !== b) { apart[a].add(b); apart[b].add(a); } };
+    for (const link of links) keep(link.source, link.target);
+    for (const trace of model.traces || []) {
+        links.forEach((link, i) => { if (trace.shares[i] > 0) keep(trace.node, link.target); });
+    }
+
+    const colors = [];
+    nodes.forEach((node) => {
         const override = model.parsed.colors[node.name];
-        if (override) return override;
-        if (mode === 'role') return palette.series[ROLE_SLOT[model.balance.nodes[node.index].role]];
-        // Slot follows first appearance, so adding a flow never repaints a node.
-        return palette.series[node.index % palette.series.length];
+        if (override) { colors.push(override); return; }
+        if (mode === 'role') { colors.push(palette.series[ROLE_SLOT[model.balance.nodes[node.index].role]]); return; }
+        // Slot follows first appearance, and moves on only when that would
+        // match a node it has to be told apart from. Earlier nodes never move.
+        const taken = new Set([...apart[node.index]].filter((n) => n < node.index).map((n) => colors[n]));
+        let slot = node.index % count;
+        for (let step = 0; step < count && taken.has(palette.series[slot]); step++) slot = (slot + 1) % count;
+        colors.push(palette.series[slot]);
     });
+    return colors;
 }
 
 function make(doc, tag, attrs = {}, text) {
@@ -247,7 +264,16 @@ export function renderSankey(doc, model, viewOptions = {}, palette = PALETTES.li
                 const to = Math.min(1, from + part);
                 const band = linkBand(link, from, to);
                 from = to;
-                const paint = colors[trace.node];
+                // A band follows the ribbon setting, with the traced node as its source.
+                let paint = colors[trace.node];
+                if (view.linkColor === 'gradient' && colors[link.target] !== paint) {
+                    const id = `sankeyTraceGrad${link.index}n${trace.node}`;
+                    const grad = make(doc, 'linearGradient', { id, gradientUnits: 'userSpaceOnUse', x1: link.x0, x2: link.x1, y1: 0, y2: 0 });
+                    grad.appendChild(make(doc, 'stop', { offset: '0', 'stop-color': paint }));
+                    grad.appendChild(make(doc, 'stop', { offset: '1', 'stop-color': colors[link.target] }));
+                    defs.appendChild(grad);
+                    paint = `url(#${id})`;
+                }
                 const order = traces.indexOf(trace);
                 const thin = link.hairline || band.width < BAND_MIN_PX;
                 const said = `${graph.nodes[link.source].name} to ${graph.nodes[link.target].name}: ${fmt(link.value * part)} of ${fmt(link.value)} came through ${trace.name} (${formatPercent(part)})`;
