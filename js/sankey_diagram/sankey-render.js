@@ -47,6 +47,12 @@ const BAND_MIN_PX = 1;
 // Distance between the marks along a traced stream, and half a mark's size, in px.
 const MARK_SPACING = 44;
 const MARK_RADIUS = 4.5;
+// The mark sizes on offer, each with a spacing in step with it.
+export const MARK_SIZES = Object.freeze({
+    small: Object.freeze({ radius: 2.75, spacing: 30 }),
+    medium: Object.freeze({ radius: MARK_RADIUS, spacing: MARK_SPACING }),
+    large: Object.freeze({ radius: 6, spacing: 56 })
+});
 // Where along the spacing each stream starts, so neighbors sit half a step apart.
 const MARK_PHASES = [0, 0.5, 0.25, 0.75];
 
@@ -116,6 +122,7 @@ export const VIEW_DEFAULTS = Object.freeze({
     linkOpacity: 0.45,
     // How a traced stream is drawn: band, line, or both.
     traceStyle: 'both',
+    markSize: 'medium',
     background: true,
     fontSize: 12,
     // On the page nodes can be focused and moved. An exported file gets none of that.
@@ -171,6 +178,7 @@ export function renderSankey(doc, model, viewOptions = {}, palette = PALETTES.li
     const view = { ...VIEW_DEFAULTS, ...viewOptions };
     const { graph, balance, layout, parsed } = model;
     const traces = model.traces || [];
+    const mark = MARK_SIZES[view.markSize] || MARK_SIZES.medium;
     const { width, height, margin } = layout.options;
     const unit = view.unit ? ` ${view.unit}` : '';
     const colors = nodeColors(model, palette, view.nodeColor);
@@ -298,9 +306,9 @@ export function renderSankey(doc, model, viewOptions = {}, palette = PALETTES.li
                 bandGroup.appendChild(el);
                 if (view.traceStyle === 'band') continue;
                 // The stream's own shape, repeated along the middle of its band.
-                for (const at of centerPoints(band, MARK_SPACING, MARK_PHASES[order % MARK_PHASES.length])) {
+                for (const at of centerPoints(band, mark.spacing, MARK_PHASES[order % MARK_PHASES.length])) {
                     marks.push(make(doc, 'path', {
-                        class: 'sankey-trace-mark', d: traceMarkPath(order, at.x, at.y), fill: palette.surface,
+                        class: 'sankey-trace-mark', d: traceMarkPath(order, at.x, at.y, mark.radius), fill: palette.surface,
                         stroke: palette.ink, 'stroke-width': 1.1, 'stroke-linejoin': 'round', 'pointer-events': 'none',
                         'data-link': link.index, 'data-trace': trace.node, 'data-shape': TRACE_SHAPES[order % TRACE_SHAPES.length].id
                     }));
@@ -361,7 +369,7 @@ export function renderSankey(doc, model, viewOptions = {}, palette = PALETTES.li
         const order = traces.findIndex((t) => t.node === node.index);
         if (order >= 0 && view.traceStyle !== 'band') {
             nodeGroup.appendChild(make(doc, 'path', {
-                class: 'sankey-node-mark', d: traceMarkPath(order, (node.x0 + node.x1) / 2, (node.y0 + node.y1) / 2, MARK_RADIUS + 1),
+                class: 'sankey-node-mark', d: traceMarkPath(order, (node.x0 + node.x1) / 2, (node.y0 + node.y1) / 2, mark.radius + 1),
                 fill: palette.surface, stroke: palette.ink, 'stroke-width': 1.1, 'stroke-linejoin': 'round', 'pointer-events': 'none',
                 'data-node': node.index, 'data-shape': TRACE_SHAPES[order % TRACE_SHAPES.length].id
             }));

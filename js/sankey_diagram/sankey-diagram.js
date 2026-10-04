@@ -23,7 +23,7 @@ const RESIZE_STEP_LARGE = 100;
 // Everything a project remembers besides the flow list.
 const FIELD_IDS = ['titleInput', 'unitInput', 'tolerance', 'widthMode', 'minLinkWidth', 'showValues', 'showPercent', 'showLinkValues',
     'showMissing', 'diagramWidth', 'diagramHeight', 'nodeWidth', 'nodePadding', 'align', 'order', 'fontSize', 'decimals',
-    'nodeColor', 'linkColor', 'linkOpacity', 'traceStyle', 'pngScale', 'exportTheme', 'exportTransparent'];
+    'nodeColor', 'linkColor', 'linkOpacity', 'traceStyle', 'markSize', 'pngScale', 'exportTheme', 'exportTransparent'];
 const CLAMPED_IDS = ['tolerance', 'minLinkWidth','diagramWidth', 'diagramHeight', 'nodeWidth', 'nodePadding', 'fontSize', 'linkOpacity'];
 const STARTER_TEXT = '// Source [amount] Target\nFeed [100] Process\nProcess [100] Product\n';
 
@@ -72,6 +72,7 @@ function readSettings() {
             nodeColor: el('nodeColor').value,
             linkColor: el('linkColor').value,
             traceStyle: el('traceStyle').value,
+            markSize: el('markSize').value,
             linkOpacity: Math.min(1, Math.max(0.1, (opacityPct === undefined ? 45 : opacityPct) / 100)),
             fontSize: Math.min(24, Math.max(8, fontSize === undefined ? 12 : fontSize))
         }
@@ -501,10 +502,33 @@ function loadProjects() {
 function applyPreset(id) {
     const preset = PRESETS_BY_ID[id];
     if (!preset) return;
-    el('flowText').value = preset.text;
-    el('titleInput').value = preset.title;
-    el('unitInput').value = preset.unit;
-    render();
+    // An example only replaces what is on screen when that is itself an
+    // untouched example or the starter. Anything typed is kept: the example
+    // opens as a project of its own, since Revert only goes back to a save.
+    const text = el('flowText').value;
+    const untouched = text.trim() === '' || text === STARTER_TEXT || PRESETS.some((p) => p.text === text);
+    const status = el('projectFileStatus');
+    if (untouched) {
+        el('flowText').value = preset.text;
+        el('titleInput').value = preset.title;
+        el('unitInput').value = preset.unit;
+        status.textContent = '';
+        render();
+        return;
+    }
+    if (projects.isFull(store)) {
+        el('presetSelect').value = '';
+        status.textContent = `The example was not loaded: it would replace "${projects.activeProject(store).name}", and ${projects.MAX_PROJECTS} projects are already stored. Delete one, and the example opens as a project of its own.`;
+        return;
+    }
+    flushDraft();
+    const kept = projects.activeProject(store).name;
+    const state = { text: preset.text, fields: { ...captureFields(), titleInput: preset.title, unitInput: preset.unit } };
+    const name = projects.uniqueName(store, projects.cleanName(preset.label.split(' (')[0]));
+    const project = projects.addProject(store, name, state, Date.now());
+    openProject(project.id);
+    el('presetSelect').value = id;
+    status.textContent = `The example opened as a new project, "${project.name}". "${kept}" is as you left it.`;
 }
 
 function setFlowText(text) {

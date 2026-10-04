@@ -306,3 +306,116 @@ test.describe('node colors', () => {
     expect(typed.colors).toEqual([typed.series[0], '#123456', typed.series[2]]);
   });
 });
+
+test.describe('loading an example never takes work away', () => {
+  const MINE = 'Mine [7] Kept\nKept [7] Out';
+  const names = (page) => page.locator('#projectSelect option').allTextContents();
+  const typeMine = async (page) => {
+    await page.fill('#flowText', MINE);
+    await expect.poll(() => page.evaluate(() => window.SankeyDiagram.getModel().graph.nodes.map((n) => n.name).join())).toBe('Mine,Kept,Out');
+  };
+
+  test('with typed work on screen, an example opens as a project of its own and the work is still there', async ({ page }) => {
+    await openTool(page);
+    await typeMine(page);
+    const before = await names(page);
+    await page.selectOption('#presetSelect', 'jobsearch');
+    await expect(page.locator('#flowText')).toHaveValue(/Web apply \[40\] No reply/);
+    expect(await names(page)).toEqual([...before, 'Job search']);
+    await expect(page.locator('#projectFileStatus')).toHaveText(`The example opened as a new project, "Job search". "${before[0]}" is as you left it.`);
+    await expect(page.locator('#presetSelect')).toHaveValue('jobsearch');
+
+    // Never saved, and still exactly as typed, through a reload too.
+    await page.selectOption('#projectSelect', { label: before[0] });
+    await expect(page.locator('#flowText')).toHaveValue(MINE);
+    await page.reload();
+    await expect.poll(() => page.evaluate(() => Boolean(window.SankeyDiagram && window.SankeyDiagram.getModel()))).toBe(true);
+    await expect(page.locator('#flowText')).toHaveValue(MINE);
+    expect(await names(page)).toEqual([...before, 'Job search']);
+  });
+
+  test('browsing from one untouched example to the next stays in one project', async ({ page }) => {
+    await openTool(page);
+    const before = await names(page);
+    for (const id of ['dryer', 'energy', 'jobsearch', 'budget']) await page.selectOption('#presetSelect', id);
+    await expect(page.locator('#flowText')).toHaveValue(/Salary,Income,5200/);
+    expect(await names(page)).toEqual(before);
+    await expect(page.locator('#projectFileStatus')).toHaveText('');
+  });
+
+  test('an example that has been edited counts as work', async ({ page }) => {
+    await openTool(page);
+    await page.selectOption('#presetSelect', 'dryer');
+    await page.locator('#flowText').press('End');
+    await page.locator('#flowText').type('\nDryer [60] Wall');
+    await expect.poll(() => page.evaluate(() => window.SankeyDiagram.getModel().graph.nodes.some((n) => n.name === 'Wall'))).toBe(true);
+    const before = await names(page);
+    await page.selectOption('#presetSelect', 'energy');
+    expect(await names(page)).toEqual([...before, 'Boiler house energy']);
+    await page.selectOption('#projectSelect', { label: before[0] });
+    await expect(page.locator('#flowText')).toHaveValue(/Dryer \[60\] Wall/);
+  });
+
+  test('with ten projects stored, the example is refused and nothing is replaced', async ({ page }) => {
+    await openTool(page);
+    for (let i = 0; i < 9; i++) await page.locator('#projectNew').click();
+    expect(await names(page)).toHaveLength(10);
+    await typeMine(page);
+    await page.selectOption('#presetSelect', 'jobsearch');
+    await expect(page.locator('#flowText')).toHaveValue(MINE);
+    await expect(page.locator('#presetSelect')).toHaveValue('');
+    await expect(page.locator('#projectFileStatus')).toContainText('The example was not loaded');
+    expect(await names(page)).toHaveLength(10);
+  });
+});
+
+test.describe('trace mark size', () => {
+  const marks = (page, markSize) => page.evaluate((size) => {
+    const S = window.SankeyDiagram;
+    const model = S.buildModel(S.PRESETS.find((p) => p.id === 'jobsearch').text, {});
+    const svg = S.renderSankey(document, model, size ? { markSize: size } : {}, S.PALETTES.light);
+    document.body.appendChild(svg);
+    const box = (el) => { const b = el.getBBox(); return Math.max(b.width, b.height); };
+    const out = {
+      sizes: [...svg.querySelectorAll('.sankey-trace-mark')].map(box),
+      nodeSizes: [...svg.querySelectorAll('.sankey-node-mark')].map(box),
+      // Marks along the widest flow, to read the spacing off.
+      xs: [...svg.querySelectorAll('.sankey-trace-mark[data-link="0"]')].map((m) => m.getBBox().x + m.getBBox().width / 2)
+    };
+    svg.remove();
+    return out;
+  }, markSize);
+
+  test('small, medium and large change the marks and their spacing together, and medium is the default', async ({ page }) => {
+    await openTool(page);
+    const [small, medium, large, unset, junk] = [await marks(page, 'small'), await marks(page, 'medium'), await marks(page, 'large'), await marks(page), await marks(page, 'huge')];
+    const most = (list) => Math.max(...list);
+    expect(most(small.sizes)).toBeLessThan(7.5);
+    expect(most(medium.sizes)).toBeGreaterThan(8.5);
+    expect(most(medium.sizes)).toBeLessThan(10.5);
+    expect(most(large.sizes)).toBeGreaterThan(11.5);
+    // The mark on the node stays a little larger than those on the flows.
+    for (const run of [small, medium, large]) expect(Math.min(...run.nodeSizes)).toBeGreaterThan(Math.min(...run.sizes));
+    expect(small.xs[1] - small.xs[0]).toBeCloseTo(30, 0);
+    expect(medium.xs[1] - medium.xs[0]).toBeCloseTo(44, 0);
+    expect(large.xs[1] - large.xs[0]).toBeCloseTo(56, 0);
+    expect(small.sizes.length).toBeGreaterThan(medium.sizes.length);
+    expect(unset).toEqual(medium);
+    expect(junk).toEqual(medium);
+  });
+
+  test('the setting redraws once and is kept with the project', async ({ page }) => {
+    await openTool(page);
+    await page.selectOption('#presetSelect', 'jobsearch');
+    await page.locator('#advancedOptions > summary').click();
+    const count = () => page.locator('#diagramHost .sankey-trace-mark').count();
+    const medium = await count();
+    const before = await page.evaluate(() => window.SankeyDiagram.getRenderCount());
+    await page.selectOption('#markSize', 'small');
+    expect(await page.evaluate(() => window.SankeyDiagram.getRenderCount())).toBe(before + 1);
+    expect(await count()).toBeGreaterThan(medium);
+    await page.reload();
+    await expect.poll(() => page.evaluate(() => Boolean(window.SankeyDiagram && window.SankeyDiagram.getModel()))).toBe(true);
+    await expect(page.locator('#markSize')).toHaveValue('small');
+  });
+});
