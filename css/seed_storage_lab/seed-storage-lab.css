@@ -100,7 +100,7 @@
 .settings-line,
 .status-line {
     font-size: 0.8rem;
-    color: var(--text-muted);
+    color: var(--text-secondary);
     margin: 0 0 0.6rem;
 }
 
@@ -271,7 +271,7 @@
     position: absolute;
     right: 0.6rem;
     font-size: 0.78rem;
-    color: var(--text-muted);
+    color: var(--text-secondary);
     pointer-events: none;
 }
 
@@ -348,7 +348,7 @@
 .species-results .sci {
     display: block;
     font-size: 0.76rem;
-    color: var(--text-muted);
+    color: var(--text-secondary);
     font-style: italic;
 }
 
@@ -366,7 +366,7 @@
     border-radius: 4px;
     background: var(--bg-card-hover);
     border: 1px solid var(--border-color);
-    color: var(--text-muted);
+    color: var(--text-secondary);
 }
 
 .badge.on {
@@ -440,7 +440,7 @@
     font-size: 0.74rem;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    color: var(--text-muted);
+    color: var(--text-secondary);
 }
 
 .result-card strong {
@@ -483,7 +483,7 @@
 }
 
 .data-table th {
-    color: var(--text-muted);
+    color: var(--text-secondary);
     font-weight: 600;
     text-transform: uppercase;
     font-size: 0.68rem;
@@ -552,6 +552,17 @@
 .viability-line.series-2 { stroke: var(--accent-general); stroke-dasharray: 3 4; }
 .viability-line.series-3 { stroke: var(--accent-success); stroke-dasharray: 12 4 3 4; }
 
+/* Bands sit behind the lines; the dash pattern on the line still identifies the series. */
+.viability-band {
+    stroke: none;
+    fill-opacity: 0.16;
+}
+
+.viability-band.series-0 { fill: var(--accent-biochemical); }
+.viability-band.series-1 { fill: var(--accent-it); }
+.viability-band.series-2 { fill: var(--accent-general); }
+.viability-band.series-3 { fill: var(--accent-success); }
+
 .viability-swatch {
     display: inline-block;
     width: 1.6rem;
@@ -572,6 +583,34 @@
 .viability-notes .row-note {
     max-width: none;
     margin-bottom: 0.25rem;
+}
+
+/* ---- Container and oxygen -------------------------------------------- */
+
+.check-line {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.82rem;
+    min-height: 2.75rem;
+}
+
+.check-line > span {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.check-line input {
+    width: 1.1rem;
+    height: 1.1rem;
+    accent-color: var(--accent-biochemical);
+    flex: 0 0 auto;
+}
+
+.oxygen-measured {
+    stroke: var(--text-secondary);
+    stroke-width: 1;
+    stroke-dasharray: 4 4;
 }
 
 /* ---- Checks panel ---------------------------------------------------- */
@@ -621,7 +660,7 @@
 }
 
 .check-item .fixture {
-    color: var(--text-muted);
+    color: var(--text-secondary);
     font-size: 0.72rem;
 }
 
@@ -649,6 +688,14 @@
     background: var(--accent-it-dim);
 }
 
+/* A blocking note sits at the top of the list and reads in primary ink. */
+.warning-list li.block {
+    border-left: 4px solid var(--accent-error);
+    background: var(--accent-error-dim);
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
 /* ---- Help chips ------------------------------------------------------ */
 
 .label-with-help,
@@ -665,7 +712,7 @@
     border-radius: 50%;
     border: 1px solid var(--border-hover);
     background: var(--bg-card-hover);
-    color: var(--text-muted);
+    color: var(--text-secondary);
     font-size: 0.62rem;
     font-family: inherit;
     font-weight: 700;
@@ -673,6 +720,17 @@
     cursor: help;
     padding: 0;
     vertical-align: middle;
+}
+
+/* The chip draws at about 10 px; this widens what a finger or pointer can hit past 24 px. */
+.help-chip {
+    position: relative;
+}
+
+.help-chip::before {
+    content: "";
+    position: absolute;
+    inset: -8px;
 }
 
 .help-chip:hover {
@@ -768,7 +826,7 @@
 
 .math-modal-status {
     font-size: 0.78rem;
-    color: var(--text-muted);
+    color: var(--text-secondary);
     margin: 0.6rem 0;
 }
 
@@ -811,7 +869,7 @@
 
 .equation-meta {
     font-size: 0.74rem;
-    color: var(--text-muted);
+    color: var(--text-secondary);
 }
 
 .equation-result {

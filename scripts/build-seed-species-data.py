@@ -121,11 +121,22 @@ BINOMIAL_ALIASES = {
     "swietinia humilis": "Swietenia humilis",
 }
 
+
+def split_common_names(text):
+    """Split a "; " list. WPSM ends Prunus with "and plum", which is not a name."""
+    names = []
+    for part in clean(text).split(";"):
+        name = re.sub(r"^(?:and|or)\s+", "", part.strip())
+        if name:
+            names.append(name)
+    return names
+
+
 for row in index_rows:
     name = clean(row["scientific_name"])
     if not name or name.lower() in BINOMIAL_ALIASES:
         continue
-    commons = [c.strip() for c in clean(row["common_names"]).split(";") if c.strip()]
+    commons = split_common_names(row["common_names"])
     species[name] = {
         "id": slugify(name),
         "scientificName": name,
@@ -549,7 +560,7 @@ for row in behaviour_rows:
     taxon = clean(row["taxon"])
     if not taxon or taxon in species:
         continue
-    commons = [c.strip() for c in clean(row["common_names"]).split(";") if c.strip()]
+    commons = split_common_names(row["common_names"])
     species[taxon] = {
         "id": slugify(taxon),
         "scientificName": taxon,
@@ -576,7 +587,7 @@ for row in behaviour_rows:
         "propagation": clean(row["propagation"]),
         "matchedRank": clean(row["rank"]),
         "matchedTaxon": taxon,
-        "note": clean(row["notes"])[:220],
+        "note": clean(row["notes"]),
         "sourceKey": "ipgri1996",
     }
     if clean(row["rank"]) == "genus":
@@ -584,6 +595,20 @@ for row in behaviour_rows:
     else:
         species_flags[taxon] = record
 
+def clip(text, limit):
+    """Shorten at a word boundary and mark the cut, so a note never ends mid-figure."""
+    if len(text) <= limit:
+        return text
+    cut = text[:limit]
+    for mark in ("; ", ". ", ", ", " "):
+        at = cut.rfind(mark)
+        if at > limit // 2:
+            return cut[:at].rstrip(" ;,.") + " ..."
+    return cut + " ..."
+
+
+# An unconfirmed genus flag records a grouping that is none of the three
+# categories, so a species record that disagrees with it is not a conflict.
 vol2 = {}
 for row in load("kew_1998_storage_behaviour_vol2.csv"):
     vol2[clean(row["species"])] = {
@@ -592,7 +617,7 @@ for row in load("kew_1998_storage_behaviour_vol2.csv"):
         "provisional": clean(row["provisional"]) == "yes",
         "matchedRank": "species",
         "matchedTaxon": clean(row["species"]),
-        "note": clean(row["evidence"])[:110],
+        "note": clip(clean(row["evidence"]), 110),
         "sourceKey": "kewCompendium1998",
     }
 
@@ -621,7 +646,8 @@ for name, record in species.items():
          if candidate is not None
          and candidate is not flag
          and candidate["behaviour"] != flag["behaviour"]
-         and "not_applicable" not in (candidate["behaviour"], flag["behaviour"])),
+         and "not_applicable" not in (candidate["behaviour"], flag["behaviour"])
+         and "unconfirmed" not in (candidate["behaviour"], flag["behaviour"])),
         None,
     )
     if overruled:

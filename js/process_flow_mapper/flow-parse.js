@@ -36,11 +36,15 @@ const ARRIVALS =/^(\d+\.?\d*|\.\d+)\s*(?:\/|per)\s*([a-z]+)$/i;
 // One number is a fixed time. Two are lowest and highest, three add the most likely between.
 const TIME = /^(wait\s+)?(\d+\.?\d*|\.\d+)(?:\s*(?:-|to)\s*(\d+\.?\d*|\.\d+))?(?:\s*(?:-|to)\s*(\d+\.?\d*|\.\d+))?\s*([a-z]+)$/i;
 const SIPOC_LINE = /^(in|out)\s*:\s*(.*)$/i;
+const RESERVED = /^(lanes|arrivals|staff|in|out)\s*:/i;
 const SIPOC_HELP = 'An inputs line reads "in: Order form from Customer" and an outputs line "out: Invoice to Customer"';
 const EXIT_WAIT_HELP = 'a wait on the way goes before the colon, such as "-> yes 80% {2 d}: Next step"';
 const SHARE = /(\d+\.?\d*|\.\d+)\s*%/;
 
 const clean = (raw) => String(raw).replace(/\s+/g, ' ').trim();
+
+// A unit typed as "constructor" must not find Object.prototype.constructor.
+const unitOf = (word) => (Object.prototype.hasOwnProperty.call(TIME_UNITS, word.toLowerCase()) ? TIME_UNITS[word.toLowerCase()] : null);
 
 /** A step name as typed, with wrapping double quotes removed. */
 function stepName(raw) {
@@ -93,7 +97,7 @@ export function parseTimes(inside) {
         const part = clean(raw);
         if (!part) continue;
         const m = TIME.exec(part);
-        const unit = m ? TIME_UNITS[m[5].toLowerCase()] : null;
+        const unit = m ? unitOf(m[5]) : null;
         if (!m || !unit) {
             return { ok: false, message: `"${part}" is not a time. Write a number and a unit, such as "15 min", "wait 2 d" or "wait 1-3 d"` };
         }
@@ -123,12 +127,13 @@ export function parseFlow(text) {
     const steps = [];
     const byName = new Map();
     const exits = [];
-    const notes = {};
-    const colors = {};
+    // Keyed by names people type, so a step called "toString" finds nothing it did not set.
+    const notes = Object.create(null);
+    const colors = Object.create(null);
     const errors = [];
     const warnings = [];
     let arrivals = null;
-    const staff = {};
+    const staff = Object.create(null);
     const sipoc = [];
     const exitKinds = new Map();
     let lanesDeclared = false;
@@ -170,6 +175,13 @@ export function parseFlow(text) {
             return undefined;
         }
 
+        // A step line in a lane named like a setting would be read as that setting and lost.
+        const reserved = RESERVED.exec(line);
+        if (reserved && (findOutside(line, '->') >= 0 || findOutside(line, '=>') >= 0 || line.replace(/"[^"]*"/g, '').includes('{'))) {
+            const what = { lanes: 'the lane order', arrivals: 'an arrivals line', staff: 'a staffing line', in: 'an inputs line', out: 'an outputs line' }[reserved[1].toLowerCase()];
+            return fail(lineNo, 'RESERVED_LANE', `a line starting "${reserved[1]}:" is ${what}, so a lane cannot be called "${reserved[1]}". Give the lane another name, such as "${reserved[1]} team"`);
+        }
+
         const lanesLine = LANES_LINE.exec(line);
         if (lanesLine) {
             const names = lanesLine[1].split(',').map(clean).filter(Boolean);
@@ -186,7 +198,7 @@ export function parseFlow(text) {
         const arrivalsLine = ARRIVALS_LINE.exec(line);
         if (arrivalsLine) {
             const m = ARRIVALS.exec(clean(arrivalsLine[1]));
-            const unit = m ? TIME_UNITS[m[2].toLowerCase()] : null;
+            const unit = m ? unitOf(m[2]) : null;
             if (!m || !unit) return fail(lineNo, 'ARRIVALS_NOT_UNDERSTOOD', 'an arrivals line reads "arrivals: 30 / wk"');
             arrivals = { count: Number(m[1]), per: unit, line: lineNo };
             return undefined;
@@ -212,13 +224,17 @@ export function parseFlow(text) {
         if (sipocLine) {
             const kind = sipocLine[1].toLowerCase();
             const word = kind === 'in' ? ' from ' : ' to ';
-            const entries = sipocLine[2].split(',').map(clean).filter(Boolean);
+            const entries = splitOutside(sipocLine[2], ',').map(clean).filter(Boolean);
             if (!entries.length) return fail(lineNo, 'SIPOC_NOT_UNDERSTOOD', SIPOC_HELP);
             for (const entry of entries) {
-                // A space is put in front so an entry that starts with the word has nothing before it.
-                const at = ` ${entry}`.toLowerCase().lastIndexOf(word) - 1;
-                const item = at < -1 ? entry : clean(entry.slice(0, Math.max(0, at)));
-                const party = at < -1 ? '' : clean(entry.slice(at + word.length));
+                // The last word outside quotes divides. A space is put in front so
+                // an entry that starts with the word has nothing before it.
+                const padded = ` ${entry}`.toLowerCase();
+                let found = -1;
+                for (let from = findOutside(padded, word); from >= 0; from = findOutside(padded, word, from + 1)) found = from;
+                const at = found - 1;
+                const item = stepName(at < -1 ? entry : entry.slice(0, Math.max(0, at)));
+                const party = at < -1 ? '' : stepName(entry.slice(at + word.length));
                 if (!item) return fail(lineNo, 'SIPOC_NOT_UNDERSTOOD', `"${entry}" names nothing. ${SIPOC_HELP}`);
                 if (item.length > LIMITS.maxNameLength || party.length > LIMITS.maxNameLength) return fail(lineNo, 'NAME_TOO_LONG', `a name is limited to ${LIMITS.maxNameLength} characters`);
                 sipoc.push({ phase, kind, item, party, line: lineNo });
@@ -281,7 +297,8 @@ export function parseFlow(text) {
         if (tail === null) return undefined;
         const targets = splitOutside(tail, ',').map((t) => t.trim()).filter(Boolean);
         if (!targets.length) return fail(lineNo, 'EXIT_MISSING', 'nothing follows the arrow. Name the next step, or drop the arrow');
-        const kind = parallel && targets.length > 1 ? 'all' : 'one';
+        // A double arrow means all of these even with one target per line.
+        const kind = parallel ? 'all' : 'one';
         if (exitKinds.has(name) && exitKinds.get(name) !== kind) {
             return fail(lineNo, 'MIXED_EXITS', `"${name}" has exits written both ways. Its exits are either one of these (->) or all of these at once (=>). Add a step if it needs both`);
         }
@@ -408,12 +425,16 @@ export function tableToFlow(text) {
     const body = cells[0][0].toLowerCase() === 'lane' ? cells.slice(1) : cells;
     if (!body.length) return null;
     const out = body.map(([lane, step, touch = '', wait = '', next = '']) => {
+        // A row whose lane is in or out is a SIPOC line, its second cell the entry.
+        if (/^(in|out)$/i.test(lane)) return `${lane.toLowerCase()}: ${step}`;
         const times = [touch, wait ? `wait ${wait.replace(/^wait\s+/i, '')}` : ''].filter(Boolean).join(', ');
-        const exits = next.split(';').map(clean).filter(Boolean).map((exit) => {
+        // Next may open with its arrow, and => means all of these.
+        const arrow = next.startsWith('=>') ? '=>' : '->';
+        const exits = next.replace(/^(->|=>)/, '').split(';').map(clean).filter(Boolean).map((exit) => {
             const at = exit.lastIndexOf(':');
             return at < 0 ? quoted(exit) : `${exit.slice(0, at).trim()}: ${quoted(exit.slice(at + 1).trim())}`;
         });
-        return `${lane}: ${quoted(step)}${times ? ` {${times}}` : ''}${exits.length ? ` -> ${exits.join(', ')}` : ''}`;
+        return `${lane}: ${quoted(step)}${times ? ` {${times}}` : ''}${exits.length ? ` ${arrow} ${exits.join(', ')}` : ''}`;
     });
     return { text: `${out.join('\n')}\n`, rows: body.length };
 }

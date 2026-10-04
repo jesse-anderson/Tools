@@ -2,9 +2,10 @@
 //
 // A step whose exits are all taken at once is a split. Its branches have to
 // meet again at one step, the join, which goes on only when every branch has
-// arrived. Split, branches and join make a block. A branch has no way in or
-// out except through the split and the join, so a block can be treated as one
-// piece of the process: it takes as long as its slowest branch.
+// arrived. Split, branches and join make a block. A branch has no way in
+// except from the split and no way out except to the join or an end of its
+// own, such as a rejection, so a block can be treated as one piece of the
+// process: it takes as long as its slowest branch.
 
 function reach(next, from, stop) {
     const seen = new Set();
@@ -48,18 +49,15 @@ export function findBlocks(count, links) {
         let best = null;
         for (const join of candidates) {
             const sets = heads.map((li) => reach(next, links[li].target, join));
-            if (sets.some((set) => set.size === 0 || set.has(split))) continue;
+            // A branch straight to the join is a wait and nothing more, such as parts in transit.
+            if (sets.some((set, b) => (set.size === 0 && links[heads[b]].target !== join) || set.has(split))) continue;
             const owner = new Map();
-            let fits = true;
             sets.forEach((set, b) => {
-                for (const n of set) {
-                    // A step where work could end breaks the block.
-                    if (out[n].length === 0) fits = false;
-                    owner.set(n, b);
-                }
+                for (const n of set) owner.set(n, b);
             });
             // The only way into a branch is from the split, along that branch's
             // own exit. That also rules out a step two branches share.
+            let fits = true;
             for (let li = 0; fits && li < links.length; li++) {
                 const to = owner.get(links[li].target);
                 if (to === undefined) continue;

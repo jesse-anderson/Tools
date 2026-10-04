@@ -6,7 +6,7 @@
 // regression; a gate failure means the tool told someone their acorns keep for
 // decades.
 const { test, expect } = require('@playwright/test');
-const { expectPageToLoadCleanly } = require('./helpers.cjs');
+const { expectPageToLoadCleanly, measureContrast } = require('./helpers.cjs');
 
 async function pickSpecies(page, query, scientificName) {
   await page.fill('#speciesSearch', query);
@@ -70,7 +70,10 @@ test('recalcitrant species are refused a storage life but keep their seed counts
 
   await expect(page.locator('#gateBanner')).toHaveAttribute('data-status', 'blocked');
   await expect(page.locator('#gateHeadline')).toContainText('recalcitrant');
-  await expect(page.locator('#gateDetail')).toContainText('cannot be dried');
+  await expect(page.locator('#gateDetail')).toContainText('dies if dried');
+  // Temperate recalcitrant seed keeps moist near freezing (1996 compendium, 4.2).
+  await expect(page.locator('#gateDetail')).toContainText('over 3 years at -3 °C');
+  await expect(page.locator('#gateDetail')).not.toContainText('cannot be stored cold');
   await expect(page.locator('#longevityValue')).toContainText('Not modelled');
   await expect(page.locator('#behaviourValue')).toContainText('recalcitrant');
 
@@ -262,7 +265,7 @@ test('a ten-seed sample on a coarse scale is warned about', async ({ page, baseU
   await page.fill('#measuredSampleMass', '0.05');
 
   await expect(page.locator('#warningList')).toContainText('counting error');
-  await expect(page.locator('#warningList')).toContainText('scale resolution');
+  await expect(page.locator('#warningList')).toContainText('kitchen scale reading to 0.1 g');
 });
 
 test('the tomato seeds-per-ounce correction reaches the UI with its note', async ({ page, baseURL }) => {
@@ -282,7 +285,7 @@ test('freezer conditions clamp to the validity box and say so', async ({ page, b
   await page.locator('[data-tab-target="storage"]').click();
   await page.locator('[data-preset="freezer"]').click();
 
-  await expect(page.locator('#warningList')).toContainText("outside Harrington's validity range");
+  await expect(page.locator('#warningList')).toContainText("outside the range this tool applies Harrington's rules over");
   await expect(page.locator('#warningList')).toContainText('clamped to 0 °C');
   await expect(page.locator('#warningList li.clamp').first()).toBeVisible();
 });
@@ -752,7 +755,7 @@ test('the default lettuce lot shows a viability range across two determinations'
   await expect(page.locator('#viabilityTableBody tr').first()).toContainText('6.895 / 4.2 / 0.0329 / 0.000478');
   await expect(page.locator('#viabilityChart svg polyline.viability-line')).toHaveCount(2);
   await expect(page.locator('#viabilityChart svg')).toHaveAttribute('aria-label', /reaches 85% after 4\.7-7\.9 y/);
-  await expect(page.locator('#viabilityCard .viability-note')).toContainText('room humidity is a different quantity');
+  await expect(page.locator('#viabilityCard .viability-note').first()).toContainText('room humidity is a different quantity');
 });
 
 test('the freezer preset is answered by the equation and flagged as extrapolation', async ({ page, baseURL }) => {
@@ -761,7 +764,7 @@ test('the freezer preset is answered by the equation and flagged as extrapolatio
   await page.locator('[data-preset="freezer"]').click();
 
   // Harrington still clamps to 0 C; the equation runs at -18 C as entered.
-  await expect(page.locator('#warningList')).toContainText("outside Harrington's validity range");
+  await expect(page.locator('#warningList')).toContainText("outside the range this tool applies Harrington's rules over");
   await expect(page.locator('#viabilityMeta')).toContainText('-18.0 °C');
   await expect(page.locator('#warningList')).toContainText('is an extrapolation');
   await expect(page.locator('#warningList')).toContainText('low-moisture limit lies between 2 and 6%');
@@ -861,4 +864,771 @@ test('the viability detail card does not overflow a phone and its controls are l
     expect(labelled, id).toBe(true);
     await expect(page.locator(`[aria-describedby="help-${id}"]`)).toHaveCount(1);
   }
+});
+
+// ---------------------------------------------------------------------------
+// Storage tiers and headspace oxygen. The literals below are the published
+// figures, typed from Groot et al. 2015 and 2025, so a changed engine constant
+// fails here even if the math modal agrees with itself.
+// ---------------------------------------------------------------------------
+
+test('one oxygen exponent reproduces both of Groot 2025 published figures', async ({ page, baseURL }) => {
+  await openSeedLab(page, baseURL);
+  const result = await page.evaluate(() => {
+    const T = window.SeedStorageTiers;
+    return {
+      exponent: T.OXYGEN_EXPONENT,
+      half: T.oxygenMultiplier(10.45, { rhPct: 30 }),
+      twice: T.oxygenMultiplier(20.9 / 4, { rhPct: 30 }),
+      floor: T.oxygenMultiplier(1, { rhPct: 30 }),
+      below: T.oxygenMultiplier(0.05, { rhPct: 30 }),
+      air: T.oxygenMultiplier(20.9, { rhPct: 30 }),
+      at43: T.oxygenMultiplier(1, { rhPct: 43 }),
+      at51: T.oxygenMultiplier(1, { rhPct: 51.5 }),
+      at60: T.oxygenMultiplier(1, { rhPct: 60 }),
+      at75: T.oxygenMultiplier(1, { rhPct: 75 })
+    };
+  });
+  // "each halving ... increased seed longevity by around 72%"
+  expect(result.half).toBeCloseTo(1.72, 12);
+  // "Halving it twice ... 1.72^2 = 3.0 times"
+  expect(result.twice).toBeCloseTo(3.0, 1);
+  // "1.72^4.39 = 10.8 times longer shelf life" at 1% oxygen
+  expect(Math.abs(result.floor - 10.8)).toBeLessThan(0.05);
+  expect(result.below).toBe(result.floor);
+  expect(result.air).toBe(1);
+  expect(result.exponent).toBeCloseTo(0.7824, 4);
+  // Full effect to 43% eRH, none at 60%, straight-line exponent between.
+  expect(result.at43).toBe(result.floor);
+  expect(result.at51).toBeCloseTo(Math.sqrt(result.floor), 12);
+  expect(result.at60).toBe(1);
+  expect(result.at75).toBe(1);
+});
+
+test('the lettuce jar decay reproduces both Groot accounts of it', async ({ page, baseURL }) => {
+  await openSeedLab(page, baseURL);
+  const result = await page.evaluate(() => {
+    const T = window.SeedStorageTiers;
+    const k = T.decayPerDay({ seedMassG: 10, gasMl: 47 - 18 });
+    return {
+      anchor: T.LETTUCE_UPTAKE,
+      year: T.oxygenAtDays(20.9, k, 365) / 20.9,
+      points: [112, 250, 450].map((days) => T.oxygenAtDays(20.9, k, days)),
+      // Twice the seed in the same gas halves the time; the starting level does not change the rate.
+      ratio: T.decayPerDay({ seedMassG: 20, gasMl: 29 }) / k,
+      startFree: T.daysToOxygen(10, k, 5) === T.daysToOxygen(20, k, 10)
+    };
+  });
+  // Groot 2015 methods: 10 g of lettuce, 18 mL, in a 47 mL jam jar, 20 C, 39% RH.
+  expect(result.anchor).toMatchObject({ jarMl: 47, seedVolumeMl: 18, seedMassG: 10, rhPct: 39, temperatureC: 20 });
+  // "dropped to approximately one-third of the initial value within 1 year"
+  expect(result.year).toBeCloseTo(1 / 3, 12);
+  // Groot 2025: "21% to around 15% in 112 days, to 10% in 250 days and to slightly above 5% in 450 days"
+  expect(Math.abs(result.points[0] - 15)).toBeLessThan(0.5);
+  expect(Math.abs(result.points[1] - 10)).toBeLessThan(0.5);
+  expect(result.points[2]).toBeGreaterThan(5);
+  expect(result.points[2]).toBeLessThan(5.5);
+  expect(result.ratio).toBeCloseTo(2, 12);
+  expect(result.startFree).toBe(true);
+});
+
+test('the container, vacuum and absorber set the starting oxygen', async ({ page, baseURL }) => {
+  await openSeedLab(page, baseURL);
+  const cases = await page.evaluate(() => {
+    const T = window.SeedStorageTiers;
+    const base = { containerMl: 500, seedMassG: 50, rhPct: 30, moisturePct: 6, temperatureC: 5, horizonYears: 5 };
+    const run = (extra) => {
+      const r = T.evaluateStorage({ ...base, ...extra });
+      return { tier: r.tier, ok: r.ok, blocked: r.blocked, start: r.oxygen.startPct, m: r.oxygen.multiplier,
+        codes: r.notes.map((n) => n.code), decay: Boolean(r.decay), gas: r.headspace && r.headspace.gasMl };
+    };
+    return {
+      open: run({ container: 'open', vacuumResidualPct: 30 }),
+      screw: run({ container: 'screw', vacuumResidualPct: 30 }),
+      jar: run({ container: 'gasket' }),
+      vacuum: run({ container: 'gasket', vacuumResidualPct: 33 }),
+      foil: run({ container: 'foil' }),
+      foilRead: run({ container: 'foil', vacuumResidualPct: 5 }),
+      absorberNoVolume: run({ container: 'gasket', absorber: true, desiccant: true, absorberCapacityMl: 5, containerMl: null }),
+      fullVacuum: run({ container: 'gasket', vacuumResidualPct: 1 }),
+      absorbed: run({ container: 'gasket', absorber: true, desiccant: true, absorberCapacityMl: 100 }),
+      shortAbsorber: run({ container: 'gasket', absorber: true, desiccant: true, absorberCapacityMl: 50 }),
+      tooBig: run({ container: 'gasket', containerMl: 50, seedMassG: 50 }),
+      ownVolume: run({ container: 'gasket', seedVolumeMl: 40 })
+    };
+  });
+  const b = Math.log2(1.72);
+  expect(cases.open).toMatchObject({ tier: 'open', start: 20.9, m: 1 });
+  expect(cases.screw).toMatchObject({ tier: 'leaky-closure', start: 20.9, m: 1 });
+  expect(cases.screw.codes).toContain('screw-cap');
+  expect(cases.jar).toMatchObject({ tier: 'hermetic', start: 20.9, m: 1, decay: true, gas: 500 - 90 });
+  expect(cases.vacuum.start).toBeCloseTo(20.9 * 0.33, 12);
+  expect(cases.vacuum.m).toBeCloseTo(Math.pow(1 / 0.33, b), 12);
+  // A foil bag earns nothing until the vacuum is read off a gauge.
+  expect(cases.foil).toMatchObject({ tier: 'foil-vacuum', start: 20.9, m: 1, decay: false });
+  expect(cases.foil.codes).toEqual(expect.arrayContaining(['foil-fragile', 'foil-no-reading']));
+  expect(cases.foilRead.start).toBeCloseTo(1.045, 12);
+  expect(cases.foilRead.codes).not.toContain('foil-no-reading');
+  // An absorber that cannot be sized against the jar says so.
+  expect(cases.absorberNoVolume.codes).toContain('absorber-unchecked');
+  // At the 1% floor there is nothing left to decay toward.
+  expect(cases.fullVacuum).toMatchObject({ start: 20.9 * 0.01, decay: false });
+  expect(cases.absorbed).toMatchObject({ tier: 'absorber-desiccant', start: 1, decay: false });
+  expect(cases.absorbed.m).toBeCloseTo(Math.pow(20.9, b), 12);
+  // 410 mL of gas holds 85.69 mL of oxygen; a 50 mL absorber leaves 35.69 mL.
+  expect(cases.shortAbsorber.start).toBeCloseTo((410 * 0.209 - 50) / 410 * 100, 9);
+  expect(cases.shortAbsorber.codes).toContain('absorber-small');
+  expect(cases.tooBig).toMatchObject({ ok: false, blocked: true });
+  expect(cases.ownVolume.gas).toBe(460);
+});
+
+test('sealing wet seed, an absorber alone and treated seed are each stopped', async ({ page, baseURL }) => {
+  await openSeedLab(page, baseURL);
+  await page.locator('[data-tab-target="storage"]').click();
+  await expect(page.locator('#containerValue')).toHaveText('Sealed with desiccant');
+
+  // Wet seed in a sealed jar: the block leads the warning list.
+  await page.fill('#storageMoisture', '14');
+  await expect(page.locator('#warningList li').first()).toHaveClass(/block/);
+  await expect(page.locator('#warningList li').first()).toContainText('Dry the seed first');
+  await expect(page.locator('#containerValue').locator('xpath=ancestor::article')).toHaveClass(/is-blocked/);
+  await page.fill('#storageRelativeHumidity', '55');
+  await page.fill('#storageMoisture', '6');
+  await expect(page.locator('#warningList li.block')).toContainText('above the 50% eRH');
+  await page.fill('#storageRelativeHumidity', '30');
+  await expect(page.locator('#warningList li.block')).toHaveCount(0);
+
+  // Absorber with no desiccant: no projection, no equation.
+  const before = await page.locator('#longevityValue').textContent();
+  await page.locator('#oxygenAbsorber').check();
+  await page.locator('#desiccant').uncheck();
+  await expect(page.locator('#longevityValue')).toHaveText('Not modelled');
+  await expect(page.locator('#viabilityValue')).toHaveText('Outside the equation');
+  await expect(page.locator('#warningList li.block')).toContainText('88% within 2 days');
+
+  // Desiccant back in: only the upper end moves, by the full oxygen factor.
+  await page.locator('#desiccant').check();
+  await expect(page.locator('#oxygenValue')).toHaveText('10.79×');
+  await expect(page.locator('#longevityMeta')).toContainText('also multiplied by 10.79× for oxygen');
+  const after = await page.locator('#longevityValue').textContent();
+  const [lowBefore, highBefore] = before.replace(' y', '').split('-').map(Number);
+  const [lowAfter, highAfter] = after.replace(' y', '').split('-').map(Number);
+  expect(lowAfter).toBe(lowBefore);
+  expect(highAfter / highBefore).toBeCloseTo(10.79, 1);
+  await expect(page.locator('#warningList')).toContainText('not applied to the viability equation');
+
+  await page.selectOption('#seedTreatment', 'pelleted');
+  await expect(page.locator('#longevityValue')).toHaveText('1.0 y');
+  await expect(page.locator('#longevityMeta')).toContainText('Capped at one year');
+  await expect(page.locator('#viabilityValue')).toHaveText('Outside the equation');
+  await page.selectOption('#seedTreatment', 'primed');
+  await expect(page.locator('#longevityValue')).toHaveText('Not modelled');
+  await expect(page.locator('#warningList')).toContainText('within weeks');
+});
+
+test('presets carry a container, and an open packet warns the equation off', async ({ page, baseURL }) => {
+  await openSeedLab(page, baseURL);
+  await page.locator('[data-tab-target="storage"]').click();
+
+  await page.locator('[data-preset="pantry"]').click();
+  await expect(page.locator('#containerType')).toHaveValue('open');
+  await expect(page.locator('#desiccant')).not.toBeChecked();
+  await expect(page.locator('#containerValue')).toHaveText('Open packet');
+  await expect(page.locator('#oxygenValue')).toHaveText('1.00×');
+  await expect(page.locator('#warningList')).toContainText('The viability equation assumes sealed storage');
+
+  await page.locator('[data-preset="fridge"]').click();
+  await expect(page.locator('#containerType')).toHaveValue('gasket');
+  await expect(page.locator('#desiccant')).toBeChecked();
+  await expect(page.locator('#warningList')).not.toContainText('The viability equation assumes sealed storage');
+});
+
+test('oxygen control on a short horizon is called unlikely to show', async ({ page, baseURL }) => {
+  await openSeedLab(page, baseURL);
+  await page.locator('[data-tab-target="storage"]').click();
+  await page.fill('#vacuumResidual', '40');
+  // Yildirim 2021: three of four cultivars differed only at the 48-month sampling.
+  await page.fill('#storageHorizon', '3.5');
+  await expect(page.locator('#warningList')).toContainText('no better than open storage at 12, 24 or 36 months');
+  await expect(page.locator('#warningList')).toContainText('clearly better only at 48');
+  await page.fill('#storageHorizon', '4');
+  await expect(page.locator('#warningList')).not.toContainText('at 12, 24 or 36 months');
+});
+
+test('a cold sealed container carries the retrieval warning, and each missing decay says why', async ({ page, baseURL }) => {
+  await openSeedLab(page, baseURL);
+  await page.locator('[data-tab-target="storage"]').click();
+  await expect(page.locator('#warningList')).toContainText('reach room temperature before opening it');
+  await page.locator('[data-preset="pantry"]').click();
+  await expect(page.locator('#warningList')).not.toContainText('reach room temperature');
+
+  const reasons = await page.evaluate(() => {
+    const T = window.SeedStorageTiers;
+    const base = { rhPct: 30, moisturePct: 6, temperatureC: 20 };
+    const codes = (extra) => T.evaluateStorage({ ...base, ...extra });
+    return {
+      warmJar: codes({ container: 'gasket', containerMl: 500, seedMassG: 50 }).notes.map((n) => n.code),
+      noVolume: codes({ container: 'gasket' }).decay,
+      foil: codes({ container: 'foil', containerMl: 500, seedMassG: 50 }).decay
+    };
+  });
+  expect(reasons.warmJar).not.toContain('retrieval');
+  expect(reasons.noVolume).toBeNull();
+  expect(reasons.foil).toBeNull();
+
+  await page.locator('[data-preset="fridge"]').click();
+  await page.fill('#containerVolume', '');
+  await page.locator('#oxygenCard summary').click();
+  await expect(page.locator('#oxygenDecayNote')).toHaveText('No decay is drawn: enter the container volume and seed weight to draw it.');
+  await page.selectOption('#containerType', 'foil');
+  await expect(page.locator('#oxygenDecayNote')).toHaveText('No decay is drawn: the gas left in a sealed bag is not known.');
+  await page.selectOption('#containerType', 'open');
+  await expect(page.locator('#oxygenDecayNote')).toHaveText('No decay is drawn: this container does not hold its oxygen level.');
+});
+
+test('the oxygen chart falls, the settings persist, and a phone does not overflow', async ({ page, baseURL }) => {
+  await page.setViewportSize({ width: 375, height: 800 });
+  await openSeedLab(page, baseURL);
+  await page.locator('[data-tab-target="storage"]').click();
+  await page.fill('#vacuumResidual', '40');
+  await page.locator('#oxygenCard summary').click();
+
+  const chart = page.locator('#oxygenChart svg');
+  await expect(chart).toBeVisible();
+  await expect(chart).toHaveAttribute('aria-label', /falls from 8\.4% to half that in/);
+  await expect(page.locator('#oxygenDecayNote')).toContainText('mL of gas around the seed');
+  const ys = await page.locator('#oxygenChart polyline').evaluate((node) => node.getAttribute('points')
+    .split(' ').map((pair) => Number(pair.split(',')[1])));
+  // SVG y grows downward, so falling oxygen means rising y.
+  expect(ys[ys.length - 1]).toBeGreaterThan(ys[0]);
+
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  expect(overflow).toBeLessThanOrEqual(1);
+
+  await page.locator('#oxygenAbsorber').check();
+  await page.selectOption('#containerType', 'foil');
+  await page.reload();
+  await page.locator('[data-tab-target="storage"]').click();
+  await expect(page.locator('#oxygenAbsorber')).toBeChecked();
+  await expect(page.locator('#containerType')).toHaveValue('foil');
+  await expect(page.locator('#vacuumResidual')).toHaveValue('40');
+
+  await page.click('#resetBtn');
+  await expect(page.locator('#oxygenAbsorber')).not.toBeChecked();
+  await expect(page.locator('#containerType')).toHaveValue('gasket');
+  await expect(page.locator('#vacuumResidual')).toHaveValue('100');
+
+  for (const id of ['containerType', 'vacuumResidual', 'oxygenAbsorber', 'desiccant', 'containerVolume', 'seedMass', 'seedVolume', 'storageHorizon', 'seedTreatment']) {
+    const labelled = await page.locator(`#${id}`).evaluate((node) => Boolean(node.closest('label')));
+    expect(labelled, id).toBe(true);
+    await expect(page.locator(`[aria-describedby="help-${id}"]`), id).toHaveCount(1);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Monte Carlo. The RNG is checked against the Creatine Lab source it was copied
+// from, read in Node, and the Beta draws against Beta(95.5, 5.5) quantiles
+// computed outside the tool.
+// ---------------------------------------------------------------------------
+
+test('the Monte Carlo RNG draws the same sequence as the Creatine Lab original', async ({ page, baseURL }) => {
+  await openSeedLab(page, baseURL);
+  const source = fs.readFileSync(path.resolve(__dirname, '..', '..', 'js', 'creatine_lab', 'creatine-model.js'), 'utf8');
+  const body = source.slice(source.indexOf('function createSeededRandom'), source.indexOf('function clamp'));
+  // eslint-disable-next-line no-new-func
+  const original = new Function(`${body}; return createSeededRandom;`)();
+  for (const seed of [1, 42, 20261003, 0]) {
+    const reference = original(seed);
+    const expected = Array.from({ length: 2000 }, () => reference());
+    const actual = await page.evaluate(([s]) => {
+      const rng = window.SeedMonteCarlo.createSeededRandom(s);
+      return Array.from({ length: 2000 }, () => rng());
+    }, [seed]);
+    expect(actual, `seed ${seed}`).toEqual(expected);
+  }
+});
+
+test('Gamma and Beta draws match their distributions', async ({ page, baseURL }) => {
+  await openSeedLab(page, baseURL);
+  const stats = await page.evaluate(() => {
+    const MC = window.SeedMonteCarlo;
+    const rng = MC.createSeededRandom(5);
+    const moments = (draw, n) => {
+      let s = 0; let s2 = 0;
+      for (let i = 0; i < n; i += 1) { const x = draw(); s += x; s2 += x * x; }
+      return { mean: s / n, variance: s2 / n - (s / n) ** 2 };
+    };
+    const germination = Array.from({ length: 40000 }, () => MC.germinationPosterior(rng, 95, 100));
+    return {
+      gammaHalf: moments(() => MC.sampleGamma(rng, 0.5), 100000),
+      gammaThree: moments(() => MC.sampleGamma(rng, 3), 100000),
+      low: MC.percentile(germination, 0.025),
+      high: MC.percentile(germination, 0.975),
+      median: MC.percentile(germination, 0.5)
+    };
+  });
+  // Gamma(k, 1) has mean and variance k.
+  expect(Math.abs(stats.gammaHalf.mean - 0.5)).toBeLessThan(0.01);
+  expect(Math.abs(stats.gammaHalf.variance - 0.5)).toBeLessThan(0.02);
+  expect(Math.abs(stats.gammaThree.mean - 3)).toBeLessThan(0.03);
+  expect(Math.abs(stats.gammaThree.variance - 3)).toBeLessThan(0.1);
+  // scipy.stats.beta(95.5, 5.5): ppf(0.025) 0.89390, ppf(0.975) 0.98067.
+  expect(Math.abs(stats.low - 89.390)).toBeLessThan(0.2);
+  expect(Math.abs(stats.high - 98.067)).toBeLessThan(0.1);
+  expect(stats.median).toBeGreaterThan(94.5);
+  expect(stats.median).toBeLessThan(95.0);
+});
+
+test('the band closes onto the point estimate and widens with each source of doubt', async ({ page, baseURL }) => {
+  await openSeedLab(page, baseURL);
+  const result = await page.evaluate(() => {
+    const MC = window.SeedMonteCarlo;
+    const record = { scientificName: 'Lactuca sativa', constants: [{ KE: 6.895, CW: 4.2, CH: 0.0329, CQ: 0.000478 }] };
+    const base = { moisturePct: 6, temperatureC: 5, initialViabilityPct: 95, targetViabilityPct: 85, draws: 400, seed: 9 };
+    const width = (extra) => {
+      const r = MC.runViabilityMonteCarlo(record, { ...base, ...extra });
+      return { p10: r.determinations[0].daysToTarget.p10, p90: r.determinations[0].daysToTarget.p90, band: r.determinations[0].band };
+    };
+    const point = window.SeedViability.predictDetermination(record.constants[0], { ...base, scientificName: 'Lactuca sativa' });
+    return {
+      point: point.daysToTarget,
+      none: width({}),
+      moisture: width({ moistureSpreadPct: 1 }),
+      both: width({ moistureSpreadPct: 1, temperatureSpreadC: 3 }),
+      all: width({ moistureSpreadPct: 1, temperatureSpreadC: 3, testSeeds: 100 }),
+      bigTest: width({ testSeeds: 10000 }),
+      smallTest: width({ testSeeds: 50 })
+    };
+  });
+  expect(result.none.p10).toBe(result.point);
+  expect(result.none.p90).toBe(result.point);
+  const span = (w) => w.p90 - w.p10;
+  expect(span(result.moisture)).toBeGreaterThan(0);
+  expect(span(result.both)).toBeGreaterThan(span(result.moisture));
+  expect(span(result.all)).toBeGreaterThan(span(result.both));
+  // A bigger test pins the lot down; a smaller one leaves it looser.
+  expect(span(result.bigTest)).toBeLessThan(span(result.smallTest) / 5);
+  // The band contains the median curve everywhere.
+  for (const point of result.all.band) {
+    expect(point.p10).toBeLessThanOrEqual(point.median + 1e-9);
+    expect(point.median).toBeLessThanOrEqual(point.p90 + 1e-9);
+  }
+});
+
+test('the probit-scale band agrees with percentiles taken on germination itself', async ({ page, baseURL }) => {
+  await openSeedLab(page, baseURL);
+  const worst = await page.evaluate(() => {
+    const MC = window.SeedMonteCarlo;
+    const V = window.SeedViability;
+    const constants = { KE: 6.895, CW: 4.2, CH: 0.0329, CQ: 0.000478 };
+    const options = { moisturePct: 6, moistureSpreadPct: 1, temperatureC: 5, temperatureSpreadC: 2,
+      initialViabilityPct: 95, testSeeds: 100, targetViabilityPct: 85, draws: 600, seed: 4, curvePoints: 25 };
+    const band = MC.runViabilityMonteCarlo({ scientificName: 'Lactuca sativa', constants: [constants] }, options).determinations[0].band;
+    // Brute force: the same draws, every curve evaluated in percent, then percentiles.
+    const draws = MC.drawInputs({ ...options });
+    const runs = draws.map((draw) => V.predictDetermination(constants, { ...draw, targetViabilityPct: 85, scientificName: 'Lactuca sativa' }));
+    let max = 0;
+    for (const point of band) {
+      const percents = runs.map((run) => V.viabilityAfterDays(run.sigmaDays, run.initialNed, point.days));
+      max = Math.max(max,
+        Math.abs(MC.percentile(percents, 0.1) - point.p10),
+        Math.abs(MC.percentile(percents, 0.5) - point.median),
+        Math.abs(MC.percentile(percents, 0.9) - point.p90));
+    }
+    return max;
+  });
+  // The two differ only where interpolation falls between two draws.
+  expect(worst).toBeLessThan(0.5);
+});
+
+test('the page shows the band, the table column and a reproducible range', async ({ page, baseURL }) => {
+  await openSeedLab(page, baseURL);
+  const first = await page.locator('#monteCarloValue').textContent();
+  expect(first).toMatch(/^[\d.]+-[\d.]+ y$/);
+  await expect(page.locator('#monteCarloMeta')).toContainText('8 in 10 of 500 draws');
+  await expect(page.locator('#monteCarloMeta')).toContainText('across 2 determinations');
+
+  await page.locator('#viabilityCard summary').click();
+  await expect(page.locator('#viabilityChart polygon.viability-band')).toHaveCount(2);
+  await expect(page.locator('#viabilityTable thead')).toContainText('P10-P90');
+  const cells = await page.locator('#viabilityTableBody tr.viability-row').evaluateAll((rows) =>
+    rows.map((row) => row.children[4].textContent));
+  expect(cells.every((text) => /-/.test(text))).toBe(true);
+
+  // Same seed, same band; another seed moves it a little.
+  await page.locator('[data-tab-target="storage"]').click();
+  await page.fill('#monteCarloSeed', '7');
+  await expect(page.locator('#monteCarloValue')).not.toHaveText(first);
+  await page.fill('#monteCarloSeed', '20261003');
+  await expect(page.locator('#monteCarloValue')).toHaveText(first);
+
+  // No doubt at all: the range is the point estimate.
+  await page.fill('#moistureSpread', '0');
+  await page.fill('#temperatureSpread', '0');
+  await page.fill('#testSeeds', '');
+  await expect(page.locator('#monteCarloValue')).toHaveText(await page.locator('#viabilityValue').textContent());
+
+  // Draws are held between 100 and 2,000.
+  await page.fill('#monteCarloDraws', '50000');
+  await expect(page.locator('#monteCarloMeta')).toContainText('of 2,000 draws');
+  await page.fill('#monteCarloDraws', '3');
+  await expect(page.locator('#monteCarloMeta')).toContainText('of 100 draws');
+
+  await page.reload();
+  await page.locator('[data-tab-target="storage"]').click();
+  await expect(page.locator('#monteCarloDraws')).toHaveValue('3');
+  await page.click('#resetBtn');
+  await expect(page.locator('#monteCarloDraws')).toHaveValue('500');
+  await expect(page.locator('#moistureSpread')).toHaveValue('1');
+  await expect(page.locator('#monteCarloValue')).toHaveText(first);
+});
+
+test('draws past the equation are counted on the card', async ({ page, baseURL }) => {
+  await openSeedLab(page, baseURL);
+  await page.locator('[data-tab-target="storage"]').click();
+  await page.fill('#storageMoisture', '14.5');
+  await expect(page.locator('#monteCarloMeta')).toContainText('draws fell outside the equation and are left out');
+  await page.fill('#moistureSpread', '0');
+  await expect(page.locator('#monteCarloMeta')).not.toContainText('fell outside');
+
+  // Where the point estimate is refused, the band says so instead of guessing.
+  await page.fill('#storageMoisture', '16');
+  await expect(page.locator('#monteCarloValue')).toHaveText('--');
+});
+
+test('audit regressions: the humidity input, presets and refused draws', async ({ page, baseURL }) => {
+  await openSeedLab(page, baseURL);
+  await page.locator('[data-tab-target="storage"]').click();
+
+  // The humidity is the seed's, so its label and help say what to enter for a sealed jar.
+  await expect(page.locator('#storageRelativeHumidity').locator('xpath=ancestor::label')).toContainText('Humidity the seed is in balance with');
+  await expect(page.locator('#help-storageRelativeHumidity')).toContainText('does not count');
+
+  // A preset resets a vacuum left over from earlier.
+  await page.fill('#vacuumResidual', '40');
+  await page.locator('[data-preset="fridge"]').click();
+  await expect(page.locator('#vacuumResidual')).toHaveValue('100');
+  await expect(page.locator('#oxygenValue')).toHaveText('1.00×');
+
+  // Refused draws are the wettest ones, and the card says which way that leans.
+  await page.fill('#storageMoisture', '14.5');
+  await expect(page.locator('#monteCarloMeta')).toContainText('the range is longer than it should be');
+
+  // The chart's spoken summary includes the band.
+  await page.fill('#storageMoisture', '6');
+  await page.locator('#viabilityCard summary').click();
+  await expect(page.locator('#viabilityChart svg')).toHaveAttribute('aria-label', /Shaded bands hold 8 in 10 draws/);
+});
+
+// ---------------------------------------------------------------------------
+// Third audit. Each test holds one defect the pass found.
+// ---------------------------------------------------------------------------
+
+test('a nursery grouping is not reported as intermediate seed', async ({ page, baseURL }) => {
+  await openSeedLab(page, baseURL);
+  const result = await page.evaluate(async () => {
+    const M = { ...(await import('../js/seed_storage_lab/seed-model.js')), ...(await import('../js/seed_storage_lab/seed-species-data.js')) };
+    const gate = (id) => M.evaluateSpeciesGate(M.getSpeciesById(id));
+    const shown = M.SEED_SPECIES
+      .map((record) => ({ record, gate: M.evaluateSpeciesGate(record) }))
+      .filter(({ gate: g }) => g.status !== 'ok' && g.status !== 'assumed');
+    return {
+      cherry: gate('prunus-americana'),
+      hawthorn: gate('crataegus'),
+      names: M.getSpeciesById('prunus-americana').commonNames,
+      // Notes are read by the user, so none may carry curation shorthand.
+      internal: shown.filter(({ gate: g }) => /WE HOLD|must NOT|Same compendium|held from WPSM/.test(g.detail))
+        .map(({ record }) => record.scientificName),
+      cutMidFigure: shown.filter(({ gate: g }) => /[=,(]\s*$/.test(g.detail)).map(({ record }) => record.scientificName),
+      leadingConjunction: M.SEED_SPECIES.filter((record) => (record.commonNames || []).some((name) => /^(and|or)\s/.test(name)))
+        .map((record) => record.scientificName)
+    };
+  });
+  // Holmes & Buszewicz 1958 group 2 is "moist briefly or dry for long", which
+  // Roberts' scheme calls orthodox; the species records agree 33 of 34.
+  for (const g of [result.cherry, result.hawthorn]) {
+    expect(g.behaviour).toBe('unconfirmed');
+    expect(g.status).toBe('caution');
+    expect(g.allowLongevity).toBe(false);
+    expect(g.detail).toContain('Holmes & Buszewicz 1958');
+    expect(g.detail).not.toMatch(/intermediate seed/);
+  }
+  expect(result.cherry.headline).toContain('plum (Prunus americana)');
+  expect(result.names).toContain('plum');
+  expect(result.internal).toEqual([]);
+  expect(result.cutMidFigure).toEqual([]);
+  expect(result.leadingConjunction).toEqual([]);
+});
+
+test('the Hundred Rule never rounds onto its own line', async ({ page, baseURL }) => {
+  await openSeedLab(page, baseURL);
+  const rule = await page.evaluate(async () => {
+    const M = await import('../js/seed_storage_lab/seed-model.js');
+    return [58.6, 59, 59.4, 30].map((rh) => M.hundredRule({ temperatureC: 5, relativeHumidityPct: rh }));
+  });
+  expect(rule[0].pass).toBe(true);
+  expect(rule[0].detail).toContain('= 99.6, under 100');
+  expect(rule[1].pass).toBe(false);
+  expect(rule[1].detail).toContain('= 100.0, not under 100');
+  expect(rule[2].detail).toContain('= 100.4, over 100');
+  expect(rule[3].detail).toContain('41 °F + 30% RH = 71, under 100');
+
+  await page.locator('[data-tab-target="storage"]').click();
+  await page.fill('#storageTemperature', '5');
+  await page.fill('#storageRelativeHumidity', '58.6');
+  await expect(page.locator('#hundredRuleValue')).toHaveText('99.6 ✓');
+});
+
+test('a Fahrenheit entry is rounded in the clamp warning', async ({ page, baseURL }) => {
+  await openSeedLab(page, baseURL);
+  await page.locator('[data-tab-target="storage"]').click();
+  await page.selectOption('#storageTemperatureUnit', 'F');
+  await page.fill('#storageTemperature', '0');
+  await expect(page.locator('#warningList')).toContainText('Storage temperature -17.8 °C is outside');
+  await expect(page.locator('#warningList')).not.toContainText('-17.777');
+});
+
+test('the weighing warning follows the rounding of a 0.1 g scale', async ({ page, baseURL }) => {
+  await openSeedLab(page, baseURL);
+  const warnings = await page.evaluate(async () => {
+    const M = await import('../js/seed_storage_lab/seed-model.js');
+    return [0.05, 0.08, 0.6, 4.9, 5].map((grams) =>
+      M.countFromMeasurement({ seedCount: 100, sampleMass: grams }).warnings.join(' '));
+  });
+  expect(warnings[0]).toContain('cannot tell 0.05 g from nothing');
+  // 100 lettuce seeds weigh about 0.08 g; half a 0.1 g step is 63% of that.
+  expect(warnings[1]).toContain('a 0.08 g reading up to 63% out');
+  expect(warnings[1]).not.toContain('ten times');
+  expect(warnings[2]).toContain('a 0.6 g reading up to 8.3% out');
+  expect(warnings[2]).toContain('ten times that on a scale reading to 1 g');
+  expect(warnings[3]).toContain('a 4.9 g reading up to 1.0% out');
+  expect(warnings[4]).toBe('');
+});
+
+test('the longevity warnings do not cite a seed older than the horizon they set', async ({ page, baseURL }) => {
+  await openSeedLab(page, baseURL);
+  await page.locator('[data-tab-target="storage"]').click();
+  await page.fill('#baselineTemperature', '25');
+  await page.fill('#baselineMoisture', '12');
+  await page.fill('#storageTemperature', '0');
+  await page.fill('#storageMoisture', '5');
+  await expect(page.locator('#warningList')).toContainText('No seed lot in storage has been followed');
+  await expect(page.locator('#warningList')).not.toContainText('date palm');
+});
+
+test('three disagreeing count sources are not called both', async ({ page, baseURL }) => {
+  await openSeedLab(page, baseURL);
+  await expect(page.locator('#warningList')).toContainText('Each is shown in the Count tab');
+  await expect(page.locator('#warningList')).not.toContainText('Both are shown');
+});
+
+test('the page runs under a strict CSP and the maths dialog manages focus', async ({ page, baseURL }) => {
+  const violations = [];
+  page.on('console', (message) => { if (/Content Security Policy/i.test(message.text())) violations.push(message.text()); });
+  await openSeedLab(page, baseURL);
+  const csp = await page.locator('meta[http-equiv="Content-Security-Policy"]').getAttribute('content');
+  expect(csp).toContain("script-src 'self'");
+  expect(csp).not.toContain('unsafe-inline');
+
+  // Tabs are toggle buttons, so the row is a group; a tablist with no tabs is announced empty.
+  await expect(page.locator('.tab-row')).toHaveAttribute('role', 'group');
+
+  await page.locator('#showMathBtn').click();
+  await expect(page.locator('#mathModalClose')).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#mathModal')).toBeHidden();
+  await expect(page.locator('#showMathBtn')).toBeFocused();
+
+  await page.locator('[data-tab-target="storage"]').click();
+  await page.locator('#viabilityCard summary').click();
+  await page.fill('#monteCarloDraws', '2000');
+  await expect(page.locator('#monteCarloMeta')).toContainText('of 2,000 draws');
+  expect(violations).toEqual([]);
+});
+
+// ---------------------------------------------------------------------------
+// Measured rather than assumed: contrast, overflow, targets and speed.
+// ---------------------------------------------------------------------------
+
+const TEXT_SELECTOR = 'header p, header h1, main p, main li, main td, main th, main label > span, main summary, main h2, main h3, '
+  + 'main button, main .result-card div, main .result-card span, main legend';
+
+test('every text style on every tab clears AA in both themes', async ({ page, baseURL }) => {
+  await openSeedLab(page, baseURL);
+  const failures = [];
+  let measured = 0;
+  for (const tab of ['species', 'count', 'storage']) {
+    await page.locator(`[data-tab-target="${tab}"]`).click();
+    for (const theme of ['dark', 'light']) {
+      const results = await measureContrast(page, TEXT_SELECTOR, theme);
+      measured += results.length;
+      failures.push(...results.filter((m) => !m.pass).map((m) => `${tab} ${theme}: "${m.text}" (${m.cls}) ${m.ratio}:1`));
+      // Chart text is painted by fill, which the shared helper does not read.
+      const ticks = await page.evaluate(() => {
+        const parse = (c) => (c.match(/[\d.]+/g) || []).slice(0, 3).map(Number);
+        const lum = ([r, g, b]) => [r, g, b].map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; })
+          .reduce((sum, v, i) => sum + v * [0.2126, 0.7152, 0.0722][i], 0);
+        const card = (el) => { for (let n = el; n; n = n.parentElement) { const c = getComputedStyle(n).backgroundColor; if (!/rgba\(0, 0, 0, 0\)|transparent/.test(c)) return parse(c); } return [255, 255, 255]; };
+        return [...document.querySelectorAll('svg text')].filter((t) => t.getBoundingClientRect().width > 0).map((t) => {
+          const a = lum(parse(getComputedStyle(t).fill)); const b = lum(card(t.closest('svg')));
+          return { text: t.textContent, ratio: (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05) };
+        });
+      });
+      measured += ticks.length;
+      failures.push(...ticks.filter((t) => t.ratio < 4.5).map((t) => `${tab} ${theme} chart: "${t.text}" ${t.ratio.toFixed(2)}:1`));
+    }
+  }
+  expect(measured).toBeGreaterThan(300);
+  expect(failures).toEqual([]);
+});
+
+for (const width of [1280, 900, 768, 375]) {
+  test(`nothing overflows horizontally at ${width}px on any tab`, async ({ page, baseURL }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await openSeedLab(page, baseURL);
+    for (const tab of ['species', 'count', 'storage']) {
+      await page.locator(`[data-tab-target="${tab}"]`).click();
+      await page.evaluate(() => { for (const d of document.querySelectorAll('details')) d.open = true; });
+      const overflow = await page.evaluate(() => {
+        const doc = document.documentElement;
+        const wide = [];
+        for (const node of document.querySelectorAll('body *')) {
+          const r = node.getBoundingClientRect();
+          if (r.width === 0 || r.right <= doc.clientWidth + 1) continue;
+          // A table that scrolls inside its own wrapper is the intended layout.
+          let scroller = node.parentElement;
+          while (scroller && !/auto|scroll|hidden/.test(getComputedStyle(scroller).overflowX)) scroller = scroller.parentElement;
+          if (!scroller) wide.push(`${node.tagName}.${node.className}`.slice(0, 60));
+        }
+        return { scrolls: doc.scrollWidth > doc.clientWidth + 1, wide: wide.slice(0, 5) };
+      });
+      expect(overflow.wide, tab).toEqual([]);
+      expect(overflow.scrolls, tab).toBe(false);
+    }
+  });
+}
+
+test('the help chips take a 24 px pointer target', async ({ page, baseURL }) => {
+  await openSeedLab(page, baseURL);
+  const misses = await page.evaluate(() => [...document.querySelectorAll('.help-chip')]
+    .filter((chip) => chip.getBoundingClientRect().width > 0)
+    .flatMap((chip) => {
+      // elementFromPoint only sees what is on screen.
+      chip.scrollIntoView({ block: 'center' });
+      const r = chip.getBoundingClientRect();
+      const cx = r.left + r.width / 2;
+      const cy = r.top + r.height / 2;
+      return [[-11, 0], [11, 0], [0, -11], [0, 11]]
+        .filter(([dx, dy]) => document.elementFromPoint(cx + dx, cy + dy) !== chip)
+        .map(([dx, dy]) => `${chip.closest('[id]') ? chip.closest('[id]').id : '?'} ${dx},${dy}`);
+    }));
+  expect(misses).toEqual([]);
+});
+
+test('the Monte Carlo is reused while its own inputs are unchanged', async ({ page, baseURL }) => {
+  await openSeedLab(page, baseURL);
+  const result = await page.evaluate(async () => {
+    const M = await import('../js/seed_storage_lab/seed-model.js');
+    const base = { speciesId: 'oryza-sativa', storageMoisturePct: 11, monteCarloDraws: 2000 };
+    const first = M.runSeedModel(base);
+    let start = performance.now();
+    const unrelated = M.runSeedModel({ ...base, packetMass: 7, horizonYears: 9 });
+    const reused = performance.now() - start;
+    const moved = M.runSeedModel({ ...base, storageMoisturePct: 11.5 });
+    return { same: first.monteCarlo === unrelated.monteCarlo, rerun: moved.monteCarlo !== first.monteCarlo,
+      differs: moved.monteCarlo.daysToTarget.low !== first.monteCarlo.daysToTarget.low, reused };
+  });
+  expect(result.same).toBe(true);
+  expect(result.rerun).toBe(true);
+  expect(result.differs).toBe(true);
+  // 2,000 draws on rice cost about 230 ms; a reused result is a fraction of one.
+  expect(result.reused).toBeLessThan(50);
+});
+
+test('every reference names its archived copy, and every claim rests on one', async ({ page, baseURL }) => {
+  await openSeedLab(page, baseURL);
+  const { SEED_REFERENCES, SEED_CLAIM_AUDIT, SEED_EQUATION_SPECS } = await page.evaluate(async () => {
+    const map = await import('../js/seed_storage_lab/seed-source-map.js');
+    const math = await import('../js/seed_storage_lab/seed-math.js');
+    return {
+      SEED_REFERENCES: map.SEED_REFERENCES,
+      SEED_CLAIM_AUDIT: map.SEED_CLAIM_AUDIT,
+      SEED_EQUATION_SPECS: math.SEED_EQUATION_SPECS.map((spec) => ({ id: spec.id, sources: spec.sources }))
+    };
+  });
+  const sources = path.resolve(__dirname, '..', '..', 'data', 'seed_storage_lab', 'sources');
+  // The archive is local only (gitignored), so files are checked where it exists.
+  const haveArchive = fs.existsSync(sources);
+  const problems = [];
+  for (const [key, reference] of Object.entries(SEED_REFERENCES)) {
+    if (reference.archive === null) {
+      if (!reference.notArchived) problems.push(`${key}: no archive and no reason`);
+    } else if (typeof reference.archive !== 'string') {
+      problems.push(`${key}: archive field missing`);
+    } else if (haveArchive && !fs.existsSync(path.join(sources, reference.archive))) {
+      problems.push(`${key}: ${reference.archive} not on disk`);
+    }
+  }
+  const archived = (key) => SEED_REFERENCES[key] && SEED_REFERENCES[key].archive;
+  for (const row of SEED_CLAIM_AUDIT) {
+    for (const key of row.sourceKeys) if (!SEED_REFERENCES[key]) problems.push(`claim cites unknown ${key}`);
+    if (!row.sourceKeys.some(archived)) problems.push(`claim "${row.claim.slice(0, 50)}" rests on nothing archived`);
+  }
+  for (const spec of SEED_EQUATION_SPECS) {
+    if (!(spec.sources || []).some(archived)) problems.push(`equation ${spec.id} rests on nothing archived`);
+  }
+  expect(problems).toEqual([]);
+  expect(Object.values(SEED_REFERENCES).filter((r) => r.archive === null).length).toBe(2);
+});
+
+// ---------------------------------------------------------------------------
+// Temperature as a span: two readings of Harrington and the measured curve.
+// ---------------------------------------------------------------------------
+
+test('the temperature factor spans both Harrington readings and the measured curve', async ({ page, baseURL }) => {
+  await openSeedLab(page, baseURL);
+  const result = await page.evaluate(async () => {
+    const M = await import('../js/seed_storage_lab/seed-model.js');
+    const at = (storageC) => M.temperatureFactors(5, storageC);
+    return {
+      cold: at(0), warm: at(20), hot: at(45),
+      model: M.runSeedModel({ speciesId: 'lactuca-sativa', storageTemperatureC: 20, storageMoisturePct: 6 })
+    };
+  });
+  // Values computed in Python from CH 0.0329 and CQ 0.000478.
+  expect(result.warm.methods.ellisRoberts).toBeCloseTo(0.212450, 5);
+  expect(result.warm.methods.fahrenheit10).toBeCloseTo(0.153893, 5);
+  expect(result.warm.methods.celsius5).toBeCloseTo(0.125, 12);
+  expect([result.warm.lowMethod, result.warm.highMethod]).toEqual(['celsius5', 'ellisRoberts']);
+  // Cooling below the baseline: the measured curve gains least.
+  expect(result.cold.methods.ellisRoberts).toBeCloseTo(1.501240, 5);
+  expect([result.cold.lowMethod, result.cold.highMethod]).toEqual(['ellisRoberts', 'celsius5']);
+  // Above about 38 °C the measured curve falls between the two rules.
+  expect(result.hot.lowMethod).toBe('celsius5');
+  expect(result.hot.highMethod).toBe('fahrenheit10');
+
+  // The projection takes each end of the span, never a blend.
+  const { multiplier, projection } = result.model;
+  expect(multiplier.range.low).toBeCloseTo(multiplier.moistureMultiplier * result.warm.low, 12);
+  expect(multiplier.range.high).toBeCloseTo(multiplier.moistureMultiplier * result.warm.high, 12);
+  expect(projection.years.low).toBeCloseTo(projection.baseline.span.low * multiplier.range.low, 9);
+  expect(projection.years.high).toBeCloseTo(projection.baseline.span.high * multiplier.range.high, 9);
+
+  await page.locator('[data-tab-target="storage"]').click();
+  await page.fill('#storageTemperature', '20');
+  await expect(page.locator('#temperatureFactorValue')).toHaveText('0.13-0.21×');
+  await expect(page.locator('#temperatureFactorMeta')).toContainText('Ellis-Roberts temperature terms 0.21×');
+  await expect(page.locator('#temperatureFactorMeta')).toContainText('per 10 °F 0.15×');
+  await expect(page.locator('#longevityMeta')).toContainText('the short end from Harrington, halving per 5 °C');
+  await expect(page.locator('#longevityMeta')).toContainText('the long end from Ellis-Roberts temperature terms');
+});
+
+test('Harrington is applied up to his own 50 °C', async ({ page, baseURL }) => {
+  await openSeedLab(page, baseURL);
+  await page.locator('[data-tab-target="storage"]').click();
+  await page.fill('#storageTemperature', '45');
+  await expect(page.locator('#warningList')).not.toContainText('Storage temperature');
+  await page.fill('#storageTemperature', '55');
+  await expect(page.locator('#warningList')).toContainText('Storage temperature 55 °C is outside');
+  await expect(page.locator('#warningList')).toContainText('(0-50 °C); clamped to 50 °C');
 });

@@ -1,11 +1,15 @@
 <!--
 ============================================
-SEED STORAGE LAB v0.2.0
+SEED STORAGE LAB v0.5.0
 ============================================
 Description: Seed count lookup, measured-count mode, and orthodox seed
-storage-life estimation from Harrington's rules and, for species with
-published constants, the Ellis-Roberts viability equation. A species gate
-refuses to model recalcitrant and vegetatively propagated crops.
+storage-life estimation from Harrington's rules, with temperature read as a
+span across both published forms of the rule and the measured Ellis-Roberts
+temperature terms. Species with published constants also get the
+Ellis-Roberts viability equation. A storage tier model covers the container, headspace
+oxygen, absorbers and desiccants. A seeded Monte Carlo bands the viability
+equation over the user's uncertainty. A species gate refuses to model
+recalcitrant and vegetatively propagated crops.
 
 Dependencies:
 - No third-party runtime libraries beyond shared repo assets
@@ -15,6 +19,8 @@ Dependencies:
 Project: Tools Hub by Jesse Anderson
 Repository: https://github.com/jesse-anderson/Tools
 License: GPL-3.0
+
+Last Updated: October 2026
 ============================================
 -->
 <!DOCTYPE html>
@@ -22,6 +28,7 @@ License: GPL-3.0
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'none'">
     <meta name="description" content="Seeds per ounce and per pound by species, plus an estimate of how long orthodox seed stays viable at a given temperature and moisture (Ellis-Roberts).">
     <link rel="canonical" href="https://tools.jesse-anderson.net/tools/seed-storage-lab.html">
     <meta property="og:type" content="website">
@@ -123,6 +130,17 @@ License: GPL-3.0
                     </div>
 
                     <div class="disclaimer-section">
+                        <h3>What the container model does not see</h3>
+                        <ul>
+                            <li><strong>The oxygen factor was measured on one species.</strong> It comes from seven years of primed celery (Groot et al. 2025). Other work on lettuce found a much smaller effect, so oxygen control only raises the upper end of a projection.</li>
+                            <li>It cannot tell whether your jar is actually airtight. In the one test that compared closures, plastic screw caps let oxygen back in and rubber rings and lined lids did not, but every jar and lid differs.</li>
+                            <li>The fall in oxygen inside a sealed jar is scaled from dry lettuce at 20 °C. The rate depends on temperature, moisture and the oxygen level, and no other seed or condition has been measured.</li>
+                            <li>It does not know what is in your absorber packet. Most contain a moisturiser, which is why an absorber needs a desiccant beside it.</li>
+                            <li>Sealing seed that is not dry makes it die faster. The tool flags it, but it cannot measure your seed's moisture for you.</li>
+                        </ul>
+                    </div>
+
+                    <div class="disclaimer-section">
                         <h3>Recalcitrant and intermediate species are refused</h3>
                         <p>Refused by design, because dry-storage models do not apply to them. <strong>A refusal is an answer</strong>, and the right response is to look up the storage behaviour of that species rather than to find a tool that will return a number.</p>
                     </div>
@@ -177,12 +195,14 @@ License: GPL-3.0
                         <li><strong>How long will this seed keep?</strong> Set the storage temperature and moisture. The multiplier is relative to the baseline conditions the published longevity figure is assumed to describe, so the baseline is an editable input.</li>
                     </ul>
                     <p><strong>Moisture content and relative humidity are different quantities.</strong> Seed moisture content is water as a percentage of seed weight, typically 5 to 14% in stored seed. Relative humidity describes the air around the seed. Harrington's moisture rule uses moisture content; the Hundred Rule uses relative humidity. Both therefore appear as inputs.</p>
-                    <p><strong>Freezer storage is outside these rules.</strong> Harrington's thumb-rules are only valid between 0 and 40 °C. Ask for -18 °C and the thumb-rule projection clamps to 0 °C and says so. For the species with published constants, the Ellis-Roberts viability equation answers the freezer question instead, down to -20 °C.</p>
+                    <p><strong>Temperature is shown as a range.</strong> Harrington's rule is published both as halving per 10 °F and as halving per 5 °C, and the Ellis-Roberts equation's temperature terms, fitted on measured seed survival, give a smaller effect than either below about 35 °C. The projection spans all three, and the card names which one sets each end.</p>
+                    <p><strong>Freezer storage is outside these rules.</strong> The tool applies Harrington's thumb-rules between 0 and 50 °C, the range Harrington gave for the temperature rule. Ask for -18 °C and the thumb-rule projection clamps to 0 °C and says so. For the species with published constants, the Ellis-Roberts viability equation answers the freezer question instead, down to -20 °C.</p>
                     <p><strong>The viability equation answers a different question.</strong> Harrington scales a published "keeps about N years" figure. The equation predicts germination percentage against time for a lot that starts at the germination you enter, sealed airtight at the temperature and seed moisture content you enter, and reports how long until it falls to the floor you set. It takes the seed's own moisture content. Room humidity is a different quantity: an oily seed like lettuce holds far less water than a cereal in the same air.</p>
+                    <p><strong>The container matters as much as the fridge.</strong> Under Storage, say what the seed is kept in. A sealed jar keeps the seed as dry as it was when sealed, which helps dry seed and harms damp seed. Most oxygen absorbers carry a moisturiser and need a desiccant beside them, and their benefit takes years to show. When you take seed out of cold storage, let the closed container reach room temperature before opening it, or water condenses on the cold seed.</p>
                     <p><strong>The tool will refuse some species.</strong> Acorns, chestnuts, avocado and mango have recalcitrant seed that dies on drying; garlic and potatoes are not grown from stored seed at all. In both cases the tool withholds the storage-life model and explains why. Seed counts still display.</p>
                 </details>
 
-                <div class="tab-row" role="tablist" aria-label="Seed Storage Lab sections">
+                <div class="tab-row" role="group" aria-label="Seed Storage Lab sections">
                     <button type="button" class="tab-btn active" data-tab-target="species" aria-pressed="true">Species</button>
                     <button type="button" class="tab-btn" data-tab-target="count" aria-pressed="false">Count</button>
                     <button type="button" class="tab-btn" data-tab-target="storage" aria-pressed="false">Storage</button>
@@ -321,11 +341,84 @@ License: GPL-3.0
                                 </div>
                             </label>
                             <label class="input-line">
-                                <span>Storage relative humidity</span>
+                                <span>Humidity the seed is in balance with</span>
                                 <div class="unit-field">
                                     <input id="storageRelativeHumidity" type="number" min="0" max="100" step="1" value="30">
                                     <span class="unit-suffix" aria-hidden="true">%</span>
                                 </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="section-block">
+                        <h3>Container and oxygen</h3>
+                        <div class="input-grid">
+                            <label class="input-line wide">
+                                <span>Container</span>
+                                <select id="containerType">
+                                    <option value="open">Paper, cloth or jute packet</option>
+                                    <option value="screw">Plastic screw cap with no gasket</option>
+                                    <option value="gasket" selected>Jar with a rubber ring or lined lid</option>
+                                    <option value="foil">Laminated foil bag, vacuum sealed</option>
+                                </select>
+                            </label>
+                            <label class="input-line">
+                                <span>Pressure left after vacuum</span>
+                                <div class="unit-field">
+                                    <input id="vacuumResidual" type="number" min="1" max="100" step="1" value="100">
+                                    <span class="unit-suffix" aria-hidden="true">%</span>
+                                </div>
+                            </label>
+                            <label class="input-line">
+                                <span>Absorber rating</span>
+                                <div class="unit-field">
+                                    <input id="absorberCapacity" type="number" min="0" step="10" value="100">
+                                    <span class="unit-suffix" aria-hidden="true">mL</span>
+                                </div>
+                            </label>
+                            <label class="check-line">
+                                <input id="oxygenAbsorber" type="checkbox">
+                                <span>Oxygen absorber inside</span>
+                            </label>
+                            <label class="check-line">
+                                <input id="desiccant" type="checkbox" checked>
+                                <span>Desiccant inside</span>
+                            </label>
+                            <label class="input-line">
+                                <span>Container volume</span>
+                                <div class="unit-field">
+                                    <input id="containerVolume" type="number" min="1" step="1" value="500">
+                                    <span class="unit-suffix" aria-hidden="true">mL</span>
+                                </div>
+                            </label>
+                            <label class="input-line">
+                                <span>Seed in the container</span>
+                                <div class="unit-field">
+                                    <input id="seedMass" type="number" min="0" step="1" value="50">
+                                    <span class="unit-suffix" aria-hidden="true">g</span>
+                                </div>
+                            </label>
+                            <label class="input-line">
+                                <span>Seed volume</span>
+                                <div class="unit-field">
+                                    <input id="seedVolume" type="number" min="0" step="1" placeholder="1.8 mL per g">
+                                    <span class="unit-suffix" aria-hidden="true">mL</span>
+                                </div>
+                            </label>
+                            <label class="input-line">
+                                <span>How long you will keep it</span>
+                                <div class="unit-field">
+                                    <input id="storageHorizon" type="number" min="0.5" max="30" step="0.5" value="5">
+                                    <span class="unit-suffix" aria-hidden="true">y</span>
+                                </div>
+                            </label>
+                            <label class="input-line">
+                                <span>Seed treatment</span>
+                                <select id="seedTreatment">
+                                    <option value="raw" selected>Raw seed</option>
+                                    <option value="primed">Primed</option>
+                                    <option value="pelleted">Pelleted or coated</option>
+                                </select>
                             </label>
                         </div>
                     </div>
@@ -346,6 +439,41 @@ License: GPL-3.0
                                     <input id="targetGermination" type="number" min="1" max="99" step="1" value="85">
                                     <span class="unit-suffix" aria-hidden="true">%</span>
                                 </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="section-block">
+                        <h3>How sure you are of these</h3>
+                        <div class="input-grid">
+                            <label class="input-line">
+                                <span>Moisture content, give or take</span>
+                                <div class="unit-field">
+                                    <input id="moistureSpread" type="number" min="0" max="5" step="0.1" value="1">
+                                    <span class="unit-suffix" aria-hidden="true">%</span>
+                                </div>
+                            </label>
+                            <label class="input-line">
+                                <span>Temperature, give or take</span>
+                                <div class="unit-field">
+                                    <input id="temperatureSpread" type="number" min="0" max="15" step="0.5" value="2">
+                                    <span class="unit-suffix" aria-hidden="true">°C</span>
+                                </div>
+                            </label>
+                            <label class="input-line">
+                                <span>Seeds in the germination test</span>
+                                <div class="unit-field">
+                                    <input id="testSeeds" type="number" min="0" max="10000" step="1" value="100">
+                                    <span class="unit-suffix" aria-hidden="true">seeds</span>
+                                </div>
+                            </label>
+                            <label class="input-line">
+                                <span>Monte Carlo draws</span>
+                                <input id="monteCarloDraws" type="number" min="100" max="2000" step="100" value="500">
+                            </label>
+                            <label class="input-line">
+                                <span>Random seed</span>
+                                <input id="monteCarloSeed" type="number" min="1" step="1" value="20261003">
                             </label>
                         </div>
                     </div>
@@ -392,6 +520,11 @@ License: GPL-3.0
                         <strong id="viabilityValue">--</strong>
                         <span id="viabilityMeta">Waiting for a species.</span>
                     </article>
+                    <article class="result-card result-card--wide">
+                        <span class="result-label">Likely range, with your uncertainty</span>
+                        <strong id="monteCarloValue">--</strong>
+                        <span id="monteCarloMeta">Waiting for a species.</span>
+                    </article>
                     <article class="result-card">
                         <span class="result-label">Time to 50% germination</span>
                         <strong id="halfLifeValue">--</strong>
@@ -416,6 +549,16 @@ License: GPL-3.0
                         <span class="result-label">Temperature factor</span>
                         <strong id="temperatureFactorValue">--</strong>
                         <span id="temperatureFactorMeta">Waiting for input.</span>
+                    </article>
+                    <article class="result-card">
+                        <span class="result-label">Storage tier</span>
+                        <strong id="containerValue">--</strong>
+                        <span id="containerMeta">Waiting for input.</span>
+                    </article>
+                    <article class="result-card">
+                        <span class="result-label">Oxygen factor</span>
+                        <strong id="oxygenValue">--</strong>
+                        <span id="oxygenMeta">Waiting for input.</span>
                     </article>
                     <article class="result-card">
                         <span class="result-label">Hundred Rule</span>
@@ -444,6 +587,7 @@ License: GPL-3.0
                 <details class="sources-card" id="viabilityCard">
                     <summary>Viability equation detail</summary>
                     <p class="viability-note">Every published determination runs separately and none are averaged. The equation assumes the seed is sealed airtight at a constant temperature. Enter the seed's own moisture content; room humidity is a different quantity.</p>
+                    <p class="viability-note">Shaded bands hold 8 in 10 Monte Carlo draws over the uncertainty you set. The published constants' own standard errors are not sampled: K<sub>E</sub> and C<sub>W</sub> come from one regression and their covariance is not published, so drawing them independently would make the band too wide.</p>
                     <div class="viability-chart" id="viabilityChart" hidden></div>
                     <div class="data-table-wrap">
                         <table class="data-table" id="viabilityTable">
@@ -453,12 +597,20 @@ License: GPL-3.0
                                     <th scope="col">K<sub>E</sub> / C<sub>W</sub> / C<sub>H</sub> / C<sub>Q</sub></th>
                                     <th scope="col">One probit</th>
                                     <th scope="col">To your floor</th>
+                                    <th scope="col">P10-P90</th>
                                     <th scope="col">To 50%</th>
                                 </tr>
                             </thead>
                             <tbody id="viabilityTableBody"></tbody>
                         </table>
                     </div>
+                </details>
+
+                <details class="sources-card" id="oxygenCard">
+                    <summary>Oxygen in the container</summary>
+                    <p class="viability-note">In a sealed jar the seed slowly uses up the oxygen around it. The curve is scaled from 10 g of dry lettuce in a 47 mL jam jar at 20 °C, where oxygen fell to about a third in a year (Groot et al. 2015). It is drawn for information; no storage life is credited for it.</p>
+                    <p class="viability-note" id="oxygenDecayNote"></p>
+                    <div class="viability-chart" id="oxygenChart" hidden></div>
                 </details>
 
                 <details class="sources-card" id="sourcesCard">

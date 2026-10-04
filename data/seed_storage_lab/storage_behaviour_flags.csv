@@ -1,24 +1,24 @@
 taxon,rank,common_names,behaviour,propagation,in_scope,provenance,notes
-Quercus,genus,oak,recalcitrant,seed,no,ipgri_1996_compendium,"Listed by Hong Linington & Ellis 1996 among large desiccation-sensitive seeds requiring moist storage. WE HOLD 34 Quercus seed-count rows from WPSM - counts are valid but the longevity model must NOT run."
-Castanea,genus,chestnut,recalcitrant,seed,no,ipgri_1996_compendium,Same compendium list. Seed counts held from WPSM.
-Carya,genus,hickory; pecan,recalcitrant,seed,no,ipgri_1996_compendium,Same compendium list. Seed counts held from WPSM.
-Juglans,genus,walnut,recalcitrant,seed,no,ipgri_1996_compendium,Same compendium list. Seed counts held from WPSM.
-Fagus,genus,beech,recalcitrant,seed,no,ipgri_1996_compendium,Same compendium list. Seed counts held from WPSM.
-Corylus,genus,hazelnut; filbert,recalcitrant,seed,no,ipgri_1996_compendium,Same compendium list.
-Aesculus,genus,buckeye; horsechestnut,recalcitrant,seed,no,ipgri_1996_compendium,Same compendium list.
-Acer,genus,maple,intermediate,seed,caution,ipgri_1996_compendium,"Compendium groups Acer with seeds storable moist short-term or dry long-term. Behaviour is species-dependent: Acer saccharinum (silver maple) is recalcitrant while Acer platanoides is orthodox and has published viability constants. Do not apply a genus-wide rule."
-Acer saccharinum,species,silver maple,recalcitrant,seed,no,curated,"Well-established recalcitrant temperate species. WE HOLD a WPSM seed count (1780/lb) - the count is valid but longevity modelling must be refused."
+Quercus,genus,oak,recalcitrant,seed,no,ipgri_1996_compendium,"Grouped by Holmes & Buszewicz 1958, as reported in the 1996 compendium, among large desiccation-sensitive seeds requiring moist storage."
+Castanea,genus,chestnut,recalcitrant,seed,no,ipgri_1996_compendium,"Grouped by Holmes & Buszewicz 1958, as reported in the 1996 compendium, among large desiccation-sensitive seeds requiring moist storage."
+Carya,genus,hickory; pecan,recalcitrant,seed,no,ipgri_1996_compendium,"Grouped by Holmes & Buszewicz 1958, as reported in the 1996 compendium, among large desiccation-sensitive seeds requiring moist storage."
+Juglans,genus,walnut,recalcitrant,seed,no,ipgri_1996_compendium,"Grouped by Holmes & Buszewicz 1958, as reported in the 1996 compendium, among large desiccation-sensitive seeds requiring moist storage."
+Fagus,genus,beech,recalcitrant,seed,no,ipgri_1996_compendium,"Grouped by Holmes & Buszewicz 1958, as reported in the 1996 compendium, among large desiccation-sensitive seeds requiring moist storage."
+Corylus,genus,hazelnut; filbert,recalcitrant,seed,no,ipgri_1996_compendium,"Grouped by Holmes & Buszewicz 1958, as reported in the 1996 compendium, among large desiccation-sensitive seeds requiring moist storage."
+Aesculus,genus,buckeye; horsechestnut,recalcitrant,seed,no,ipgri_1996_compendium,"Grouped by Holmes & Buszewicz 1958, as reported in the 1996 compendium, among large desiccation-sensitive seeds requiring moist storage."
+Acer,genus,maple,unconfirmed,seed,caution,ipgri_1996_compendium,"Holmes & Buszewicz 1958, as reported in the 1996 compendium, group this genus with seeds that can be stored moist for short periods or dry for long periods. That is not one of the orthodox, intermediate or recalcitrant categories, and species differ. Acer saccharinum is recalcitrant while Acer platanoides is orthodox."
+Acer saccharinum,species,silver maple,recalcitrant,seed,no,curated,"Recalcitrant temperate species. Tillotson 1921, cited in the 1996 compendium, lists it among seeds that cannot be stored at all."
 Acer platanoides,species,Norway maple,orthodox,seed,yes,ipgri_1996_compendium,Has published viability constants in Appendix I.
-Prunus,genus,cherry; peach; plum; apricot,intermediate,seed,caution,ipgri_1996_compendium,"Compendium groups Prunus with seeds storable moist short-term or dry long-term. Seed counts held from WPSM; treat longevity output as indicative only."
-Pyrus,genus,pear,intermediate,seed,caution,ipgri_1996_compendium,Same compendium group. Seed counts held from WPSM.
-Sorbus,genus,mountain-ash,intermediate,seed,caution,ipgri_1996_compendium,Same compendium group.
-Fraxinus,genus,ash,intermediate,seed,caution,ipgri_1996_compendium,Same compendium group. Seed counts held from WPSM.
-Tilia,genus,basswood; linden,intermediate,seed,caution,ipgri_1996_compendium,Same compendium group. Seed counts held from WPSM.
-Carpinus,genus,hornbeam,intermediate,seed,caution,ipgri_1996_compendium,Same compendium group. Seed counts held from WPSM.
-Euonymus,genus,euonymus,intermediate,seed,caution,ipgri_1996_compendium,Same compendium group. Seed counts held from WPSM.
-Crataegus,genus,hawthorn,intermediate,seed,caution,ipgri_1996_compendium,Same compendium group.
-Liriodendron,genus,tulip tree,intermediate,seed,caution,ipgri_1996_compendium,Same compendium group.
-Nothofagus,genus,southern beech,intermediate,seed,caution,ipgri_1996_compendium,Same compendium group.
+Prunus,genus,cherry; peach; plum; apricot,unconfirmed,seed,caution,ipgri_1996_compendium,"Holmes & Buszewicz 1958, as reported in the 1996 compendium, group this genus with seeds that can be stored moist for short periods or dry for long periods. That is not one of the orthodox, intermediate or recalcitrant categories, and species differ."
+Pyrus,genus,pear,unconfirmed,seed,caution,ipgri_1996_compendium,"Holmes & Buszewicz 1958, as reported in the 1996 compendium, group this genus with seeds that can be stored moist for short periods or dry for long periods. That is not one of the orthodox, intermediate or recalcitrant categories, and species differ."
+Sorbus,genus,mountain-ash,unconfirmed,seed,caution,ipgri_1996_compendium,"Holmes & Buszewicz 1958, as reported in the 1996 compendium, group this genus with seeds that can be stored moist for short periods or dry for long periods. That is not one of the orthodox, intermediate or recalcitrant categories, and species differ."
+Fraxinus,genus,ash,unconfirmed,seed,caution,ipgri_1996_compendium,"Holmes & Buszewicz 1958, as reported in the 1996 compendium, group this genus with seeds that can be stored moist for short periods or dry for long periods. That is not one of the orthodox, intermediate or recalcitrant categories, and species differ."
+Tilia,genus,basswood; linden,unconfirmed,seed,caution,ipgri_1996_compendium,"Holmes & Buszewicz 1958, as reported in the 1996 compendium, group this genus with seeds that can be stored moist for short periods or dry for long periods. That is not one of the orthodox, intermediate or recalcitrant categories, and species differ."
+Carpinus,genus,hornbeam,unconfirmed,seed,caution,ipgri_1996_compendium,"Holmes & Buszewicz 1958, as reported in the 1996 compendium, group this genus with seeds that can be stored moist for short periods or dry for long periods. That is not one of the orthodox, intermediate or recalcitrant categories, and species differ."
+Euonymus,genus,euonymus,unconfirmed,seed,caution,ipgri_1996_compendium,"Holmes & Buszewicz 1958, as reported in the 1996 compendium, group this genus with seeds that can be stored moist for short periods or dry for long periods. That is not one of the orthodox, intermediate or recalcitrant categories, and species differ."
+Crataegus,genus,hawthorn,unconfirmed,seed,caution,ipgri_1996_compendium,"Holmes & Buszewicz 1958, as reported in the 1996 compendium, group this genus with seeds that can be stored moist for short periods or dry for long periods. That is not one of the orthodox, intermediate or recalcitrant categories, and species differ."
+Liriodendron,genus,tulip tree,unconfirmed,seed,caution,ipgri_1996_compendium,"Holmes & Buszewicz 1958, as reported in the 1996 compendium, group this genus with seeds that can be stored moist for short periods or dry for long periods. That is not one of the orthodox, intermediate or recalcitrant categories, and species differ."
+Nothofagus,genus,southern beech,unconfirmed,seed,caution,ipgri_1996_compendium,"Holmes & Buszewicz 1958, as reported in the 1996 compendium, group this genus with seeds that can be stored moist for short periods or dry for long periods. That is not one of the orthodox, intermediate or recalcitrant categories, and species differ."
 Hevea brasiliensis,species,rubber,recalcitrant,seed,no,ipgri_1996_compendium,Lowest safe temperature 7-10 C.
 Mangifera indica,species,mango,recalcitrant,seed,no,ipgri_1996_compendium,Lowest safe temperature 15 C. Killed by 2 C.
 Theobroma cacao,species,cacao; cocoa,recalcitrant,seed,no,curated,Classic tropical recalcitrant.

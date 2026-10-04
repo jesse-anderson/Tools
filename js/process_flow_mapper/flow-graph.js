@@ -161,8 +161,11 @@ export function buildGraph(parsed, settings = {}) {
         }
     }
 
-    const starts = nodes.filter((n) => n.inLinks.length === 0).map((n) => n.index);
-    const ends = nodes.filter((n) => n.outLinks.length === 0).map((n) => n.index);
+    // A step joined to nothing would be both a start and an end and take a share
+    // of all the work. Once anything is joined it is drawn and left out instead.
+    for (const node of nodes) node.isolated = links.length > 0 && node.inLinks.length === 0 && node.outLinks.length === 0;
+    const starts = nodes.filter((n) => n.inLinks.length === 0 && !n.isolated).map((n) => n.index);
+    const ends = nodes.filter((n) => n.outLinks.length === 0 && !n.isolated).map((n) => n.index);
 
     // Reachable from any start, along every exit.
     const reached = new Set(starts);
@@ -178,8 +181,17 @@ export function buildGraph(parsed, settings = {}) {
 
     if (!starts.length) warn('NO_START', 'Every step has something leading into it, so there is nowhere for work to begin');
     if (!ends.length) warn('NO_END', 'Every step leads somewhere else, so the work never finishes');
+    // Work is split evenly between starts, which a stray or misspelt step would take a share of.
+    if (starts.length > 1) {
+        const names = starts.map((i) => `"${nodes[i].name}" ${percent(1 / starts.length)}`).join(', ');
+        warn('STARTS_SPLIT', `Work begins at ${starts.length} steps and is split evenly between them: ${names}. To set the split, begin at one step with shares, such as "(Order) -> phone 70%: Take call, web 30%: Read form"`);
+    }
     for (const node of nodes) {
         const out = node.outLinks.map((li) => links[li]);
+        if (node.isolated) {
+            warn('ISOLATED', `"${node.name}" is not joined to any other step, so it is drawn but left out of the figures`, node.line);
+            continue;
+        }
         if (!node.reachable && starts.length) warn('UNREACHABLE', `Nothing that starts the process leads to "${node.name}"`, node.line);
         if (!out.length && node.kind !== 'terminator') {
             warn('DEAD_END', `"${node.name}" leads nowhere and is not written as an end. Write an end as "(${node.name})", or say what happens next`, node.line);
@@ -202,7 +214,7 @@ export function buildGraph(parsed, settings = {}) {
 
     // A blank time is more often forgotten than instant, so it is listed once any time is given.
     if (nodes.some((n) => n.timed)) {
-        const untimed = nodes.filter((n) => !n.timed && n.kind !== 'terminator');
+        const untimed = nodes.filter((n) => !n.timed && n.kind !== 'terminator' && !n.isolated);
         if (untimed.length) {
             const names = untimed.slice(0, 5).map((n) => `"${n.name}"`).join(', ');
             const more = untimed.length > 5 ? ` and ${untimed.length - 5} more` : '';
@@ -236,9 +248,10 @@ export function buildGraph(parsed, settings = {}) {
     const parallel = findBlocks(nodes.length, links);
     for (const problem of parallel.problems) {
         const node = nodes[problem.split];
-        const why = problem.code === 'PARALLEL_NO_JOIN'
-            ? 'never meet again at one step'
-            : 'have a way in or out other than through the step that splits the work and the step where it meets again, or share a step';
+        const why = {
+            PARALLEL_NO_JOIN: 'never meet again at one step',
+            PARALLEL_LEAKS: 'have a way in or out other than through the step that splits the work and the step where it meets again, or share a step'
+        }[problem.code];
         warn(problem.code, `The branches leaving "${node.name}" (=>) ${why}. Work done at the same time has to come back together before it goes on, so no figures are given`, node.line);
     }
 

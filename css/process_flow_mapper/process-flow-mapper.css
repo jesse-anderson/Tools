@@ -533,6 +533,14 @@ tr.flagged {
     margin: 10px 0 0;
 }
 
+.spread-table {
+    margin-top: 10px;
+}
+
+.spread-table[hidden] {
+    display: none;
+}
+
 /* The lane table has the most columns, so it gets the full width. */
 .table-wide {
     margin-bottom: 14px;

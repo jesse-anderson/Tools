@@ -6,6 +6,7 @@ import {
     DEFAULT_BASELINE,
     GRAMS_PER_OZ,
     HARRINGTON_LIMITS,
+    TEMPERATURE_METHODS,
     cToF,
     fToC,
     runSeedModel,
@@ -21,6 +22,9 @@ import { SEED_EQUATION_SPECS, getSeedEquationSources, runSeedEquationTest, runAl
 import { evaluateSeedChecks, summariseSeedChecks } from "./seed-validation.js";
 import * as SeedViabilityEngine from "./seed-viability-engine.js";
 import { renderViability, viabilityWarnings } from "./seed-viability-view.js";
+import * as SeedStorageTiers from "./seed-storage-tiers.js";
+import * as SeedMonteCarlo from "./seed-monte-carlo.js";
+import { renderStorageTier, storageWarnings } from "./seed-storage-view.js";
 
 const STORAGE_KEY = "seed-storage-lab-settings-v1";
 
@@ -31,8 +35,13 @@ const INPUT_IDS = [
     "baselineTemperature", "baselineTemperatureUnit", "baselineMoisture",
     "storageTemperature", "storageTemperatureUnit", "storageMoisture",
     "storageRelativeHumidity",
-    "initialGermination", "targetGermination"
+    "containerType", "vacuumResidual", "oxygenAbsorber", "absorberCapacity", "desiccant",
+    "containerVolume", "seedMass", "seedVolume", "storageHorizon", "seedTreatment",
+    "initialGermination", "targetGermination",
+    "moistureSpread", "temperatureSpread", "testSeeds", "monteCarloDraws", "monteCarloSeed"
 ];
+
+const CHECKBOX_IDS = new Set(["oxygenAbsorber", "desiccant"]);
 
 const OUTPUT_IDS = [
     "countPerOzValue", "countPerOzMeta",
@@ -41,11 +50,14 @@ const OUTPUT_IDS = [
     "tswValue", "tswMeta",
     "longevityValue", "longevityMeta",
     "viabilityValue", "viabilityMeta",
+    "monteCarloValue", "monteCarloMeta",
     "halfLifeValue", "halfLifeMeta",
     "sigmaValue", "sigmaMeta",
     "multiplierValue", "multiplierMeta",
     "moistureFactorValue", "moistureFactorMeta",
     "temperatureFactorValue", "temperatureFactorMeta",
+    "containerValue", "containerMeta",
+    "oxygenValue", "oxygenMeta",
     "hundredRuleValue", "hundredRuleMeta",
     "behaviourValue", "behaviourMeta",
     "germinationValue", "germinationMeta",
@@ -56,6 +68,7 @@ const OTHER_IDS = [
     "speciesResults", "cropGroupRow", "gateBanner", "gateHeadline", "gateDetail",
     "countsTableBody", "warningList", "sourcesTableBody",
     "viabilityChart", "viabilityTableBody",
+    "oxygenChart", "oxygenDecayNote",
     "checksCard", "checksSummary", "checksBody",
     "statusLine", "settingsStatus", "resetBtn",
     "showMathBtn", "mathModal", "mathModalClose", "mathModalRunAll",
@@ -73,11 +86,26 @@ const INPUT_HELP_TEXT = Object.freeze({
     baselineTemperature: `Temperature the published longevity figure is assumed to describe. Published tables say "cool, dry" without defining it, so it is pinned here at ${DEFAULT_BASELINE.temperatureC} °C and left editable.`,
     baselineTemperatureUnit: "Unit for the baseline temperature. Harrington's rule is stated in Fahrenheit intervals; the tool converts for you.",
     baselineMoisture: `Seed moisture content the published figure is assumed to describe, pinned at ${DEFAULT_BASELINE.moisturePct}%. Every multiplier is relative to this, so changing it moves every projection.`,
-    storageTemperature: `Your actual storage temperature. Harrington's rule is only valid from ${HARRINGTON_LIMITS.temperatureMinC} to ${HARRINGTON_LIMITS.temperatureMaxC} °C; colder inputs are clamped and reported.`,
+    storageTemperature: `Your actual storage temperature. Harrington gave his temperature rule for ${HARRINGTON_LIMITS.temperatureMinC} to ${HARRINGTON_LIMITS.temperatureMaxC} °C; inputs outside that are clamped and reported.`,
     storageTemperatureUnit: "Unit for your storage temperature.",
     storageMoisture: `Water as a percentage of seed weight. Relative humidity is a separate input below. Harrington's rule is valid from ${HARRINGTON_LIMITS.moistureMinPct} to ${HARRINGTON_LIMITS.moistureMaxPct}% and clamps outside that; the viability equation takes the figure as entered and is very sensitive to it.`,
-    storageRelativeHumidity: "Humidity of the air around the seed. Used only by the Hundred Rule indicator, which is a separate heuristic from Harrington's moisture rule.",
+    storageRelativeHumidity: "The humidity the seed is in balance with. For an open packet that is the room's. For a sealed jar it is the humidity the seed was dried to before sealing, which stays put; the air of the fridge or cupboard outside the jar does not count. Used by the Hundred Rule, the check on sealing seed that is not dry, and the oxygen factor.",
+    containerType: "What the seed is stored in. Groot et al. 2015 found the closure decides whether oxygen stays out: a rubber ring or a lined twist-off lid held it, plastic screw caps did not. Paper and cloth hold neither oxygen nor moisture.",
+    vacuumResidual: "Pressure left in the jar or bag after pumping, as a percentage of atmospheric. 100 means no vacuum. Oxygen falls in proportion. Read it from the pump or sealer's gauge if it has one; the tool assumes no figure for home equipment, foil bags included.",
+    oxygenAbsorber: "An iron oxygen absorber sealed in with the seed. Most carry a moisturiser, so pair one with a desiccant or the jar can turn humid.",
+    absorberCapacity: "The absorber's rating in mL of oxygen, as printed on the packet. Air is about one fifth oxygen, so a 100 mL absorber clears roughly 480 mL of air.",
+    desiccant: "Silica gel or drying beads sealed in with the seed. Johnny's recommends it for a jar in the fridge. Primed and pelleted seed can be harmed by strong drying without an absorber.",
+    containerVolume: "Inside volume of the jar. A US pint mason jar holds about 473 mL and a quart about 946 mL.",
+    seedMass: "Weight of seed in the container. More seed uses up the oxygen faster.",
+    seedVolume: "Space the seed takes up in the jar. Leave blank to use 1.8 mL per gram, measured for lettuce; dense seed such as beans takes up less.",
+    storageHorizon: "How long you mean to keep the seed. Oxygen control takes years to show: vacuum-sealed pepper was clearly better than open storage only at 48 months for three of four cultivars.",
+    seedTreatment: "Raw, primed or pelleted seed. Johnny's says pelleted seed should be used within a year. Primed seed ages faster and has no published storage figure, so no storage life is projected for it.",
     initialGermination: "What a germination test on this lot shows today. The viability equation starts its curve here. 100% is taken as 99.9%, since no test can tell them apart.",
+    moistureSpread: "How far the true moisture content could be from the figure entered, either way. Each draw picks a value evenly from that range. The default of 1 point is a placeholder; a kitchen guess is worse, an oven test better.",
+    temperatureSpread: "How far the average storage temperature could be from the figure entered, either way, in °C even when the temperature is entered in °F. It describes how well you know the average; daily swings are a separate matter the equation does not model. The default of 2 °C is a placeholder.",
+    testSeeds: "How many seeds your germination test used. A test of 100 that shows 95% is consistent with a true figure from about 89 to 98% (95% interval), and each draw takes one value from that range. Leave blank or 0 to treat the germination figure as exact. A laboratory test under the ISTA rules uses 400 seeds.",
+    monteCarloDraws: "How many random draws build the band, from 100 to 2,000. More draws give a steadier band and take longer to compute.",
+    monteCarloSeed: "The starting value for the random number generator. The same seed gives the same band every time; change it to see how much the band moves between runs.",
     targetGermination: "The germination percentage below which you would call the lot spent. Genebanks commonly regenerate at 85%. A home gardener sowing thickly can live with far less, and the time to 50% is shown beside it either way."
 });
 
@@ -88,11 +116,14 @@ const RESULT_HELP_TEXT = Object.freeze({
     tswValue: "Thousand-seed weight, the standard agronomic measure. Computed from your counted sample, or read from the thousand-seed-weight dataset where available.",
     longevityValue: "Published storage life multiplied by the Harrington factor for your conditions. A projection from thumb-rules. Run a germination test to learn the true state of a seed lot.",
     viabilityValue: "From the Ellis-Roberts viability equation, for species with published constants. Time for germination to fall from the starting figure to your floor, in airtight storage at a constant temperature and seed moisture content.",
+    monteCarloValue: "P10 to P90 time to your floor over the uncertainty you set: moisture and temperature anywhere in your stated range, and the lot's true germination given the size of your test. Never a single date, because the width of this range is the answer.",
     halfLifeValue: "Time until half the seed no longer germinates, from the same equation. The usual single-number summary of a seed lot's life.",
     sigmaValue: "Sigma in the viability equation: the time for germination to drop by one probit, such as 97.7% to 84.1% or 84.1% to 50%. It depends only on species, moisture content and temperature, and the published tables quote it.",
-    multiplierValue: "How much longer seed keeps at your conditions than at the baseline. The product of the moisture and temperature factors.",
+    multiplierValue: "How much longer seed keeps at your conditions than at the baseline. The moisture factor times the temperature factor, so it is a range too.",
     moistureFactorValue: "2 raised to the drop in moisture content. Each percentage point drier roughly doubles storage life.",
-    temperatureFactorValue: "2 raised to the temperature drop divided by 10 °F. Each 10 °F cooler roughly doubles storage life.",
+    temperatureFactorValue: "The range across three ways of reading temperature: Harrington's rule as halving per 10 °F, the same rule as halving per 5 °C (both are published), and the temperature terms of the Ellis-Roberts equation, which are fitted on measured seed survival. Below about 35 °C the measured curve gives the smallest effect.",
+    containerValue: "Which storage tier your container and its contents fall in. Each tier fails in its own way, so the card names the one that applies.",
+    oxygenValue: "Life multiplier from lowering oxygen: (20.9 / O2%) raised to 0.782, from Groot et al. 2025, where each halving of oxygen gave 1.72 times the shelf life. Held at 1% and faded out between 43% and 60% RH.",
     hundredRuleValue: "Storage temperature in °F plus relative humidity in percent. Under 100 is the seed-saving rule of thumb. It screens conditions; it does not predict years.",
     behaviourValue: "Whether the species tolerates drying and cold. Orthodox seed can be stored dry; recalcitrant seed dies on drying and is refused by the model.",
     germinationValue: "Optimum germination temperature and expected days, where the source supplies them. Use these for the germination test, not for storage.",
@@ -100,10 +131,14 @@ const RESULT_HELP_TEXT = Object.freeze({
 });
 
 const PRESETS = Object.freeze({
-    pantry: { storageTemperature: 21, storageTemperatureUnit: "C", storageMoisture: 10, storageRelativeHumidity: 55 },
-    basement: { storageTemperature: 13, storageTemperatureUnit: "C", storageMoisture: 8, storageRelativeHumidity: 45 },
-    fridge: { storageTemperature: 5, storageTemperatureUnit: "C", storageMoisture: 6, storageRelativeHumidity: 30 },
-    freezer: { storageTemperature: -18, storageTemperatureUnit: "C", storageMoisture: 5, storageRelativeHumidity: 20 }
+    pantry: { storageTemperature: 21, storageTemperatureUnit: "C", storageMoisture: 10, storageRelativeHumidity: 55,
+        containerType: "open", oxygenAbsorber: false, desiccant: false, vacuumResidual: 100 },
+    basement: { storageTemperature: 13, storageTemperatureUnit: "C", storageMoisture: 8, storageRelativeHumidity: 45,
+        containerType: "open", oxygenAbsorber: false, desiccant: false, vacuumResidual: 100 },
+    fridge: { storageTemperature: 5, storageTemperatureUnit: "C", storageMoisture: 6, storageRelativeHumidity: 30,
+        containerType: "gasket", oxygenAbsorber: false, desiccant: true, vacuumResidual: 100 },
+    freezer: { storageTemperature: -18, storageTemperatureUnit: "C", storageMoisture: 5, storageRelativeHumidity: 20,
+        containerType: "gasket", oxygenAbsorber: false, desiccant: true, vacuumResidual: 100 }
 });
 
 const dom = {};
@@ -148,6 +183,12 @@ function formatMultiplier(value) {
     return `${nf(value, 2)}×`;
 }
 
+function formatMultiplierSpan(low, high) {
+    const lowText = formatMultiplier(low);
+    const highText = formatMultiplier(high);
+    return lowText === highText ? lowText : `${lowText.slice(0, -1)}-${highText}`;
+}
+
 // ---------------------------------------------------------------------------
 // Input reading
 // ---------------------------------------------------------------------------
@@ -177,6 +218,21 @@ function readInputs() {
         storageRelativeHumidityPct: numberOrNull(dom.storageRelativeHumidity),
         initialGerminationPct: numberOrNull(dom.initialGermination),
         targetGerminationPct: numberOrNull(dom.targetGermination),
+        moistureSpreadPct: numberOrNull(dom.moistureSpread),
+        temperatureSpreadC: numberOrNull(dom.temperatureSpread),
+        testSeeds: numberOrNull(dom.testSeeds),
+        monteCarloDraws: numberOrNull(dom.monteCarloDraws),
+        monteCarloSeed: numberOrNull(dom.monteCarloSeed),
+        container: dom.containerType ? dom.containerType.value : "gasket",
+        vacuumResidualPct: numberOrNull(dom.vacuumResidual),
+        oxygenAbsorber: Boolean(dom.oxygenAbsorber && dom.oxygenAbsorber.checked),
+        absorberCapacityMl: numberOrNull(dom.absorberCapacity),
+        desiccant: Boolean(dom.desiccant && dom.desiccant.checked),
+        containerMl: numberOrNull(dom.containerVolume),
+        seedMassG: numberOrNull(dom.seedMass),
+        seedVolumeMl: numberOrNull(dom.seedVolume),
+        horizonYears: numberOrNull(dom.storageHorizon),
+        seedTreatment: dom.seedTreatment ? dom.seedTreatment.value : "raw",
         measuredSeedCount: numberOrNull(dom.measuredSeedCount),
         measuredSampleMass: numberOrNull(dom.measuredSampleMass),
         measuredSampleMassUnit: dom.measuredSampleMassUnit ? dom.measuredSampleMassUnit.value : "g",
@@ -318,12 +374,19 @@ function renderStorage(model) {
     const { multiplier, projection, hundredRule, gate } = model;
 
     if (multiplier && multiplier.ok) {
-        setCard("multiplierValue", "multiplierMeta", formatMultiplier(multiplier.multiplier),
+        setCard("multiplierValue", "multiplierMeta", formatMultiplierSpan(multiplier.range.low, multiplier.range.high),
             `Relative to ${nf(multiplier.applied.baselineTemperatureC, 1)} °C at ${nf(multiplier.applied.baselineMoisturePct, 1)}% MC.`);
         setCard("moistureFactorValue", "moistureFactorMeta", formatMultiplier(multiplier.moistureMultiplier),
             `${multiplier.moistureDelta >= 0 ? "Drier" : "Wetter"} by ${nf(Math.abs(multiplier.moistureDelta), 1)} percentage points.`);
-        setCard("temperatureFactorValue", "temperatureFactorMeta", formatMultiplier(multiplier.temperatureMultiplier),
-            `${multiplier.temperatureDeltaF >= 0 ? "Cooler" : "Warmer"} by ${nf(Math.abs(multiplier.temperatureDeltaF), 1)} °F.`);
+        const temperature = multiplier.temperature;
+        const methods = temperature.methods;
+        const shift = multiplier.temperatureDeltaC === 0
+            ? "Same as the baseline."
+            : `${multiplier.temperatureDeltaC > 0 ? "Cooler" : "Warmer"} by ${nf(Math.abs(multiplier.temperatureDeltaC), 1)} °C. `
+              + `Ellis-Roberts temperature terms ${formatMultiplier(methods.ellisRoberts)}, Harrington per 10 °F `
+              + `${formatMultiplier(methods.fahrenheit10)}, per 5 °C ${formatMultiplier(methods.celsius5)}.`;
+        setCard("temperatureFactorValue", "temperatureFactorMeta",
+            formatMultiplierSpan(temperature.low, temperature.high), shift);
     } else {
         setCard("multiplierValue", "multiplierMeta", "--", multiplier ? multiplier.reason : "Waiting for input.");
         setCard("moistureFactorValue", "moistureFactorMeta", "--", "Waiting for input.");
@@ -335,9 +398,21 @@ function renderStorage(model) {
         const label = Math.abs(years.high - years.low) < 1e-9
             ? `${formatYears(years.low)} y`
             : `${formatYears(years.low)}-${formatYears(years.high)} y`;
+        const oxygen = projection.oxygenFactor > 1
+            ? ` The upper end is also multiplied by ${nf(projection.oxygenFactor, 2)}× for oxygen.`
+            : "";
+        const cap = projection.capYears !== null ? " Capped at one year for pelleted seed." : "";
         setCard("longevityValue", "longevityMeta", label,
             `Published baseline ${formatYears(projection.baseline.span.low)}-${formatYears(projection.baseline.span.high)} y `
-            + `× ${formatMultiplier(multiplier.multiplier)}. Run a germination test before trusting it.`);
+            + `× ${formatMultiplierSpan(multiplier.range.low, multiplier.range.high)}, the short end from `
+            + `${TEMPERATURE_METHODS[multiplier.temperature.lowMethod]} and the long end from `
+            + `${TEMPERATURE_METHODS[multiplier.temperature.highMethod]}.${oxygen}${cap} Run a germination test before trusting it.`);
+    } else if (projection.reason === "primed") {
+        setCard("longevityValue", "longevityMeta", "Not modelled",
+            "Primed seed has no published storage figure, and it ages faster than the raw seed these figures describe. Test germination before you sow.", true);
+    } else if (projection.reason === "absorber-only") {
+        setCard("longevityValue", "longevityMeta", "Not modelled",
+            "An absorber with no desiccant can turn the jar humid, so the moisture content entered no longer holds. Add a desiccant.", true);
     } else if (projection.reason === "gated") {
         setCard("longevityValue", "longevityMeta", "Not modelled", gate.headline, true);
     } else if (projection.reason === "no-baseline") {
@@ -349,7 +424,7 @@ function renderStorage(model) {
 
     if (hundredRule) {
         setCard("hundredRuleValue", "hundredRuleMeta",
-            `${nf(hundredRule.sum, 0)} ${hundredRule.pass ? "✓" : "✗"}`,
+            `${hundredRule.shownSum} ${hundredRule.pass ? "✓" : "✗"}`,
             hundredRule.detail);
     } else {
         setCard("hundredRuleValue", "hundredRuleMeta", "--", "Needs temperature and relative humidity.");
@@ -416,6 +491,8 @@ function renderWarnings(model) {
     if (!dom.warningList) return;
     dom.warningList.innerHTML = "";
     const items = [];
+    const tierItems = storageWarnings(model.storage);
+    items.push(...tierItems.filter((item) => item.kind === "block"));
 
     for (const clamp of (model.multiplier && model.multiplier.clamps) || []) {
         items.push({ text: clamp.message, kind: "clamp" });
@@ -427,10 +504,20 @@ function renderWarnings(model) {
         items.push({ text: warning, kind: "warn" });
     }
     items.push(...viabilityWarnings(model.viability));
+    items.push(...tierItems.filter((item) => item.kind !== "block"));
+    if (model.viability && model.viability.ok && model.storage) {
+        if (model.storage.tier === "open") {
+            items.push({ text: "The viability equation assumes sealed storage. In an open packet the seed moisture follows the room, "
+                + "and Ellis 2022 reports far shorter life in open than in sealed storage at low moisture.", kind: "warn" });
+        } else if (model.storage.oxygen.multiplier > 1) {
+            items.push({ text: "The oxygen factor is not applied to the viability equation. Its constants were fitted on seed sealed "
+                + "with an unmeasured amount of air, which Groot et al. 2025 point out varies between experiments.", kind: "clamp" });
+        }
+    }
     if (model.counts && model.counts.disagreement) {
         items.push({
             text: `Seed-count sources disagree by ${model.counts.ratio.toFixed(1)}× for this species. `
-                + "Both are shown in the Count tab with their citations; the tool does not average them.",
+                + `${model.counts.rows.length === 2 ? "Both are" : "Each is"} shown in the Count tab with its citation; the tool does not average them.`,
             kind: "warn"
         });
     }
@@ -440,7 +527,7 @@ function renderWarnings(model) {
 
     for (const item of items) {
         const li = document.createElement("li");
-        if (item.kind === "clamp") li.className = "clamp";
+        if (item.kind === "clamp" || item.kind === "block") li.className = item.kind;
         li.textContent = item.text;
         dom.warningList.appendChild(li);
     }
@@ -517,6 +604,7 @@ function render() {
     renderCounts(model);
     renderStorage(model);
     renderViability(dom, model);
+    renderStorageTier(dom, model);
     renderSpeciesFacts(model);
     renderWarnings(model);
     renderSources(model);
@@ -622,14 +710,21 @@ function showMathResult(id, result) {
     target.textContent = `${result.pass ? "PASS" : "FAIL"}: expected ${result.expected}, got ${result.actual} ${result.units}. ${result.message}`;
 }
 
+// Focus moves into the dialog on open and back to the opener on close.
+let mathModalOpener = null;
+
 function openMathModal() {
     if (!dom.mathModal) return;
+    mathModalOpener = document.activeElement;
     dom.mathModal.hidden = false;
+    if (dom.mathModalClose) dom.mathModalClose.focus();
 }
 
 function closeMathModal() {
     if (!dom.mathModal) return;
     dom.mathModal.hidden = true;
+    if (mathModalOpener && typeof mathModalOpener.focus === "function") mathModalOpener.focus();
+    mathModalOpener = null;
 }
 
 function runAllMathTests() {
@@ -655,7 +750,7 @@ function persist() {
         const payload = { selectedSpeciesId, selectedCropKey };
         for (const id of INPUT_IDS) {
             if (id === "speciesSearch" || id === "cropGroup") continue;
-            if (dom[id]) payload[id] = dom[id].value;
+            if (dom[id]) payload[id] = CHECKBOX_IDS.has(id) ? String(dom[id].checked) : dom[id].value;
         }
         window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
         if (dom.settingsStatus) dom.settingsStatus.textContent = "Settings saved to this browser.";
@@ -674,7 +769,9 @@ function restore() {
     if (!payload) return;
     for (const id of INPUT_IDS) {
         if (id === "speciesSearch" || id === "cropGroup") continue;
-        if (dom[id] && typeof payload[id] === "string") dom[id].value = payload[id];
+        if (!dom[id] || typeof payload[id] !== "string") continue;
+        if (CHECKBOX_IDS.has(id)) dom[id].checked = payload[id] === "true";
+        else dom[id].value = payload[id];
     }
     if (payload.selectedSpeciesId && getSpeciesById(payload.selectedSpeciesId)) {
         selectedSpeciesId = payload.selectedSpeciesId;
@@ -701,6 +798,18 @@ function resetAll() {
     if (dom.packetMass) dom.packetMass.value = "2";
     if (dom.initialGermination) dom.initialGermination.value = "95";
     if (dom.targetGermination) dom.targetGermination.value = "85";
+    if (dom.vacuumResidual) dom.vacuumResidual.value = "100";
+    if (dom.absorberCapacity) dom.absorberCapacity.value = "100";
+    if (dom.containerVolume) dom.containerVolume.value = "500";
+    if (dom.seedMass) dom.seedMass.value = "50";
+    if (dom.seedVolume) dom.seedVolume.value = "";
+    if (dom.storageHorizon) dom.storageHorizon.value = "5";
+    if (dom.seedTreatment) dom.seedTreatment.value = "raw";
+    if (dom.moistureSpread) dom.moistureSpread.value = "1";
+    if (dom.temperatureSpread) dom.temperatureSpread.value = "2";
+    if (dom.testSeeds) dom.testSeeds.value = "100";
+    if (dom.monteCarloDraws) dom.monteCarloDraws.value = "500";
+    if (dom.monteCarloSeed) dom.monteCarloSeed.value = "20261003";
     const record = getSpeciesById(selectedSpeciesId);
     if (dom.speciesSearch && record) dom.speciesSearch.value = (record.commonNames || [])[0] || record.scientificName;
     persist();
@@ -714,6 +823,10 @@ function applyPreset(name) {
     if (dom.storageTemperature) dom.storageTemperature.value = String(preset.storageTemperature);
     if (dom.storageMoisture) dom.storageMoisture.value = String(preset.storageMoisture);
     if (dom.storageRelativeHumidity) dom.storageRelativeHumidity.value = String(preset.storageRelativeHumidity);
+    if (dom.containerType) dom.containerType.value = preset.containerType;
+    if (dom.oxygenAbsorber) dom.oxygenAbsorber.checked = preset.oxygenAbsorber;
+    if (dom.desiccant) dom.desiccant.checked = preset.desiccant;
+    if (dom.vacuumResidual) dom.vacuumResidual.value = String(preset.vacuumResidual);
 }
 
 // ---------------------------------------------------------------------------
@@ -914,7 +1027,9 @@ if (document.readyState === "loading") {
     init();
 }
 
-// The pure engine, for the Playwright spec to call directly.
+// The pure engines, for the Playwright spec to call directly.
 window.SeedViability = SeedViabilityEngine;
+window.SeedStorageTiers = SeedStorageTiers;
+window.SeedMonteCarlo = SeedMonteCarlo;
 
 export { cToF, GRAMS_PER_OZ };

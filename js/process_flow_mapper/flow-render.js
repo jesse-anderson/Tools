@@ -55,7 +55,9 @@ export const VIEW_DEFAULTS = Object.freeze({
     tint: 'lead',
     showBadges: true,
     background: true,
-    interactive: false
+    interactive: false,
+    // The step that is the map's tab stop; the first in reading order when unset.
+    focusStep: null
 });
 
 const LEGEND_STEPS = 5;
@@ -75,10 +77,20 @@ export function tintLevels(model, mode) {
     const raw = result.perStep.map((s, i) => {
         if (graph.nodes[i].outLinks.length === 0) return 0;
         if (mode === 'passes') return Math.max(0, s.passes - 1);
+        // Share of lead time is what a step adds to it, so a step on a faster branch stays pale.
+        if (mode === 'lead') return s.share || 0;
         return s[mode] || 0;
     });
     const top = Math.max(...raw);
     return raw.map((v) => (top > 0 ? v / top : 0));
+}
+
+/** Step indices in reading order: along the flow, then across the lanes. */
+export function stepOrder(layout) {
+    const down = layout.direction === 'down';
+    return [...layout.steps]
+        .sort((a, b) => (down ? (a.y0 - b.y0) || (a.x0 - b.x0) : (a.x0 - b.x0) || (a.y0 - b.y0)) || (a.index - b.index))
+        .map((s) => s.index);
 }
 
 function make(doc, tag, attrs = {}, text) {
@@ -253,6 +265,9 @@ export function renderFlow(doc, model, viewOptions = {}, palette = PALETTES.ligh
     }
     svg.appendChild(linkGroup);
 
+    // One step is a tab stop and the arrow keys move between them, so a long map is not a long run of tab presses.
+    const order = stepOrder(layout);
+    const stop = order.includes(view.focusStep) ? view.focusStep : order[0];
     const stepGroup = make(doc, 'g', { class: 'flow-steps' });
     for (const step of layout.steps) {
         const node = graph.nodes[step.index];
@@ -260,10 +275,10 @@ export function renderFlow(doc, model, viewOptions = {}, palette = PALETTES.ligh
         const level = levels[step.index];
         const g = make(doc, 'g', {
             class: 'flow-step', 'data-node': step.index,
-            tabindex: view.interactive ? 0 : null,
+            tabindex: view.interactive ? (step.index === stop ? 0 : -1) : null,
             role: view.interactive ? 'img' : null,
             'aria-label': view.interactive
-                ? `${step.name}, ${graph.lanes[step.lane].name}. ${step.info.join('. ')}${step.info.length ? '. ' : ''}Drag, or hold Alt and press the ${laneKeys} arrow, to move it to another lane`
+                ? `${step.name}, ${graph.lanes[step.lane].name}. ${step.info.join('. ')}${step.info.length ? '. ' : ''}Arrow keys go to the next or previous step. Drag, or hold Alt and press the ${laneKeys} arrow, to move it to another lane`
                 : null
         });
         const note = parsed.notes[step.name] ? `. ${parsed.notes[step.name]}` : '';

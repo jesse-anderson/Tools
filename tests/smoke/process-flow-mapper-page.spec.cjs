@@ -14,6 +14,9 @@ const STORAGE_KEY = 'processFlowMapper.projects.v1';
 async function openTool(page) {
   await page.goto(PAGE, { waitUntil: 'domcontentloaded' });
   await expect.poll(() => page.evaluate(() => Boolean(window.ProcessFlowMapper && window.ProcessFlowMapper.getModel()))).toBe(true);
+  // The page redraws when the web font arrives, which changes every measured width. Wait it out
+  // here, or it can land inside a test and move a figure or a count between two reads.
+  await page.evaluate(async () => { await document.fonts.ready; });
 }
 
 const stored = (page) => page.evaluate((key) => JSON.parse(localStorage.getItem(key)), STORAGE_KEY);
@@ -704,8 +707,24 @@ test.describe('moving, pasting and saving tables', () => {
     await expect(page.locator('#pasteStatus')).toHaveText('Turned 4 spreadsheet rows into step lines.');
     await expect(page.locator('#diagramHost .flow-step')).toHaveCount(4);
     await expect(stat(page, 'yield')).toHaveText('75%');
+    // The paste goes through the browser's editing, so undo takes it back.
+    await page.evaluate(() => document.execCommand('undo'));
+    expect(await page.inputValue('#flowText')).toBe('');
     // Plain text is left to the browser.
     expect(await paste('Cy: Another step')).toBe(true);
+  });
+
+  test('a CSV cell that a spreadsheet would run as a formula is kept as text', async ({ page }) => {
+    await openTool(page);
+    const csv = await page.evaluate(() => {
+      const table = document.createElement('table');
+      for (const cells of [['=SUM(A1:A9)', '+cmd', '-1+1', '@x', 'plain', '=HYPERLINK("a","b")']]) {
+        const tr = table.insertRow();
+        for (const c of cells) tr.insertCell().textContent = c;
+      }
+      return window.ProcessFlowMapper.tableToCsv(table);
+    });
+    expect(csv).toBe(`'=SUM(A1:A9),'+cmd,'-1+1,'@x,plain,"'=HYPERLINK(""a"",""b"")"`);
   });
 
   test('each table saves as CSV, named for the diagram, with awkward cells quoted', async ({ page }) => {

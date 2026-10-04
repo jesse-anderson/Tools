@@ -3,7 +3,7 @@
 import { parseFlow } from './flow-parse.js';
 import { buildGraph, toHours } from './flow-graph.js';
 import { solveFlow } from './flow-solve.js';
-import { simulate, quantile, histogram, SIM_DEFAULTS } from './flow-simulate.js';
+import { simulate, summarise, SIM_DEFAULTS } from './flow-simulate.js';
 import { computeLayout } from './flow-layout.js';
 
 export const TITLE_HEIGHT = 30;
@@ -14,7 +14,7 @@ export const DISPLAY_UNITS = Object.freeze(['auto', 'min', 'h', 'd', 'wk']);
 export const BUSY_FROM = 0.85;
 export const DIRECTIONS = Object.freeze(['across', 'down']);
 // Visits the simulation may spend, so a map with heavy rework walks fewer units.
-const SIM_VISIT_BUDGET = 2000000;
+const SIM_VISIT_BUDGET = 1000000;
 const SIM_MIN_UNITS = 2000;
 const SUMMARY_GAP = '  \u00b7  ';
 // Room kept beside the small print for the tint legend.
@@ -22,20 +22,23 @@ const LEGEND_ROOM = 230;
 
 const sig = (value, digits = 3) => value.toLocaleString('en-US', { maximumSignificantDigits: digits });
 
+/** The unit that reads best for a duration in hours, on the working calendar. */
+export function autoUnit(hours, calendar) {
+    const day = calendar.hoursPerDay;
+    if (hours < 1 / 60) return 's';
+    if (hours < 1) return 'min';
+    if (hours < day) return 'h';
+    if (hours < 4 * day * calendar.daysPerWeek) return 'd';
+    return 'wk';
+}
+
 /** A duration in hours as text, on the working calendar. 'auto' picks the unit that reads best. */
 export function formatDuration(hours, calendar, unit = 'auto') {
     if (!Number.isFinite(hours)) return 'n/a';
     if (hours === 0) return '0';
     const day = calendar.hoursPerDay;
     const week = day * calendar.daysPerWeek;
-    let u = unit;
-    if (u === 'auto') {
-        if (hours < 1 / 60) u = 's';
-        else if (hours < 1) u = 'min';
-        else if (hours < day) u = 'h';
-        else if (hours < 4 * week) u = 'd';
-        else u = 'wk';
-    }
+    const u = unit === 'auto' ? autoUnit(hours, calendar) : unit;
     const per = { s: 1 / 3600, min: 1 / 60, h: 1, d: day, wk: week }[u];
     return `${sig(hours / per)} ${u}`;
 }
@@ -67,11 +70,25 @@ export function footnoteText(model) {
     return parts.join(' ');
 }
 
-/** How lead time is spread, from a seeded simulation of the same map. Null when there is nothing to spread. */
-function leadSpread(graph, result, seed) {
+// The last simulation and what it was run on.
+let simCache = { key: null, spread: null };
+
+/** Run the walk here and now, keeping the last run for a redraw that changes no time. */
+function runHere(job) {
+    if (simCache.key !== job.key) simCache = { key: job.key, spread: summarise(simulate(job.input, job.options), job.ranges) };
+    return { spread: simCache.spread };
+}
+
+/**
+ * How lead time is spread, from a seeded simulation of the same map. Returns
+ * { spread, key, pending }. run takes the job { key, input, options, ranges,
+ * visits } and returns { spread } or { pending: true }, so a page can hand a
+ * big map to a worker; by default the walk runs here.
+ */
+function leadSpread(graph, result, seed, run = runHere) {
     const { nodes, links } = graph;
     const wanted = Math.floor(SIM_VISIT_BUDGET / Math.max(1, result.stepsPerUnit));
-    const sim = simulate({
+    const input = {
         count: nodes.length,
         links: links.map((l) => ({ source: l.source, target: l.target, share: l.share, wait: l.wait, waitSpread: l.waitSpread })),
         touch: nodes.map((n) => n.touch),
@@ -80,35 +97,28 @@ function leadSpread(graph, result, seed) {
         waitSpread: nodes.map((n) => n.waitSpread),
         starts: graph.starts,
         blocks: graph.parallel.blocks
-    }, { units: Math.min(SIM_DEFAULTS.units, Math.max(SIM_MIN_UNITS, wanted)), seed });
-    if (!sim.ok) return null;
-    let squares = 0;
-    for (const t of sim.lead) squares += (t - sim.mean) ** 2;
-    return {
-        units: sim.units,
-        seed: sim.seed,
-        cut: sim.cut,
-        mean: sim.mean,
-        // How far the simulated average can be from the true one by chance alone.
-        error: Math.sqrt(squares / sim.units / sim.units),
-        min: sim.min,
-        max: sim.max,
-        p50: quantile(sim.lead, 0.5),
-        p80: quantile(sim.lead, 0.8),
-        p95: quantile(sim.lead, 0.95),
-        varies: sim.max > sim.min,
-        ranges: nodes.some((n) => n.touchSpread || n.waitSpread) || links.some((l) => l.waitSpread),
-        histogram: histogram(sim.lead),
-        ends: sim.ends.map((e) => ({ index: e.index, share: e.count / sim.units, p50: quantile(e.lead, 0.5), p90: quantile(e.lead, 0.9) }))
     };
+    const options = { units: Math.min(SIM_DEFAULTS.units, Math.max(SIM_MIN_UNITS, wanted)), seed };
+    // Names, title, colours and theme do not change the walk, so a redraw for them reuses it.
+    const key = JSON.stringify([input, options]);
+    const ranges = nodes.some((n) => n.touchSpread || n.waitSpread) || links.some((l) => l.waitSpread);
+    // About how many steps the walk will visit, so a page can tell a quick run from a slow one.
+    const visits = Math.min(SIM_VISIT_BUDGET, options.units * Math.max(1, result.stepsPerUnit));
+    const ran = run({ key, input, options, ranges, visits });
+    return { spread: ran.pending ? null : ran.spread, key, pending: Boolean(ran.pending) };
 }
 
 /** One SIPOC row per phase: who supplies what, and what goes to whom. Null when no in or out line is given. */
 function sipocRows(parsed, graph) {
     if (!parsed.sipoc.length) return null;
     const unique = (list) => [...new Set(list.filter(Boolean))];
-    return graph.phases.map((p) => {
-        const of = (kind) => parsed.sipoc.filter((e) => Math.max(0, e.phase) === p.index && e.kind === kind);
+    // Lines above the first phase are about the whole process: its own row when
+    // there are phases, the only row when there are none.
+    const phased = parsed.phases.length > 0;
+    const whole = { index: -1, name: 'Whole process', steps: graph.nodes.length };
+    const rows = phased ? [whole, ...graph.phases] : graph.phases;
+    return rows.map((p) => {
+        const of = (kind) => parsed.sipoc.filter((e) => (phased ? e.phase : Math.max(0, e.phase)) === p.index && e.kind === kind);
         return {
             index: p.index,
             name: p.name || 'Whole process',
@@ -118,16 +128,19 @@ function sipocRows(parsed, graph) {
             outputs: unique(of('out').map((e) => e.item)),
             customers: unique(of('out').map((e) => e.party))
         };
-    }).filter((row) => row.steps > 0 || row.inputs.length || row.outputs.length);
+    }).filter((row) => (row.index >= 0 && row.steps > 0) || row.inputs.length || row.outputs.length);
 }
 
 /**
  * settings: { title, hoursPerDay, daysPerWeek, unit, fontSize, showShares }.
  * measure is (text, size, weight) => px, passed through to the layout.
- * Returns { ok, errors, warnings, parsed, graph, result, totals, layout }.
+ * runSpread is how the simulation is run (see leadSpread), or false for none,
+ * as for a saved copy that only its headline is read from.
+ * Returns { ok, errors, warnings, parsed, graph, result, totals, layout,
+ * spread, spreadKey, spreadPending }.
  * result.ok is false when the map is drawn and no figure can be given.
  */
-export function buildModel(text, settings = {}, measure = undefined) {
+export function buildModel(text, settings = {}, measure = undefined, runSpread = runHere) {
     const parsed = parseFlow(text);
     const errors = [...parsed.errors];
     const warnings = [...parsed.warnings];
@@ -173,7 +186,7 @@ export function buildModel(text, settings = {}, measure = undefined) {
             if (parts.length) lines.push(parts.join(' + '));
         }
         if (result.ok && n.outLinks.length === 0 && n.inLinks.length > 0) {
-            lines.push(`${formatPercent(result.perStep[i].passes)} end here`);
+            lines.push(`${formatPercent(result.perStep[i].ends)} end here`);
         } else if (result.ok && !result.perStep[i].critical) {
             // On a branch that is not the slowest: time here does not add to lead time.
             lines.push(`${dur(result.perStep[i].slack)} slack`);
@@ -268,10 +281,14 @@ export function buildModel(text, settings = {}, measure = undefined) {
     });
 
     let spread = null;
-    if (result.ok && timed && result.lead > 0) {
-        spread = leadSpread(graph, result, Number.isFinite(settings.seed) ? settings.seed : SIM_DEFAULTS.seed);
+    let spreadKey = null;
+    let spreadPending = false;
+    let parallelMean = null;
+    if (result.ok && timed && result.lead > 0 && runSpread) {
+        ({ spread, key: spreadKey, pending: spreadPending } = leadSpread(graph, result, Number.isFinite(settings.seed) ? settings.seed : SIM_DEFAULTS.seed, runSpread));
         // The slowest of several branches takes longer on average than the slowest average.
         if (spread && graph.parallel.blocks.length && spread.mean - result.lead > Math.max(0.01 * result.lead, 3 * spread.error)) {
+            parallelMean = spread.mean;
             warnings.push({
                 line: null,
                 code: 'PARALLEL_AVERAGE',
@@ -282,7 +299,8 @@ export function buildModel(text, settings = {}, measure = undefined) {
 
     const sipoc = sipocRows(parsed, graph);
     if (sipoc) {
-        const gaps = sipoc.filter((row) => row.steps > 0 && (!row.inputs.length || !row.outputs.length)).map((row) => row.name);
+        // A whole-process row may say only one side; the phases are what the table is for.
+        const gaps = sipoc.filter((row) => row.index >= 0 && row.steps > 0 && (!row.inputs.length || !row.outputs.length)).map((row) => row.name);
         if (gaps.length) warnings.push({ line: null, code: 'SIPOC_GAP', message: `The SIPOC table has no inputs or no outputs for: ${gaps.join(', ')}` });
     }
 
@@ -310,7 +328,7 @@ export function buildModel(text, settings = {}, measure = undefined) {
     }, measure, labels);
     layout.steps.forEach((s, i) => { s.info = info[i]; });
 
-    return { ...partial, errors, warnings, layout, spread, sipoc, labels };
+    return { ...partial, errors, warnings, layout, spread, spreadKey, spreadPending, parallelMean, sipoc, labels };
 }
 
 /**
@@ -323,7 +341,11 @@ export function headline(model) {
     if (!result.ok) return [];
     const dur = (h) => formatDuration(h, graph.calendar, unit);
     const items = [
-        { key: 'lead', label: 'Lead time', value: dur(result.lead), raw: result.lead, hint: 'start to finish, per unit of work' },
+        {
+            key: 'lead', label: 'Lead time', value: dur(result.lead), raw: result.lead,
+            // Waiting for the slowest of branches that vary takes longer than this, so the card says so itself.
+            hint: model.parallelMean ? `slowest path on average; about ${dur(model.parallelMean)} waiting for every branch` : 'start to finish, per unit of work'
+        },
         { key: 'touch', label: 'Touch time', value: dur(result.touch), raw: result.touch, hint: result.touch > result.touchPath * (1 + 1e-9) ? 'all the work, on every branch' : 'someone is working on it' },
         { key: 'efficiency', label: 'Efficiency', value: result.efficiency === null ? 'n/a' : formatPercent(result.efficiency), raw: result.efficiency, hint: 'touch time as a share of lead time' },
         { key: 'yield', label: 'First-pass yield', value: formatPercent(result.yield), raw: result.yield, hint: 'finishes with no rework' },
@@ -378,7 +400,8 @@ export function summarySentence(model) {
     const capacity = c ? ` The process can carry about ${sig(c.perWeek)} a week, limited by ${graph.lanes[c.lane].name}.` : '';
     const split = graph.parallel.blocks.length > 0;
     const inAll = split && result.touch > result.touchPath * (1 + 1e-9) ? ` Work done at the same time brings the work to ${dur(result.touch)} in all.` : '';
-    return `A unit of work takes ${dur(result.lead)} on average${split ? ' along its slowest path' : ''}, of which ${dur(result.touchPath)} is work and ${dur(result.wait)} is waiting.${inAll}${rework} ${yieldPart}.${capacity} ${calendar}`;
+    const every = model.parallelMean ? ` Branches vary, and waiting for whichever is slowest makes it about ${dur(model.parallelMean)}.` : '';
+    return `A unit of work takes ${dur(result.lead)} on average${split ? ' along its slowest path' : ''}, of which ${dur(result.touchPath)} is work and ${dur(result.wait)} is waiting.${every}${inAll}${rework} ${yieldPart}.${capacity} ${calendar}`;
 }
 
 /** The short line drawn under the title, so a pasted picture still carries its numbers. */

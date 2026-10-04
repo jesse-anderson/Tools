@@ -80,15 +80,22 @@ export function simulate(input, options = {}) {
             if (!exits.length) { endedAt = node; return t; }
             const block = blockAt.get(node);
             if (block) {
-                // Every branch runs, and the work goes on when the slowest arrives.
+                // Every branch runs to the join or to an end of its own, and the
+                // work goes on when the slowest arrives. If any branch ended it,
+                // the unit stops once every branch has, counted at the end on
+                // the first branch, in the order written, that stopped it.
                 let slowest = 0;
+                let stopped = -1;
                 for (const branch of block.branches) {
                     const first = onWay(branch.link);
+                    endedAt = -1;
                     const rest = walk(branch.head, block.join);
                     if (rest < 0) return -1;
+                    if (endedAt >= 0 && stopped < 0) stopped = endedAt;
                     slowest = Math.max(slowest, first + rest);
                 }
                 t += slowest;
+                if (stopped >= 0) { endedAt = stopped; return t; }
                 node = block.join;
                 continue;
             }
@@ -132,6 +139,34 @@ export function simulate(input, options = {}) {
         min: sorted[0],
         max: sorted[done - 1],
         ends: [...byEnd.entries()].sort((a, b) => a[0] - b[0]).map(([index, times]) => ({ index, count: times.length, lead: Float64Array.from(times).sort() }))
+    };
+}
+
+/**
+ * What the page shows from a run: the median and the times most units finish
+ * within, a histogram, and the same per end. ranges says whether any time was
+ * typed as a range. Null when the run walked no unit.
+ */
+export function summarise(sim, ranges) {
+    if (!sim.ok) return null;
+    let squares = 0;
+    for (const t of sim.lead) squares += (t - sim.mean) ** 2;
+    return {
+        units: sim.units,
+        seed: sim.seed,
+        cut: sim.cut,
+        mean: sim.mean,
+        // How far the simulated average can be from the true one by chance alone.
+        error: Math.sqrt(squares / sim.units / sim.units),
+        min: sim.min,
+        max: sim.max,
+        p50: quantile(sim.lead, 0.5),
+        p80: quantile(sim.lead, 0.8),
+        p95: quantile(sim.lead, 0.95),
+        varies: sim.max > sim.min,
+        ranges,
+        histogram: histogram(sim.lead),
+        ends: sim.ends.map((e) => ({ index: e.index, share: e.count / sim.units, p50: quantile(e.lead, 0.5), p90: quantile(e.lead, 0.9) }))
     };
 }
 

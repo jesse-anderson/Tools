@@ -73,10 +73,25 @@ export function topEdge(step, x) {
     return step.y0;
 }
 
-/** Text cut to a width, ending in an ellipsis when anything was dropped. */
+/**
+ * Text cut to a width, ending in an ellipsis when anything was dropped. Parts
+ * after a middle dot go first, then whole words, so a figure is never cut
+ * part way through; only a single word too wide is cut by characters.
+ */
 function clip(text, width, measure, size) {
-    if (measure(text, size, 400) <= width) return text;
-    let cut = text;
+    const fits = (s) => measure(s, size, 400) <= width;
+    if (fits(text)) return text;
+    const parts = text.split(' · ');
+    while (parts.length > 1) {
+        parts.pop();
+        if (fits(`${parts.join(' · ')}…`)) return `${parts.join(' · ')}…`;
+    }
+    const words = parts[0].split(' ');
+    while (words.length > 1) {
+        words.pop();
+        if (fits(`${words.join(' ')}…`)) return `${words.join(' ')}…`;
+    }
+    let cut = words[0];
     while (cut.length > 1 && measure(`${cut}…`, size, 400) > width) cut = cut.slice(0, -1);
     return `${cut.trimEnd()}…`;
 }

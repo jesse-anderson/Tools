@@ -35,6 +35,18 @@ import {
     turningPointC,
     viabilityAfterDays
 } from "./seed-viability-engine.js";
+import {
+    AIR_OXYGEN_PCT,
+    LETTUCE_UPTAKE,
+    LETTUCE_UPTAKE_RECOUNT,
+    OXYGEN_EXPONENT,
+    absorberOutcome,
+    decayPerDay,
+    evaluateStorage,
+    oxygenAtDays,
+    oxygenMultiplier
+} from "./seed-storage-tiers.js";
+import { createSeededRandom, germinationPosterior, percentile, runViabilityMonteCarlo } from "./seed-monte-carlo.js";
 
 // Constants as Hay prints them, independent of the generated bundle.
 const HAY_LETTUCE = Object.freeze({ KE: 6.895, CW: 4.2, CH: 0.0329, CQ: 0.000478 });
@@ -56,7 +68,7 @@ export const SEED_EQUATION_SPECS = Object.freeze([
             + "Harrington stated it as a thumb-rule for ordinary storage, and extension and genebank sources have "
             + "restated it ever since. It is an empirical regularity: the underlying driver is water activity "
             + "governing the rate of lipid peroxidation and Maillard chemistry in the dry glassy state.",
-        sources: ["harrington1972", "usdaAH506", "mdpiSeeds2024"],
+        sources: ["harrington1972", "usdaAH506", "cpcSeedTypes"],
         implementation: "seed-model.js → harringtonMultiplier (moistureMultiplier term).",
         fixture: "Baseline 8% MC, stored at 5% MC, temperature unchanged.",
         expected: "3 percentage points drier → 2³ = 8× the storage life.",
@@ -79,10 +91,12 @@ export const SEED_EQUATION_SPECS = Object.freeze([
         title: "Harrington's temperature rule",
         equation: "life_multiplier = 2^((T_baseline,°F − T_storage,°F) / 10)",
         rationale:
-            "Each 10 °F (5.6 °C) reduction in storage temperature roughly doubles storage life. The rule is stated "
-            + "in Fahrenheit in the original and converting the interval to Celsius first is a common way to get it "
-            + "subtly wrong, so the model converts both temperatures to °F and takes the difference there.",
-        sources: ["harrington1972", "usdaAH506"],
+            "Each 10 °F (5.6 °C) reduction in storage temperature roughly doubles storage life, as Groot et al. 2025 "
+            + "and the Center for Plant Conservation state it. Justice & Bass 1978, quoting Harrington 1972, give 5 °C "
+            + "instead, which compounds a little faster: 16× against 12× over 20 °C. This is one of the three "
+            + "readings in the temperature span below; the model converts both temperatures to °F and takes the "
+            + "difference there.",
+        sources: ["harrington1972", "groot2025Oxygen", "cpcSeedTypes", "usdaAH506"],
         implementation: "seed-model.js → harringtonMultiplier (temperatureMultiplier term).",
         fixture: "Baseline 20 °C (68 °F), stored at 48 °F, moisture unchanged.",
         expected: "20 °F colder → 2² = 4× the storage life.",
@@ -101,9 +115,41 @@ export const SEED_EQUATION_SPECS = Object.freeze([
         }
     },
     {
+        id: "temperature-span",
+        title: "Temperature is a span across three readings",
+        equation: "10 °F: 2^(ΔT°F / 10) ;  5 °C: 2^(ΔT°C / 5) ;  Ellis-Roberts: 10^(CH ΔT + CQ (T_b² − T_s²))",
+        rationale:
+            "The archived sources state Harrington's temperature rule two ways, and the viability equation's "
+            + "temperature terms (CH 0.0329, CQ 0.000478, common to all species) are fitted on measured survival. "
+            + "Below about 35 °C the measured curve gives a smaller effect than either rule: from a 5 °C baseline, "
+            + "seed at 20 °C keeps 1/4.7 as long by Ellis-Roberts, 1/6.5 by the 10 °F rule and 1/8 by the 5 °C rule. "
+            + "The three are not averaged; the projection spans them.",
+        sources: ["dickieEllis1990", "hayViabilityEquations", "usdaAH506", "groot2025Oxygen"],
+        implementation: "seed-model.js → temperatureFactors, used by harringtonMultiplier and projectLongevity.",
+        fixture: "Baseline 5 °C, storage 20 °C, moisture unchanged.",
+        expected: "Ellis-Roberts 0.212×, 10 °F 0.154×, 5 °C 0.125×; span 0.125-0.212×.",
+        run() {
+            const result = harringtonMultiplier({
+                baselineTemperatureC: 5, baselineMoisturePct: 8,
+                storageTemperatureC: 20, storageMoisturePct: 8
+            });
+            const methods = result.temperature.methods;
+            return makeResult({
+                pass: approxEqual(methods.ellisRoberts, 0.21245, 1e-4)
+                    && approxEqual(methods.fahrenheit10, 0.15389, 1e-4)
+                    && approxEqual(methods.celsius5, 0.125, 1e-9)
+                    && result.range.low === methods.celsius5 && result.range.high === methods.ellisRoberts,
+                expected: "0.125-0.212",
+                actual: `${result.range.low.toFixed(3)}-${result.range.high.toFixed(3)}`,
+                units: "× life",
+                message: `Ellis-Roberts ${methods.ellisRoberts.toFixed(4)}, 10 °F ${methods.fahrenheit10.toFixed(4)}, 5 °C ${methods.celsius5.toFixed(4)}.`
+            });
+        }
+    },
+    {
         id: "harrington-clamping",
         title: "Validity clamping on both rules",
-        equation: `0 °C ≤ T ≤ 40 °C ,  ${HARRINGTON_LIMITS.moistureMinPct}% ≤ MC ≤ ${HARRINGTON_LIMITS.moistureMaxPct}%`,
+        equation: `${HARRINGTON_LIMITS.temperatureMinC} °C ≤ T ≤ ${HARRINGTON_LIMITS.temperatureMaxC} °C ,  ${HARRINGTON_LIMITS.moistureMinPct}% ≤ MC ≤ ${HARRINGTON_LIMITS.moistureMaxPct}%`,
         rationale:
             "Outside this box the rules are known to be wrong. Below roughly 5% MC the moisture relationship "
             + "inverts for some species; above 14% MC respiration and fungal growth take over and seeds die "
@@ -111,7 +157,7 @@ export const SEED_EQUATION_SPECS = Object.freeze([
             + "overpredicts badly against the Ellis-Roberts data, which is why genebank conditions need the "
             + "viability equation instead. Clamping silently would turn an invalid question into a plausible answer, "
             + "so every clamp is reported.",
-        sources: ["harrington1972", "ellisRoberts1980", "hayViabilityEquations"],
+        sources: ["usdaAH506", "harrington1972", "hayViabilityEquations"],
         implementation: "seed-model.js → HARRINGTON_LIMITS and the bound() helper inside harringtonMultiplier.",
         fixture: "Request -20 °C and 4% MC, freezer conditions that sit outside both limits.",
         expected: "Two clamps reported; the effective calculation uses 0 °C and 5% MC.",
@@ -142,7 +188,7 @@ export const SEED_EQUATION_SPECS = Object.freeze([
             + "it as a pass/fail indicator and never multiplies it into a longevity figure. The frequently repeated "
             + "\"and no more than half of that total from temperature\" clause has no primary source and is "
             + "not implemented here.",
-        sources: ["usdaAH506", "mdpiSeeds2024"],
+        sources: ["cpcSeedTypes"],
         implementation: "seed-model.js → hundredRule.",
         fixture: "70 °F at 25% RH, then 80 °F at 45% RH.",
         expected: "95 → passes; 125 → fails.",
@@ -352,11 +398,11 @@ export const SEED_EQUATION_SPECS = Object.freeze([
     {
         id: "small-sample-warning",
         title: "Small samples raise a warning",
-        equation: "counting_error ≈ 1 / n",
+        equation: "miscount error = 1 / n;  rounding error = 0.05 g / sample mass",
         rationale:
-            "A ten-seed sample carries roughly 10% counting error before scale resolution is considered. Domestic "
-            + "kitchen scales resolve to 0.1-1 g, so weighing 0.05 g of lettuce seed is dominated by the instrument. "
-            + "Both conditions produce an explicit warning.",
+            "In a ten-seed sample one seed miscounted is a 10% error. A kitchen scale reading to 0.1 g can be 0.05 g out, "
+            + "which is 1% of a 5 g sample and the whole of a 0.05 g one; a scale reading to 1 g is ten times worse. "
+            + "Under 25 seeds or 5 g the tool warns.",
         sources: ["nrcsTx"],
         implementation: "seed-model.js → countFromMeasurement warnings.",
         fixture: "10 seeds weighing 0.05 g.",
@@ -377,19 +423,20 @@ export const SEED_EQUATION_SPECS = Object.freeze([
         title: "Compounded projections are marked beyond evidence",
         equation: `flag when projected_years > ${EVIDENCE_HORIZON_YEARS.toLocaleString()}`,
         rationale:
-            "Even fully inside the validity box, Harrington's two rules compound to roughly 75,000× between the "
-            + "worst and best corners. Applied to a three-year vendor figure that is 225,000 years. The oldest "
-            + "reliably germinated seed is a date palm of about 2,000 years, so anything past a millennium is "
-            + "arithmetic, and is labelled as such.",
+            "Even fully inside the validity box, Harrington's two rules compound to about 262,000× between the "
+            + "worst and best corners on the 10 °F reading and 524,000× on the 5 °C one. Applied to a three-year "
+            + "vendor figure that is up to 1.6 million years. No stored seed "
+            + "lot has been followed for anywhere near a millennium, so anything past one is arithmetic, and is "
+            + "labelled as such.",
         sources: ["harrington1972", "ellis2022SST", "solberg2020"],
         implementation: "seed-model.js → EVIDENCE_HORIZON_YEARS and projectLongevity warnings.",
         fixture:
             "Lettuce whose published longevity is read as describing a warm, humid drawer (25 °C, 12% MC), "
             + "then moved to the coldest and driest the rules permit (0 °C, 5% MC). At the tool's "
-            + "default 5 °C / 8% baseline the rules reach only about 15×, because the validity box stops at "
+            + "default 5 °C / 8% baseline the rules reach only 12-16×, because the validity box stops at "
             + "0 °C and 5% MC. The explosion is reachable only by moving the baseline, which is exactly why the "
             + "baseline is an explicit, visible input.",
-        expected: "≈2,900× → projection flagged beyondEvidence with an explanatory warning.",
+        expected: "About 1,700-4,100× → projection flagged beyondEvidence with an explanatory warning.",
         run() {
             const model = runSeedModel({
                 speciesId: "lactuca-sativa",
@@ -634,6 +681,193 @@ export const SEED_EQUATION_SPECS = Object.freeze([
                 actual: years.map((value) => value.toFixed(0)).join(" and "),
                 units: "y",
                 message: result.ok ? `Reported as a range with ratio ${result.ratio.toFixed(2)}.` : "No prediction returned."
+            });
+        }
+    },
+    {
+        id: "oxygen-power-law",
+        title: "Oxygen multiplier",
+        equation: "M_O = (20.9 / O2%)^b,  b = log2(1.72) = 0.782",
+        rationale:
+            "Groot et al. 2025 stored primed celery for up to seven years at six oxygen levels and found log shelf life "
+            + "falling in a straight line with log oxygen. They report two figures: each halving of oxygen gives 1.72 "
+            + "times the shelf life, and dropping to 1% gives about 11 times. One exponent has to produce both, and "
+            + "log2(1.72) does: (20.9/1)^0.782 = 10.8. Below 1% nothing was modelled, so the factor stops there.",
+        sources: ["groot2025Oxygen"],
+        implementation: "seed-storage-tiers.js → oxygenMultiplier.",
+        fixture: "Air halved to 10.45%, and air reduced to 1% and to 0.1%, at 30% RH.",
+        expected: "1.72×, about 10.8×, and the same 10.8× at 0.1%.",
+        run() {
+            const half = oxygenMultiplier(AIR_OXYGEN_PCT / 2, { rhPct: 30 });
+            const floor = oxygenMultiplier(1, { rhPct: 30 });
+            const below = oxygenMultiplier(0.1, { rhPct: 30 });
+            return makeResult({
+                pass: approxEqual(half, 1.72, 1e-12) && approxEqual(floor, 10.8, 0.05) && below === floor,
+                expected: "1.72, 10.8, 10.8",
+                actual: `${half.toFixed(3)}, ${floor.toFixed(2)}, ${below.toFixed(2)}`,
+                units: "×",
+                message: `Exponent ${OXYGEN_EXPONENT.toFixed(4)}. Groot's two published figures come out of the one exponent.`
+            });
+        }
+    },
+    {
+        id: "oxygen-humidity",
+        title: "The oxygen effect fades in damp seed",
+        equation: "b(RH) = 0.782 up to 43%,  0 from 60%,  straight line between",
+        rationale:
+            "At 16, 33 and 43% eRH Groot et al. 2025 found the oxygen effect, and at 60% eRH hardly any, none at all "
+            + "at 30 °C. They explain it by the cytoplasm leaving its glassy state. Nothing was measured between 43 "
+            + "and 60%, so the exponent is scaled down in a straight line across that gap and the tool says so.",
+        sources: ["groot2025Oxygen"],
+        implementation: "seed-storage-tiers.js → oxygenExponent.",
+        fixture: "1% oxygen at 43%, 51.5% and 60% RH.",
+        expected: "10.8× at 43%, the square root of that at 51.5%, and 1× at 60%.",
+        run() {
+            const dry = oxygenMultiplier(1, { rhPct: 43 });
+            const mid = oxygenMultiplier(1, { rhPct: 51.5 });
+            const damp = oxygenMultiplier(1, { rhPct: 60 });
+            return makeResult({
+                pass: approxEqual(dry, 10.787, 0.001) && approxEqual(mid, Math.sqrt(dry), 1e-9) && damp === 1,
+                expected: "10.79, 3.28, 1.00",
+                actual: `${dry.toFixed(2)}, ${mid.toFixed(2)}, ${damp.toFixed(2)}`,
+                units: "×",
+                message: "Halfway across the gap the exponent is halved, so the factor is the square root."
+            });
+        }
+    },
+    {
+        id: "headspace-decay",
+        title: "Oxygen used up by seed in a sealed jar",
+        equation: "O2(t) = O2(0) e^(−kt),  k = u × seed mass / gas volume",
+        rationale:
+            "Groot et al. 2015 sealed 10 g of dry lettuce (18 mL) in a 47 mL jam jar at 20 °C and 39% RH. Oxygen fell "
+            + "to about a third in a year, along an exponential curve, so uptake goes as the "
+            + "oxygen level. That fixes u, the gas volume one gram of seed clears per day. Groot et al. 2025 retell "
+            + "the same jar as 15% at 112 days, 10% at 250 and just above 5% at 450, which the constant reproduces.",
+        sources: ["groot2015Anoxia", "groot2025Oxygen"],
+        implementation: "seed-storage-tiers.js → uptakeConstant, decayPerDay, oxygenAtDays.",
+        fixture: "The lettuce jar itself: 10 g in 29 mL of gas, starting from air.",
+        expected: "One third left at 365 days; within 0.5 points of 15, 10 and 5% at 112, 250 and 450 days.",
+        run() {
+            const k = decayPerDay({ seedMassG: LETTUCE_UPTAKE.seedMassG, gasMl: LETTUCE_UPTAKE.jarMl - LETTUCE_UPTAKE.seedVolumeMl });
+            const year = oxygenAtDays(AIR_OXYGEN_PCT, k, 365) / AIR_OXYGEN_PCT;
+            const recount = LETTUCE_UPTAKE_RECOUNT.map((point) => oxygenAtDays(AIR_OXYGEN_PCT, k, point.days));
+            const worst = Math.max(...recount.map((value, i) => Math.abs(value - LETTUCE_UPTAKE_RECOUNT[i].oxygenPct)));
+            return makeResult({
+                pass: approxEqual(year, 1 / 3, 1e-9) && worst < 0.5,
+                expected: "0.333 at a year, recount within 0.5 points",
+                actual: `${year.toFixed(3)} at a year; ${recount.map((value) => value.toFixed(1)).join(", ")}%`,
+                units: "",
+                message: `k = ${k.toFixed(5)} per day. The 450-day figure is 5.4% against "slightly above 5%".`
+            });
+        }
+    },
+    {
+        id: "absorber-capacity",
+        title: "Absorber size against the oxygen in the jar",
+        equation: "O2 in jar = gas volume × O2% / 100,  enough when rating ≥ that",
+        rationale:
+            "An absorber is rated by the oxygen it can take up. Groot et al. 2015 used one rated for 200 mL in a 129 mL "
+            + "jar. If the rating is smaller than the oxygen sealed in, some is left behind, and the tool starts the "
+            + "jar at what remains.",
+        sources: ["groot2015Anoxia"],
+        implementation: "seed-storage-tiers.js → absorberOutcome.",
+        fixture: "A 500 mL jar holding 50 g of seed at 1.8 mL per gram: 410 mL of gas, 85.7 mL of oxygen.",
+        expected: "A 100 mL absorber is enough; a 50 mL one leaves about 8.7% oxygen.",
+        run() {
+            const big = absorberOutcome({ capacityMl: 100, gasMl: 410, startPct: AIR_OXYGEN_PCT });
+            const small = absorberOutcome({ capacityMl: 50, gasMl: 410, startPct: AIR_OXYGEN_PCT });
+            return makeResult({
+                pass: approxEqual(big.oxygenMl, 85.69, 0.01) && big.sufficient && !small.sufficient
+                    && approxEqual(small.residualPct, (85.69 - 50) / 410 * 100, 0.01),
+                expected: "enough; 8.7% left",
+                actual: `${big.sufficient ? "enough" : "short"}; ${small.residualPct.toFixed(1)}% left`,
+                units: "",
+                message: `${big.oxygenMl.toFixed(1)} mL of oxygen in the jar.`
+            });
+        }
+    },
+    {
+        id: "sealing-wet-seed",
+        title: "Sealing seed that is not dry",
+        equation: "blocked when sealed and (eRH > 50% or MC ≥ 12%)",
+        rationale:
+            "A sealed container holds the seed at the moisture it was sealed with, so it amplifies whatever state the "
+            + "seed is in. Okra sealed in hermetic bags at 14% moisture lost all germination within six months, and "
+            + "12% was not recommended, while 8% and 10% kept germination for a year (Bakhtavar et al. 2023). "
+            + "Groot et al. 2025 advise drying below about 50% eRH, and preferably to 20-30%, before sealing.",
+        sources: ["bakhtavar2023Okra", "groot2025Oxygen"],
+        implementation: "seed-storage-tiers.js → SEALING_LIMITS, evaluateStorage.",
+        fixture: "A sealed jar at 8% and at 14% moisture, 40% RH.",
+        expected: "8% passes; 14% is blocked and voids any oxygen credit.",
+        run() {
+            const dry = evaluateStorage({ container: "gasket", moisturePct: 8, rhPct: 40 });
+            const wet = evaluateStorage({ container: "gasket", moisturePct: 14, rhPct: 40, vacuumResidualPct: 30 });
+            return makeResult({
+                pass: !dry.blocked && wet.blocked && wet.sealedWet && wet.oxygen.multiplier === 1,
+                expected: "8% open, 14% blocked",
+                actual: `8% ${dry.blocked ? "blocked" : "open"}, 14% ${wet.blocked ? "blocked" : "open"}`,
+                units: "",
+                message: "Even with a vacuum, the wet jar earns no oxygen factor."
+            });
+        }
+    },
+    {
+        id: "mc-collapses-to-point",
+        title: "With no uncertainty the band is the point estimate",
+        equation: "spread 0, test size blank  ⇒  P10 = median = P90 = point",
+        rationale:
+            "The Monte Carlo runs the same engine as the point estimate, once per draw. If every input is taken as "
+            + "exact, every draw is the same calculation, and the band has to close onto the line. Anything else "
+            + "means the sampling path and the point path have drifted apart.",
+        sources: ["hayViabilityEquations", "kewAppendix1"],
+        implementation: "seed-monte-carlo.js → runViabilityMonteCarlo.",
+        fixture: "Lettuce at 5 °C and 6% moisture, 95% falling to 85%, no spread, 100 draws.",
+        expected: "Both determinations' P10 and P90 equal their point estimates.",
+        run() {
+            const lettuce = getSpeciesById("lactuca-sativa");
+            const conditions = { moisturePct: 6, temperatureC: 5, initialViabilityPct: 95, targetViabilityPct: 85 };
+            const point = predictSpecies(lettuce, conditions);
+            const band = runViabilityMonteCarlo(lettuce, { ...conditions, draws: 100, seed: 1 });
+            const pass = band.ok && band.determinations.every((entry, i) =>
+                entry.daysToTarget.p10 === point.determinations[i].daysToTarget
+                && entry.daysToTarget.p90 === point.determinations[i].daysToTarget);
+            return makeResult({
+                pass,
+                expected: point.determinations.map((entry) => (entry.daysToTarget / DAYS_PER_YEAR).toFixed(2)).join(" and ") + " y",
+                actual: band.ok ? band.determinations.map((entry) =>
+                    `${(entry.daysToTarget.p10 / DAYS_PER_YEAR).toFixed(2)}-${(entry.daysToTarget.p90 / DAYS_PER_YEAR).toFixed(2)}`).join(" and ") + " y" : "no band",
+                units: "",
+                message: "The band and the line come from one engine."
+            });
+        }
+    },
+    {
+        id: "mc-germination-posterior",
+        title: "What a germination test says about the lot",
+        equation: "true germination ~ Beta(k + 1/2, n − k + 1/2)",
+        rationale:
+            "A test of n seeds with k germinating does not give the lot's germination exactly. The Jeffreys posterior "
+            + "is the standard way to state what it does give. For 95 of 100 its central 95% runs from 89.4% to "
+            + "98.1%, and because the viability equation works in probits, that spread alone puts 2.6-fold between "
+            + "the P10 and P90 time to an 85% floor for lettuce in the fridge. Draws come from two Gamma variates (Marsaglia and Tsang 2000).",
+        sources: ["hayViabilityEquations"],
+        implementation: "seed-monte-carlo.js → germinationPosterior, sampleBeta, sampleGamma.",
+        fixture: "20,000 draws for a test of 100 seeds showing 95%.",
+        expected: "Mean 94.55%, 2.5th and 97.5th percentiles within 0.3 points of 89.39% and 98.07%.",
+        run() {
+            const rng = createSeededRandom(11);
+            const draws = [];
+            for (let i = 0; i < 20000; i += 1) draws.push(germinationPosterior(rng, 95, 100));
+            const mean = draws.reduce((sum, value) => sum + value, 0) / draws.length;
+            const low = percentile(draws, 0.025);
+            const high = percentile(draws, 0.975);
+            return makeResult({
+                pass: Math.abs(mean - 94.554) < 0.05 && Math.abs(low - 89.39) < 0.3 && Math.abs(high - 98.07) < 0.3,
+                expected: "94.55, 89.39-98.07",
+                actual: `${mean.toFixed(2)}, ${low.toFixed(2)}-${high.toFixed(2)}`,
+                units: "%",
+                message: "Reference quantiles from the Beta(95.5, 5.5) distribution."
             });
         }
     },

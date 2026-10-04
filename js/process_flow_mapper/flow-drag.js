@@ -4,10 +4,12 @@
 // The SVG is rebuilt on every render, so listeners live on the host element
 // that outlives it. Nothing is moved here: the caller rewrites the text.
 
+import { stepOrder } from './flow-render.js';
+
 const DRAG_THRESHOLD_PX = 4;
 
 /**
- * api: getModel(), moveStep(stepIndex, laneIndex), moveLane(laneIndex, toIndex).
+ * api: getModel(), moveStep(stepIndex, laneIndex), moveLane(laneIndex, toIndex), focusStep(stepIndex).
  * Returns nothing. A drag that ends where it began, or off every lane, does nothing.
  */
 export function attachDrag(host, api) {
@@ -81,10 +83,19 @@ export function attachDrag(host, api) {
     host.addEventListener('keydown', (event) => {
         // Up and left are the lane before, down and right the lane after, whichever way lanes run.
         const delta = { ArrowUp: -1, ArrowLeft: -1, ArrowDown: 1, ArrowRight: 1 }[event.key];
-        if (!event.altKey || !delta) return;
         const what = grabbed(event);
         const model = api.getModel();
         if (!what || !model || !model.ok) return;
+        // Without Alt the keys go from step to step in reading order.
+        if (!event.altKey && what.kind === 'step' && (delta || event.key === 'Home' || event.key === 'End')) {
+            event.preventDefault();
+            const order = stepOrder(model.layout);
+            const at = order.indexOf(what.index);
+            const to = event.key === 'Home' ? 0 : event.key === 'End' ? order.length - 1 : Math.min(order.length - 1, Math.max(0, at + delta));
+            if (order[to] !== undefined) api.focusStep(order[to]);
+            return;
+        }
+        if (!event.altKey || !delta) return;
         event.preventDefault();
         const count = model.graph.lanes.length;
         if (what.kind === 'step') {

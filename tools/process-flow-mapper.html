@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
 ============================================
-PROCESS FLOW MAPPER v1.2.0
+PROCESS FLOW MAPPER v1.3.0
 ============================================
 Description: Lead time, touch time, rework and first-pass yield for
 a process typed as a list of steps, drawn as a swimlane diagram.
@@ -32,9 +32,11 @@ Features:
 - Every headline figure compared with the last save
 - Steps dragged between lanes and lanes reordered, written back to the text
 - Tables saved as CSV, and spreadsheet rows pasted in as steps
-- Spread of lead time from a seeded simulation: median, 8 in 10, 19 in 20
+- Spread of lead time from a seeded simulation: median, 8 in 10, 19 in 20,
+  run in a background worker for big maps, with the histogram as a table
 - Times as ranges, waits on the way between steps
-- Work done at the same time (=>), with the slack on the faster branches
+- Work done at the same time (=>), with the slack on the faster branches,
+  and a branch that can stop the work, such as a rejection
 - SIPOC table from in: and out: lines under each phase
 - Lanes across the page or down it
 - Mermaid text of the map
@@ -136,7 +138,7 @@ Last Updated: October 2026
                     <div class="disclaimer-section">
                         <h3>Not modelled, at all</h3>
                         <ul>
-                            <li><strong>Work done at the same time, beyond the simple case.</strong> Branches written with <code>=&gt;</code> must come back together at one step, with no way in or out of a branch in between, and the work goes on when the slowest arrives. A branch that can be abandoned, a join that needs only some of the branches, and people shared between branches are not represented. The headline lead time through a split is the slowest branch on average, which is a little low when the branches vary.</li>
+                            <li><strong>Work done at the same time, beyond the simple case.</strong> Branches written with <code>=&gt;</code> must come back together at one step, with no way into a branch in between, and the work goes on when the slowest arrives. A branch may stop the work at an end of its own, such as a rejection, but the other branches are assumed to carry on to the end regardless; work that is called back the moment one branch fails, a join that needs only some of the branches, and people shared between branches are not represented. The headline lead time through a split is the slowest branch on average, which is a little low when the branches vary.</li>
                             <li><strong>Capacity is a ceiling, not a queue.</strong> With a staff line the tool divides the hours available by the work each unit needs. That says what a lane could carry if work arrived perfectly evenly and nobody was ever idle or absent. Real limits are lower, and a lane well under 100% can still have a long queue.</li>
                             <li><strong>Queues, batching and priorities.</strong> Waiting that grows with load, work released in batches, expediting and work that jumps the queue are all outside the model.</li>
                             <li><strong>Variation you did not type.</strong> In the simulation a time given as one number never varies, a range is even between its ends or a triangle around its most likely value, and every draw is independent of every other. Real waits move together and have longer tails. The figures are not a worst case and not a confidence interval.</li>
@@ -248,15 +250,15 @@ Last Updated: October 2026
                         <dt><code>Warehouse: Pack order -&gt; {wait 1 d}: Deliver</code></dt>
                         <dd>A wait on the way to the next step, such as transit. It goes before the colon, after any label and share: <code>yes 85% {2 h}: Pick goods</code>.</dd>
                         <dt><code>Sales: Take order =&gt; Pick goods, Raise invoice</code></dt>
-                        <dd>A double arrow means all of these happen, at the same time. The branches must meet again at one step, which goes on when the slowest arrives. Steps on a faster branch are shown with their slack.</dd>
+                        <dd>A double arrow means all of these happen, at the same time. The branches must meet again at one step, which goes on when the slowest arrives. Steps on a faster branch are shown with their slack. A branch may end the work, such as <code>no 10%: (Rejected)</code>: the other branches still run, the work stops when they have, and a unit two branches both stop is counted at the first branch written. A branch can be a wait alone, such as <code>=&gt; {wait 3 d}: Assemble, Prep</code> for parts in transit while Prep is done.</dd>
                         <dt><code>Customer: (Order placed)</code></dt>
                         <dd>Brackets mark a start or an end. A step named only as a target needs a line like this to say which lane does it.</dd>
                         <dt><code>== Fulfil ==</code></dt>
                         <dd>Starts a phase. Steps below it are grouped, and the phase gets its own share of the lead time.</dd>
                         <dt><code>in: Order form from Customer</code><br><code>out: Invoice to Customer</code></dt>
-                        <dd>What the phase above takes in and from whom, and what it hands on and to whom. Several are separated by commas. They fill the SIPOC table and change no figure.</dd>
+                        <dd>What the phase above takes in and from whom, and what it hands on and to whom. Several are separated by commas. Lines above the first phase are about the whole process and get a row of their own. They fill the SIPOC table and change no figure.</dd>
                         <dt><code>lanes: Customer, Sales, Finance</code></dt>
-                        <dd>The order of the lanes, top to bottom. Without it they appear in the order first typed.</dd>
+                        <dd>The order of the lanes, top to bottom, or left to right when lanes run down the page. Without it they appear in the order first typed.</dd>
                         <dt><code>arrivals: 30 / wk</code></dt>
                         <dd>How much work arrives. Adds hours of work per week to each lane.</dd>
                         <dt><code>staff: Sales 2, Finance 1 @ 25%</code></dt>
@@ -268,8 +270,8 @@ Last Updated: October 2026
                         <dt><code>// comment</code></dt>
                         <dd>Ignored, as is a line starting with <code>#</code>.</dd>
                     </dl>
-                    <p>Rows copied from a spreadsheet can be pasted straight in: columns are lane, step, touch time, wait, next. Several exits go in the last cell separated by semicolons, such as <code>yes 80%: Ship; no 20%: Fix</code>.</p>
-                    <p>An exit that leads back to a step already passed is rework. Which exit of a loop counts as the return is decided by typing order: the line that closes the loop. A name containing a comma, a colon or an arrow goes in double quotes. A lane cannot be called lanes, arrivals, staff, in or out.</p>
+                    <p>Rows copied from a spreadsheet can be pasted straight in: columns are lane, step, touch time, wait, next. Several exits go in the last cell separated by semicolons, such as <code>yes 80%: Ship; no 20%: Fix</code>, or <code>=&gt; Pick; Invoice</code> for all of these at once. A row whose lane is <code>in</code> or <code>out</code> becomes that line.</p>
+                    <p>An exit that leads back to a step already passed is rework. Which exit of a loop counts as the return is decided by typing order: the line that closes the loop. A name containing a comma, a colon or an arrow goes in double quotes. A lane cannot be called lanes, arrivals, staff, in or out. Work begins at any step nothing leads into, split evenly when there are several, and a step joined to nothing is drawn but left out of the figures.</p>
                 </details>
 
                 <div class="input-group">
@@ -394,7 +396,7 @@ Last Updated: October 2026
                     </div>
                 </div>
 
-                <div id="errorBox" class="message-box error-box" role="alert" hidden>
+                <div id="errorBox" class="message-box error-box" role="status" hidden>
                     <h3>Nothing drawn</h3>
                     <ul id="errorList"></ul>
                 </div>
@@ -409,12 +411,18 @@ Last Updated: October 2026
                         <div id="spreadChart" class="spread-chart"></div>
                     </div>
                     <p id="spreadNote" class="helper-text"></p>
+                    <details class="usage-note spread-table" id="spreadTableBox" hidden>
+                        <summary>The histogram as a table</summary>
+                        <div class="table-scroll">
+                            <table id="spreadTable" aria-label="Units of work by lead time"><thead></thead><tbody></tbody></table>
+                        </div>
+                    </details>
                 </div>
 
                 <div class="diagram-scroll" id="diagramScroll" tabindex="0" role="group" aria-label="Swimlane diagram, scrollable">
                     <div id="diagramHost" class="diagram-host"></div>
                 </div>
-                <p class="helper-text map-help">Darker steps take more of the lead time. Dashed connectors are rework, and a plus marks exits taken at the same time. Hover or focus a step for its figures. Drag a step to another lane, or a lane name past another, and the text is rewritten to match; Alt with an arrow key does the same from the keyboard. A wide map is fitted to the panel down to 60% and scrolls sideways past that, or set "Lanes run" to down the page.</p>
+                <p class="helper-text map-help">Darker steps take more of the lead time. Dashed connectors are rework, and a plus marks exits taken at the same time. Hover or focus a step for its figures; the map is one tab stop, and the arrow keys go from step to step. Drag a step to another lane, or a lane name past another, and the text is rewritten to match; Alt with an arrow key does the same from the keyboard. A wide map is fitted to the panel down to 60% and scrolls sideways past that, or set "Lanes run" to down the page.</p>
 
                 <p id="exportStatus" class="helper-text" role="status" aria-live="polite"></p>
 

@@ -1,7 +1,7 @@
 // Result panels for the process flow mapper: the headline figures, the
 // "where the time goes" bars and the tables. Builds DOM, holds no state.
 
-import { headline, formatDuration, formatPercent, formatPasses } from './flow-model.js';
+import { headline, formatDuration, formatPercent, formatPasses, autoUnit } from './flow-model.js';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 export const BAR_COUNT = 10;
@@ -28,10 +28,15 @@ export function fillHeadline(container, model, changes = []) {
     }));
 }
 
-/** A table as CSV text: quoted where a cell holds a comma, a quote or a line break. */
+/**
+ * A table as CSV text: quoted where a cell holds a comma, a quote or a line
+ * break. A cell starting = + - or @ is a typed name a spreadsheet would run as
+ * a formula, so it gets a leading apostrophe and stays text.
+ */
 export function tableToCsv(table) {
+    const defuse = (text) => (/^[=+\-@\t\r]/.test(text) ? `'${text}` : text);
     const quote = (text) => (/[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text);
-    return [...table.rows].map((row) => [...row.cells].map((c) => quote(c.textContent.trim())).join(',')).join('\r\n');
+    return [...table.rows].map((row) => [...row.cells].map((c) => quote(defuse(c.textContent.trim()))).join(',')).join('\r\n');
 }
 
 /**
@@ -41,10 +46,15 @@ export function tableToCsv(table) {
  */
 export function fillBars(container, model, onPick) {
     const { result, graph, unit } = model;
+    // Ranked by what each step adds to lead time. A step on a faster branch
+    // adds nothing, so it is left to the steps table, which shows its slack.
     const rows = result.ok
-        ? result.perStep.map((s, i) => ({ ...s, index: i })).filter((s) => s.lead > 0).sort((a, b) => (b.lead - a.lead) || (a.index - b.index)).slice(0, BAR_COUNT)
+        ? result.perStep.map((s, i) => {
+            const counted = s.share * result.lead;
+            return { ...s, index: i, counted, touch: Math.min(s.touch, counted), wait: Math.max(0, counted - s.touch) };
+        }).filter((s) => s.critical && s.counted > 0).sort((a, b) => (b.counted - a.counted) || (a.index - b.index)).slice(0, BAR_COUNT)
         : [];
-    const top = rows.length ? rows[0].lead : 0;
+    const top = rows.length ? rows[0].counted : 0;
     const dur = (h) => formatDuration(h, graph.calendar, unit);
 
     container.replaceChildren(...rows.map((row) => {
@@ -79,7 +89,6 @@ export function fillBars(container, model, onPick) {
 
         const parts = [`${graph.lanes[step.lane].name}`, `${dur(row.wait)} waiting`, `${dur(row.touch)} working`];
         if (row.passes > 1.005) parts.push(`passed ${formatPasses(row.passes)}`);
-        if (!row.critical) parts.push(`${dur(row.slack)} slack, not on the slowest path`);
         button.append(head, svg, node('span', 'bar-detail', parts.join('  ·  ')));
         button.addEventListener('click', () => onPick(row.index));
         item.appendChild(button);
@@ -90,20 +99,31 @@ export function fillBars(container, model, onPick) {
 
 /**
  * How lead time is spread: three figures, a small histogram and what they
- * rest on. parts is { stats, chart, note }. Returns false when the model has
- * no spread to show.
+ * rest on, with the histogram also as a table for anyone not reading the
+ * bars. parts is { stats, chart, note, table, tableBox }. Returns false when
+ * the model has no spread to show.
  */
 export function fillSpread(parts, model) {
     const { spread, graph, unit } = model;
     parts.stats.replaceChildren();
     parts.chart.replaceChildren();
     parts.note.textContent = '';
-    if (!spread) return false;
+    parts.tableBox.hidden = true;
+    parts.table.tHead.replaceChildren();
+    parts.table.tBodies[0].replaceChildren();
+    if (!spread) {
+        // A big map is walked off the page's thread, and the card fills when it is done.
+        if (model.spreadPending) parts.note.textContent = 'Working out how lead time is spread…';
+        return Boolean(model.spreadPending);
+    }
     const dur = (h) => formatDuration(h, graph.calendar, unit);
     if (!spread.varies) {
         parts.note.textContent = `Every unit of work takes ${dur(spread.p50)}: nothing branches and no time is given as a range, so there is no spread to show. Write a time as a range, such as "wait 1-3 d", to see one.`;
         return true;
     }
+    // The three side by side in one unit, the one that suits the smallest, so they compare at a glance.
+    const smallest = [spread.p50, spread.p80, spread.p95].find((v) => v > 0) || 0;
+    const same = unit === 'auto' ? autoUnit(smallest, graph.calendar) : unit;
     for (const [key, label, value, hint] of [
         ['p50', 'Half finish within', spread.p50, 'the typical unit of work'],
         ['p80', '8 in 10 within', spread.p80, 'a figure to quote'],
@@ -111,7 +131,7 @@ export function fillSpread(parts, model) {
     ]) {
         const card = node('div', 'stat');
         card.setAttribute('data-stat', key);
-        card.append(node('dt', 'stat-label', label), node('dd', 'stat-value', dur(value)), node('dd', 'stat-hint', hint));
+        card.append(node('dt', 'stat-label', label), node('dd', 'stat-value', formatDuration(value, graph.calendar, same)), node('dd', 'stat-hint', hint));
         parts.stats.appendChild(card);
     }
 
@@ -138,12 +158,24 @@ export function fillSpread(parts, model) {
         const axis = node('div', 'spread-axis');
         axis.append(node('span', '', dur(from)), node('span', '', `${dur(to)} and over`));
         parts.chart.append(svg, axis);
+
+        // The same bars as rows, in the unit of the figures above.
+        const width = (to - from) / counts.length;
+        const at = (h) => formatDuration(h, graph.calendar, same);
+        fillTable(parts.table, [
+            { label: 'Lead time', value: (r) => (r.last ? `${at(r.low)} and over` : `${at(r.low)} to ${at(r.low + width)}`) },
+            { label: 'Units', num: true, value: (r) => r.count.toLocaleString('en-US') },
+            { label: 'Share', num: true, value: (r) => formatPercent(r.count / spread.units) }
+        ], counts.map((count, i) => ({ low: from + i * width, count, last: i === counts.length - 1 })));
+        parts.tableBox.hidden = false;
     }
 
     const basis = spread.ranges
         ? 'A time given as a range is drawn from that range; a time given as one number stays fixed.'
         : 'Every time here is one fixed number, so this is the spread that branching and rework cause on their own. Write a time as a range, such as "wait 1-3 d", to include how much it varies.';
-    const cut = spread.cut ? ' The map loops so much that the run was stopped early.' : '';
+    const cut = spread.cut
+        ? ` The map loops so much that the run was stopped early, so these figures rest on fewer units and could be out by about ${dur(2 * spread.error)} either way on the average.`
+        : '';
     parts.note.textContent = `From ${spread.units.toLocaleString('en-US')} simulated units of work, seed ${spread.seed}. The average is ${dur(spread.mean)}. ${basis}${cut}`;
     return true;
 }

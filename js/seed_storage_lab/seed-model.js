@@ -1,6 +1,6 @@
 // Seed Storage Lab model: species lookup, seed counts, the species gate,
 // Harrington's rules, the Hundred Rule indicator, and the hand-off to the
-// Ellis-Roberts viability equation in seed-viability-engine.js.
+// Ellis-Roberts viability equation and the storage tier model.
 //
 // Two principles run through the whole module and explain most of its shape:
 //
@@ -15,7 +15,9 @@
 
 import { SEED_SPECIES, SEED_SPECIES_BY_ID } from "./seed-species-data.js";
 import { SEED_REFERENCES } from "./seed-source-map.js";
-import { predictSpecies } from "./seed-viability-engine.js";
+import { defaultHorizonDays, predictSpecies } from "./seed-viability-engine.js";
+import { MONTE_CARLO_LIMITS, runViabilityMonteCarlo } from "./seed-monte-carlo.js";
+import { evaluateStorage } from "./seed-storage-tiers.js";
 
 export const GRAMS_PER_OZ = 28.349523125;
 export const GRAMS_PER_LB = 453.59237;
@@ -36,19 +38,19 @@ export const DEFAULT_BASELINE = Object.freeze({
 // this box they are known to be wrong: below about 5% MC the moisture
 // relationship inverts for some species, above 14% MC respiration and fungal
 // growth dominate, and below 0 °C the temperature rule overpredicts badly
-// against the Ellis-Roberts data.
+// against the Ellis-Roberts data. Harrington gave 5-14% MC and 0-50 °C
+// (Justice & Bass 1978).
 export const HARRINGTON_LIMITS = Object.freeze({
     temperatureMinC: 0,
-    temperatureMaxC: 40,
+    temperatureMaxC: 50,
     moistureMinPct: 5,
     moistureMaxPct: 14
 });
 
-// Even fully inside the valid box, Harrington compounds to about 75,000x
+// Even fully inside the valid box, Harrington compounds to 262,000-524,000x
 // between the worst and best corners. Applied to a 3-year vendor figure that is
-// 225,000 years, which no evidence supports: the oldest reliably germinated
-// seed is a ~2,000-year-old date palm. Projections past this horizon are still
-// computed and reported, but flagged as beyond anything measured.
+// up to 1.6 million years, which no evidence supports. Projections past this horizon
+// are still computed and reported, but flagged as beyond anything measured.
 export const EVIDENCE_HORIZON_YEARS = 1000;
 
 // Above this ratio, two sources disagree; below it, the gap is ordinary
@@ -57,11 +59,17 @@ export const EVIDENCE_HORIZON_YEARS = 1000;
 // 53 species with more than one count source, spanning 1.32x to 14.25x.
 const COUNT_DISAGREEMENT_RATIO = 1.3;
 
+// Under this, rounding on a 0.1 g kitchen scale is worth more than 1%.
+const SMALL_SAMPLE_GRAMS = 5;
+
 export const cToF = (c) => (c * 9) / 5 + 32;
 export const fToC = (f) => ((f - 32) * 5) / 9;
 
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 const isNumber = (value) => typeof value === "number" && Number.isFinite(value);
+// Up to three significant figures, for numbers that go into sentences.
+const nfPlain = (value) => String(Number(value.toPrecision(3)));
+const round1 = (value) => Math.round(value * 10) / 10;
 
 // ---------------------------------------------------------------------------
 // Species lookup
@@ -257,9 +265,10 @@ export function evaluateSpeciesGate(record) {
             allowLongevity: false,
             behaviour,
             headline: `${speciesDisplayName(record)} has recalcitrant seed: drying kills it`,
-            detail: (`Recalcitrant seed cannot be dried to storage moisture and cannot be stored cold${via}. `
-                + "Harrington's rules and the viability equation both assume orthodox seed, so no storage life is projected here. "
-                + "Sow fresh, or store moist and cool for weeks to months at most. "
+            detail: (`Recalcitrant seed dies if dried to storage moisture${via}. `
+                + "Harrington's rules and the viability equation both assume dry orthodox seed, so no storage life is projected here. "
+                + "Keep it moist. The 1996 compendium gives about -3 to 5 °C for species from temperate climates, with oak keeping over 3 years at -3 °C, "
+                + "and 7-17 °C for tropical species, many of which are injured by chilling and keep weeks to months. "
                 + (flag.note || "") + overruled).trim(),
             reference,
             conflict
@@ -272,9 +281,25 @@ export function evaluateSpeciesGate(record) {
             allowLongevity: false,
             behaviour,
             headline: `${speciesDisplayName(record)} has intermediate seed`,
-            detail: (`Tolerates partial drying but is damaged by cold storage once dry${via}. `
+            detail: (`Tolerates drying only part of the way and keeps worse if dried further${via}. `
+                + "The 1996 compendium puts that point at about 7-12% moisture for the species it describes, and tropical species such as coffee and papaya also keep worse below about 10 °C. "
                 + "The dry-storage model does not apply; treat published longevity as months to a few years, not decades. "
                 + (flag.note || "") + overruled).trim(),
+            reference,
+            conflict
+        };
+    }
+
+    // A genus grouped by nursery practice, which is none of the three
+    // categories. Its species are refused until a species record settles them.
+    if (behaviour === "unconfirmed") {
+        return {
+            status: GATE_STATUS.CAUTION,
+            allowLongevity: false,
+            behaviour,
+            headline: `Storage behaviour not confirmed for ${speciesDisplayName(record)}`,
+            detail: (`${flag.note || ""}${via} Storage life is withheld until a species-level record confirms the seed is orthodox.`
+                + overruled).trim(),
             reference,
             conflict
         };
@@ -609,19 +634,21 @@ export function countFromMeasurement({ seedCount, sampleMass, sampleMassUnit = "
         warnings: []
     };
 
-    // Counting error is roughly 1/n of the result, so a 10-seed sample carries
-    // 10% error before the scale is considered at all.
+    // One seed miscounted is 1/n of the result.
     if (seedCount < 25) {
         result.warnings.push(
-            `A ${seedCount}-seed sample carries about ${(100 / seedCount).toFixed(0)}% counting error. `
-            + "Count at least 100 seeds for a reliable figure."
+            `In a ${seedCount}-seed sample each seed miscounted is a ${(100 / seedCount).toFixed(0)}% counting error, `
+            + "and too few seeds average out differences in size. Count at least 100 seeds for a reliable figure."
         );
     }
-    if (grams < 0.1) {
-        result.warnings.push(
-            "Under 0.1 g, kitchen scale resolution (usually 0.1-1 g) dominates the result. "
-            + "Weigh a larger sample or use a 0.001 g jeweller's scale."
-        );
+    // A scale rounds to half its step, so a 0.1 g scale can be 0.05 g out.
+    if (grams < SMALL_SAMPLE_GRAMS) {
+        const error = (0.05 / grams) * 100;
+        const size = error >= 100
+            ? `A kitchen scale reading to 0.1 g cannot tell ${nfPlain(grams)} g from nothing.`
+            : `On a kitchen scale reading to 0.1 g, rounding alone can put a ${nfPlain(grams)} g reading up to `
+              + `${error >= 10 ? error.toFixed(0) : error.toFixed(1)}% out${error < 10 ? ", and ten times that on a scale reading to 1 g" : ""}.`;
+        result.warnings.push(`${size} Weigh a larger sample or use a 0.001 g jeweller's scale.`);
     }
     return result;
 }
@@ -649,13 +676,44 @@ export function compareMeasuredToPublished(measured, countSummary) {
 // Harrington's rules
 // ---------------------------------------------------------------------------
 
+// The universal temperature terms of the viability equation (Dickie & Ellis
+// 1990), shared by every species, so they give a measured temperature curve.
+export const UNIVERSAL_CH = 0.0329;
+export const UNIVERSAL_CQ = 0.000478;
+
+export const TEMPERATURE_METHODS = Object.freeze({
+    fahrenheit10: "Harrington, halving per 10 °F",
+    celsius5: "Harrington, halving per 5 °C",
+    ellisRoberts: "Ellis-Roberts temperature terms"
+});
+
 /**
- * life_multiplier = 2^(dMC%) x 2^(dT_F / 10)
+ * Life at the storage temperature relative to the baseline, three ways. The
+ * sources state Harrington's rule as 10 °F or as 5 °C, and the measured curve
+ * falls outside both below about 35 °C, so the span of all three is reported.
+ */
+export function temperatureFactors(baselineC, storageC) {
+    const methods = {
+        fahrenheit10: Math.pow(2, (cToF(baselineC) - cToF(storageC)) / 10),
+        celsius5: Math.pow(2, (baselineC - storageC) / 5),
+        ellisRoberts: Math.pow(10, UNIVERSAL_CH * (baselineC - storageC)
+            + UNIVERSAL_CQ * (baselineC * baselineC - storageC * storageC))
+    };
+    const entries = Object.entries(methods);
+    const [lowMethod, low] = entries.reduce((best, entry) => (entry[1] < best[1] ? entry : best));
+    const [highMethod, high] = entries.reduce((best, entry) => (entry[1] > best[1] ? entry : best));
+    return { methods, low, high, lowMethod, highMethod };
+}
+
+/**
+ * life_multiplier = 2^(dMC%) x temperature factor
  *
  * Both factors are relative to the baseline the published longevity figure is
- * assumed to describe. Inputs are clamped into the validity box and every clamp
- * is reported, because a silently clamped input produces a plausible-looking
- * number from an invalid question.
+ * assumed to describe. The temperature factor is a span across three methods;
+ * `multiplier` keeps the 10 °F form for the checks that test that rule alone.
+ * Inputs are clamped into the validity box and every clamp is reported,
+ * because a silently clamped input produces a plausible-looking number from an
+ * invalid question.
  */
 export function harringtonMultiplier({
     baselineTemperatureC = DEFAULT_BASELINE.temperatureC,
@@ -674,7 +732,7 @@ export function harringtonMultiplier({
                 requested: value,
                 applied: bounded,
                 unit,
-                message: `${label} ${value}${unit} is outside Harrington's validity range `
+                message: `${label} ${round1(value)}${unit} is outside the range this tool applies Harrington's rules over `
                     + `(${min}-${max}${unit}); clamped to ${bounded}${unit}.`
             });
         }
@@ -700,16 +758,20 @@ export function harringtonMultiplier({
     const temperatureDeltaF = cToF(baseT) - cToF(storeT);
 
     const moistureMultiplier = Math.pow(2, moistureDelta);
-    const temperatureMultiplier = Math.pow(2, temperatureDeltaF / 10);
+    const temperature = temperatureFactors(baseT, storeT);
+    const temperatureMultiplier = temperature.methods.fahrenheit10;
 
     return {
         ok: true,
         clamps,
         moistureDelta,
         temperatureDeltaF,
+        temperatureDeltaC: baseT - storeT,
         moistureMultiplier,
         temperatureMultiplier,
+        temperature,
         multiplier: moistureMultiplier * temperatureMultiplier,
+        range: { low: moistureMultiplier * temperature.low, high: moistureMultiplier * temperature.high },
         applied: { baselineTemperatureC: baseT, baselineMoisturePct: baseM,
             storageTemperatureC: storeT, storageMoisturePct: storeM }
     };
@@ -731,15 +793,19 @@ export function hundredRule({ temperatureC, relativeHumidityPct } = {}) {
     if (!isNumber(temperatureC) || !isNumber(relativeHumidityPct)) return null;
     const temperatureF = cToF(temperatureC);
     const sum = temperatureF + relativeHumidityPct;
+    // Within half a point of 100 a whole number would round onto the line.
+    const digits = Math.abs(sum - 100) < 0.5 ? 1 : 0;
+    const shown = (value) => value.toFixed(digits);
     return {
         temperatureF,
         relativeHumidityPct,
         sum,
         pass: sum < 100,
         margin: 100 - sum,
+        shownSum: shown(sum),
         detail: sum < 100
-            ? `${temperatureF.toFixed(0)} °F + ${relativeHumidityPct.toFixed(0)}% RH = ${sum.toFixed(0)}, under 100.`
-            : `${temperatureF.toFixed(0)} °F + ${relativeHumidityPct.toFixed(0)}% RH = ${sum.toFixed(0)}, over 100. `
+            ? `${shown(temperatureF)} °F + ${shown(relativeHumidityPct)}% RH = ${shown(sum)}, under 100.`
+            : `${shown(temperatureF)} °F + ${shown(relativeHumidityPct)}% RH = ${shown(sum)}, ${sum === 100 ? "not under" : "over"} 100. `
               + "Drop the temperature, the humidity, or both."
     };
 }
@@ -779,10 +845,16 @@ export function summariseLongevity(record, { cropKey = null } = {}) {
  * past the evidence horizon is still reported but explicitly marked as an
  * extrapolation beyond any measurement.
  */
-export function projectLongevity({ record, multiplier, gate, cropKey = null }) {
+export function projectLongevity({ record, multiplier, gate, cropKey = null, storage = null }) {
     const baseline = summariseLongevity(record, { cropKey });
     if (!gate || !gate.allowLongevity) {
         return { ok: false, reason: "gated", baseline, gate };
+    }
+    if (storage && storage.override && storage.override.kind === "primed") {
+        return { ok: false, reason: "primed", baseline, gate };
+    }
+    if (storage && storage.tier === "absorber-only") {
+        return { ok: false, reason: "absorber-only", baseline, gate };
     }
     if (!baseline.span) {
         return { ok: false, reason: "no-baseline", baseline, gate };
@@ -791,21 +863,29 @@ export function projectLongevity({ record, multiplier, gate, cropKey = null }) {
         return { ok: false, reason: "no-multiplier", baseline, gate };
     }
 
-    const low = baseline.span.low * multiplier.multiplier;
-    const high = baseline.span.high * multiplier.multiplier;
+    // Oxygen lifts only the upper end: the size of the effect is measured on
+    // one species, and some studies found none.
+    const oxygenFactor = storage ? storage.oxygen.multiplier : 1;
+    let low = baseline.span.low * multiplier.range.low;
+    let high = baseline.span.high * multiplier.range.high * oxygenFactor;
+    const capYears = storage && storage.override ? storage.override.capYears : null;
+    if (capYears !== null) {
+        low = Math.min(low, capYears);
+        high = Math.min(high, capYears);
+    }
     const warnings = [];
 
     if (high > EVIDENCE_HORIZON_YEARS) {
         warnings.push(
-            `Projection reaches ${Math.round(high).toLocaleString()} years. Nothing in the literature supports `
-            + `storage life beyond roughly ${EVIDENCE_HORIZON_YEARS.toLocaleString()} years. The oldest reliably `
-            + "germinated seed is a date palm of about 2,000 years. Read anything past this as "
+            `Projection reaches ${Math.round(high).toLocaleString()} years. No seed lot in storage has been followed `
+            + `for anywhere near ${EVIDENCE_HORIZON_YEARS.toLocaleString()} years. Read anything past that as `
             + "\"longer than you will ever need\", not as a forecast."
         );
     }
-    if (multiplier.multiplier > 1000) {
+    const combined = multiplier.range.high * oxygenFactor;
+    if (combined > 1000) {
         warnings.push(
-            `Harrington's rules compound to ${Math.round(multiplier.multiplier).toLocaleString()}x here. `
+            `Harrington's rules${oxygenFactor > 1 ? " and the oxygen factor" : ""} compound to ${Math.round(combined).toLocaleString()}x here. `
             + "They are thumb-rules calibrated over ordinary storage, and no source validates them across "
             + "their whole range. The Ellis-Roberts viability equation is the right tool at genebank conditions."
         );
@@ -816,6 +896,8 @@ export function projectLongevity({ record, multiplier, gate, cropKey = null }) {
         baseline,
         gate,
         multiplier,
+        oxygenFactor,
+        capYears,
         years: { low, high },
         beyondEvidence: high > EVIDENCE_HORIZON_YEARS,
         warnings
@@ -832,9 +914,17 @@ export function projectLongevity({ record, multiplier, gate, cropKey = null }) {
  * are evidence the seed survives drying.
  */
 export function evaluateViability({ record, gate, storageMoisturePct, storageTemperatureC,
-    initialGerminationPct, targetGerminationPct }) {
+    initialGerminationPct, targetGerminationPct, storage = null }) {
     const hasConstants = Boolean(record && record.constants && record.constants.length);
     if (!hasConstants) return { ok: false, reason: "no-constants" };
+    if (storage && storage.override) {
+        return { ok: false, reason: "not-applicable",
+            detail: `The constants were fitted on raw seed, and ${storage.override.kind} seed ages faster.` };
+    }
+    if (storage && storage.tier === "absorber-only") {
+        return { ok: false, reason: "not-applicable",
+            detail: "An absorber without a desiccant can raise the humidity in the jar, so the moisture content entered no longer holds." };
+    }
 
     const unrecorded = Boolean(gate) && !gate.behaviour;
     if (!gate || (!gate.allowLongevity && !unrecorded)) {
@@ -873,12 +963,38 @@ export const DEFAULT_INPUTS = Object.freeze({
     // 85% is the usual genebank regeneration standard.
     initialGerminationPct: 95,
     targetGerminationPct: 85,
+    container: "gasket",
+    vacuumResidualPct: 100,
+    oxygenAbsorber: false,
+    absorberCapacityMl: 100,
+    desiccant: true,
+    containerMl: 500,
+    seedMassG: 50,
+    seedVolumeMl: null,
+    horizonYears: 5,
+    seedTreatment: "raw",
+    // Placeholders for how well the user knows their own inputs.
+    moistureSpreadPct: 1,
+    temperatureSpreadC: 2,
+    testSeeds: 100,
+    monteCarloDraws: MONTE_CARLO_LIMITS.drawsDefault,
+    monteCarloSeed: MONTE_CARLO_LIMITS.seedDefault,
     measuredSeedCount: null,
     measuredSampleMass: null,
     measuredSampleMassUnit: "g",
     packetMass: null,
     packetMassUnit: "g"
 });
+
+// The Monte Carlo is the slow step, so its last result is kept and reused
+// while none of its own inputs change.
+let lastMonteCarlo = { key: null, result: null };
+
+function cachedMonteCarlo(record, options) {
+    const key = JSON.stringify([record.id, options]);
+    if (lastMonteCarlo.key !== key) lastMonteCarlo = { key, result: runViabilityMonteCarlo(record, options) };
+    return lastMonteCarlo.result;
+}
 
 export function runSeedModel(rawInputs = {}) {
     const inputs = { ...DEFAULT_INPUTS, ...rawInputs };
@@ -910,15 +1026,45 @@ export function runSeedModel(rawInputs = {}) {
         storageMoisturePct: inputs.storageMoisturePct
     });
 
-    const projection = projectLongevity({ record, multiplier, gate, cropKey });
+    const storage = evaluateStorage({
+        container: inputs.container,
+        vacuumResidualPct: inputs.vacuumResidualPct,
+        absorber: inputs.oxygenAbsorber,
+        absorberCapacityMl: inputs.absorberCapacityMl,
+        desiccant: inputs.desiccant,
+        containerMl: inputs.containerMl,
+        seedMassG: inputs.seedMassG,
+        seedVolumeMl: inputs.seedVolumeMl,
+        horizonYears: inputs.horizonYears,
+        seedTreatment: inputs.seedTreatment,
+        rhPct: inputs.storageRelativeHumidityPct,
+        moisturePct: inputs.storageMoisturePct,
+        temperatureC: inputs.storageTemperatureC
+    });
+    const projection = projectLongevity({ record, multiplier, gate, cropKey, storage });
     const viability = evaluateViability({
         record,
         gate,
         storageMoisturePct: inputs.storageMoisturePct,
         storageTemperatureC: inputs.storageTemperatureC,
         initialGerminationPct: inputs.initialGerminationPct,
-        targetGerminationPct: inputs.targetGerminationPct
+        targetGerminationPct: inputs.targetGerminationPct,
+        storage
     });
+    const monteCarlo = viability.ok
+        ? cachedMonteCarlo(record, {
+            moisturePct: inputs.storageMoisturePct,
+            moistureSpreadPct: inputs.moistureSpreadPct,
+            temperatureC: inputs.storageTemperatureC,
+            temperatureSpreadC: inputs.temperatureSpreadC,
+            initialViabilityPct: inputs.initialGerminationPct,
+            testSeeds: inputs.testSeeds,
+            targetViabilityPct: inputs.targetGerminationPct,
+            draws: inputs.monteCarloDraws,
+            seed: inputs.monteCarloSeed,
+            minHorizonDays: Math.max(...viability.determinations.filter((entry) => entry.ok).map(defaultHorizonDays))
+        })
+        : null;
     const rule = hundredRule({
         temperatureC: inputs.storageTemperatureC,
         relativeHumidityPct: inputs.storageRelativeHumidityPct
@@ -961,6 +1107,8 @@ export function runSeedModel(rawInputs = {}) {
         multiplier,
         projection,
         viability,
+        monteCarlo,
+        storage,
         hundredRule: rule,
         packet
     };

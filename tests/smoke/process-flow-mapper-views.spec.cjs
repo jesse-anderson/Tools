@@ -15,6 +15,9 @@ const STORAGE_KEY = 'processFlowMapper.projects.v1';
 async function openTool(page) {
   await page.goto(PAGE, { waitUntil: 'domcontentloaded' });
   await expect.poll(() => page.evaluate(() => Boolean(window.ProcessFlowMapper && window.ProcessFlowMapper.getModel()))).toBe(true);
+  // The page redraws when the web font arrives, which changes every measured width. Wait it out
+  // here, or it can land inside a test and move a figure or a count between two reads.
+  await page.evaluate(async () => { await document.fonts.ready; });
 }
 
 // Typing is debounced, so wait for the redraw the new text causes.
@@ -226,6 +229,31 @@ test.describe('lanes running down the page', () => {
     expect(result.problems).toEqual([]);
   });
 
+  test('a label too long for its column loses whole parts and words, never half a figure', async ({ page }) => {
+    await openTool(page);
+    const cut = await page.evaluate(() => {
+      const P = window.ProcessFlowMapper;
+      const texts = [...P.PRESETS.map((p) => p.text), 'A: (Start) -> Check?\nA: Check? -> a rather long answer to the question 40% {wait 2-5 d}: X, no 60% {1 h}: (End)\nA: X -> (End)\nA: (End)'];
+      return texts.flatMap((t) => {
+        const m = P.buildModel(t, { direction: 'down' });
+        return m.layout.connectors.filter((c) => c.label && c.label !== m.labels[c.index]).map((c) => [c.label, m.labels[c.index]]);
+      });
+    });
+    expect(cut.length).toBeGreaterThan(1);
+    for (const [shown, full] of cut) {
+      const kept = shown.slice(0, -1);
+      expect(shown.endsWith('…'), full).toBe(true);
+      expect(full.startsWith(kept), full).toBe(true);
+      // What follows the kept text starts a new word or a new part.
+      expect([' ', undefined], full).toContain(full[kept.length]);
+      expect(kept.endsWith('·') || kept.endsWith('~'), full).toBe(false);
+    }
+    expect(cut.map((c) => c[0])).toContain('no 30%…');
+    // As many whole words are kept as fit, not just the first.
+    const long = cut.find((c) => c[1].startsWith('a rather long'));
+    expect(long[0].startsWith('a rather')).toBe(true);
+  });
+
   test('work arriving from above meets the outline of a box, a rounded end and a six-sided decision', async ({ page }) => {
     await openTool(page);
     const edge = await page.evaluate(() => {
@@ -374,11 +402,13 @@ test.describe('how long it takes', () => {
     const shown = await page.evaluate(() => {
       const P = window.ProcessFlowMapper;
       const m = P.getModel();
-      return ['p50', 'p80', 'p95', 'mean'].map((k) => P.formatDuration(m.spread[k], m.graph.calendar, m.unit));
+      // The three are in one unit, so 22.6 d sits beside 16.7 d rather than 4.51 wk.
+      return ['p50', 'p80', 'p95', 'mean'].map((k) => P.formatDuration(m.spread[k], m.graph.calendar, k === 'mean' ? m.unit : 'd'));
     });
     await expect(spreadStat(page, 'p50')).toHaveText(shown[0]);
     await expect(spreadStat(page, 'p80')).toHaveText(shown[1]);
     await expect(spreadStat(page, 'p95')).toHaveText(shown[2]);
+    await expect(page.locator('#spreadStats .stat-value')).toHaveText([/ d$/, / d$/, / d$/]);
     await expect(page.locator('#spreadStats .stat-label')).toHaveText(['Half finish within', '8 in 10 within', '19 in 20 within']);
     expect(spread.p50).toBeLessThan(spread.p80);
     expect(spread.p80).toBeLessThan(spread.p95);
@@ -386,7 +416,9 @@ test.describe('how long it takes', () => {
     await expect(page.locator('#headline [data-stat="lead"] .stat-value')).toHaveText('12 d');
     await expect(page.locator('#presetLesson')).toContainText('The average is 12 days, but half of claims are done in under 11');
     expect(shown[0]).toMatch(/^10\.\d d$/);
-    expect(shown[2]).toMatch(/^4\.\d+ wk$/);
+    // One in twenty takes more than four working weeks, shown in days beside the other two.
+    expect(shown[2]).toMatch(/^2\d\.\d d$/);
+    expect(spread.p95).toBeGreaterThan(4 * 40);
 
     const bars = page.locator('#spreadChart .spread-bar');
     await expect(bars).toHaveCount(24);
@@ -449,6 +481,43 @@ test.describe('how long it takes', () => {
     await expect(page.locator('#spreadCard')).toBeHidden();
     await expect(page.locator('#copyMermaid')).toBeDisabled();
   });
+
+  test('a redraw that changes no time reuses the run, a big map stays inside a time budget, and a cut run says how far out it may be', async ({ page }) => {
+    await openTool(page);
+    const out = await page.evaluate(() => {
+      const P = window.ProcessFlowMapper;
+      // 120 steps in six lanes, every fifth sending 30% back three steps, every time a range.
+      const lines = [];
+      for (let i = 0; i < 120; i++) {
+        const next = i % 5 === 4 ? ` -> no 30%: S${i - 3}, yes 70%: S${i + 1}` : ` -> S${i + 1}`;
+        lines.push(`L${i % 6}: S${i} {10-20-60 min, wait 1-3 h}${next}`);
+      }
+      lines.push('L0: S120 -> (End)', 'L0: (End)');
+      const big = lines.join('\n');
+      const t0 = performance.now();
+      const first = P.buildModel(big, { title: 'One' });
+      const ms = performance.now() - t0;
+      const t1 = performance.now();
+      const again = P.buildModel(big, { title: 'Two', fontSize: 14, direction: 'down' });
+      const msAgain = performance.now() - t1;
+      const reseeded = P.buildModel(big, { seed: 2 });
+      return {
+        ok: first.result.ok, units: first.spread.units, ms, msAgain,
+        reused: first.spread === again.spread, rerun: first.spread !== reseeded.spread
+      };
+    });
+    expect(out.ok).toBe(true);
+    expect(out.reused).toBe(true);
+    expect(out.rerun).toBe(true);
+    // Loose budgets: they catch the walk running on every redraw, not a slow runner.
+    expect(out.ms).toBeLessThan(1500);
+    expect(out.msAgain).toBeLessThan(out.ms);
+
+    await page.click('#projectNew');
+    await type(page, 'A: (Start) -> Work\nA: Work {1 min} -> ok 0.05%: (Done), again 99.95%: Redo\nA: Redo -> Work\nA: (Done)');
+    await expect(page.locator('#spreadNote')).toContainText('the run was stopped early, so these figures rest on fewer units and could be out by about');
+    await expect(page.locator('#spreadNote')).toContainText('either way on the average.');
+  });
 });
 
 test.describe('work at the same time, SIPOC and waits on the way, on the page', () => {
@@ -471,10 +540,18 @@ test.describe('work at the same time, SIPOC and waits on the way, on the page', 
     const fills = await page.evaluate(() => Object.fromEntries([...document.querySelectorAll('#diagramHost .flow-step')]
       .map((g) => [g.querySelector('tspan').textContent, g.querySelector('.flow-step-shape').getAttribute('fill')])));
     expect(fills['Run checks']).not.toBe(fills['(First day)']);
+    // Order laptop takes a day of its own, but on a faster branch, so it stays as pale as an end.
+    expect(fills['Order laptop']).toBe(fills['(First day)']);
+    expect(fills['Book desk']).toBe(fills['(First day)']);
     const title = await page.locator('#diagramHost .flow-link[data-link="1"] title').textContent();
     expect(title).toContain('taken together with the other exits of this step');
 
-    await expect(page.locator('#bars .bar-button', { hasText: 'Order laptop' })).toContainText('1.93 d slack, not on the slowest path');
+    // Where the time goes is lead time, so the faster branches are not in it and the bars add up to it.
+    await expect(page.locator('#bars .bar-button', { hasText: 'Order laptop' })).toHaveCount(0);
+    await expect(page.locator('#bars .bar-button', { hasText: 'Book desk' })).toHaveCount(0);
+    await expect(page.locator('#bars .bar-name').first()).toHaveText('Run checks');
+    const shares = await page.locator('#bars .bar-share').allTextContents();
+    expect(shares.reduce((s, t) => s + parseFloat(t), 0)).toBeGreaterThan(98);
     expect(await page.locator('#stepTable thead th').allTextContents()).toContain('Slack');
     await expect(page.locator('#stepTable tbody tr', { hasText: 'Book desk' }).locator('td').last()).toHaveText('4.63 d');
     await expect(page.locator('#stepTable tbody tr', { hasText: 'Run checks' }).locator('td').last()).toHaveText('');
@@ -666,5 +743,49 @@ test.describe('page checks for the Phase 3 parts', () => {
     expect(svg).toContain('+ is work done at the same time.');
     const size = await layoutOf(page);
     expect(svg).toContain(`width="${Math.round(size.width * 100) / 100}"`);
+  });
+
+  test('the map is one tab stop, the arrow keys go from step to step, and live text is not rewritten when it has not changed', async ({ page }) => {
+    await openTool(page);
+    await page.selectOption('#presetSelect', 'purchase');
+    const stops = () => page.evaluate(() => [...document.querySelectorAll('#diagramHost .flow-step')]
+      .filter((g) => g.getAttribute('tabindex') === '0').map((g) => Number(g.getAttribute('data-node'))));
+    const order = await page.evaluate(() => window.ProcessFlowMapper.stepOrder(window.ProcessFlowMapper.getModel().layout));
+    expect(await stops()).toEqual([order[0]]);
+    const focused = () => page.evaluate(() => Number(document.activeElement.getAttribute('data-node')));
+
+    await page.locator(`#diagramHost .flow-step[data-node="${order[0]}"]`).focus();
+    await page.keyboard.press('ArrowRight');
+    expect(await focused()).toBe(order[1]);
+    await page.keyboard.press('ArrowDown');
+    expect(await focused()).toBe(order[2]);
+    await page.keyboard.press('ArrowLeft');
+    expect(await focused()).toBe(order[1]);
+    await page.keyboard.press('End');
+    expect(await focused()).toBe(order[order.length - 1]);
+    await page.keyboard.press('Home');
+    expect(await focused()).toBe(order[0]);
+    await page.keyboard.press('ArrowRight');
+    // The tab stop follows focus, and survives a redraw.
+    expect(await stops()).toEqual([order[1]]);
+    await page.selectOption('#tint', 'wait');
+    expect(await stops()).toEqual([order[1]]);
+    // Tab leaves the map rather than walking every step.
+    await page.locator(`#diagramHost .flow-step[data-node="${order[1]}"]`).focus();
+    await page.keyboard.press('Tab');
+    expect(await page.evaluate(() => Boolean(document.activeElement.closest('.flow-step')))).toBe(false);
+
+    // A redraw that changes no words leaves the live text alone, so it is not read out again.
+    await page.evaluate(() => {
+      window.__liveChanges = 0;
+      const watch = new MutationObserver((list) => { window.__liveChanges += list.length; window.__liveWho = list.map((r) => r.target.id || r.target.parentNode.id); });
+      for (const id of ['resultStatus', 'projectStatus', 'warningList']) watch.observe(document.getElementById(id), { childList: true, characterData: true, subtree: true });
+    });
+    // Neither tint is the saved one, so the project status has nothing new to say either.
+    await page.selectOption('#tint', 'touch');
+    await page.selectOption('#tint', 'passes');
+    expect(await page.evaluate(() => [window.__liveChanges, window.__liveWho])).toEqual([0, undefined]);
+    // A half-typed line is reported politely, not as an alert that interrupts.
+    await expect(page.locator('#errorBox')).toHaveAttribute('role', 'status');
   });
 });

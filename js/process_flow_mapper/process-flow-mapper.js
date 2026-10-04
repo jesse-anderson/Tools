@@ -11,10 +11,11 @@ import * as router from './flow-route.js';
 import * as layouts from './flow-layout.js';
 import * as projects from './flow-projects.js';
 import { buildModel, headline, headlineChanges, summarySentence, summaryLine, footnoteText, formatDuration, formatPercent } from './flow-model.js';
-import { renderFlow, tintLevels, mix, PALETTES } from './flow-render.js';
+import { renderFlow, tintLevels, mix, stepOrder, PALETTES } from './flow-render.js';
 import { fillHeadline, fillBars, fillTables, fillSpread, tableToCsv } from './flow-panels.js';
 import { attachDrag } from './flow-drag.js';
 import { toMermaid } from './flow-mermaid.js';
+import { createSpreadRunner } from './flow-sim-runner.js';
 import {
     serializeSvg, svgToPngBlob, downloadBlob, fileStem, pngSize, PNG_SCALES, loadFontDataUrl, embedFont
 } from './flow-export.js';
@@ -40,8 +41,15 @@ let defaultFields = {};
 let deleteTimer = null;
 let textTimer = null;
 let picked = null;
+// The step that is the map's one tab stop.
+let rovingStep = null;
 // The model of the last save, kept until the save changes, for "since last save".
 let baseline = { key: null, model: null };
+
+// Big maps are walked in a worker; the page draws again when the spread for the map on screen is ready.
+const runSpread = createSpreadRunner((key) => {
+    if (key === null || (model && model.spreadKey === key)) render();
+}, { workerUrl: new URL('./flow-sim-worker.js', import.meta.url) });
 
 // Text is measured on a canvas, so boxes and labels fit what is actually drawn.
 const ruler = document.createElement('canvas').getContext('2d');
@@ -89,10 +97,17 @@ const readSettings = () => settingsFromFields(captureFields());
 
 const currentPalette = () => (document.documentElement.getAttribute('data-theme') === 'light' ? PALETTES.light : PALETTES.dark);
 
+/** Set text only when it changes, so a live region is not read out again on every redraw. */
+function setText(element, text) {
+    if (element.textContent !== text) element.textContent = text;
+}
+
 function fillList(list, items) {
-    list.replaceChildren(...items.map((item) => {
+    const lines = items.map((item) => (item.line ? `Line ${item.line}: ${item.message}` : item.message));
+    if (lines.join('\n') === [...list.children].map((li) => li.textContent).join('\n')) return;
+    list.replaceChildren(...lines.map((line) => {
         const li = document.createElement('li');
-        li.textContent = item.line ? `Line ${item.line}: ${item.message}` : item.message;
+        li.textContent = line;
         return li;
     }));
 }
@@ -102,7 +117,7 @@ const tables = () => ({
     handoffs: el('handoffTable'), sipoc: el('sipocTable')
 });
 
-const spreadParts = () => ({ stats: el('spreadStats'), chart: el('spreadChart'), note: el('spreadNote') });
+const spreadParts = () => ({ stats: el('spreadStats'), chart: el('spreadChart'), note: el('spreadNote'), table: el('spreadTable'), tableBox: el('spreadTableBox') });
 
 function clearOutput() {
     el('diagramHost').replaceChildren();
@@ -113,8 +128,8 @@ function clearOutput() {
         table.tHead.replaceChildren();
         table.tBodies[0].replaceChildren();
     }
-    el('resultStatus').textContent = '';
-    el('exportStatus').textContent = '';
+    setText(el('resultStatus'), '');
+    setText(el('exportStatus'), '');
     el('compareNote').hidden = true;
     el('spreadCard').hidden = true;
     el('sipocBlock').hidden = true;
@@ -128,7 +143,8 @@ function savedModel() {
     if (saved === JSON.stringify(projects.cleanState(captureState()))) return null;
     if (baseline.key !== saved) {
         const fields = { ...defaultFields, ...active.saved.fields };
-        baseline = { key: saved, model: buildModel(active.saved.text, settingsFromFields(fields).model, measure) };
+        // Only the saved headline is compared, so the saved copy is not simulated.
+        baseline = { key: saved, model: buildModel(active.saved.text, settingsFromFields(fields).model, measure, false) };
     }
     return baseline.model;
 }
@@ -180,7 +196,7 @@ function render() {
     renderCount += 1;
     const settings = readSettings();
     el('hoursCustomGroup').hidden = el('hoursPreset').value !== 'custom';
-    model = buildModel(el('flowText').value, settings.model, measure);
+    model = buildModel(el('flowText').value, settings.model, measure, runSpread);
 
     for (const id of ['downloadSvg', 'downloadPng', 'copyMermaid']) el(id).disabled = !model.ok;
     el('errorBox').hidden = model.ok;
@@ -192,7 +208,7 @@ function render() {
     if (!model.ok) {
         clearOutput();
     } else {
-        el('diagramHost').replaceChildren(renderFlow(document, model, { ...settings.view, interactive: true }, currentPalette(), measure));
+        el('diagramHost').replaceChildren(renderFlow(document, model, { ...settings.view, interactive: true, focusStep: rovingStep }, currentPalette(), measure));
         const changes = headlineChanges(model, savedModel());
         fillHeadline(el('headline'), model, changes);
         el('compareNote').hidden = changes.length === 0;
@@ -203,7 +219,7 @@ function render() {
         el('phaseBlock').hidden = model.layout.phases.length === 0;
         el('handoffBlock').hidden = model.graph.counts.handoffs === 0;
         el('sipocBlock').hidden = !model.sipoc;
-        el('resultStatus').textContent = summarySentence(model);
+        setText(el('resultStatus'), summarySentence(model));
         el('resultStatus').classList.toggle('withheld', !model.result.ok);
         applyZoom();
         // The picked step survives a redraw while it still exists.
@@ -319,7 +335,7 @@ function updateProjectBar() {
     if (storageProblem === 'unavailable') message = 'This browser is not allowing storage, so nothing will be kept once the page closes.';
     if (storageProblem === 'full') message = 'The browser refused to store the projects. Changes are not being kept.';
     if (storageProblem === 'corrupt') message = `Stored projects could not be read and were reset. ${message}`;
-    el('projectStatus').textContent = `${message} ${count}`;
+    setText(el('projectStatus'), `${message} ${count}`);
 }
 
 /** Keep the active project's draft in step with the form. */
@@ -351,6 +367,7 @@ function openProject(id) {
     applyState(projects.activeProject(store).draft);
     showLesson('');
     picked = null;
+    rovingStep = null;
     writeStore();
     render();
 }
@@ -437,6 +454,7 @@ function applyPreset(id) {
     el('flowText').value = preset.text;
     el('titleInput').value = preset.title;
     picked = null;
+    rovingStep = null;
     showLesson(id);
     render();
 }
@@ -496,7 +514,11 @@ function init() {
         if (!converted) return;
         event.preventDefault();
         const box = el('flowText');
-        box.setRangeText(converted.text, box.selectionStart, box.selectionEnd, 'end');
+        box.focus();
+        // insertText keeps the paste on the undo stack; setRangeText is the fallback where it is missing.
+        const inserted = typeof document.execCommand === 'function' && document.execCommand('insertText', false, converted.text);
+        if (!inserted) box.setRangeText(converted.text, box.selectionStart, box.selectionEnd, 'end');
+        clearTimeout(textTimer);
         el('pasteStatus').textContent = `Turned ${converted.rows} spreadsheet row${converted.rows === 1 ? '' : 's'} into step lines.`;
         showLesson('');
         render();
@@ -507,7 +529,7 @@ function init() {
         const target = el('diagramHost').querySelector(selector);
         if (target) target.focus({ preventScroll: true });
     };
-    const setText = (text) => {
+    const setFlow = (text) => {
         el('flowText').value = text;
         showLesson('');
         render();
@@ -517,16 +539,25 @@ function init() {
         moveStep: (stepIndex, laneIndex) => {
             const step = model.graph.nodes[stepIndex];
             if (step.lane === laneIndex) return;
-            setText(parser.setStepLane(el('flowText').value, step.name, model.graph.lanes[laneIndex].name));
+            setFlow(parser.setStepLane(el('flowText').value, step.name, model.graph.lanes[laneIndex].name));
             refocus(`.flow-step[data-node="${stepIndex}"]`);
         },
         moveLane: (laneIndex, toIndex) => {
             if (laneIndex === toIndex) return;
             const order = model.graph.lanes.map((l) => l.name);
             order.splice(toIndex, 0, order.splice(laneIndex, 1)[0]);
-            setText(parser.setLaneOrder(el('flowText').value, order));
+            setFlow(parser.setLaneOrder(el('flowText').value, order));
             refocus(`.flow-lane-label[data-lane="${toIndex}"]`);
-        }
+        },
+        focusStep: (index) => refocus(`.flow-step[data-node="${index}"]`)
+    });
+
+    // Whichever step has focus becomes the tab stop, however it got there.
+    el('diagramHost').addEventListener('focusin', (event) => {
+        const g = event.target instanceof Element ? event.target.closest('.flow-step') : null;
+        if (!g) return;
+        rovingStep = Number(g.getAttribute('data-node'));
+        for (const other of el('diagramHost').querySelectorAll('.flow-step')) other.setAttribute('tabindex', other === g ? '0' : '-1');
     });
 
     el('downloadSvg').addEventListener('click', () => exportDiagram('svg'));
@@ -595,6 +626,8 @@ window.ProcessFlowMapper = {
     simulator,
     parallel,
     toMermaid,
+    runSpread,
+    createSpreadRunner,
     router,
     layouts,
     projects,
@@ -609,6 +642,7 @@ window.ProcessFlowMapper = {
     formatPercent,
     renderFlow,
     tintLevels,
+    stepOrder,
     mix,
     serializeSvg,
     svgToPngBlob,

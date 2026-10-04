@@ -84,12 +84,17 @@ test.describe('parser, Phase 3 forms', () => {
     }
   });
 
-  test('=> is all of these at once: no shares, never mixed with ->, and one target is just an exit', async ({ page }) => {
+  test('=> is all of these at once: no shares, never mixed with ->, and still all of these with one target per line', async ({ page }) => {
     const out = await parse(page, 'A: Split => left: L, R, "Odd => name"\nA: L\nA: R\nA: "Odd => name"\nA: Single => L');
     expect(out.errors).toEqual([]);
     expect(out.exits.map((e) => [e.source, e.target, e.label, e.parallel])).toEqual([
-      ['Split', 'L', 'left', true], ['Split', 'R', '', true], ['Split', 'Odd => name', '', true], ['Single', 'L', '', false]
+      ['Split', 'L', 'left', true], ['Split', 'R', '', true], ['Split', 'Odd => name', '', true], ['Single', 'L', '', true]
     ]);
+    // Written one target to a line, the branches are still done at the same time, never split evenly.
+    const lines = await build(page, 'A: Start {1 h} => Left\nA: Start => Right\nA: Left {2 h} -> Join\nA: Right {5 h} -> Join\nA: Join {1 h} -> (Done)\nA: (Done)');
+    expect(codes(lines.warnings)).not.toContain('SHARE_ASSUMED');
+    expect(lines.result.lead).toBeCloseTo(7, 10);
+    expect(codes((await parse(page, 'A: S => X\nA: S -> Y\nA: X\nA: Y')).errors)).toEqual(['MIXED_EXITS']);
     expect(codes((await parse(page, 'A: S => a 50%: X, Y\nA: X\nA: Y')).errors)).toEqual(['SHARE_ON_PARALLEL']);
     const mixed = await parse(page, 'A: S => X, Y\nA: X\nA: Y\nA: Z\nA: S -> Z');
     expect(mixed.errors.map((e) => [e.line, e.code])).toEqual([[5, 'MIXED_EXITS']]);
@@ -118,6 +123,12 @@ test.describe('parser, Phase 3 forms', () => {
       [0, 'out', 'Report to Head of quality', 'sign', 4]
     ]);
     expect(out.lanes).toEqual(['A']);
+    // Quotes keep a comma, "from" or "to" inside one thing, and are taken off.
+    const quoted = await parse(page, 'in: "Parts, kit" from Supplier, Drawing from "Design to cost", Kit from "Bits from Bob"\nout: "Letter to sign" to Head of quality\nA: Do');
+    expect(quoted.errors).toEqual([]);
+    expect(quoted.sipoc.map((e) => [e.item, e.party])).toEqual([
+      ['Parts, kit', 'Supplier'], ['Drawing', 'Design to cost'], ['Kit', 'Bits from Bob'], ['Letter to sign', 'Head of quality']
+    ]);
     expect((await parse(page, 'in:\nA: Do')).errors.map((e) => [e.line, e.code])).toEqual([[1, 'SIPOC_NOT_UNDERSTOOD']]);
     expect((await parse(page, 'out: to Customer\nA: Do')).errors.map((e) => [e.line, e.code])).toEqual([[1, 'SIPOC_NOT_UNDERSTOOD']]);
     const many = `${Array.from({ length: 81 }, (_, i) => `in: Thing ${i}`).join('\n')}\nA: Do`;
@@ -198,18 +209,87 @@ test.describe('work done at the same time', () => {
 
   test('findBlocks refuses branches that never meet, leak, are entered from outside or go back to the split', async ({ page }) => {
     const cases = {
-      'never meet': [[L(0, 1, true), L(0, 2, true), L(1, 3), L(2, 4)], 5, 'PARALLEL_NO_JOIN'],
-      'work can end in a branch': [[L(0, 1, true), L(0, 2, true), L(1, 3), L(2, 3), L(2, 4), L(3, 5)], 6, 'PARALLEL_LEAKS'],
-      'a way in from outside': [[L(6, 0), L(6, 1), L(0, 1, true), L(0, 2, true), L(1, 3), L(2, 3), L(3, 4)], 7, 'PARALLEL_LEAKS'],
-      'a branch goes back to the split': [[L(0, 1, true), L(0, 2, true), L(1, 3), L(1, 0), L(2, 3), L(3, 4)], 5, 'PARALLEL_LEAKS'],
-      'a branch skips a step the other has': [[L(0, 1, true), L(0, 2, true), L(1, 3), L(3, 4), L(2, 3), L(2, 4), L(4, 5)], 6, 'PARALLEL_LEAKS'],
-      'a branch with no step in it': [[L(0, 1, true), L(0, 2, true), L(1, 2), L(2, 3)], 4, 'PARALLEL_LEAKS']
+      'never meet': [[L(0, 1, true), L(0, 2, true), L(1, 3), L(2, 4)], 5, { code: 'PARALLEL_NO_JOIN' }],
+      'a way in from outside': [[L(6, 0), L(6, 1), L(0, 1, true), L(0, 2, true), L(1, 3), L(2, 3), L(3, 4)], 7, { code: 'PARALLEL_LEAKS' }],
+      'a branch goes back to the split': [[L(0, 1, true), L(0, 2, true), L(1, 3), L(1, 0), L(2, 3), L(3, 4)], 5, { code: 'PARALLEL_LEAKS' }],
+      'a branch skips a step the other has': [[L(0, 1, true), L(0, 2, true), L(1, 3), L(3, 4), L(2, 3), L(2, 4), L(4, 5)], 6, { code: 'PARALLEL_LEAKS' }]
     };
-    for (const [name, [links, count, code]] of Object.entries(cases)) {
+    for (const [name, [links, count, problem]] of Object.entries(cases)) {
       const out = await blocks(page, links, count);
       expect(out.blocks, name).toEqual([]);
-      expect(out.problems, name).toEqual([{ split: 0, code }]);
+      expect(out.problems, name).toEqual([{ split: 0, ...problem }]);
     }
+  });
+
+  test('a rejection inside a branch stops the work there, counted once, against figures done by hand', async ({ page }) => {
+    // X passes 80%, Y 50%, and both always run to the end. The work goes on only
+    // if both pass: 0.4. Stopped by X: 0.2. Stopped by Y with X passing: 0.5 x 0.8
+    // = 0.4. A unit both stop is X's, the branch written first, so the three add to 1.
+    const m = await build(page, text(
+      'A: (Start) -> S',
+      'A: S {1 h} => X, Y',
+      'A: X {2 h} -> ok 80%: J, no 20%: (No X)',
+      'A: Y {4 h} -> ok 50%: J, no 50%: (No Y)',
+      'A: J {1 h} -> (Done)',
+      'A: (Done)',
+      'A: (No X)',
+      'A: (No Y)'
+    ));
+    expect(m.graph.parallel.problems).toEqual([]);
+    const r = m.result;
+    const byName = Object.fromEntries(r.ends.map((e) => [m.graph.nodes[e.index].name, Math.round(e.share * 1e9) / 1e9]));
+    expect(byName).toEqual({ '(Done)': 0.4, '(No X)': 0.2, '(No Y)': 0.4 });
+    expect(r.passes[m.graph.nodes.findIndex((n) => n.name === 'J')]).toBeCloseTo(0.4, 10);
+    // Lead: 1 h, then the slower branch's 4 h, then the join's hour for the 40% that get there.
+    expect(r.lead).toBeCloseTo(5.4, 10);
+    // Touch counts both branches in full, since neither is called back.
+    expect(r.touch).toBeCloseTo(7.4, 10);
+    expect(r.yield).toBeCloseTo(1, 10);
+    expect(r.perStep[m.graph.nodes.findIndex((n) => n.name === 'X')].slack).toBeCloseTo(2, 10);
+    // Fixed times and one slower branch: the simulation lands on the same lead, and the same ends.
+    expect(m.spread.mean).toBeCloseTo(5.4, 1);
+    const sim = Object.fromEntries(m.spread.ends.map((e) => [m.graph.nodes[e.index].name, e.share]));
+    for (const [name, share] of Object.entries(byName)) expect(Math.abs(sim[name] - share), name).toBeLessThan(0.015);
+    // With rework in a branch, a unit is clean only if no branch sent anything back.
+    const rework = await build(page, text(
+      'A: (Start) -> S',
+      'A: S => X, Y',
+      'A: X -> X ok?',
+      'A: X ok? -> ok 60%: J, again 30%: X, no 10%: (No X)',
+      'A: Y -> ok 50%: J, no 50%: (No Y)',
+      'A: J -> (Done)',
+      'A: (Done)', 'A: (No X)', 'A: (No Y)'
+    ));
+    // X reaches the join or its end with no return 70% of the time; Y always. 0.7 x 1.
+    expect(rework.result.yield).toBeCloseTo(0.7, 10);
+  });
+
+  test('a branch straight to the join is a wait on its own, solved by hand and walked', async ({ page }) => {
+    // Parts take 3 d in transit while Prep takes 4 h, so the block is the 24 h wait.
+    const transit = text(
+      'A: Order parts {1 h} => {wait 3 d}: Assemble, Prep',
+      'A: Prep {4 h} -> Assemble',
+      'A: Assemble {2 h} -> (Done)',
+      'A: (Done)'
+    );
+    const found = await blocks(page, [L(0, 1, true), L(0, 2, true), L(2, 1), L(1, 3)], 4);
+    expect(found.problems).toEqual([]);
+    expect(found.blocks[0]).toMatchObject({ split: 0, join: 1, branches: [{ link: 0, head: 1, nodes: [], links: [0] }, { link: 1, head: 2, nodes: [2], links: [1, 2] }] });
+    const m = await build(page, transit);
+    expect(codes(m.warnings)).not.toContain('WITHHELD_PARALLEL');
+    const r = m.result;
+    expect(r.lead).toBeCloseTo(27, 10);
+    expect(r.touch).toBeCloseTo(7, 10);
+    expect(r.touchPath).toBeCloseTo(3, 10);
+    expect(r.passes.map((v) => Math.round(v * 1e9) / 1e9)).toEqual([1, 1, 1, 1]);
+    expect(r.yield).toBeCloseTo(1, 10);
+    expect(r.perStep[1].slack).toBeCloseTo(20, 10);
+    expect(r.perStep[1].critical).toBe(false);
+    expect(m.spread.min).toBeCloseTo(27, 10);
+    expect(m.spread.max).toBeCloseTo(27, 10);
+    // The wait is counted with the step it leads to, and only once.
+    expect(r.perStep[2].wait).toBeCloseTo(24, 10);
+    expect(r.perStep.reduce((s, p) => s + p.share, 0)).toBeCloseTo(1, 10);
   });
 
   test('a block takes as long as its slowest branch, the work adds up, and the faster branch has slack', async ({ page }) => {
@@ -346,9 +426,10 @@ test.describe('work done at the same time', () => {
     expect(never.spread).toBeNull();
     expect(never.totals).toBeNull();
 
-    const leak = await build(page, 'A: (Start) -> S\nA: S => X, Y\nA: X -> J\nA: Y -> ok 50%: J, no 50%: (Dropped)\nA: (Dropped)\nA: J -> (End)\nA: (End)');
-    expect(leak.result).toMatchObject({ ok: false, code: 'PARALLEL' });
-    expect(codes(leak.warnings)).toContain('PARALLEL_LEAKS');
+    // A rejection inside a branch is not a leak: the branch ends there.
+    const reject = await build(page, 'A: (Start) -> S\nA: S => X, Y\nA: X -> J\nA: Y -> ok 50%: J, no 50%: (Dropped)\nA: (Dropped)\nA: J -> (End)\nA: (End)');
+    expect(reject.result.ok).toBe(true);
+    expect(codes(reject.warnings)).not.toContain('WITHHELD_PARALLEL');
     // Several exits with no share are still read as one of these, and the note now points at the double arrow.
     const even = await build(page, 'A: (Start) -> S\nA: S -> X, Y\nA: X -> (End)\nA: Y -> (End)\nA: (End)');
     expect(even.warnings.find((w) => w.code === 'SHARE_ASSUMED').message).toContain('write the arrow as =>');
@@ -456,12 +537,12 @@ test.describe('the simulation', () => {
     expect(c.mean).not.toBe(a.mean);
     expect(Math.abs(c.mean - a.mean)).toBeLessThan(6 * a.error);
 
-    // 99.5% goes round again: 400 steps a unit, so a quarter of the usual units fit the budget.
+    // 99.5% goes round again: 400 steps a unit, so an eighth of the usual units fit the budget.
     const heavy = await build(page, 'A: (Start) -> Work\nA: Work {1 min} -> ok 0.5%: (Done), again 99.5%: Redo\nA: Redo -> Work\nA: (Done)');
-    expect(heavy.spread.units).toBe(5000);
+    expect(heavy.spread.units).toBe(2500);
     expect(heavy.spread.cut).toBe(false);
-    // At 99.9% even the fewest units allowed do not fit, and the run says it stopped early.
-    const heavier = await build(page, 'A: (Start) -> Work\nA: Work {1 min} -> ok 0.1%: (Done), again 99.9%: Redo\nA: Redo -> Work\nA: (Done)');
+    // At 99.95% even the fewest units allowed do not fit, and the run says it stopped early.
+    const heavier = await build(page, 'A: (Start) -> Work\nA: Work {1 min} -> ok 0.05%: (Done), again 99.95%: Redo\nA: Redo -> Work\nA: (Done)');
     expect(heavier.spread.cut).toBe(true);
     expect(heavier.spread.units).toBeLessThan(2000);
     expect(heavier.spread.units).toBeGreaterThan(500);
@@ -474,7 +555,7 @@ test.describe('the simulation', () => {
   test('the slowest of two branches that vary takes longer than the slowest average, and the tool says so', async ({ page }) => {
     // Each branch is 4 h repeated a geometric number of times with p = 1/2, 8 h on average.
     // The larger of two such counts averages 8/3, so the block averages 32/3 h.
-    const m = await build(page, text(
+    const map = text(
       'A: (Start) -> Split',
       'A: Split => L, R',
       'A: L {4 h} -> L ok?',
@@ -483,19 +564,35 @@ test.describe('the simulation', () => {
       'A: R ok? -> yes 50%: Join, no 50%: R',
       'A: Join -> (End)',
       'A: (End)'
-    ));
+    );
+    const m = await build(page, map);
     expect(m.result.lead).toBeCloseTo(8, 10);
     expect(m.result.yield).toBeCloseTo(0.25, 10);
     expect(Math.abs(m.spread.mean - 32 / 3)).toBeLessThan(4 * m.spread.error);
     const note = m.warnings.find((w) => w.code === 'PARALLEL_AVERAGE');
     expect(note.message).toContain('Simulation puts the lead time at');
     expect(note.message).toContain('against the 1 d shown');
+    // The lead time card and the sentence carry the simulated figure too, not only the warning list.
+    const said = await page.evaluate((t) => {
+      const P = window.ProcessFlowMapper;
+      const [withBlocks, fixed] = [P.buildModel(t[0]), P.buildModel(t[1])];
+      return {
+        mean: withBlocks.parallelMean, about: P.formatDuration(withBlocks.parallelMean, withBlocks.graph.calendar),
+        hint: P.headline(withBlocks)[0].hint, sentence: P.summarySentence(withBlocks),
+        fixedMean: fixed.parallelMean, fixedHint: P.headline(fixed)[0].hint
+      };
+    }, [map, SPLIT]);
+    expect(said.mean).toBe(m.spread.mean);
+    expect(said.hint).toBe(`slowest path on average; about ${said.about} waiting for every branch`);
+    expect(said.sentence).toContain(`waiting for whichever is slowest makes it about ${said.about}.`);
     // Branches with fixed times have nothing to disagree about.
     expect(codes((await build(page, SPLIT)).warnings)).not.toContain('PARALLEL_AVERAGE');
     expect((await build(page, SPLIT)).spread).toMatchObject({ varies: false, mean: 6 });
+    expect(said.fixedMean).toBeNull();
+    expect(said.fixedHint).toBe('start to finish, per unit of work');
   });
 
-  test('a fork and join walk written here agrees with the solve and with the simulation on built maps', async ({ page }) => {
+  test('a fork and join walk written here agrees with the solve and with the simulation on built maps, rejections inside branches included', async ({ page }) => {
     test.setTimeout(120000);
     const result = await page.evaluate(() => {
       const S = window.ProcessFlowMapper;
@@ -526,6 +623,13 @@ test.describe('the simulation', () => {
             joinOf[split] = next;
             return split;
           }
+          // Inside a branch, a check may stop the work there: a rejection.
+          if (depth > 0 && r < 0.45) {
+            const pass = 70 + Math.floor(rnd() * 25);
+            lines.push(`${lane()}: C${id}? ${times()} -> ok ${pass}%: ${next}, out ${100 - pass}%: (Out ${id})`);
+            lines.push(`Lane 0: (Out ${id})`);
+            return `C${id}?`;
+          }
           if (r < 0.6) {
             const pass = 55 + Math.floor(rnd() * 40);
             const way = rnd() < 0.5 ? ` {${1 + Math.floor(rnd() * 3)} h}` : '';
@@ -554,6 +658,7 @@ test.describe('the simulation', () => {
       const problems = [];
       let splits = 0;
       let slowerThanAverage = 0;
+      let rejections = 0;
       for (const map of maps) {
         const m = S.buildModel(map.text);
         if (!m.ok || !m.result.ok) { problems.push(`${map.name}: did not solve`); continue; }
@@ -561,8 +666,10 @@ test.describe('the simulation', () => {
         splits += m.graph.parallel.blocks.length;
         const index = new Map(nodes.map((n) => [n.name, n.index]));
         const visits = new Array(nodes.length).fill(0);
+        const endedHere = new Array(nodes.length).fill(0);
         let touch = 0;
         let clean = true;
+        let endedAt = -1;
 
         // Walk from a step until the work ends or reaches stopAt, returning the time it took.
         const walk = (from, stopAt) => {
@@ -574,12 +681,19 @@ test.describe('the simulation', () => {
             visits[at] += 1;
             touch += node.touch;
             time += node.touch + node.wait;
-            if (!node.outLinks.length) return time;
+            if (!node.outLinks.length) { endedAt = at; return time; }
             if (links[node.outLinks[0]].parallel) {
+              // Every branch runs; a branch that ends stops the unit, counted at the first such branch.
               const join = index.get(map.joinOf[node.name]);
               let slowest = 0;
-              for (const li of node.outLinks) slowest = Math.max(slowest, links[li].wait + walk(links[li].target, join));
+              let stopped = -1;
+              for (const li of node.outLinks) {
+                endedAt = -1;
+                slowest = Math.max(slowest, links[li].wait + walk(links[li].target, join));
+                if (endedAt >= 0 && stopped < 0) stopped = endedAt;
+              }
               time += slowest;
+              if (stopped >= 0) { endedAt = stopped; return time; }
               at = join;
               continue;
             }
@@ -599,9 +713,19 @@ test.describe('the simulation', () => {
         let cleanUnits = 0;
         for (let k = 0; k < UNITS; k++) {
           clean = true;
+          endedAt = -1;
           lead += walk(m.graph.starts[0], -1);
+          endedHere[endedAt] += 1;
           if (clean) cleanUnits += 1;
         }
+        // Each unit ends once, so the shares add to one and match the walk.
+        for (const end of m.result.ends) {
+          const walked = endedHere[end.index] / UNITS;
+          if (Math.abs(walked - end.share) > 0.012) problems.push(`${map.name}: ${nodes[end.index].name} ends ${end.share.toFixed(4)} but the walk gave ${walked.toFixed(4)}`);
+          if (/^\(Out /.test(nodes[end.index].name) && end.share > 0) rejections += 1;
+        }
+        const total = m.result.ends.reduce((t, e) => t + e.share, 0);
+        if (Math.abs(total - 1) > 1e-9) problems.push(`${map.name}: end shares add to ${total}`);
         nodes.forEach((node, i) => {
           const walked = visits[i] / UNITS;
           const exact = m.result.passes[i];
@@ -618,12 +742,13 @@ test.describe('the simulation', () => {
         if (walkedLead > m.result.lead * 1.03) slowerThanAverage += 1;
         if (!m.graph.parallel.blocks.length && Math.abs(walkedLead - m.result.lead) > 0.02 * walkedLead) problems.push(`${map.name}: no split, yet lead ${m.result.lead.toFixed(3)} differs from the walk's ${walkedLead.toFixed(3)}`);
       }
-      return { problems, maps: maps.length, splits, slowerThanAverage };
+      return { problems, maps: maps.length, splits, slowerThanAverage, rejections };
     });
     expect(result.maps).toBe(15);
     expect(result.splits).toBeGreaterThan(8);
     // The sweep includes maps where branches vary enough for the difference to show.
     expect(result.slowerThanAverage).toBeGreaterThan(0);
+    expect(result.rejections).toBeGreaterThan(5);
     expect(result.problems).toEqual([]);
   });
 });
@@ -687,7 +812,7 @@ test.describe('the Phase 3 examples and the SIPOC rows', () => {
     expect(paid.p50).toBeGreaterThan(declined.p50);
   });
 
-  test('SIPOC rows follow the phases, lines before the first phase join it, and a phase with a side missing is listed', async ({ page }) => {
+  test('SIPOC rows follow the phases, lines before the first phase get a row of their own, and a phase with a side missing is listed', async ({ page }) => {
     const m = await build(page, text(
       'in: Brief from Client',
       '== Plan ==',
@@ -700,10 +825,12 @@ test.describe('the Phase 3 examples and the SIPOC rows', () => {
       'B: (Done)'
     ));
     expect(m.sipoc).toEqual([
-      { index: 0, name: 'Plan', steps: 2, suppliers: ['Client'], inputs: ['Brief'], outputs: ['Plan'], customers: ['Builder'] },
+      { index: -1, name: 'Whole process', steps: 4, suppliers: ['Client'], inputs: ['Brief'], outputs: [], customers: [] },
+      { index: 0, name: 'Plan', steps: 2, suppliers: [], inputs: [], outputs: ['Plan'], customers: ['Builder'] },
       { index: 1, name: 'Build', steps: 2, suppliers: ['Planner'], inputs: ['Plan', 'Parts'], outputs: [], customers: [] }
     ]);
-    expect(m.warnings.find((w) => w.code === 'SIPOC_GAP').message).toBe('The SIPOC table has no inputs or no outputs for: Build');
+    // The whole-process row may name one side only; the phases are listed.
+    expect(m.warnings.find((w) => w.code === 'SIPOC_GAP').message).toBe('The SIPOC table has no inputs or no outputs for: Plan, Build');
     expect((await build(page, SPLIT)).sipoc).toBeNull();
     const whole = await build(page, 'in: Order from Customer\nout: Parcel to Customer\nA: (Start) -> Pack\nA: Pack -> (Done)\nA: (Done)');
     expect(whole.sipoc).toEqual([{ index: 0, name: 'Whole process', steps: 3, suppliers: ['Customer'], inputs: ['Order'], outputs: ['Parcel'], customers: ['Customer'] }]);

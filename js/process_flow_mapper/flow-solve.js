@@ -7,10 +7,12 @@
 // that finishes there.
 //
 // Work done at the same time comes in as blocks (see flow-parallel.js). Every
-// branch of a block carries all of the work, so the step where they meet
-// counts each arrival as one part in as many as there are branches. A block
-// takes as long as its slowest branch does on average, and the steps on the
-// others have slack.
+// branch of a block carries all of the work and runs until it reaches the
+// step where they meet or an end of its own; nothing is called back. Work
+// goes past the meeting step only if every branch got there, so each arrival
+// there is weighted by the chance the other branches arrive too, over the
+// number of branches. A block takes as long as its slowest branch does on
+// average, and the steps on the others have slack.
 
 const PIVOT_EPS = 1e-10;
 
@@ -78,7 +80,7 @@ function reachableFrom(count, links, seeds, reverse = false) {
  * { ok: true, passes, touch, touchPath, wait, lead, efficiency, yield,
  *   leadNoRework, reworkCost, handoffsPerUnit, stepsPerUnit,
  *   ends: [{ index, share }], traversals: [per link],
- *   perStep: [{ passes, touch, wait, lead, share, critical, slack }],
+ *   perStep: [{ passes, touch, wait, lead, share, critical, slack, ends }],
  *   blocks: [{ split, join, spans: [hours], longest }] }.
  * touch is all the work done; touchPath and wait are along the longest path,
  * and add up to lead. With no work done at the same time the two are equal.
@@ -114,46 +116,66 @@ export function solveFlow(input) {
 
     const share = links.map((l) => l.share);
     const onWay = links.map((l) => l.wait || 0);
-    // Where branches meet, each arrival is one part of the work coming back together.
-    const joinWeight = links.map(() => 1);
-    for (const block of blocks) {
-        for (const branch of block.branches) {
-            for (const i of branch.links) {
-                if (i !== branch.link && links[i].target === block.join) joinWeight[i] /= block.branches.length;
-            }
-        }
-    }
+    const isEnd = (n) => outCount[n] === 0;
     const flows = (indices, shares, weight) => indices.map((i) => ({ source: links[i].source, target: links[i].target, share: shares[i] * weight[i] }));
+
+    /**
+     * How the blocks put work back together, for one reading of the exits:
+     * the links that may be taken and their shares. weight is per link, for
+     * the arrivals where branches meet. endScale is per step: an end inside a
+     * branch counts a unit only if no branch written before it stopped the
+     * unit first, so a unit two branches both stop is counted once. Inner
+     * blocks come first, so an outer branch sees them already weighted.
+     */
+    const blockWeights = (usable, shares) => {
+        const weight = links.map(() => 1);
+        const endScale = new Array(count).fill(1);
+        const allowed = new Set(usable);
+        for (const block of blocks) {
+            const outcome = block.branches.map((branch) => {
+                if (!allowed.has(branch.link)) return { reach: 0, stop: 0 };
+                // A branch straight to the meeting step is a wait and always arrives.
+                if (!branch.nodes.length) return { reach: 1, stop: 1 };
+                const at = new Map(branch.nodes.map((n, k) => [n, k]));
+                const own = usable.filter((i) => at.has(links[i].source));
+                const A = branch.nodes.map((_, r) => branch.nodes.map((__, c) => (r === c ? 1 : 0)));
+                for (const i of own) {
+                    if (at.has(links[i].target)) A[at.get(links[i].target)][at.get(links[i].source)] -= shares[i] * weight[i];
+                }
+                const b = branch.nodes.map((n) => (n === branch.head ? 1 : 0));
+                const v = solveLinear(A, b);
+                if (!v) return { reach: 0, stop: 0 };
+                const reach = own.reduce((t, i) => t + (links[i].target === block.join ? v[at.get(links[i].source)] * shares[i] * weight[i] : 0), 0);
+                const ended = branch.nodes.reduce((t, n) => t + (isEnd(n) ? v[at.get(n)] * endScale[n] : 0), 0);
+                return { reach, stop: reach + ended };
+            });
+            const K = block.branches.length;
+            block.branches.forEach((branch, k) => {
+                const others = outcome.reduce((t, o, j) => (j === k ? t : t * o.reach), 1);
+                for (const i of branch.links) {
+                    if (links[i].target === block.join) weight[i] *= others / K;
+                }
+                // Branches written before this one got to the meeting step; those after stopped somewhere.
+                const first = outcome.reduce((t, o, j) => (j < k ? t * o.reach : j > k ? t * o.stop : t), 1);
+                for (const n of branch.nodes) if (isEnd(n)) endScale[n] *= first;
+            });
+        }
+        return { weight, endScale };
+    };
 
     // Steps no start leads to carry no work, and a loop among them must not spoil the solve.
     const live = links.map((_, i) => i).filter((i) => reached.has(links[i].source));
-    const passes = expectedPasses(count, flows(live, share, joinWeight), entry);
+    const actual = blockWeights(live, share);
+    const passes = expectedPasses(count, flows(live, share, actual.weight), entry);
     if (!passes || passes.some((v) => !Number.isFinite(v))) return fail('NEVER_ENDS');
 
     // First-pass yield: the work that reaches an end having taken no rework
-    // exit. A block is clean only when every branch is, so the chance is the
-    // product over its branches, worked out for inner blocks first.
+    // exit anywhere. Through a block that needs every branch clean, which is
+    // the same weighting read with the rework exits cut.
     const forward = live.filter((i) => !links[i].rework);
-    const cleanWeight = links.map(() => 1);
-    for (const block of blocks) {
-        const chance = block.branches.map((branch) => {
-            const inside = new Set(branch.nodes);
-            const own = forward.filter((i) => inside.has(links[i].source));
-            const start = new Array(count).fill(0);
-            start[branch.head] = 1;
-            const v = expectedPasses(count, flows(own, share, cleanWeight), start);
-            if (!v) return 0;
-            return own.reduce((s, i) => s + (links[i].target === block.join ? v[links[i].source] * share[i] * cleanWeight[i] : 0), 0);
-        });
-        block.branches.forEach((branch, k) => {
-            const others = chance.reduce((s, q, m) => (m === k ? s : s * q), 1);
-            for (const i of branch.links) {
-                if (i !== branch.link && links[i].target === block.join) cleanWeight[i] *= others / block.branches.length;
-            }
-        });
-    }
-    const clean = expectedPasses(count, flows(forward, share, cleanWeight), entry);
-    const firstPass = endNodes.reduce((s, i) => s + clean[i], 0);
+    const cleanRead = blockWeights(forward, share);
+    const clean = expectedPasses(count, flows(forward, share, cleanRead.weight), entry);
+    const firstPass = endNodes.reduce((t, i) => t + clean[i] * cleanRead.endScale[i], 0);
 
     // Time along the longest path. Inside a block only the slowest branch
     // counts, and every step on another branch has the difference as slack.
@@ -197,7 +219,8 @@ export function solveFlow(input) {
         if (l.parallel) return 1;
         return forwardOut[l.source] > 0 ? share[i] / forwardOut[l.source] : 0;
     });
-    const ideal = expectedPasses(count, flows(kept, idealShare, joinWeight), entry);
+    const idealRead = blockWeights(kept, idealShare);
+    const ideal = expectedPasses(count, flows(kept, idealShare, idealRead.weight), entry);
     const leadNoRework = pathTimes(ideal, idealShare).lead;
 
     const path = pathTimes(passes, share);
@@ -228,12 +251,16 @@ export function solveFlow(input) {
         handoffsPerUnit: links.reduce((s, l, i) => s + (l.handoff ? traversals[i] : 0), 0),
         // Ends are where work stops, not steps it passes through.
         stepsPerUnit: passes.reduce((s, p, i) => s + (outCount[i] > 0 ? p : 0), 0),
-        ends: endNodes.map((i) => ({ index: i, share: passes[i] })),
+        ends: endNodes.filter((i) => reached.has(i)).map((i) => ({ index: i, share: passes[i] * actual.endScale[i] })),
         perStep: passes.map((p, i) => {
             const t = p * touch[i];
             const w = p * wait[i] + arriving[i];
             const counted = (path.stepOn[i] ? p * (touch[i] + wait[i]) : 0) + arrivingOn[i];
-            return { passes: p, touch: t, wait: w, lead: t + w, share: lead > 0 ? counted / lead : 0, critical: path.stepOn[i], slack: path.slack[i] };
+            return {
+                passes: p, touch: t, wait: w, lead: t + w, share: lead > 0 ? counted / lead : 0, critical: path.stepOn[i], slack: path.slack[i],
+                // The share of work that finishes here, counted once however many branches stop it.
+                ends: isEnd(i) ? p * actual.endScale[i] : 0
+            };
         }),
         blocks: path.spans,
         traversals

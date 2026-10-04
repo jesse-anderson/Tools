@@ -23,6 +23,8 @@ import {
 import { SEED_SPECIES } from "./seed-species-data.js";
 import { SEED_REFERENCES } from "./seed-source-map.js";
 import { SPECIES_MOISTURE_LIMITS, predictDetermination, sigmaDays } from "./seed-viability-engine.js";
+import { AIR_OXYGEN_PCT, evaluateStorage, oxygenMultiplier } from "./seed-storage-tiers.js";
+import { runViabilityMonteCarlo } from "./seed-monte-carlo.js";
 
 function check({ id, title, reference, fixture, benchmark, pass, detail }) {
     return { id, title, reference: reference || null, fixture, benchmark, status: pass ? "pass" : "fail", detail };
@@ -121,7 +123,7 @@ export function evaluateSeedChecks() {
     checks.push(check({
         id: "harrington-identity",
         title: "Storing at the baseline leaves published longevity unchanged",
-        reference: SEED_REFERENCES.harrington1972,
+        reference: SEED_REFERENCES.usdaAH506,
         fixture: `Fixture: storage conditions set equal to the ${DEFAULT_BASELINE.label} baseline.`,
         benchmark: "The multiplier must be exactly 1, or every projection carries a hidden bias.",
         pass: Math.abs(identity.multiplier - 1) < 1e-12,
@@ -135,7 +137,7 @@ export function evaluateSeedChecks() {
     checks.push(check({
         id: "harrington-doubling",
         title: "One point of moisture doubles storage life",
-        reference: SEED_REFERENCES.harrington1972,
+        reference: SEED_REFERENCES.usdaAH506,
         fixture: "Fixture: 8% → 7% moisture content at constant temperature.",
         benchmark: "Harrington's moisture rule gives exactly 2×.",
         pass: Math.abs(doubling.multiplier - 2) < 1e-9,
@@ -149,7 +151,7 @@ export function evaluateSeedChecks() {
     checks.push(check({
         id: "harrington-clamps-reported",
         title: "Out-of-range conditions are clamped and said so",
-        reference: SEED_REFERENCES.ellisRoberts1980,
+        reference: SEED_REFERENCES.usdaAH506,
         fixture: "Fixture: -18 °C freezer storage at 3% moisture content.",
         benchmark: `Both fall outside Harrington's validity box (${HARRINGTON_LIMITS.temperatureMinC}-${HARRINGTON_LIMITS.temperatureMaxC} °C, ${HARRINGTON_LIMITS.moistureMinPct}-${HARRINGTON_LIMITS.moistureMaxPct}% MC), so both must be clamped with a visible warning. Genebank conditions need the Ellis-Roberts equation instead.`,
         pass: clamped.clamps.length === 2,
@@ -167,11 +169,11 @@ export function evaluateSeedChecks() {
     checks.push(check({
         id: "baseline-bounds-compounding",
         title: "The default baseline bounds how far the rules can compound",
-        reference: SEED_REFERENCES.harrington1972,
+        reference: SEED_REFERENCES.usdaAH506,
         fixture: `Fixture: the best conditions the rules allow (${HARRINGTON_LIMITS.temperatureMinC} °C, ${HARRINGTON_LIMITS.moistureMinPct}% MC) from the default baseline.`,
-        benchmark: "Under about 20×. Harrington compounds to ~75,000× across the whole validity box, but only a warm, damp baseline can reach that. The baseline is therefore an explicit input.",
-        pass: ceiling.multiplier < 20,
-        detail: `Ceiling from the default baseline is ${ceiling.multiplier.toFixed(1)}×.`
+        benchmark: "Under about 20×. Harrington compounds to over 260,000× across the whole validity box, but only a warm, damp baseline can reach that. The baseline is therefore an explicit input.",
+        pass: ceiling.range.high < 20,
+        detail: `Ceiling from the default baseline is ${ceiling.range.low.toFixed(1)}-${ceiling.range.high.toFixed(1)}×.`
     }));
 
     // ---- Hundred Rule -----------------------------------------------------
@@ -276,7 +278,7 @@ export function evaluateSeedChecks() {
 
     // ---- Viability equation ------------------------------------------------
 
-    const refusedBehaviours = new Set(["recalcitrant", "intermediate", "not_applicable"]);
+    const refusedBehaviours = new Set(["recalcitrant", "intermediate", "unconfirmed", "not_applicable"]);
     const withConstants = SEED_SPECIES.filter((record) => record.constants && record.constants.length);
     const leaked = withConstants.filter((record) =>
         record.behaviour && refusedBehaviours.has(record.behaviour.behaviour)
@@ -346,6 +348,134 @@ export function evaluateSeedChecks() {
         detail: peaAtLimit.ok && peaBelow.ok
             ? `Both give ${Math.round(peaAtLimit.sigmaDays).toLocaleString()} days per probit, and the drier one is flagged.`
             : "A pea prediction failed to run."
+    }));
+
+    // ---- Storage tiers ----------------------------------------------------
+
+    const halved = oxygenMultiplier(AIR_OXYGEN_PCT / 2, { rhPct: 30 });
+    const anoxic = oxygenMultiplier(1, { rhPct: 30 });
+    checks.push(check({
+        id: "oxygen-rule",
+        title: "Groot's two oxygen figures come from one exponent",
+        reference: SEED_REFERENCES.groot2025Oxygen,
+        fixture: "Fixture: oxygen halved from air, and reduced from 20.9% to 1%, at 30% RH.",
+        benchmark: "1.72× per halving and about 11× at 1%, both as published.",
+        pass: Math.abs(halved - 1.72) < 1e-9 && Math.abs(anoxic - 10.8) < 0.1,
+        detail: `${halved.toFixed(3)}× per halving, ${anoxic.toFixed(2)}× at 1%.`
+    }));
+
+    const damp = oxygenMultiplier(1, { rhPct: 60 });
+    checks.push(check({
+        id: "oxygen-humidity-interaction",
+        title: "No oxygen credit for damp seed",
+        reference: SEED_REFERENCES.groot2025Oxygen,
+        fixture: "Fixture: 1% oxygen at 60% RH.",
+        benchmark: "1×. Groot found hardly any oxygen effect at 60% eRH and none at 30 °C.",
+        pass: damp === 1,
+        detail: `${damp.toFixed(2)}× at 60% RH against ${anoxic.toFixed(2)}× at 30% RH.`
+    }));
+
+    const absorbed = { container: "gasket", absorber: true, desiccant: true, containerMl: 500, seedMassG: 50,
+        absorberCapacityMl: 200, rhPct: 30, moisturePct: 6 };
+    const cool = evaluateStorage({ ...absorbed, temperatureC: 5 });
+    const warm = evaluateStorage({ ...absorbed, temperatureC: 30 });
+    checks.push(check({
+        id: "oxygen-separable",
+        title: "The oxygen factor does not depend on temperature",
+        reference: SEED_REFERENCES.groot2025Oxygen,
+        fixture: "Fixture: the same jar with an absorber and desiccant at 5 °C and at 30 °C.",
+        benchmark: "Identical factors. Over 16-33% eRH Groot found the oxygen effect independent of temperature from 5 to 30 °C.",
+        pass: cool.oxygen.multiplier === warm.oxygen.multiplier && cool.oxygen.multiplier > 10,
+        detail: `${cool.oxygen.multiplier.toFixed(2)}× at 5 °C and ${warm.oxygen.multiplier.toFixed(2)}× at 30 °C.`
+    }));
+
+    const okraDry = runSeedModel({ speciesId: "abelmoschus-esculentus", storageTemperatureC: 25, storageMoisturePct: 8,
+        storageRelativeHumidityPct: 40, container: "gasket", desiccant: false });
+    const okraWet = runSeedModel({ speciesId: "abelmoschus-esculentus", storageTemperatureC: 25, storageMoisturePct: 14,
+        storageRelativeHumidityPct: 40, container: "gasket", desiccant: false });
+    checks.push(check({
+        id: "okra-anchor",
+        title: "Sealed wet seed is blocked and scores worse than sealed dry seed",
+        reference: SEED_REFERENCES.bakhtavar2023Okra,
+        fixture: "Fixture: okra in a sealed jar at 25 °C with seed at 8% and at 14% moisture.",
+        benchmark: "Okra in hermetic bags held germination for a year at 8% and lost all of it within six months at 14%.",
+        pass: !okraDry.storage.blocked && okraWet.storage.blocked
+            && okraDry.projection.ok && okraWet.projection.ok
+            && okraWet.projection.years.high < okraDry.projection.years.high,
+        detail: okraDry.projection.ok && okraWet.projection.ok
+            ? `14% is blocked, and its projection is ${(okraDry.projection.years.high / okraWet.projection.years.high).toFixed(0)}× shorter.`
+            : "A projection failed to run."
+    }));
+
+    const pelleted = runSeedModel({ speciesId: "lactuca-sativa", seedTreatment: "pelleted", oxygenAbsorber: true,
+        storageTemperatureC: 0, storageMoisturePct: 5 });
+    checks.push(check({
+        id: "pelleted-override",
+        title: "Pelleted seed is capped at one year whatever the storage",
+        reference: SEED_REFERENCES.johnnys,
+        fixture: "Fixture: pelleted lettuce at 0 °C and 5% moisture with an absorber and desiccant.",
+        benchmark: "Johnny's: pelleted seed should be used within one year.",
+        pass: pelleted.projection.ok && pelleted.projection.years.high <= 1 && pelleted.projection.years.low <= 1,
+        detail: pelleted.projection.ok
+            ? `Projection ${pelleted.projection.years.low.toFixed(1)}-${pelleted.projection.years.high.toFixed(1)} y.`
+            : "No projection returned."
+    }));
+
+    const absorberOnly = runSeedModel({ speciesId: "lactuca-sativa", oxygenAbsorber: true, desiccant: false });
+    checks.push(check({
+        id: "absorber-needs-desiccant",
+        title: "An absorber without a desiccant gets no projection",
+        reference: SEED_REFERENCES.groot2015Anoxia,
+        fixture: "Fixture: lettuce in a sealed jar with an oxygen absorber and no desiccant.",
+        benchmark: "RH reached 88% within two days in Groot's jar with an absorber alone.",
+        pass: !absorberOnly.projection.ok && absorberOnly.projection.reason === "absorber-only"
+            && !absorberOnly.viability.ok && absorberOnly.storage.blocked,
+        detail: `Projection ${absorberOnly.projection.ok ? "returned" : "withheld"}, viability equation ${absorberOnly.viability.ok ? "ran" : "withheld"}.`
+    }));
+
+    const genebank = runSeedModel({ speciesId: "lactuca-sativa", baselineTemperatureC: 30, baselineMoisturePct: 14,
+        storageTemperatureC: -18, storageMoisturePct: 5, oxygenAbsorber: true, desiccant: true });
+    checks.push(check({
+        id: "compounding-with-oxygen",
+        title: "Moisture, temperature and oxygen together hit the range warning",
+        reference: SEED_REFERENCES.groot2025Oxygen,
+        fixture: "Fixture: a 30 °C, 14% moisture baseline moved to -18 °C, 5% moisture, absorber and desiccant.",
+        benchmark: "The temperature clamp and the compounding warning both fire; the multipliers are never quietly multiplied out to millions.",
+        pass: genebank.multiplier.clamps.length > 0
+            && genebank.projection.warnings.some((text) => text.includes("compound")),
+        detail: `${genebank.multiplier.clamps.length} clamp(s), combined factor ${Math.round(genebank.multiplier.multiplier * genebank.storage.oxygen.multiplier).toLocaleString()}×, warned.`
+    }));
+
+    // ---- Monte Carlo -------------------------------------------------------
+
+    const lettuceRecord = getSpeciesById("lactuca-sativa");
+    const mcInputs = { moisturePct: 6, moistureSpreadPct: 1, temperatureC: 5, temperatureSpreadC: 2,
+        initialViabilityPct: 95, testSeeds: 100, targetViabilityPct: 85, draws: 500, seed: 3 };
+    const mcA = runViabilityMonteCarlo(lettuceRecord, mcInputs);
+    const mcB = runViabilityMonteCarlo(lettuceRecord, mcInputs);
+    checks.push(check({
+        id: "monte-carlo-range",
+        title: "The uncertainty result is a range, reproducible from its seed",
+        reference: SEED_REFERENCES.hayViabilityEquations,
+        fixture: "Fixture: lettuce at 5 ± 2 °C and 6 ± 1% moisture, 95% from a 100-seed test, 500 draws, run twice.",
+        benchmark: "P10 below the median below P90 for each determination, and the same seed giving the same numbers.",
+        pass: mcA.ok && mcA.determinations.every((entry) => entry.daysToTarget.p10 < entry.daysToTarget.median
+            && entry.daysToTarget.median < entry.daysToTarget.p90)
+            && JSON.stringify(mcA.daysToTarget) === JSON.stringify(mcB.daysToTarget),
+        detail: mcA.ok
+            ? `P10 to P90 ${mcA.determinations.map((entry) => `${(entry.daysToTarget.p10 / 365.25).toFixed(1)}-${(entry.daysToTarget.p90 / 365.25).toFixed(1)} y`).join(" and ")}, identical on the second run.`
+            : "No band returned."
+    }));
+
+    const wetBand = runViabilityMonteCarlo(lettuceRecord, { ...mcInputs, moisturePct: 14.5, moistureSpreadPct: 1 });
+    checks.push(check({
+        id: "monte-carlo-refusals-counted",
+        title: "Draws outside the equation are counted and reported",
+        reference: SEED_REFERENCES.ipgri1996,
+        fixture: "Fixture: lettuce at 14.5 ± 1% moisture, where the equation stops at about 15%.",
+        benchmark: "About a quarter of the draws land above 15% and are reported as refused.",
+        pass: wetBand.ok && wetBand.refusedDraws > 0.15 * wetBand.draws && wetBand.refusedDraws < 0.35 * wetBand.draws,
+        detail: wetBand.ok ? `${wetBand.refusedDraws} of ${wetBand.draws} draws refused.` : "No band returned."
     }));
 
     // ---- Measured mode ----------------------------------------------------
