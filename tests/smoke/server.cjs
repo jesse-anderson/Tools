@@ -28,6 +28,26 @@ const mimeTypes = {
   '.xml': 'application/xml; charset=utf-8'
 };
 
+// Response headers the live host adds by rule, sent here too so the suite runs
+// under them. A worker takes its policy from its own script's response, not
+// from the page that started it, so the OCR tool's workers get one of their own.
+const OCR_WORKER_CSP = "default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; connect-src 'self'; worker-src 'self'";
+const headerRules = [
+  {
+    prefixes: ['/js/ocr_text_extractor/', '/js/vendor/ocr_text_extractor/', '/tests/smoke/ocr-worker-probe.js'],
+    headers: { 'Content-Security-Policy': OCR_WORKER_CSP }
+  }
+];
+
+function ruleHeaders(requestUrl) {
+  const pathname = String(requestUrl || '').split('?')[0];
+  const headers = {};
+  for (const rule of headerRules) {
+    if (rule.prefixes.some((prefix) => pathname.startsWith(prefix))) Object.assign(headers, rule.headers);
+  }
+  return headers;
+}
+
 function send(res, statusCode, body, headers = {}) {
   res.writeHead(statusCode, headers);
   res.end(body);
@@ -78,7 +98,7 @@ function createStaticServer(options = {}) {
 
         const ext = path.extname(targetPath).toLowerCase();
         const contentType = mimeTypes[ext] || 'application/octet-stream';
-        send(res, 200, data, { 'Content-Type': contentType });
+        send(res, 200, data, { 'Content-Type': contentType, ...ruleHeaders(req.url) });
       });
     });
   });
@@ -156,6 +176,7 @@ if (require.main === module) {
 }
 
 module.exports = {
+  OCR_WORKER_CSP,
   createStaticServer,
   startServer
 };

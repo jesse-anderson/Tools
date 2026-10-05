@@ -58,6 +58,7 @@ const TOOLS_WITH_DISCLAIMER_HEADINGS = [
   'ohms-law',
   'parquet-viewer',
   'pdf-diff',
+  'ocr-text-extractor',
   'oral-multidose',
   'pid-playground',
   'psychrometric-calculator',

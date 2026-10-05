@@ -47,6 +47,7 @@ const CLAUSE_PAGES = [
   '/tools/species-doubling-reference.html',
   '/tools/sankey-diagram.html',
   '/tools/process-flow-mapper.html',
+  '/tools/ocr-text-extractor.html',
 ];
 
 const REQUIRED = [

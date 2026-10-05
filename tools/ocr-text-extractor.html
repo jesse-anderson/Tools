@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<!--
+============================================
+OCR TEXT EXTRACTOR v1.4.0
+============================================
+Description: Reads the text out of a scanned PDF, an image or a phone
+photo, in the browser. The file is never uploaded.
+
+Dependencies (pinned versions, all vendored in js/vendor/ocr_text_extractor/):
+- Tesseract.js: 7.0.0 (OCR engine wrapper and worker)
+    https://github.com/naptha/tesseract.js
+    Apache-2.0: https://github.com/naptha/tesseract.js/blob/master/LICENSE.md
+- tesseract.js-core: 7.0.0 (Tesseract compiled to WebAssembly, SIMD LSTM build)
+    https://github.com/naptha/tesseract.js-core
+    Apache-2.0: https://github.com/naptha/tesseract.js-core/blob/master/LICENSE
+- English language data: @tesseract.js-data/eng 1.0.0 (tessdata best_int)
+    https://github.com/tesseract-ocr/tessdata_best
+    Apache-2.0: https://github.com/tesseract-ocr/tessdata_best/blob/main/LICENSE
+- pdf.js: 4.2.67 (PDF text and page rendering)
+    https://mozilla.github.io/pdf.js/
+    Apache-2.0: https://github.com/mozilla/pdf.js/blob/master/LICENSE
+- pdf-lib: 1.17.1 (writes the searchable PDF)
+    https://pdf-lib.js.org/
+    MIT: https://github.com/Hopding/pdf-lib/blob/master/LICENSE.md
+The second engine, in js/vendor/ocr_text_extractor/paddle/, fetched only when used:
+- ONNX Runtime Web: 1.30.0 (runs the models, WebAssembly build)
+    https://onnxruntime.ai/
+    MIT: https://github.com/microsoft/onnxruntime/blob/main/LICENSE
+- esearch-ocr: 8.5.2 (PP-OCR pipeline in JavaScript)
+    https://github.com/xushengfeng/eSearch-OCR
+    Apache-2.0: https://github.com/xushengfeng/eSearch-OCR/blob/master/LICENSE
+- PP-OCR models: PP-OCRv4 mobile detection, PP-OCRv5 mobile English recognition
+    https://github.com/PaddlePaddle/PaddleOCR
+    Apache-2.0: https://github.com/PaddlePaddle/PaddleOCR/blob/main/LICENSE
+Google Fonts (JetBrains Mono, Space Grotesk) loaded from CDN.
+
+Project: Tools Hub by Jesse Anderson
+Repository: https://github.com/jesse-anderson/Tools
+License: GPL-3.0 - https://github.com/jesse-anderson/Tools/blob/main/LICENSE
+
+Features:
+- PDF, PNG, JPEG or WebP by picker, drop or paste, or a photo from a phone camera
+- PDF pages that already hold text are copied, not read from pixels
+- Per page: where the text came from, word count, confidence, words to check
+- Copy the text, save it as a .txt file, or save a searchable PDF: the
+  original page with the reading laid over it as hidden text
+- Words the engine doubted listed beside the pixels they were read from
+- Columns, ruled tables and pages on their side read by automatic layout
+- Uneven light evened out, a tilted page turned, small print enlarged and an
+  upside-down page turned over before reading, each only when the page
+  measures as needing it, and each stated in the page's row
+- A second engine (PP-OCR) reads a page the first one read badly, and its
+  reading is kept only when it scores well on its own scale; the row says so.
+  It turns a steeply tilted page level first, whichever way up it lies
+- Compare mode reads every page with both engines, marks the words they read
+  differently, and lets the reader pick a reading per page
+- Up to 25 pages and 50 MB, up to four pages read side by side on a computer,
+  with progress and Stop
+- English only
+
+Last Updated: October 2026
+============================================
+-->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="OCR in your browser: pull the text out of a scanned PDF, image or phone photo and save a searchable PDF. Nothing is uploaded. Free, English text.">
+    <link rel="canonical" href="https://tools.jesse-anderson.net/tools/ocr-text-extractor.html">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Tools Hub">
+    <meta property="og:title" content="OCR Text Extractor">
+    <meta property="og:description" content="OCR in your browser: pull the text out of a scanned PDF, image or phone photo and save a searchable PDF. Nothing is uploaded. Free, English text.">
+    <meta property="og:url" content="https://tools.jesse-anderson.net/tools/ocr-text-extractor.html">
+    <meta name="twitter:card" content="summary">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; worker-src 'self'; base-uri 'none'; form-action 'none'">
+    <title>OCR Text Extractor | Tools Hub</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/shared.css">
+    <link rel="stylesheet" href="../css/ocr_text_extractor/ocr-text-extractor.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <div class="header-left">
+                    <a href="../tools.html" class="back-link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <line x1="19" y1="12" x2="5" y2="12"/>
+                            <polyline points="12 19 5 12 12 5"/>
+                        </svg>
+                        Back to Tools
+                    </a>
+                </div>
+                <div class="header-right">
+                    <div class="theme-toggle">
+                        <button data-theme-toggle="light" aria-pressed="false" title="Light mode" aria-label="Light mode">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                <circle cx="12" cy="12" r="5"/>
+                                <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+                            </svg>
+                        </button>
+                        <button data-theme-toggle="dark" aria-pressed="false" title="Dark mode" aria-label="Dark mode">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="tool-title-row">
+                <div class="tool-icon-header general" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M4 8V5a1 1 0 0 1 1-1h3"/>
+                        <path d="M16 4h3a1 1 0 0 1 1 1v3"/>
+                        <path d="M20 16v3a1 1 0 0 1-1 1h-3"/>
+                        <path d="M8 20H5a1 1 0 0 1-1-1v-3"/>
+                        <path d="M8 9h8M8 12h8M8 15h5"/>
+                    </svg>
+                </div>
+                <div>
+                    <h1>OCR Text Extractor</h1>
+                    <p class="tagline">// PDF • IMAGE • PHOTO • TEXT, READ IN YOUR BROWSER</p>
+                </div>
+            </div>
+        </header>
+
+        <main class="ocr-layout">
+            <details class="disclaimer-card" id="scopeDisclaimer" aria-label="Scope and liability disclaimer">
+                <summary>
+                    <span class="disclaimer-icon" aria-hidden="true">&#9888;</span>
+                    <span class="disclaimer-summary-text">
+                        <span class="disclaimer-title">A machine reading of your page, with mistakes in it. Not a verified transcription.</span>
+                        <span class="disclaimer-lead">Optical character recognition guesses each character from its shape. A wrong digit looks exactly like a right one, and the engine can be confident about a word it has misread. Proofread against the original before you rely on any of it. Used at your own risk. Open for the full scope limits.</span>
+                    </span>
+                    <span class="disclaimer-chevron" aria-hidden="true">&#9662;</span>
+                </summary>
+
+                <div class="disclaimer-body">
+                    <div class="disclaimer-section">
+                        <h3>What this tool actually does</h3>
+                        <p><strong>It turns each page into a picture and asks the Tesseract engine what the marks on it say, in English.</strong> Nothing on the page knows what the document is, what a sensible value would be, or whether a sentence makes sense.</p>
+                        <ul>
+                            <li><strong>A PDF page that already holds text is not read from pixels.</strong> A page with 20 or more characters of its own text is copied from the file, and its row says so. That text is whatever the file's author or an earlier OCR pass put there. A scan with a typed header or a stamp over an image body counts as a text page and its body is skipped: tick "Read every page from pixels" to read the body.</li>
+                            <li><strong>Pages are drawn at 300 DPI or less.</strong> A very large page is drawn at a lower resolution to fit in memory, and an image over 4,000 pixels on its longest side is scaled down. The row gives the resolution used.</li>
+                            <li><strong>Four repairs can be made before reading, and each is stated in the page's row.</strong> Paper that measures brighter in some places than others, as under a shadow, is leveled to plain gray ("lighting evened"). Print tilted between 6 and 30 degrees is turned by that angle ("turned"). Print under about 20 pixels tall, as on a screenshot, is enlarged two or three times ("enlarged"). A page that reads as nonsense is read again upside down, and that reading is kept when it is clearly the better one ("turned the right way up"). A page that measures level, straight and large enough is read exactly as it came. All four were measured on test pages drawn by a program, not on photographs, and any of them can misjudge a page that is mostly pictures or ruled lines.</li>
+                            <li><strong>A second engine reads a page the first one read badly.</strong> When Tesseract scores a page under 70, or finds nothing on a page that holds print, the page is read again by PP-OCR, a different kind of reader. Its reading replaces the first only when it scores 90 or more on its own scale and found at least half as much text, and the page's row says which engine the text came from. A page whose lines slope more than 30 degrees is turned level for it first, whichever way up it lies. The second engine is about 27 MB, fetched from this site the first time it is needed, and it is slow: a full letter page took it 16 seconds on a fast computer and 43 seconds with one worker, which is what a phone gets. Set "Second engine" to "Never" to keep it out. It was tried only on test pages drawn by a program.</li>
+                            <li><strong>Two engines agreeing is not proof.</strong> "Compare both on every page" shows the two readings side by side with the words they read differently marked. A marked word is worth a look. An unmarked one was read the same way twice, and both readers confuse the same look-alike characters.</li>
+                            <li><strong>Confidence is the engine's opinion of itself.</strong> It is a score from the same model that did the reading, not a measurement against the truth. The two engines score on different scales, and their figures are never compared with each other.</li>
+                        </ul>
+                    </div>
+
+                    <div class="disclaimer-section">
+                        <h3>What it gets wrong</h3>
+                        <ul>
+                            <li><strong>Characters that look alike.</strong> 0 and O, 1 and l and I, 5 and S, 8 and B, a comma and a period, and the letters "rn" read as "m". In a test of this page's own engine, "rn m" came back as "mm" with a confidence of 87 out of 100.</li>
+                            <li><strong>Numbers above all.</strong> A word that is misread usually stops being a word, which a reader notices. A misread digit is still a number. Amounts, dates, doses, part numbers, account numbers and serial numbers must be checked one by one.</li>
+                            <li><strong>Reading order.</strong> The engine decides what is a column and reads each one top to bottom. Columns, forms, sidebars, footnotes, headers and captions come out in the order it guessed, which may not be the order a person reads them in. A table with ruled lines is usually read row by row, and a table without them is usually read down each column, so a figure ends up far from its label. Table cells lose their rows and columns either way.</li>
+                            <li><strong>Dropped and invented text.</strong> Faint print, small print, text over a picture, and text near a fold, a shadow or the edge of a photo can be left out with no sign that anything was there. Specks, rules and logos can be read as characters.</li>
+                            <li><strong>A word that is not flagged is not a word that is right.</strong> "Check these" lists the words the engine doubted, each beside the pixels it was read from. It says nothing about the rest.</li>
+                        </ul>
+                    </div>
+
+                    <div class="disclaimer-section">
+                        <h3>The searchable PDF</h3>
+                        <ul>
+                            <li><strong>The hidden text is the same reading, mistakes included.</strong> Searching the saved file for a word or a number that was misread finds nothing, and a search that finds nothing is not proof the document does not contain it.</li>
+                            <li><strong>It is not redaction and not a cleaned copy.</strong> The page image is carried over unchanged, with everything that was visible on it.</li>
+                            <li><strong>Only pages read from pixels are given text.</strong> Pages that already held text are left exactly as they were, including any wrong text an earlier program put there.</li>
+                            <li><strong>Rewriting a PDF can drop things.</strong> A digital signature stops validating once the file is changed, and forms, bookmarks or attachments in an unusual file may not survive. Keep the original.</li>
+                            <li><strong>An image is given a page size by assumption.</strong> A picture carries no physical size, so its page is sized as if scanned at 300 DPI.</li>
+                        </ul>
+                    </div>
+
+                    <div class="disclaimer-section">
+                        <h3>Outside what it reads</h3>
+                        <ul>
+                            <li>Handwriting, signatures and anything written by hand on a printed form.</li>
+                            <li>Languages other than English, and accented or non-Latin characters, which come out as the nearest English shape.</li>
+                            <li>Mathematics, chemical formulas, music, barcodes and QR codes.</li>
+                            <li>Photos taken from the side so the page narrows away from the camera, out of focus, or of a curved page.</li>
+                            <li>A page tilted more than 30 degrees with "Second engine" set to "Never". Only the second engine reads one.</li>
+                            <li>Print under about 9 pixels tall, which is still misread after it is enlarged.</li>
+                            <li>Password-protected PDFs, which are refused.</li>
+                        </ul>
+                    </div>
+
+                    <div class="disclaimer-section">
+                        <h3>Never use this as the only transcription of</h3>
+                        <ul>
+                            <li>A prescription, a medicine label, a dose, a lab result or any clinical record.</li>
+                            <li>A contract, a court filing, an identity document or any legal record.</li>
+                            <li>An invoice, a bank or tax document, or any amount of money.</li>
+                            <li>A drawing, a specification, a nameplate or a safety data sheet whose numbers someone will build or act on.</li>
+                        </ul>
+                    </div>
+
+                    <div class="disclaimer-section">
+                        <h3>Your file stays in this browser</h3>
+                        <p>Both reading engines, their language data and the PDF library are served from this site and run on your device. The file you choose is not sent to this site or to anyone else, and nothing from it is stored after you leave the page. The page fonts are loaded from Google Fonts, which sees a request from your browser but nothing about your file. That is a description of how the page is built, not a security guarantee: do not put a document here that policy, contract or law says must not be opened in a web browser.</p>
+                    </div>
+
+                    <div class="disclaimer-section">
+                        <h3>Before you rely on the text</h3>
+                        <p>Read it against the original, start with the pages and words marked for checking, and then check every number whether it was marked or not. Where the text is going into a record, have a second person compare it.</p>
+                    </div>
+
+                    <div class="disclaimer-footer">
+                        <p><strong>No warranty. No liability. You assume all risk.</strong> This page and everything it reads or produces are provided as-is and as-available, without warranty of any kind, express or implied, including accuracy, completeness, timeliness, reliability, fitness for a particular purpose, merchantability, professional suitability, regulatory or evidentiary acceptability, or non-infringement. To the maximum extent permitted by law, the author accepts no liability for any loss, injury, damage, cost or claim arising from use of or reliance on this page.</p>
+                        <p><strong>Independent verification required.</strong> Verify every character you intend to rely on against the original document and qualified professional judgment before acting on it. The original document controls; where this page disagrees with it, this page is wrong.</p>
+                        <p><strong>Consequential damages excluded.</strong> To the maximum extent permitted by law, in no event will the author or maintainers be liable for any direct, indirect, incidental, special, exemplary, punitive or consequential damages, including a misread amount, date, dose or identifier, a wrong payment, a missed deadline, regulatory exposure, disclosure of a document, or loss of use, data, profits or business interruption, however caused and on any theory of liability, whether in contract, strict liability or tort including negligence, arising out of or in connection with this page, even if advised of the possibility of such damage.</p>
+                        <p><strong>Indemnity.</strong> By using this page you agree to indemnify and hold harmless the author and maintainers against any claim, demand, loss or expense arising out of your use of it or of anything derived from it.</p>
+                        <p><strong>Severability.</strong> If any part of this notice is held unenforceable, the remainder continues to apply, and the unenforceable part is limited to the least extent necessary rather than struck out.</p>
+                    </div>
+                </div>
+            </details>
+
+            <div class="ocr-main">
+                <section class="panel" aria-labelledby="sourceHeading">
+                    <div class="panel-header">
+                        <h2 id="sourceHeading">Source</h2>
+                        <p>A PDF, an image, or a photo. It is read on this device and never uploaded.</p>
+                    </div>
+
+                    <div class="drop-zone" id="dropZone">
+                        <p class="drop-text">Drop a file here, paste an image, or</p>
+                        <div class="button-row">
+                            <button type="button" class="tool-btn primary" id="chooseFile">Choose a file</button>
+                            <button type="button" class="tool-btn" id="takePhoto">Take a photo</button>
+                        </div>
+                        <p class="helper-text" id="sourceHint">PDF, PNG, JPEG or WebP. Up to 25 pages and 50 MB. English text. "Take a photo" opens the camera on a phone and a file picker on a computer. For a photo, hold the camera square over the page.</p>
+                        <input type="file" id="fileInput" accept="application/pdf,image/png,image/jpeg,image/webp" aria-label="Choose a PDF or image" hidden>
+                        <input type="file" id="cameraInput" accept="image/*" capture="environment" aria-label="Take a photo" hidden>
+                    </div>
+
+                    <p id="busyNote" class="helper-text" role="status" aria-live="polite"></p>
+
+                    <div class="check-row">
+                        <label class="check" for="forceOcr">
+                            <input type="checkbox" id="forceOcr" aria-describedby="forceOcrNote">
+                            Read every page from pixels
+                        </label>
+                        <p class="helper-text" id="forceOcrNote">Off, a PDF page that already holds text is copied from the file, which is exact when that text is good. Turn it on when the copied text is wrong or missing part of the page.</p>
+                    </div>
+
+                    <div class="field-row">
+                        <label for="engineMode">Second engine</label>
+                        <select id="engineMode" aria-describedby="engineModeNote">
+                            <option value="auto" selected>Only for a page that reads badly</option>
+                            <option value="off">Never</option>
+                            <option value="both">Compare both on every page</option>
+                        </select>
+                        <p class="helper-text" id="engineModeNote">The first engine is Tesseract. A page it scores under 70, or finds nothing on, is read again by a second engine, PP-OCR, which is fetched from this site when first needed (about 27 MB). Comparing reads every page with both and shows where they differ.</p>
+                    </div>
+
+                    <div class="run-box" id="runBox" hidden>
+                        <progress id="runProgress" max="1" value="0" aria-label="Reading progress"></progress>
+                        <button type="button" class="tool-btn small" id="stopRun">Stop</button>
+                    </div>
+                    <p id="runStatus" class="run-status" role="status" aria-live="polite"></p>
+                </section>
+
+                <section class="panel" aria-labelledby="textHeading">
+                    <div class="panel-header">
+                        <h2 id="textHeading">Text</h2>
+                        <p id="textSummary">Nothing read yet.</p>
+                    </div>
+
+                    <textarea id="textOutput" class="text-output" readonly spellcheck="false" aria-labelledby="textHeading" aria-describedby="textSummary" placeholder="The text appears here."></textarea>
+
+                    <div class="output-bar">
+                        <div class="button-row">
+                            <button type="button" class="tool-btn" id="copyText" disabled>Copy text</button>
+                            <button type="button" class="tool-btn" id="downloadText" disabled>Save as .txt</button>
+                            <button type="button" class="tool-btn" id="downloadPdf" disabled aria-describedby="pdfHelp">Save searchable PDF</button>
+                        </div>
+                        <label class="check" for="pageSeparators">
+                            <input type="checkbox" id="pageSeparators" checked>
+                            Mark where each page starts
+                        </label>
+                    </div>
+                    <p id="copyStatus" class="helper-text" role="status" aria-live="polite"></p>
+                    <p id="pdfNote" class="helper-text"></p>
+                    <p id="pdfHelp" class="helper-text">The searchable PDF is your original page with the reading laid over it as hidden text, so it can be searched and copied from. The page itself is not changed, and the hidden text carries every mistake in the reading.</p>
+
+                    <p class="disclaimer"><strong>This is a machine reading, not a checked transcription.</strong> A misread digit looks exactly like a correct one, the engine can be confident and wrong, and a word that is not marked for checking is not a word that is right. Proofread against the original, numbers first. Used at your own risk. See the full disclaimer at the top of the page.</p>
+                </section>
+
+                <section class="panel" id="reviewCard" aria-labelledby="reviewHeading" hidden>
+                    <div class="panel-header">
+                        <h2 id="reviewHeading">Check these</h2>
+                        <p id="reviewNote"></p>
+                    </div>
+                    <div class="table-scroll" tabindex="0" role="group" aria-labelledby="reviewHeading">
+                        <table id="reviewTable" class="data-table" aria-labelledby="reviewHeading" aria-describedby="reviewNote">
+                            <thead>
+                                <tr>
+                                    <th scope="col" class="num">Page</th>
+                                    <th scope="col">Pixels</th>
+                                    <th scope="col">Read as</th>
+                                    <th scope="col" class="num">Confidence</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section class="panel" id="compareCard" aria-labelledby="compareHeading" hidden>
+                    <div class="panel-header">
+                        <h2 id="compareHeading">Both engines</h2>
+                        <p id="compareNote"></p>
+                    </div>
+                    <div id="compareList" class="compare-list"></div>
+                </section>
+            </div>
+
+            <aside class="sidebar" aria-label="Pages and licenses">
+                <section class="panel" aria-labelledby="pagesHeading">
+                    <div class="panel-header">
+                        <h2 id="pagesHeading">Pages</h2>
+                        <p id="pagesNote">One row per page, saying where its text came from.</p>
+                    </div>
+                    <div class="table-scroll" tabindex="0" role="group" aria-labelledby="pagesHeading">
+                        <table id="pagesTable" class="data-table" aria-labelledby="pagesHeading" aria-describedby="pagesNote">
+                            <thead>
+                                <tr>
+                                    <th scope="col" class="num">Page</th>
+                                    <th scope="col">Text from</th>
+                                    <th scope="col" class="num">Words</th>
+                                    <th scope="col" class="num">Confidence</th>
+                                    <th scope="col" class="num">To check</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                    <ul id="pageNotes" class="page-notes"></ul>
+                </section>
+
+                <section class="panel" aria-labelledby="aboutHeading">
+                    <div class="panel-header">
+                        <h2 id="aboutHeading">How to read the table</h2>
+                    </div>
+                    <dl class="about-list">
+                        <dt>Text from</dt>
+                        <dd>"Pixels" means the page was read by the engine. "The file" means the PDF already held the text and it was copied.</dd>
+                        <dt>Confidence</dt>
+                        <dd>The engine's own average score for the page, out of 100. Under 70 the page is marked "low" and deserves a full read.</dd>
+                        <dt>To check</dt>
+                        <dd>Words the engine scored under 60, listed with their pixels under "Check these". The rest are not verified, only not doubted.</dd>
+                        <dt>Second engine</dt>
+                        <dd>A row that says "read by the second engine" holds PP-OCR's reading, scored on its own scale, where under 90 is "low". A word there is scored as its least certain character.</dd>
+                    </dl>
+                    <button type="button" class="tool-btn small" id="viewLicenses">View Licenses</button>
+                </section>
+            </aside>
+        </main>
+
+        <dialog id="compareConfirm" class="licenses-dialog" aria-labelledby="compareTitle" aria-describedby="compareText">
+            <div class="modal-header">
+                <h2 class="modal-title" id="compareTitle">Read every page with both engines?</h2>
+            </div>
+            <div class="modal-content">
+                <div id="compareText">
+                    <p>This is slow and heavy on memory.</p>
+                    <ul>
+                        <li>The second engine is about 27 MB, fetched from this site the first time.</li>
+                        <li>Every page read from pixels is read twice, and the second engine is the slow one. A full letter page took it 16 seconds on a fast computer with four workers and 43 seconds with one, which is what a phone gets. Twenty-five such pages is 7 to 18 minutes.</li>
+                        <li>Both engines hold their models and a copy of the page in memory at once. On a phone, or a computer short of memory, the browser may close the page part way through, and what was read is lost.</li>
+                    </ul>
+                    <p>Nothing is uploaded either way. If a file is loaded it is read again from the start.</p>
+                </div>
+                <div class="button-row">
+                    <button type="button" class="tool-btn primary" id="compareYes">Yes, compare both</button>
+                    <button type="button" class="tool-btn" id="compareNo">No, go back</button>
+                </div>
+            </div>
+        </dialog>
+
+        <dialog id="attributionsModal" class="licenses-dialog" aria-labelledby="licensesTitle">
+            <div class="modal-header">
+                <h2 class="modal-title" id="licensesTitle">Attributions &amp; Licenses</h2>
+                <button type="button" class="tool-btn small" id="closeAttributions" aria-label="Close licenses">Close</button>
+            </div>
+            <div class="modal-content">
+                <p class="helper-text">Every library below is served from this site, at the version shown, with its license text in <code>js/vendor/ocr_text_extractor/</code>.</p>
+                <div class="library-entry">
+                    <h3>Tesseract.js 7.0.0</h3>
+                    <p>Runs the Tesseract OCR engine in a browser worker.</p>
+                    <p class="library-license">License: <a href="https://github.com/naptha/tesseract.js/blob/master/LICENSE.md" target="_blank" rel="noopener">Apache-2.0</a></p>
+                </div>
+                <div class="library-entry">
+                    <h3>tesseract.js-core 7.0.0</h3>
+                    <p>The Tesseract engine compiled to WebAssembly.</p>
+                    <p class="library-license">License: <a href="https://github.com/naptha/tesseract.js-core/blob/master/LICENSE" target="_blank" rel="noopener">Apache-2.0</a></p>
+                </div>
+                <div class="library-entry">
+                    <h3>Tesseract English language data</h3>
+                    <p>The trained model for English, from tessdata_best.</p>
+                    <p class="library-license">License: <a href="https://github.com/tesseract-ocr/tessdata_best/blob/main/LICENSE" target="_blank" rel="noopener">Apache-2.0</a></p>
+                </div>
+                <div class="library-entry">
+                    <h3>pdf-lib 1.17.1</h3>
+                    <p>Writes the searchable PDF.</p>
+                    <p class="library-license">License: <a href="https://github.com/Hopding/pdf-lib/blob/master/LICENSE.md" target="_blank" rel="noopener">MIT</a></p>
+                </div>
+                <div class="library-entry">
+                    <h3>pdf.js 4.2.67</h3>
+                    <p>Opens PDFs, reads their text and draws their pages.</p>
+                    <p class="library-license">License: <a href="https://github.com/mozilla/pdf.js/blob/master/LICENSE" target="_blank" rel="noopener">Apache-2.0</a></p>
+                </div>
+                <div class="library-entry">
+                    <h3>ONNX Runtime Web 1.30.0</h3>
+                    <p>Runs the second engine's models in WebAssembly.</p>
+                    <p class="library-license">License: <a href="https://github.com/microsoft/onnxruntime/blob/main/LICENSE" target="_blank" rel="noopener">MIT</a></p>
+                </div>
+                <div class="library-entry">
+                    <h3>esearch-ocr 8.5.2</h3>
+                    <p>The PP-OCR steps in JavaScript: finding lines, reading them, and ordering them.</p>
+                    <p class="library-license">License: <a href="https://github.com/xushengfeng/eSearch-OCR/blob/master/LICENSE" target="_blank" rel="noopener">Apache-2.0</a></p>
+                </div>
+                <div class="library-entry">
+                    <h3>PP-OCR models</h3>
+                    <p>PaddleOCR's PP-OCRv4 mobile text detection model and PP-OCRv5 mobile English recognition model, converted to ONNX.</p>
+                    <p class="library-license">License: <a href="https://github.com/PaddlePaddle/PaddleOCR/blob/main/LICENSE" target="_blank" rel="noopener">Apache-2.0</a></p>
+                </div>
+            </div>
+        </dialog>
+
+        <footer data-footer></footer>
+    </div>
+
+    <script src="../js/shared.js"></script>
+    <script type="module" src="../js/footer.js"></script>
+    <script type="module" src="../js/ocr_text_extractor/ocr-text-extractor.js"></script>
+</body>
+</html>

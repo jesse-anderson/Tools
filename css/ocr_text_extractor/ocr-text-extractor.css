@@ -1,0 +1,471 @@
+/* ============================================
+   OCR Text Extractor - Specific Styles
+   shared.css carries no component classes, so the panel, button and table
+   styles live here. Readable text uses --text-secondary, never --text-muted.
+   ============================================ */
+
+.ocr-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 400px);
+    gap: 24px;
+    align-items: start;
+}
+
+.ocr-layout > .disclaimer-card {
+    grid-column: 1 / -1;
+}
+
+.ocr-main,
+.sidebar {
+    display: grid;
+    gap: 24px;
+    min-width: 0;
+}
+
+.panel {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 24px;
+    min-width: 0;
+}
+
+.panel-header {
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.panel-header h2 {
+    margin-bottom: 4px;
+}
+
+.panel-header p {
+    color: var(--text-secondary);
+    font-size: 0.9375rem;
+}
+
+.helper-text {
+    margin: 0 0 14px;
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    color: var(--text-secondary);
+}
+
+/* Source */
+.drop-zone {
+    margin-bottom: 16px;
+    padding: 24px 16px 10px;
+    border: 2px dashed var(--border-hover);
+    border-radius: 10px;
+    background: var(--bg-secondary);
+    text-align: center;
+}
+
+.drop-zone.dragging {
+    border-color: var(--accent-general);
+    background: var(--accent-general-dim);
+}
+
+.drop-zone .button-row {
+    justify-content: center;
+    margin-bottom: 14px;
+}
+
+.drop-text {
+    margin-bottom: 12px;
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.check {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 44px;
+    font-size: 0.875rem;
+    color: var(--text-primary);
+    cursor: pointer;
+}
+
+.check input {
+    width: 18px;
+    height: 18px;
+    padding: 0;
+    flex: none;
+    accent-color: var(--accent-general);
+}
+
+.field-row {
+    display: grid;
+    gap: 6px;
+    margin-top: 14px;
+}
+
+.field-row label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.field-row select {
+    max-width: 100%;
+    min-height: 44px;
+    justify-self: start;
+}
+
+.compare-list {
+    display: grid;
+    gap: 10px;
+}
+
+.compare-page {
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 10px 12px;
+}
+
+.compare-page summary {
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--text-primary);
+    min-height: 28px;
+}
+
+.compare-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+    margin-top: 10px;
+}
+
+.compare-column h3 {
+    font-size: 0.95rem;
+    margin: 0 0 4px;
+}
+
+.compare-column .tool-btn[aria-pressed="true"] {
+    border-color: #6d28d9;
+    box-shadow: inset 0 0 0 1px #6d28d9;
+}
+
+.compare-text {
+    margin-top: 10px;
+    max-height: 420px;
+    overflow: auto;
+    padding: 10px;
+    border-radius: 6px;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8125rem;
+    line-height: 1.55;
+    overflow-wrap: anywhere;
+}
+
+.compare-line {
+    display: block;
+    min-height: 1.55em;
+}
+
+.compare-text mark {
+    background: #fde68a;
+    color: #1f1300;
+    border-radius: 2px;
+    padding: 0 2px;
+    text-decoration: underline;
+}
+
+.licenses-dialog .button-row {
+    margin-top: 14px;
+}
+
+.run-box {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 10px;
+}
+
+.run-box[hidden] {
+    display: none;
+}
+
+.run-box progress {
+    flex: 1;
+    min-width: 0;
+    height: 12px;
+    accent-color: var(--accent-general);
+}
+
+.run-status {
+    min-height: 1.5em;
+    font-size: 0.9375rem;
+    color: var(--text-primary);
+}
+
+.run-status.error {
+    padding: 10px 14px;
+    border: 1px solid var(--accent-error);
+    border-radius: 8px;
+    background: var(--accent-error-dim);
+    font-weight: 600;
+}
+
+/* Buttons */
+.button-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.tool-btn {
+    min-height: 44px;
+    padding: 10px 16px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.tool-btn:hover:not(:disabled) {
+    border-color: var(--accent-general);
+}
+
+.tool-btn:focus-visible,
+.text-output:focus-visible,
+.table-scroll:focus-visible {
+    outline: 2px solid var(--accent-general);
+    outline-offset: 2px;
+}
+
+.tool-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+}
+
+/* A fixed violet with white ink: the General accent is too light for white
+   in dark theme and too dark for black in light. */
+.tool-btn.primary {
+    background: #6d28d9;
+    border-color: #6d28d9;
+    color: #ffffff;
+}
+
+.tool-btn.primary:hover:not(:disabled) {
+    background: #5b21b6;
+    border-color: #5b21b6;
+}
+
+/* Text */
+.text-output {
+    display: block;
+    width: 100%;
+    min-height: 360px;
+    margin-bottom: 14px;
+    resize: vertical;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.875rem;
+    line-height: 1.6;
+}
+
+.output-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 20px;
+    flex-wrap: wrap;
+    margin-bottom: 6px;
+}
+
+/* Pages table */
+.table-scroll {
+    overflow-x: auto;
+    margin-bottom: 12px;
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8125rem;
+}
+
+.data-table th,
+.data-table td {
+    padding: 8px 8px;
+    border-bottom: 1px solid var(--border-color);
+    text-align: left;
+    vertical-align: top;
+}
+
+.data-table th {
+    color: var(--text-secondary);
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.data-table .num {
+    text-align: right;
+    font-family: 'JetBrains Mono', monospace;
+    white-space: nowrap;
+}
+
+/* The row also says "low" or "none found" in words. */
+.data-table tr.weak td {
+    background: var(--accent-warning-dim);
+    font-weight: 600;
+}
+
+.data-table td.crop canvas {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+}
+
+.data-table td.reading {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.9375rem;
+    overflow-wrap: anywhere;
+}
+
+.page-notes {
+    margin: 0;
+    padding-left: 18px;
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    color: var(--text-secondary);
+}
+
+.page-notes li {
+    margin-bottom: 8px;
+}
+
+.about-list {
+    margin-bottom: 16px;
+    font-size: 0.8125rem;
+    line-height: 1.5;
+}
+
+.about-list dt {
+    margin-top: 10px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.about-list dd {
+    margin: 0;
+    color: var(--text-secondary);
+}
+
+/* Licenses */
+.licenses-dialog {
+    width: min(600px, calc(100vw - 32px));
+    max-height: 80vh;
+    margin: auto;
+    padding: 0;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    background: var(--bg-card);
+    color: var(--text-primary);
+}
+
+.licenses-dialog::backdrop {
+    background: rgba(0, 0, 0, 0.8);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 20px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.modal-title {
+    font-size: 1.25rem;
+}
+
+.modal-content {
+    padding: 20px;
+}
+
+.modal-content code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    overflow-wrap: anywhere;
+}
+
+.library-entry {
+    margin-bottom: 16px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.library-entry:last-child {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: 0;
+}
+
+.library-entry h3 {
+    font-size: 1rem;
+    margin-bottom: 4px;
+}
+
+.library-entry p {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.library-license a {
+    color: var(--text-primary);
+    text-decoration: underline;
+}
+
+@media (max-width: 1000px) {
+    .ocr-layout {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .compare-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .panel {
+        padding: 16px;
+    }
+
+    /* Lets "To check" wrap, so the last column stays on a phone screen. */
+    .data-table th {
+        white-space: normal;
+    }
+
+    .data-table th,
+    .data-table td {
+        padding: 8px 4px;
+    }
+
+    .text-output {
+        min-height: 260px;
+        font-size: 1rem;
+    }
+}
+
+.licenses-dialog ul {
+    margin: 8px 0;
+    padding-left: 22px;
+}
+
+.licenses-dialog li {
+    margin-bottom: 6px;
+}
