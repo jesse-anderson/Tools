@@ -17,6 +17,9 @@ Features:
 - Custom vector PDF export (no external libraries)
 - Configurable palettes with custom RGB override
 - Save/load/import/export settings
+- Pure geometry engine on window.GraphPaperEngine
+
+Last Updated: November 2026
 ============================================
 -->
 <!DOCTYPE html>
@@ -24,6 +27,7 @@ Features:
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
     <meta name="description" content="Printable graph paper generator: make cartesian, dot grid, boxed and XY-axis graph paper as a PDF. Free, no sign-up, made in your browser.">
     <link rel="canonical" href="https://tools.jesse-anderson.net/tools/graph-paper-generator.html">
     <meta property="og:type" content="website">
@@ -316,7 +320,7 @@ Features:
                             </label>
                         </div>
 
-                        <p class="helper-text axis-only" id="axisRangeHelp">First-quadrant XY uses the entered min and max values directly. Centered XY is normalized to symmetric extents about zero so the centered axes remain true X/Y axes.</p>
+                        <p class="helper-text axis-only" id="axisRangeHelp">Labels go on every major line in steps of 1, 2, 2.5 or 5 times a power of ten, the smallest such step that reaches the max, so the last label can pass it. First-quadrant XY starts counting at the min. Centered XY is made symmetric about zero so the centered axes stay true X/Y axes.</p>
 
                         <div class="advanced-subgrid scale-block">
                             <label class="check-line scale-toggle">
@@ -341,7 +345,7 @@ Features:
                                 </label>
                             </div>
                         </div>
-                        <p class="helper-text" id="scaleHelp">Scale is interpreted against one minor interval. Orthogonal templates also report the implied square-box area.</p>
+                        <p class="helper-text" id="scaleHelp">Without a scale, the Scale card shows the printed size of one minor interval. With one, it shows what an interval stands for and the drawing ratio at 100% print, so changing the spacing changes the ratio. Square templates also report the area of one box.</p>
                     </div>
                 </details>
 
