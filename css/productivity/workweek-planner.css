@@ -701,6 +701,7 @@
     .preview-heading,
     .status-banner,
     .preview-note,
+    .preview-panel .disclaimer,
     footer[data-footer] {
         display: none !important;
     }

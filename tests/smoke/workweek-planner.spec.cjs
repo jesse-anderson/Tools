@@ -77,6 +77,22 @@ test('workweek planner uses days per sheet and keeps sheet days in one row', asy
   ).toContain('grid-template-rows: repeat(1');
 });
 
+test('workweek planner prints only the planner sheets, with no notice or page chrome', async ({ page, baseURL }) => {
+  await expectPageToLoadCleanly(page, baseURL, '/tools/workweek-planner.html');
+  await expect(page.locator('.planner-sheet').first()).toBeVisible();
+  await expect(page.locator('p.disclaimer')).toBeVisible();
+
+  await page.emulateMedia({ media: 'print' });
+
+  await expect(page.locator('p.disclaimer')).toBeHidden();
+  await expect(page.locator('.planner-sheet').first()).toBeVisible();
+  const strayText = await page.evaluate(() => Array.from(document.querySelectorAll('body *'))
+    .filter((el) => !el.closest('.preview-stage') && el.children.length === 0
+      && el.textContent.trim() && el.getClientRects().length > 0)
+    .map((el) => el.textContent.trim().slice(0, 60)));
+  expect(strayText, 'Expected nothing but planner sheets on the printed page.').toEqual([]);
+});
+
 test('workweek planner blocks direct print when the configuration is invalid', async ({ page, baseURL }) => {
   await expectPageToLoadCleanly(page, baseURL, '/tools/workweek-planner.html');
 
