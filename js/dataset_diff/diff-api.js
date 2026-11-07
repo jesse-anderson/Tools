@@ -1,0 +1,26 @@
+// Test and page handle: window.DatasetDiff.
+
+import * as values from './diff-values.js';
+import { alignHeaders } from './diff-schema.js';
+import { compareTables } from './diff-engine.js';
+import { suggestPairs, validatePlan, incompletePair, aggregate } from './diff-plan.js';
+import { reportLines, preview, headline, codePointLength, PREVIEW_CAP, TRUNCATION_MARK } from './diff-report.js';
+
+export const DatasetDiff = Object.freeze({
+    version: '0.1.0',
+    ...values,
+    alignHeaders,
+    compareTables,
+    suggestPairs,
+    validatePlan,
+    incompletePair,
+    aggregate,
+    reportLines,
+    preview,
+    headline,
+    codePointLength,
+    PREVIEW_CAP,
+    TRUNCATION_MARK,
+});
+
+globalThis.DatasetDiff = DatasetDiff;

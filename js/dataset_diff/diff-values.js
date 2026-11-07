@@ -80,7 +80,14 @@ export function fromSheetCell(cell) {
 }
 
 export function rowKey(cells) { return JSON.stringify(cells); }
-export function cellsEqual(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
+
+// Same answer as comparing JSON text, without building it: every value is a
+// string or a boolean, so two fields decide it.
+export function cellsEqual(a, b) {
+    if (a === b) return true;
+    if (a === null || b === null) return false;
+    return a[0] === b[0] && a[1] === b[1];
+}
 
 // Integers with more than 15 significant digits: Excel keeps 15, so a value
 // like this was probably an identifier that has already been rounded.
