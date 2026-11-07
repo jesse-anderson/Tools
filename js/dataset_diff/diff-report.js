@@ -93,9 +93,12 @@ function* pairLines(pair, n) {
 
     const p = r.sameOrder;
     if (p.verdict === 'match') yield 'Same row order: no differences.';
+    // Read the pair list's array directly: a result copied from a worker
+    // keeps the data but not the class.
+    const pairs = p.changed.data;
     for (let i = 0; i < p.changedCells; i++) {
-        const row = p.changed.row(i);
-        const col = p.changed.col(i);
+        const row = pairs[i * 2];
+        const col = pairs[i * 2 + 1];
         yield `[POSITION] left ${cellRef(left, row, col)} / right ${cellRef(right, row, order[col])}; `
             + `header=${quoteText(r.headers[col])}; `
             + `${describeCell(left.rows[row][col])} -> ${describeCell(right.rows[row][order[col]])}`;

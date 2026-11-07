@@ -23,10 +23,17 @@ async function openEngine(page) {
             listing(rows) {
                 const width = Math.max(...rows.map((r) => r.length));
                 const pad = (r) => Array.from({ length: width }, (_, i) => r[i] ?? null);
-                const cell = (c) => (c === null ? null : c[0] === 'n' ? D.numberFromDouble(c[1]) : c);
+                const cell = (c) => (c === null ? null : c[0] === 'n' ? D.numberFromDouble(c[1])
+                    : c[0] === 'unresolved' ? D.UNRESOLVED : c);
                 return { headers: pad(rows[0]).map((c) => (c === null ? '' : String(c[1]))), rows: rows.slice(1).map((r) => pad(r).map(cell)) };
             },
             text(t, options = {}) { return D.importDelimited(t, { delimiter: ',', ...options }); },
+            async bytes(file) { return (await fetch(`/data/dataset_diff/${file}`)).arrayBuffer(); },
+            runner(options) { return new D.Runner('/js/dataset_diff/diff-worker.js', options); },
+            async open(runner, side, file) {
+                const kind = file.endsWith('.xlsx') ? 'workbook' : 'text';
+                return runner.open(side, { kind, bytes: await window.H.bytes(file), name: file });
+            },
             summary(res) {
                 const p = res.sameOrder;
                 const s = res.sorted;
@@ -299,5 +306,252 @@ test.describe('headers, encodings and limits', () => {
         expect(out.tall).toEqual(['dataRows']);
         expect(out.atRows).toBe(true);
         expect(out.long).toEqual(['textCellChars']);
+    });
+});
+
+// ---------------------------------------------------------------- workbooks
+
+const XLSX_CASES = FIXTURES.cases.filter((c) => c.left.file.endsWith('.xlsx') && c.right.file.endsWith('.xlsx'));
+
+test.describe('workbooks through the parse worker', () => {
+    test('every fixture sheet reads to the cells listed in fixtures.json', async ({ page }) => {
+        await openEngine(page);
+        const problems = await page.evaluate(async (books) => {
+            const H = window.H;
+            const runner = H.runner();
+            const out = [];
+            for (const [file, spec] of Object.entries(books)) {
+                const inv = await H.open(runner, 'left', file);
+                if (inv.dateSystem !== spec.dateSystem) out.push(`${file}: date system ${inv.dateSystem}`);
+                const want = Object.entries(spec.sheets).map(([name, s]) => [name, s.hidden]);
+                const got = inv.sheets.map((s) => [s.name, s.hidden]);
+                if (JSON.stringify(got) !== JSON.stringify(want)) out.push(`${file}: sheets ${JSON.stringify(got)}`);
+                for (const [name, s] of Object.entries(spec.sheets)) {
+                    if (name === 'MergedHeader') continue;
+                    const t = await runner.table('left', { sheet: name });
+                    const listed = H.listing(s.rows);
+                    if (JSON.stringify(t.table.headers) !== JSON.stringify(listed.headers)) out.push(`${file}!${name}: headers ${JSON.stringify(t.table.headers)}`);
+                    if (JSON.stringify(t.table.rows) !== JSON.stringify(listed.rows)) out.push(`${file}!${name}: rows ${JSON.stringify(t.table.rows)}`);
+                }
+            }
+            runner.stop();
+            return out;
+        }, FIXTURES.workbooks);
+        expect(problems).toEqual([]);
+    });
+
+    test('value ranges, hidden rows and columns, merged headers and unresolved formulas', async ({ page }) => {
+        await openEngine(page);
+        const out = await page.evaluate(async () => {
+            const H = window.H;
+            const runner = H.runner();
+            const inv = await H.open(runner, 'left', 'blanks-left.xlsx');
+            const cells = inv.sheets[0];
+            const blanks = await runner.table('left', { sheet: 'Cells' });
+            await H.open(runner, 'left', 'layout.xlsx');
+            const hidden = await runner.table('left', { sheet: 'Hidden' });
+            const merged = await runner.table('left', { sheet: 'MergedHeader' }).catch((e) => e);
+            const below = await runner.table('left', { sheet: 'MergedHeader', range: 'A2:B4' });
+            const headerOnly = await runner.table('left', { sheet: 'HeaderOnly' });
+            const badRange = await runner.table('left', { sheet: 'Hidden', range: 'A1-C4' }).catch((e) => e);
+            const missing = await runner.table('left', { sheet: 'Nope' }).catch((e) => e);
+            await H.open(runner, 'left', 'formulas-left.xlsx');
+            const unresolved = await runner.table('left', { sheet: 'Unresolved' });
+            const totals = await runner.table('left', { sheet: 'Totals' });
+            runner.stop();
+            return {
+                cells: [cells.ref, cells.valueRange], blanksRange: blanks.info.range, blanksRows: blanks.table.rows.length,
+                hidden: [hidden.info.hiddenRows, hidden.info.hiddenColumns, hidden.table.rows.length],
+                merged, below: [below.table.headers, below.table.rowRefs, below.table.colRefs],
+                headerOnly: [headerOnly.table.headers, headerOnly.table.rows.length],
+                badRange, missing,
+                unresolved: [unresolved.info.unresolved, unresolved.info.formulaCells],
+                totals: [totals.info.formulaCells, totals.info.unresolved],
+            };
+        });
+        const want = Object.fromEntries(FIXTURES.imports.filter((i) => i.file.endsWith('.xlsx')).map((i) => [`${i.file}!${i.sheet}`, i]));
+        expect(out.cells).toEqual([want['blanks-left.xlsx!Cells'].refRange, want['blanks-left.xlsx!Cells'].valueRange]);
+        expect(out.blanksRange).toBe('A1:B8');
+        expect(out.blanksRows).toBe(7);
+        const h = want['layout.xlsx!Hidden'];
+        expect(out.hidden).toEqual([h.hiddenRows, h.hiddenColumns, h.dataRows]);
+        expect(out.merged).toEqual({ kind: 'table', errors: [{ kind: 'merged-cells', ranges: want['layout.xlsx!MergedHeader'].mergedRanges }], omittedErrors: 0 });
+        expect(want['layout.xlsx!MergedHeader'].acceptedRange).toBe('A2:B4');
+        expect(out.below).toEqual([['Tag', 'Value'], [3, 4], ['A', 'B']]);
+        expect(out.headerOnly).toEqual([['Part', 'Qty'], want['layout.xlsx!HeaderOnly'].dataRows]);
+        expect(out.badRange.errors[0].kind).toBe('bad-range');
+        expect(out.missing.errors[0]).toEqual({ kind: 'missing-sheet', sheet: 'Nope' });
+        expect(out.unresolved).toEqual([['B2'], 1]);
+        expect(out.totals).toEqual([3, []]);
+    });
+
+    test('workbook cases and plans from fixtures.json, read by SheetJS', async ({ page }) => {
+        await openEngine(page);
+        const got = await page.evaluate(async ({ cases, plans }) => {
+            const D = window.DatasetDiff;
+            const H = window.H;
+            const runner = H.runner();
+            const summarize = (res) => ({ schema: { status: 'same' }, ...res });
+            const caseOut = [];
+            for (const c of cases) {
+                const [li, ri] = await Promise.all([H.open(runner, 'left', c.left.file), H.open(runner, 'right', c.right.file)]);
+                const [l, r] = await Promise.all([runner.table('left', { sheet: c.left.sheet }), runner.table('right', { sheet: c.right.sheet })]);
+                const res = D.compareTables(l.table, r.table);
+                caseOut.push({
+                    ...H.summary(summarize(res)),
+                    reason: res.incomplete ? res.incomplete.reason : undefined,
+                    dateSystems: [li.dateSystem, ri.dateSystem],
+                    leftFormulaCells: l.info.formulaCells, rightFormulaCells: r.info.formulaCells,
+                });
+            }
+            const planOut = [];
+            for (const plan of plans) {
+                const [li, ri] = await Promise.all([H.open(runner, 'left', plan.left), H.open(runner, 'right', plan.right)]);
+                const pairs = plan.pairs.map(([a, b], i) => ({ id: `p${i + 1}`, include: true, left: { sheet: a, range: null }, right: { sheet: b, range: null } }));
+                const checked = D.validatePlan(pairs, { left: li, right: ri });
+                const results = [];
+                for (const [i, p] of pairs.entries()) {
+                    if (!checked.status[i].ready) { results.push(D.incompletePair('missing-sheet')); continue; }
+                    const [l, r] = await Promise.all([runner.table('left', { sheet: p.left.sheet }), runner.table('right', { sheet: p.right.sheet })]);
+                    results.push(D.compareTables(l.table, r.table));
+                }
+                planOut.push({
+                    pairs: results.map((r) => H.summary(summarize(r))),
+                    aggregate: D.aggregate(results),
+                    hiddenLeft: checked.excluded.left.filter((s) => s.hidden).map((s) => s.name),
+                });
+            }
+            runner.stop();
+            return { caseOut, planOut };
+        }, { cases: XLSX_CASES, plans: FIXTURES.plans });
+        const keys = [...ENGINE_KEYS, 'reason', 'dateSystems', 'leftFormulaCells', 'rightFormulaCells'];
+        XLSX_CASES.forEach((c, i) => {
+            for (const k of keys) if (k in c.expect) expect.soft(got.caseOut[i][k], `${c.id}: ${k}`).toEqual(c.expect[k]);
+        });
+        FIXTURES.plans.forEach((plan, i) => {
+            const out = got.planOut[i];
+            expect(out.aggregate.sameOrder, plan.id).toBe(plan.expect.aggregate.sameOrder);
+            expect(out.aggregate.sorted, plan.id).toBe(plan.expect.aggregate.sorted);
+            if (plan.expect.pairs) {
+                plan.expect.pairs.forEach((want, j) => {
+                    for (const k of ENGINE_KEYS) if (k in want) expect.soft(out.pairs[j][k], `${plan.id} pair ${j + 1}: ${k}`).toEqual(want[k]);
+                });
+                expect(out.hiddenLeft).toEqual(plan.expect.hiddenSheets.left);
+            }
+            if (plan.expect.incompletePairs) expect(out.aggregate.incompletePairs).toEqual(plan.expect.incompletePairs);
+        });
+    });
+
+    test('the container is checked before any parser expands it', async ({ page }) => {
+        await openEngine(page);
+        const out = await page.evaluate(async () => {
+            const D = window.DatasetDiff;
+            const H = window.H;
+            const real = new Uint8Array(await H.bytes('parts-left.xlsx'));
+            const u32 = (b, i) => (b[i] | (b[i + 1] << 8) | (b[i + 2] << 16) | (b[i + 3] << 24)) >>> 0;
+            // First central directory entry, found from the end-of-directory record.
+            let eocd = real.length - 22;
+            while (u32(real, eocd) !== 0x06054B50) eocd--;
+            const cd = u32(real, eocd + 16);
+            const withSize = (size) => { const b = real.slice(); new DataView(b.buffer).setUint32(cd + 24, size, true); return b; };
+            const renamed = (to) => {
+                const b = real.slice();
+                const text = new TextDecoder('latin1').decode(b);
+                const at = text.indexOf('xl/workbook.xml', cd);
+                b.set(new TextEncoder().encode(to), at);
+                return b;
+            };
+            const kind = (b) => { const r = D.auditContainer(b); return r.ok ? 'ok' : r.error.kind + (r.error.limit ? `:${r.error.limit}` : ''); };
+            const runner = H.runner();
+            const viaWorker = await runner.open('left', { kind: 'workbook', bytes: new Uint8Array([0xD0, 0xCF, 0x11, 0xE0, 0, 0, 0, 0]).buffer }).catch((e) => e);
+            runner.stop();
+            return {
+                real: D.auditContainer(real),
+                ole: kind(new Uint8Array([0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1])),
+                random: kind(new Uint8Array([1, 2, 3, 4, 5])),
+                huge: kind(withSize(D.LIMITS.zipUncompressedBytes + 1)),
+                zip64: kind(withSize(0xFFFFFFFF)),
+                notXlsx: kind(renamed('xl/workbook.xmm')),
+                xlsb: kind(renamed('xl/workbook.bin')),
+                bigFile: kind(new Uint8Array(D.LIMITS.fileBytes + 1)),
+                viaWorker,
+            };
+        });
+        expect(out.real).toMatchObject({ ok: true, macros: false });
+        expect(out.ole).toBe('ole-container');
+        expect(out.random).toBe('not-a-workbook');
+        expect(out.huge).toBe('limit:zipUncompressedBytes');
+        expect(out.zip64).toBe('zip64');
+        expect(out.notXlsx).toBe('not-xlsx');
+        expect(out.xlsb).toBe('xlsb-not-yet');
+        expect(out.bigFile).toBe('limit:fileBytes');
+        expect(out.viaWorker).toEqual({ kind: 'ole-container' });
+    });
+});
+
+test.describe('stopping and replacing work', () => {
+    test('Stop, a replaced input and the time limit end work and drop late replies', async ({ page }) => {
+        test.setTimeout(180_000);
+        await openEngine(page);
+        await page.addScriptTag({ url: '/js/vendor/dataset_diff/xlsx.full.min.js' });
+        const out = await page.evaluate(async () => {
+            const H = window.H;
+            const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+            const aoa = [Array.from({ length: 20 }, (_, c) => `c${c}`)];
+            for (let i = 0; i < 40000; i++) aoa.push(Array.from({ length: 20 }, (_, c) => (c % 2 ? i * c : `r${i}c${c}`)));
+            const big = XLSX.write({ SheetNames: ['S'], Sheets: { S: XLSX.utils.aoa_to_sheet(aoa) } }, { type: 'array', bookType: 'xlsx', compression: true });
+            const outcome = (p) => p.then(() => 'resolved', (e) => e.kind);
+            const runner = H.runner();
+
+            // Stop while a large workbook is being read.
+            const reading = outcome(runner.open('left', { kind: 'workbook', bytes: big.slice(0) }));
+            await sleep(300);
+            const t0 = performance.now();
+            runner.stop();
+            const stopped = await reading;
+            const stopMs = performance.now() - t0;
+            const afterStop = (await H.open(runner, 'left', 'parts-left.xlsx')).sheets.map((s) => s.name);
+
+            // A new input on one side replaces the one still being read.
+            const old = outcome(runner.open('right', { kind: 'workbook', bytes: big.slice(0) }));
+            const fresh = H.open(runner, 'right', 'parts-right.xlsx');
+            const [oldOutcome, freshInv] = await Promise.all([old, fresh]);
+            const freshTable = await runner.table('right', { sheet: 'Same' });
+
+            // The other side kept its source through the replacement.
+            const leftTable = await runner.table('left', { sheet: 'Parts' });
+
+            // A reply that arrives after its request was abandoned is dropped.
+            const id = runner.nextId;
+            const abandoned = outcome(runner.request('left', { type: 'table', sheet: 'Parts' }));
+            runner.reset('left', { kind: 'replaced' });
+            runner.settle('left', { id, ok: true, value: 'late' });
+            const abandonedOutcome = await abandoned;
+
+            // The time limit terminates the worker; the runner still works after.
+            const limited = H.runner({ timeLimitMs: 300 });
+            const timed = await limited.open('left', { kind: 'workbook', bytes: big.slice(0) }).catch((e) => e);
+            limited.timeLimitMs = 60000;
+            const afterLimit = (await H.open(limited, 'left', 'parts-left.xlsx')).sheets.length;
+            runner.stop();
+            limited.stop();
+            return {
+                stopped, stopMs, afterStop, oldOutcome, fresh: freshInv.sheets.length, freshRows: freshTable.table.rows.length,
+                leftRows: leftTable.table.rows.length, abandonedOutcome, dropped: runner.dropped, timed, afterLimit,
+                pending: runner.pending.size + limited.pending.size,
+            };
+        });
+        expect(out.stopped).toBe('cancelled');
+        expect(out.stopMs).toBeLessThan(250);
+        expect(out.afterStop).toEqual(['Parts']);
+        expect(out.oldOutcome).toBe('replaced');
+        expect(out.fresh).toBe(7);
+        expect(out.freshRows).toBe(3);
+        expect(out.leftRows).toBe(3);
+        expect(out.abandonedOutcome).toBe('replaced');
+        expect(out.dropped).toBeGreaterThanOrEqual(1);
+        expect(out.timed).toEqual({ kind: 'time-limit', seconds: 0.3 });
+        expect(out.afterLimit).toBe(1);
+        expect(out.pending).toBe(0);
     });
 });

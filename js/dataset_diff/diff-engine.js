@@ -8,7 +8,8 @@ import { UNRESOLVED, cellsEqual, rowKey, compareRows } from './diff-values.js';
 import { alignHeaders } from './diff-schema.js';
 
 // Growable list of (row, column) index pairs, so two million changed cells
-// cost 16 MB rather than two million objects.
+// cost 16 MB rather than two million objects. Readers use data[i * 2] and
+// data[i * 2 + 1] directly, because a worker copy keeps fields, not methods.
 class PairList {
     constructor() { this.data = new Uint32Array(1024); this.length = 0; }
     push(a, b) {
@@ -21,8 +22,6 @@ class PairList {
         this.data[this.length * 2 + 1] = b;
         this.length++;
     }
-    row(i) { return this.data[i * 2]; }
-    col(i) { return this.data[i * 2 + 1]; }
 }
 
 function checkShape(table, side) {

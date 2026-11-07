@@ -369,7 +369,7 @@ test.describe('completeness', () => {
                 empty: [empty.sameOrder.verdict, empty.sorted.verdict, D.headline(empty)],
                 unresolved: [unresolved.sameOrder.verdict, unresolved.sorted.verdict, unresolved.incomplete.reason],
                 ragged,
-                late: [late.sameOrder.changedCells, late.sameOrder.changed.row(0), late.sorted.leftOnlyRows, late.sorted.matchedRows],
+                late: [late.sameOrder.changedCells, late.sameOrder.changed.data[0], late.sorted.leftOnlyRows, late.sorted.matchedRows],
             };
         });
         expect(out.empty).toEqual(['match', 'match', 'Same selected table values in the same row order (0 data rows)']);

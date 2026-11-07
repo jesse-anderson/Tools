@@ -89,6 +89,16 @@ export function cellsEqual(a, b) {
     return a[0] === b[0] && a[1] === b[1];
 }
 
+// Tables cross between threads as one JSON string per row, which copies far
+// faster than nested arrays. UNRESOLVED travels as ['u'].
+export function encodeRows(rows) {
+    return rows.map((row) => JSON.stringify(row.map((c) => (c === UNRESOLVED ? ['u'] : c))));
+}
+
+export function decodeRows(keys) {
+    return keys.map((k) => JSON.parse(k).map((c) => (c !== null && c[0] === 'u' ? UNRESOLVED : c)));
+}
+
 // Integers with more than 15 significant digits: Excel keeps 15, so a value
 // like this was probably an identifier that has already been rounded.
 export function isLongInteger(cell) {
