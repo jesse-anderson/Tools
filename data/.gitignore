@@ -32,3 +32,8 @@
 !wfh_calculator/
 !wfh_calculator/README.md
 !wfh_calculator/*.csv
+!dataset_diff/
+!dataset_diff/README.md
+!dataset_diff/*.csv
+!dataset_diff/*.json
+!dataset_diff/*.xlsx

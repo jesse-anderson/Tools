@@ -1,0 +1,2435 @@
+{
+  "version": 1,
+  "generator": "scripts/build-dataset-diff-fixtures.py",
+  "openpyxl": "3.1.5",
+  "cases": [
+    {
+      "id": "parts-Same-xlsx",
+      "left": {
+        "file": "parts-left.xlsx",
+        "sheet": "Parts"
+      },
+      "right": {
+        "file": "parts-right.xlsx",
+        "sheet": "Same"
+      },
+      "expect": {
+        "sameOrder": "match",
+        "sorted": "match",
+        "leftRows": 3,
+        "rightRows": 3,
+        "matchedRows": 3,
+        "leftOnlyRows": 0,
+        "rightOnlyRows": 0,
+        "changedCells": 0
+      }
+    },
+    {
+      "id": "parts-Same-csv",
+      "left": {
+        "file": "parts-left.csv"
+      },
+      "right": {
+        "file": "parts-right-Same.csv"
+      },
+      "expect": {
+        "sameOrder": "match",
+        "sorted": "match",
+        "leftRows": 3,
+        "rightRows": 3,
+        "matchedRows": 3,
+        "leftOnlyRows": 0,
+        "rightOnlyRows": 0,
+        "changedCells": 0
+      }
+    },
+    {
+      "id": "parts-RowsSwapped-xlsx",
+      "left": {
+        "file": "parts-left.xlsx",
+        "sheet": "Parts"
+      },
+      "right": {
+        "file": "parts-right.xlsx",
+        "sheet": "RowsSwapped"
+      },
+      "expect": {
+        "sameOrder": "different",
+        "sorted": "match",
+        "leftRows": 3,
+        "rightRows": 3,
+        "matchedRows": 3,
+        "leftOnlyRows": 0,
+        "rightOnlyRows": 0,
+        "changedCells": 6
+      }
+    },
+    {
+      "id": "parts-RowsSwapped-csv",
+      "left": {
+        "file": "parts-left.csv"
+      },
+      "right": {
+        "file": "parts-right-RowsSwapped.csv"
+      },
+      "expect": {
+        "sameOrder": "different",
+        "sorted": "match",
+        "leftRows": 3,
+        "rightRows": 3,
+        "matchedRows": 3,
+        "leftOnlyRows": 0,
+        "rightOnlyRows": 0,
+        "changedCells": 6
+      }
+    },
+    {
+      "id": "parts-CopyRemoved-xlsx",
+      "left": {
+        "file": "parts-left.xlsx",
+        "sheet": "Parts"
+      },
+      "right": {
+        "file": "parts-right.xlsx",
+        "sheet": "CopyRemoved"
+      },
+      "expect": {
+        "sameOrder": "different",
+        "sorted": "different",
+        "leftRows": 3,
+        "rightRows": 2,
+        "matchedRows": 2,
+        "leftOnlyRows": 1,
+        "rightOnlyRows": 0,
+        "changedCells": 0,
+        "trailingLeftRows": 1
+      }
+    },
+    {
+      "id": "parts-CopyRemoved-csv",
+      "left": {
+        "file": "parts-left.csv"
+      },
+      "right": {
+        "file": "parts-right-CopyRemoved.csv"
+      },
+      "expect": {
+        "sameOrder": "different",
+        "sorted": "different",
+        "leftRows": 3,
+        "rightRows": 2,
+        "matchedRows": 2,
+        "leftOnlyRows": 1,
+        "rightOnlyRows": 0,
+        "changedCells": 0,
+        "trailingLeftRows": 1
+      }
+    },
+    {
+      "id": "parts-QtyChanged-xlsx",
+      "left": {
+        "file": "parts-left.xlsx",
+        "sheet": "Parts"
+      },
+      "right": {
+        "file": "parts-right.xlsx",
+        "sheet": "QtyChanged"
+      },
+      "expect": {
+        "sameOrder": "different",
+        "sorted": "different",
+        "leftRows": 3,
+        "rightRows": 3,
+        "matchedRows": 2,
+        "leftOnlyRows": 1,
+        "rightOnlyRows": 1,
+        "changedCells": 1
+      }
+    },
+    {
+      "id": "parts-QtyChanged-csv",
+      "left": {
+        "file": "parts-left.csv"
+      },
+      "right": {
+        "file": "parts-right-QtyChanged.csv"
+      },
+      "expect": {
+        "sameOrder": "different",
+        "sorted": "different",
+        "leftRows": 3,
+        "rightRows": 3,
+        "matchedRows": 2,
+        "leftOnlyRows": 1,
+        "rightOnlyRows": 1,
+        "changedCells": 1
+      }
+    },
+    {
+      "id": "parts-ColumnsReordered-xlsx",
+      "left": {
+        "file": "parts-left.xlsx",
+        "sheet": "Parts"
+      },
+      "right": {
+        "file": "parts-right.xlsx",
+        "sheet": "ColumnsReordered"
+      },
+      "expect": {
+        "sameOrder": "match",
+        "sorted": "match",
+        "leftRows": 3,
+        "rightRows": 3,
+        "matchedRows": 3,
+        "leftOnlyRows": 0,
+        "rightOnlyRows": 0,
+        "changedCells": 0,
+        "columnOrderChanged": true
+      }
+    },
+    {
+      "id": "parts-ColumnsReordered-csv",
+      "left": {
+        "file": "parts-left.csv"
+      },
+      "right": {
+        "file": "parts-right-ColumnsReordered.csv"
+      },
+      "expect": {
+        "sameOrder": "match",
+        "sorted": "match",
+        "leftRows": 3,
+        "rightRows": 3,
+        "matchedRows": 3,
+        "leftOnlyRows": 0,
+        "rightOnlyRows": 0,
+        "changedCells": 0,
+        "columnOrderChanged": true
+      }
+    },
+    {
+      "id": "parts-QtyRenamed-xlsx",
+      "left": {
+        "file": "parts-left.xlsx",
+        "sheet": "Parts"
+      },
+      "right": {
+        "file": "parts-right.xlsx",
+        "sheet": "QtyRenamed"
+      },
+      "expect": {
+        "schema": "different",
+        "missingRight": [
+          "Qty"
+        ],
+        "extraRight": [
+          "Quantity"
+        ],
+        "sameOrder": "unavailable",
+        "sorted": "unavailable"
+      }
+    },
+    {
+      "id": "parts-QtyRenamed-csv",
+      "left": {
+        "file": "parts-left.csv"
+      },
+      "right": {
+        "file": "parts-right-QtyRenamed.csv"
+      },
+      "expect": {
+        "schema": "different",
+        "missingRight": [
+          "Qty"
+        ],
+        "extraRight": [
+          "Quantity"
+        ],
+        "sameOrder": "unavailable",
+        "sorted": "unavailable"
+      }
+    },
+    {
+      "id": "parts-PartAsNumber-xlsx",
+      "left": {
+        "file": "parts-left.xlsx",
+        "sheet": "Parts"
+      },
+      "right": {
+        "file": "parts-right.xlsx",
+        "sheet": "PartAsNumber"
+      },
+      "expect": {
+        "sameOrder": "different",
+        "sorted": "different",
+        "leftRows": 3,
+        "rightRows": 3,
+        "matchedRows": 0,
+        "leftOnlyRows": 3,
+        "rightOnlyRows": 3,
+        "changedCells": 3,
+        "leftOnlyPatterns": 2,
+        "rightOnlyPatterns": 2
+      }
+    },
+    {
+      "id": "parts-PartAsNumber-csv",
+      "left": {
+        "file": "parts-left.csv"
+      },
+      "right": {
+        "file": "parts-right-PartAsNumber.csv"
+      },
+      "expect": {
+        "sameOrder": "different",
+        "sorted": "different",
+        "leftRows": 3,
+        "rightRows": 3,
+        "matchedRows": 0,
+        "leftOnlyRows": 3,
+        "rightOnlyRows": 3,
+        "changedCells": 3,
+        "leftOnlyPatterns": 2,
+        "rightOnlyPatterns": 2
+      }
+    },
+    {
+      "id": "parts-mixed-format-match",
+      "note": "Nothing in this table is formatted, so a workbook and a CSV can still match.",
+      "left": {
+        "file": "parts-left.xlsx",
+        "sheet": "Parts"
+      },
+      "right": {
+        "file": "parts-right-Same.csv"
+      },
+      "expect": {
+        "sameOrder": "match",
+        "sorted": "match",
+        "leftRows": 3,
+        "rightRows": 3,
+        "matchedRows": 3,
+        "leftOnlyRows": 0,
+        "rightOnlyRows": 0,
+        "changedCells": 0,
+        "mixedFormatWarning": true
+      }
+    },
+    {
+      "id": "display-hides-decimal",
+      "note": "T1 shows 1.23 on both sides; T2 is one stored value shown two ways; T3 is 0.1+0.2 against 0.3.",
+      "left": {
+        "file": "display-left.xlsx",
+        "sheet": "Readings"
+      },
+      "right": {
+        "file": "display-right.xlsx",
+        "sheet": "Readings"
+      },
+      "expect": {
+        "sameOrder": "different",
+        "sorted": "different",
+        "leftRows": 3,
+        "rightRows": 3,
+        "matchedRows": 1,
+        "leftOnlyRows": 2,
+        "rightOnlyRows": 2,
+        "changedCells": 2
+      }
+    },
+    {
+      "id": "dates-same-serials-different-systems",
+      "left": {
+        "file": "dates-1900.xlsx",
+        "sheet": "Dates"
+      },
+      "right": {
+        "file": "dates-1904.xlsx",
+        "sheet": "Dates"
+      },
+      "expect": {
+        "sameOrder": "match",
+        "sorted": "match",
+        "leftRows": 4,
+        "rightRows": 4,
+        "matchedRows": 4,
+        "leftOnlyRows": 0,
+        "rightOnlyRows": 0,
+        "changedCells": 0,
+        "dateSystems": [
+          "1900",
+          "1904"
+        ]
+      }
+    },
+    {
+      "id": "dates-same-calendar-different-serials",
+      "left": {
+        "file": "dates-1900.xlsx",
+        "sheet": "Calendar"
+      },
+      "right": {
+        "file": "dates-1904.xlsx",
+        "sheet": "Calendar"
+      },
+      "expect": {
+        "sameOrder": "different",
+        "sorted": "different",
+        "leftRows": 3,
+        "rightRows": 3,
+        "matchedRows": 0,
+        "leftOnlyRows": 3,
+        "rightOnlyRows": 3,
+        "changedCells": 3,
+        "dateSystems": [
+          "1900",
+          "1904"
+        ]
+      }
+    },
+    {
+      "id": "dates-simulated-csv-export",
+      "note": "The unsupported use case: Excel writes displayed text to CSV.",
+      "left": {
+        "file": "dates-1900.xlsx",
+        "sheet": "Dates"
+      },
+      "right": {
+        "file": "dates-excel-export-simulated.csv"
+      },
+      "expect": {
+        "sameOrder": "different",
+        "sorted": "different",
+        "leftRows": 4,
+        "rightRows": 4,
+        "matchedRows": 0,
+        "leftOnlyRows": 4,
+        "rightOnlyRows": 4,
+        "changedCells": 4,
+        "mixedFormatWarning": true
+      }
+    },
+    {
+      "id": "formula-caches-match-values",
+      "left": {
+        "file": "formulas-left.xlsx",
+        "sheet": "Totals"
+      },
+      "right": {
+        "file": "formulas-right.xlsx",
+        "sheet": "Totals"
+      },
+      "expect": {
+        "sameOrder": "match",
+        "sorted": "match",
+        "leftRows": 3,
+        "rightRows": 3,
+        "matchedRows": 3,
+        "leftOnlyRows": 0,
+        "rightOnlyRows": 0,
+        "changedCells": 0,
+        "leftFormulaCells": 3,
+        "rightFormulaCells": 1
+      }
+    },
+    {
+      "id": "formula-unresolved",
+      "left": {
+        "file": "formulas-left.xlsx",
+        "sheet": "Unresolved"
+      },
+      "right": {
+        "file": "formulas-right.xlsx",
+        "sheet": "Unresolved"
+      },
+      "expect": {
+        "sameOrder": "incomplete",
+        "sorted": "incomplete",
+        "reason": "unresolved-formula",
+        "cells": [
+          "Unresolved!B2"
+        ]
+      }
+    },
+    {
+      "id": "blanks-and-types",
+      "note": "Five rows differ by type or blankness; zero-signs and the all-blank row match.",
+      "left": {
+        "file": "blanks-left.xlsx",
+        "sheet": "Cells"
+      },
+      "right": {
+        "file": "blanks-right.xlsx",
+        "sheet": "Cells"
+      },
+      "expect": {
+        "sameOrder": "different",
+        "sorted": "different",
+        "leftRows": 7,
+        "rightRows": 7,
+        "matchedRows": 2,
+        "leftOnlyRows": 5,
+        "rightOnlyRows": 5,
+        "changedCells": 5
+      }
+    },
+    {
+      "id": "header-only-mixed",
+      "left": {
+        "file": "layout.xlsx",
+        "sheet": "HeaderOnly"
+      },
+      "right": {
+        "file": "header-only.csv"
+      },
+      "expect": {
+        "sameOrder": "match",
+        "sorted": "match",
+        "leftRows": 0,
+        "rightRows": 0,
+        "matchedRows": 0,
+        "leftOnlyRows": 0,
+        "rightOnlyRows": 0,
+        "changedCells": 0,
+        "mixedFormatWarning": true
+      }
+    }
+  ],
+  "plans": [
+    {
+      "id": "three-pairs",
+      "left": "three-pairs-left.xlsx",
+      "right": "three-pairs-right.xlsx",
+      "pairs": [
+        [
+          "Orders",
+          "Orders"
+        ],
+        [
+          "Stock",
+          "Stock"
+        ],
+        [
+          "Prices",
+          "Prices"
+        ]
+      ],
+      "excludedLeft": [
+        "Archive",
+        "Notes"
+      ],
+      "excludedRight": [
+        "Summary"
+      ],
+      "expect": {
+        "pairs": [
+          {
+            "sameOrder": "match",
+            "sorted": "match",
+            "leftRows": 3,
+            "rightRows": 3,
+            "matchedRows": 3,
+            "leftOnlyRows": 0,
+            "rightOnlyRows": 0,
+            "changedCells": 0
+          },
+          {
+            "sameOrder": "different",
+            "sorted": "match",
+            "leftRows": 4,
+            "rightRows": 4,
+            "matchedRows": 4,
+            "leftOnlyRows": 0,
+            "rightOnlyRows": 0,
+            "changedCells": 10
+          },
+          {
+            "sameOrder": "different",
+            "sorted": "different",
+            "leftRows": 3,
+            "rightRows": 3,
+            "matchedRows": 2,
+            "leftOnlyRows": 1,
+            "rightOnlyRows": 1,
+            "changedCells": 1
+          }
+        ],
+        "aggregate": {
+          "sameOrder": "different",
+          "sorted": "different"
+        },
+        "hiddenSheets": {
+          "left": [
+            "Notes"
+          ],
+          "right": []
+        }
+      }
+    },
+    {
+      "id": "three-pairs-missing-sheet",
+      "left": "three-pairs-left.xlsx",
+      "right": "three-pairs-right.xlsx",
+      "pairs": [
+        [
+          "Orders",
+          "Orders"
+        ],
+        [
+          "Archive",
+          "Archive"
+        ]
+      ],
+      "expect": {
+        "aggregate": {
+          "sameOrder": "incomplete",
+          "sorted": "incomplete"
+        },
+        "incompletePairs": [
+          2
+        ],
+        "reason": "missing-sheet"
+      }
+    }
+  ],
+  "imports": [
+    {
+      "file": "blanks-left.xlsx",
+      "sheet": "Cells",
+      "valueRange": "A1:B8",
+      "refRange": "A1:E20"
+    },
+    {
+      "file": "layout.xlsx",
+      "sheet": "Hidden",
+      "valueRange": "A1:C4",
+      "dataRows": 3,
+      "hiddenRows": [
+        3
+      ],
+      "hiddenColumns": [
+        "C"
+      ],
+      "strings": "inline"
+    },
+    {
+      "file": "layout.xlsx",
+      "sheet": "MergedHeader",
+      "refused": "merged-cells",
+      "mergedRanges": [
+        "A1:B1"
+      ],
+      "acceptedRange": "A2:B4"
+    },
+    {
+      "file": "layout.xlsx",
+      "sheet": "HeaderOnly",
+      "dataRows": 0
+    },
+    {
+      "file": "quoted-newlines.csv",
+      "dataRows": 3,
+      "records": [
+        {
+          "record": 2,
+          "lines": [
+            2,
+            3
+          ],
+          "Note": "line one\r\nline two"
+        },
+        {
+          "record": 3,
+          "lines": [
+            4,
+            4
+          ],
+          "Note": "has \"quotes\", and a comma"
+        }
+      ]
+    },
+    {
+      "file": "header-only.csv",
+      "dataRows": 0
+    },
+    {
+      "file": "ragged.csv",
+      "refused": "ragged-rows",
+      "errors": [
+        {
+          "record": 3,
+          "fields": 3
+        },
+        {
+          "record": 4,
+          "fields": 1
+        }
+      ]
+    },
+    {
+      "file": "bom-utf8.csv",
+      "encoding": "UTF-8 BOM",
+      "headers": [
+        "Part",
+        "Name"
+      ],
+      "values": [
+        "Café",
+        "naïve"
+      ]
+    },
+    {
+      "file": "literals.csv",
+      "columnTypes": {
+        "Key": "text",
+        "Value": "text"
+      },
+      "values": [
+        "NULL",
+        "N/A",
+        "NaN",
+        null
+      ],
+      "note": "Last Value is blank under the default Empty fields setting."
+    }
+  ],
+  "workbooks": {
+    "parts-left.xlsx": {
+      "dateSystem": "1900",
+      "strings": "shared",
+      "sheets": {
+        "Parts": {
+          "hidden": false,
+          "rows": [
+            [
+              [
+                "t",
+                "Part"
+              ],
+              [
+                "t",
+                "Location"
+              ],
+              [
+                "t",
+                "Qty"
+              ]
+            ],
+            [
+              [
+                "t",
+                "00123"
+              ],
+              [
+                "t",
+                "North"
+              ],
+              [
+                "n",
+                10
+              ]
+            ],
+            [
+              [
+                "t",
+                "00456"
+              ],
+              [
+                "t",
+                "South"
+              ],
+              [
+                "n",
+                20
+              ]
+            ],
+            [
+              [
+                "t",
+                "00123"
+              ],
+              [
+                "t",
+                "North"
+              ],
+              [
+                "n",
+                10
+              ]
+            ]
+          ]
+        }
+      }
+    },
+    "parts-right.xlsx": {
+      "dateSystem": "1900",
+      "strings": "shared",
+      "sheets": {
+        "Same": {
+          "hidden": false,
+          "rows": [
+            [
+              [
+                "t",
+                "Part"
+              ],
+              [
+                "t",
+                "Location"
+              ],
+              [
+                "t",
+                "Qty"
+              ]
+            ],
+            [
+              [
+                "t",
+                "00123"
+              ],
+              [
+                "t",
+                "North"
+              ],
+              [
+                "n",
+                10
+              ]
+            ],
+            [
+              [
+                "t",
+                "00456"
+              ],
+              [
+                "t",
+                "South"
+              ],
+              [
+                "n",
+                20
+              ]
+            ],
+            [
+              [
+                "t",
+                "00123"
+              ],
+              [
+                "t",
+                "North"
+              ],
+              [
+                "n",
+                10
+              ]
+            ]
+          ]
+        },
+        "RowsSwapped": {
+          "hidden": false,
+          "rows": [
+            [
+              [
+                "t",
+                "Part"
+              ],
+              [
+                "t",
+                "Location"
+              ],
+              [
+                "t",
+                "Qty"
+              ]
+            ],
+            [
+              [
+                "t",
+                "00456"
+              ],
+              [
+                "t",
+                "South"
+              ],
+              [
+                "n",
+                20
+              ]
+            ],
+            [
+              [
+                "t",
+                "00123"
+              ],
+              [
+                "t",
+                "North"
+              ],
+              [
+                "n",
+                10
+              ]
+            ],
+            [
+              [
+                "t",
+                "00123"
+              ],
+              [
+                "t",
+                "North"
+              ],
+              [
+                "n",
+                10
+              ]
+            ]
+          ]
+        },
+        "CopyRemoved": {
+          "hidden": false,
+          "rows": [
+            [
+              [
+                "t",
+                "Part"
+              ],
+              [
+                "t",
+                "Location"
+              ],
+              [
+                "t",
+                "Qty"
+              ]
+            ],
+            [
+              [
+                "t",
+                "00123"
+              ],
+              [
+                "t",
+                "North"
+              ],
+              [
+                "n",
+                10
+              ]
+            ],
+            [
+              [
+                "t",
+                "00456"
+              ],
+              [
+                "t",
+                "South"
+              ],
+              [
+                "n",
+                20
+              ]
+            ]
+          ]
+        },
+        "QtyChanged": {
+          "hidden": false,
+          "rows": [
+            [
+              [
+                "t",
+                "Part"
+              ],
+              [
+                "t",
+                "Location"
+              ],
+              [
+                "t",
+                "Qty"
+              ]
+            ],
+            [
+              [
+                "t",
+                "00123"
+              ],
+              [
+                "t",
+                "North"
+              ],
+              [
+                "n",
+                10
+              ]
+            ],
+            [
+              [
+                "t",
+                "00456"
+              ],
+              [
+                "t",
+                "South"
+              ],
+              [
+                "n",
+                21
+              ]
+            ],
+            [
+              [
+                "t",
+                "00123"
+              ],
+              [
+                "t",
+                "North"
+              ],
+              [
+                "n",
+                10
+              ]
+            ]
+          ]
+        },
+        "ColumnsReordered": {
+          "hidden": false,
+          "rows": [
+            [
+              [
+                "t",
+                "Qty"
+              ],
+              [
+                "t",
+                "Part"
+              ],
+              [
+                "t",
+                "Location"
+              ]
+            ],
+            [
+              [
+                "n",
+                10
+              ],
+              [
+                "t",
+                "00123"
+              ],
+              [
+                "t",
+                "North"
+              ]
+            ],
+            [
+              [
+                "n",
+                20
+              ],
+              [
+                "t",
+                "00456"
+              ],
+              [
+                "t",
+                "South"
+              ]
+            ],
+            [
+              [
+                "n",
+                10
+              ],
+              [
+                "t",
+                "00123"
+              ],
+              [
+                "t",
+                "North"
+              ]
+            ]
+          ]
+        },
+        "QtyRenamed": {
+          "hidden": false,
+          "rows": [
+            [
+              [
+                "t",
+                "Part"
+              ],
+              [
+                "t",
+                "Location"
+              ],
+              [
+                "t",
+                "Quantity"
+              ]
+            ],
+            [
+              [
+                "t",
+                "00123"
+              ],
+              [
+                "t",
+                "North"
+              ],
+              [
+                "n",
+                10
+              ]
+            ],
+            [
+              [
+                "t",
+                "00456"
+              ],
+              [
+                "t",
+                "South"
+              ],
+              [
+                "n",
+                20
+              ]
+            ],
+            [
+              [
+                "t",
+                "00123"
+              ],
+              [
+                "t",
+                "North"
+              ],
+              [
+                "n",
+                10
+              ]
+            ]
+          ]
+        },
+        "PartAsNumber": {
+          "hidden": false,
+          "rows": [
+            [
+              [
+                "t",
+                "Part"
+              ],
+              [
+                "t",
+                "Location"
+              ],
+              [
+                "t",
+                "Qty"
+              ]
+            ],
+            [
+              [
+                "n",
+                123
+              ],
+              [
+                "t",
+                "North"
+              ],
+              [
+                "n",
+                10
+              ]
+            ],
+            [
+              [
+                "n",
+                456
+              ],
+              [
+                "t",
+                "South"
+              ],
+              [
+                "n",
+                20
+              ]
+            ],
+            [
+              [
+                "n",
+                123
+              ],
+              [
+                "t",
+                "North"
+              ],
+              [
+                "n",
+                10
+              ]
+            ]
+          ]
+        }
+      }
+    },
+    "three-pairs-left.xlsx": {
+      "dateSystem": "1900",
+      "strings": "shared",
+      "sheets": {
+        "Orders": {
+          "hidden": false,
+          "rows": [
+            [
+              [
+                "t",
+                "OrderID"
+              ],
+              [
+                "t",
+                "Customer"
+              ],
+              [
+                "t",
+                "Amount"
+              ]
+            ],
+            [
+              [
+                "t",
+                "A-100"
+              ],
+              [
+                "t",
+                "Acme"
+              ],
+              [
+                "n",
+                250.5
+              ]
+            ],
+            [
+              [
+                "t",
+                "A-101"
+              ],
+              [
+                "t",
+                "Birch"
+              ],
+              [
+                "n",
+                99.99
+              ]
+            ],
+            [
+              [
+                "t",
+                "A-102"
+              ],
+              [
+                "t",
+                "Cobalt"
+              ],
+              [
+                "n",
+                1200
+              ]
+            ]
+          ]
+        },
+        "Stock": {
+          "hidden": false,
+          "rows": [
+            [
+              [
+                "t",
+                "SKU"
+              ],
+              [
+                "t",
+                "Bin"
+              ],
+              [
+                "t",
+                "OnHand"
+              ]
+            ],
+            [
+              [
+                "t",
+                "S-1"
+              ],
+              [
+                "t",
+                "B1"
+              ],
+              [
+                "n",
+                5
+              ]
+            ],
+            [
+              [
+                "t",
+                "S-2"
+              ],
+              [
+                "t",
+                "B2"
+              ],
+              [
+                "n",
+                0
+              ]
+            ],
+            [
+              [
+                "t",
+                "S-3"
+              ],
+              [
+                "t",
+                "B3"
+              ],
+              [
+                "n",
+                12
+              ]
+            ],
+            [
+              [
+                "t",
+                "S-4"
+              ],
+              [
+                "t",
+                "B1"
+              ],
+              [
+                "n",
+                7
+              ]
+            ]
+          ]
+        },
+        "Prices": {
+          "hidden": false,
+          "rows": [
+            [
+              [
+                "t",
+                "Item"
+              ],
+              [
+                "t",
+                "Price"
+              ]
+            ],
+            [
+              [
+                "t",
+                "Bolt"
+              ],
+              [
+                "n",
+                0.25
+              ]
+            ],
+            [
+              [
+                "t",
+                "Nut"
+              ],
+              [
+                "n",
+                0.1
+              ]
+            ],
+            [
+              [
+                "t",
+                "Washer"
+              ],
+              [
+                "n",
+                0.05
+              ]
+            ]
+          ]
+        },
+        "Archive": {
+          "hidden": false,
+          "rows": [
+            [
+              [
+                "t",
+                "Year"
+              ],
+              [
+                "t",
+                "Total"
+              ]
+            ],
+            [
+              [
+                "n",
+                2024
+              ],
+              [
+                "n",
+                10
+              ]
+            ]
+          ]
+        },
+        "Notes": {
+          "hidden": true,
+          "rows": [
+            [
+              [
+                "t",
+                "Note"
+              ]
+            ],
+            [
+              [
+                "t",
+                "internal"
+              ]
+            ]
+          ]
+        }
+      }
+    },
+    "three-pairs-right.xlsx": {
+      "dateSystem": "1900",
+      "strings": "shared",
+      "sheets": {
+        "Orders": {
+          "hidden": false,
+          "rows": [
+            [
+              [
+                "t",
+                "OrderID"
+              ],
+              [
+                "t",
+                "Customer"
+              ],
+              [
+                "t",
+                "Amount"
+              ]
+            ],
+            [
+              [
+                "t",
+                "A-100"
+              ],
+              [
+                "t",
+                "Acme"
+              ],
+              [
+                "n",
+                250.5
+              ]
+            ],
+            [
+              [
+                "t",
+                "A-101"
+              ],
+              [
+                "t",
+                "Birch"
+              ],
+              [
+                "n",
+                99.99
+              ]
+            ],
+            [
+              [
+                "t",
+                "A-102"
+              ],
+              [
+                "t",
+                "Cobalt"
+              ],
+              [
+                "n",
+                1200
+              ]
+            ]
+          ]
+        },
+        "Stock": {
+          "hidden": false,
+          "rows": [
+            [
+              [
+                "t",
+                "SKU"
+              ],
+              [
+                "t",
+                "Bin"
+              ],
+              [
+                "t",
+                "OnHand"
+              ]
+            ],
+            [
+              [
+                "t",
+                "S-4"
+              ],
+              [
+                "t",
+                "B1"
+              ],
+              [
+                "n",
+                7
+              ]
+            ],
+            [
+              [
+                "t",
+                "S-3"
+              ],
+              [
+                "t",
+                "B3"
+              ],
+              [
+                "n",
+                12
+              ]
+            ],
+            [
+              [
+                "t",
+                "S-2"
+              ],
+              [
+                "t",
+                "B2"
+              ],
+              [
+                "n",
+                0
+              ]
+            ],
+            [
+              [
+                "t",
+                "S-1"
+              ],
+              [
+                "t",
+                "B1"
+              ],
+              [
+                "n",
+                5
+              ]
+            ]
+          ]
+        },
+        "Prices": {
+          "hidden": false,
+          "rows": [
+            [
+              [
+                "t",
+                "Item"
+              ],
+              [
+                "t",
+                "Price"
+              ]
+            ],
+            [
+              [
+                "t",
+                "Bolt"
+              ],
+              [
+                "n",
+                0.25
+              ]
+            ],
+            [
+              [
+                "t",
+                "Nut"
+              ],
+              [
+                "n",
+                0.12
+              ]
+            ],
+            [
+              [
+                "t",
+                "Washer"
+              ],
+              [
+                "n",
+                0.05
+              ]
+            ]
+          ]
+        },
+        "Summary": {
+          "hidden": false,
+          "rows": [
+            [
+              [
+                "t",
+                "Pairs"
+              ]
+            ],
+            [
+              [
+                "n",
+                3
+              ]
+            ]
+          ]
+        }
+      }
+    },
+    "display-left.xlsx": {
+      "dateSystem": "1900",
+      "strings": "shared",
+      "sheets": {
+        "Readings": {
+          "hidden": false,
+          "rows": [
+            [
+              [
+                "t",
+                "Tag"
+              ],
+              [
+                "t",
+                "Value"
+              ]
+            ],
+            [
+              [
+                "t",
+                "T1"
+              ],
+              [
+                "n",
+                1.234
+              ]
+            ],
+            [
+              [
+                "t",
+                "T2"
+              ],
+              [
+                "n",
+                1
+              ]
+            ],
+            [
+              [
+                "t",
+                "T3"
+              ],
+              [
+                "n",
+                0.30000000000000004
+              ]
+            ]
+          ]
+        }
+      }
+    },
+    "display-right.xlsx": {
+      "dateSystem": "1900",
+      "strings": "shared",
+      "sheets": {
+        "Readings": {
+          "hidden": false,
+          "rows": [
+            [
+              [
+                "t",
+                "Tag"
+              ],
+              [
+                "t",
+                "Value"
+              ]
+            ],
+            [
+              [
+                "t",
+                "T1"
+              ],
+              [
+                "n",
+                1.233
+              ]
+            ],
+            [
+              [
+                "t",
+                "T2"
+              ],
+              [
+                "n",
+                1
+              ]
+            ],
+            [
+              [
+                "t",
+                "T3"
+              ],
+              [
+                "n",
+                0.3
+              ]
+            ]
+          ]
+        }
+      }
+    },
+    "dates-1900.xlsx": {
+      "dateSystem": "1900",
+      "strings": "shared",
+      "sheets": {
+        "Dates": {
+          "hidden": false,
+          "rows": [
+            [
+              [
+                "t",
+                "Event"
+              ],
+              [
+                "t",
+                "When"
+              ]
+            ],
+            [
+              [
+                "t",
+                "Kickoff"
+              ],
+              [
+                "n",
+                46000
+              ]
+            ],
+            [
+              [
+                "t",
+                "Review"
+              ],
+              [
+                "n",
+                46000
+              ]
+            ],
+            [
+              [
+                "t",
+                "Leap"
+              ],
+              [
+                "n",
+                60
+              ]
+            ],
+            [
+              [
+                "t",
+                "Noon"
+              ],
+              [
+                "n",
+                45000.5
+              ]
+            ]
+          ]
+        },
+        "Calendar": {
+          "hidden": false,
+          "rows": [
+            [
+              [
+                "t",
+                "Event"
+              ],
+              [
+                "t",
+                "When"
+              ]
+            ],
+            [
+              [
+                "t",
+                "Kickoff"
+              ],
+              [
+                "n",
+                46000
+              ]
+            ],
+            [
+              [
+                "t",
+                "Review"
+              ],
+              [
+                "n",
+                46000
+              ]
+            ],
+            [
+              [
+                "t",
+                "Noon"
+              ],
+              [
+                "n",
+                45000.5
+              ]
+            ]
+          ]
+        }
+      }
+    },
+    "dates-1904.xlsx": {
+      "dateSystem": "1904",
+      "strings": "shared",
+      "sheets": {
+        "Dates": {
+          "hidden": false,
+          "rows": [
+            [
+              [
+                "t",
+                "Event"
+              ],
+              [
+                "t",
+                "When"
+              ]
+            ],
+            [
+              [
+                "t",
+                "Kickoff"
+              ],
+              [
+                "n",
+                46000
+              ]
+            ],
+            [
+              [
+                "t",
+                "Review"
+              ],
+              [
+                "n",
+                46000
+              ]
+            ],
+            [
+              [
+                "t",
+                "Leap"
+              ],
+              [
+                "n",
+                60
+              ]
+            ],
+            [
+              [
+                "t",
+                "Noon"
+              ],
+              [
+                "n",
+                45000.5
+              ]
+            ]
+          ]
+        },
+        "Calendar": {
+          "hidden": false,
+          "rows": [
+            [
+              [
+                "t",
+                "Event"
+              ],
+              [
+                "t",
+                "When"
+              ]
+            ],
+            [
+              [
+                "t",
+                "Kickoff"
+              ],
+              [
+                "n",
+                44538
+              ]
+            ],
+            [
+              [
+                "t",
+                "Review"
+              ],
+              [
+                "n",
+                44538
+              ]
+            ],
+            [
+              [
+                "t",
+                "Noon"
+              ],
+              [
+                "n",
+                43538.5
+              ]
+            ]
+          ]
+        }
+      }
+    },
+    "formulas-left.xlsx": {
+      "dateSystem": "1900",
+      "strings": "shared",
+      "sheets": {
+        "Totals": {
+          "hidden": false,
+          "rows": [
+            [
+              [
+                "t",
+                "Item"
+              ],
+              [
+                "t",
+                "Qty"
+              ],
+              [
+                "t",
+                "Price"
+              ],
+              [
+                "t",
+                "Total"
+              ]
+            ],
+            [
+              [
+                "t",
+                "Bolt"
+              ],
+              [
+                "n",
+                4
+              ],
+              [
+                "n",
+                0.25
+              ],
+              [
+                "n",
+                1
+              ]
+            ],
+            [
+              [
+                "t",
+                "Nut"
+              ],
+              [
+                "n",
+                10
+              ],
+              [
+                "n",
+                0.1
+              ],
+              [
+                "n",
+                1
+              ]
+            ],
+            [
+              [
+                "t",
+                "Washer"
+              ],
+              [
+                "n",
+                3
+              ],
+              [
+                "n",
+                0.5
+              ],
+              [
+                "n",
+                1.5
+              ]
+            ]
+          ]
+        },
+        "Unresolved": {
+          "hidden": false,
+          "rows": [
+            [
+              [
+                "t",
+                "Item"
+              ],
+              [
+                "t",
+                "Total"
+              ]
+            ],
+            [
+              [
+                "t",
+                "Bolt"
+              ],
+              [
+                "unresolved",
+                "1+1"
+              ]
+            ]
+          ]
+        }
+      }
+    },
+    "formulas-right.xlsx": {
+      "dateSystem": "1900",
+      "strings": "shared",
+      "sheets": {
+        "Totals": {
+          "hidden": false,
+          "rows": [
+            [
+              [
+                "t",
+                "Item"
+              ],
+              [
+                "t",
+                "Qty"
+              ],
+              [
+                "t",
+                "Price"
+              ],
+              [
+                "t",
+                "Total"
+              ]
+            ],
+            [
+              [
+                "t",
+                "Bolt"
+              ],
+              [
+                "n",
+                4
+              ],
+              [
+                "n",
+                0.25
+              ],
+              [
+                "n",
+                1
+              ]
+            ],
+            [
+              [
+                "t",
+                "Nut"
+              ],
+              [
+                "n",
+                10
+              ],
+              [
+                "n",
+                0.1
+              ],
+              [
+                "n",
+                1
+              ]
+            ],
+            [
+              [
+                "t",
+                "Washer"
+              ],
+              [
+                "n",
+                3
+              ],
+              [
+                "n",
+                0.5
+              ],
+              [
+                "n",
+                1.5
+              ]
+            ]
+          ]
+        },
+        "Unresolved": {
+          "hidden": false,
+          "rows": [
+            [
+              [
+                "t",
+                "Item"
+              ],
+              [
+                "t",
+                "Total"
+              ]
+            ],
+            [
+              [
+                "t",
+                "Bolt"
+              ],
+              [
+                "n",
+                2
+              ]
+            ]
+          ]
+        }
+      }
+    },
+    "blanks-left.xlsx": {
+      "dateSystem": "1900",
+      "strings": "shared",
+      "sheets": {
+        "Cells": {
+          "hidden": false,
+          "rows": [
+            [
+              [
+                "t",
+                "Case"
+              ],
+              [
+                "t",
+                "Value"
+              ]
+            ],
+            [
+              [
+                "t",
+                "blank-vs-empty"
+              ],
+              null
+            ],
+            [
+              [
+                "t",
+                "text-vs-bool"
+              ],
+              [
+                "t",
+                "TRUE"
+              ]
+            ],
+            [
+              [
+                "t",
+                "error-vs-text"
+              ],
+              [
+                "e",
+                "#N/A"
+              ]
+            ],
+            [
+              [
+                "t",
+                "space-vs-blank"
+              ],
+              [
+                "t",
+                "  "
+              ]
+            ],
+            [
+              [
+                "t",
+                "zero-signs"
+              ],
+              [
+                "n",
+                0
+              ]
+            ],
+            [
+              null,
+              null
+            ],
+            [
+              [
+                "t",
+                "number-vs-text"
+              ],
+              [
+                "n",
+                1
+              ]
+            ]
+          ]
+        }
+      }
+    },
+    "blanks-right.xlsx": {
+      "dateSystem": "1900",
+      "strings": "shared",
+      "sheets": {
+        "Cells": {
+          "hidden": false,
+          "rows": [
+            [
+              [
+                "t",
+                "Case"
+              ],
+              [
+                "t",
+                "Value"
+              ]
+            ],
+            [
+              [
+                "t",
+                "blank-vs-empty"
+              ],
+              [
+                "t",
+                ""
+              ]
+            ],
+            [
+              [
+                "t",
+                "text-vs-bool"
+              ],
+              [
+                "b",
+                true
+              ]
+            ],
+            [
+              [
+                "t",
+                "error-vs-text"
+              ],
+              [
+                "t",
+                "#N/A"
+              ]
+            ],
+            [
+              [
+                "t",
+                "space-vs-blank"
+              ],
+              null
+            ],
+            [
+              [
+                "t",
+                "zero-signs"
+              ],
+              [
+                "n",
+                -0.0
+              ]
+            ],
+            [
+              null,
+              null
+            ],
+            [
+              [
+                "t",
+                "number-vs-text"
+              ],
+              [
+                "t",
+                "1"
+              ]
+            ]
+          ]
+        }
+      }
+    },
+    "layout.xlsx": {
+      "dateSystem": "1900",
+      "strings": "inline",
+      "sheets": {
+        "Hidden": {
+          "hidden": false,
+          "rows": [
+            [
+              [
+                "t",
+                "Part"
+              ],
+              [
+                "t",
+                "Qty"
+              ],
+              [
+                "t",
+                "Note"
+              ]
+            ],
+            [
+              [
+                "t",
+                "P1"
+              ],
+              [
+                "n",
+                1
+              ],
+              [
+                "t",
+                "a"
+              ]
+            ],
+            [
+              [
+                "t",
+                "P2"
+              ],
+              [
+                "n",
+                2
+              ],
+              [
+                "t",
+                "b"
+              ]
+            ],
+            [
+              [
+                "t",
+                "P3"
+              ],
+              [
+                "n",
+                3
+              ],
+              [
+                "t",
+                "c"
+              ]
+            ]
+          ]
+        },
+        "MergedHeader": {
+          "hidden": false,
+          "rows": [
+            [
+              [
+                "t",
+                "Readings"
+              ],
+              null
+            ],
+            [
+              [
+                "t",
+                "Tag"
+              ],
+              [
+                "t",
+                "Value"
+              ]
+            ],
+            [
+              [
+                "t",
+                "T1"
+              ],
+              [
+                "n",
+                1
+              ]
+            ],
+            [
+              [
+                "t",
+                "T2"
+              ],
+              [
+                "n",
+                2
+              ]
+            ]
+          ]
+        },
+        "HeaderOnly": {
+          "hidden": false,
+          "rows": [
+            [
+              [
+                "t",
+                "Part"
+              ],
+              [
+                "t",
+                "Qty"
+              ]
+            ]
+          ]
+        }
+      }
+    }
+  }
+}
