@@ -73,6 +73,7 @@ module.exports = defineConfig({
     'ocr-text-extractor-second.spec.cjs',
     'wfh-calculator.spec.cjs',
     'dataset-diff.spec.cjs',
+    'dataset-diff-import.spec.cjs',
     'legal-clauses.spec.cjs',
     'p3-short-notices.spec.cjs',
     'tool-surface-conformance.spec.cjs',
