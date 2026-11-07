@@ -442,6 +442,127 @@
                 text-align: left;
             }
         }
+
+        /* Cards that leave for a separate *.jesse-anderson.net site */
+        .external-mark {
+            font-size: 0.875em;
+            color: var(--text-secondary);
+        }
+
+        .tool-host {
+            margin: -4px 0 10px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .visually-hidden {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0 0 0 0);
+            white-space: nowrap;
+        }
+
+        .tool-card.demo::before,
+        .category-indicator.demo {
+            background: var(--text-secondary);
+        }
+
+        .tool-icon.demo,
+        .tool-status.demo {
+            background: var(--bg-secondary);
+            color: var(--text-secondary);
+        }
+
+        .category-note {
+            margin: -4px 0 16px;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        /* The page reset removes the margin a modal dialog centers with. */
+        .external-notice {
+            margin: auto;
+            max-width: 540px;
+            width: calc(100% - 32px);
+            padding: 24px;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            background: var(--bg-card);
+            color: var(--text-primary);
+        }
+
+        .external-notice::backdrop {
+            background: rgba(0, 0, 0, 0.6);
+        }
+
+        .external-notice h2 {
+            margin: 0 0 12px;
+            font-size: 1.125rem;
+        }
+
+        .external-notice p {
+            margin: 0 0 12px;
+            font-size: 0.9375rem;
+            line-height: 1.55;
+        }
+
+        .external-notice-terms {
+            color: var(--text-secondary);
+        }
+
+        .external-notice-skip {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-height: 36px;
+            margin-bottom: 16px;
+            font-family: inherit;
+            font-size: 0.875rem;
+            font-weight: 500;
+            letter-spacing: normal;
+            text-transform: none;
+            color: var(--text-primary);
+            cursor: pointer;
+        }
+
+        .external-notice-skip input {
+            width: 18px;
+            height: 18px;
+        }
+
+        .external-notice-actions {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+            gap: 8px;
+        }
+
+        .external-notice-actions button {
+            min-height: 44px;
+            padding: 10px 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            font: inherit;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .external-notice-actions .external-notice-go {
+            background: var(--text-primary);
+            border-color: var(--text-primary);
+            color: var(--bg-card);
+        }
+
+        .external-notice-actions button:focus-visible {
+            outline: 2px solid var(--accent-it);
+            outline-offset: 2px;
+        }
     </style>
 </head>
 <body>
@@ -866,6 +987,52 @@
                             <span class="tool-tag">moist air</span>
                         </div>
                     </a>
+
+                    <a href="https://vibes.jesse-anderson.net/" class="tool-card engineering" data-external>
+                        <div class="tool-card-header">
+                            <div class="tool-icon engineering">
+                                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M2 12h3l2-6 3 12 3-9 2 6 2-3h5"/>
+                                </svg>
+                            </div>
+                            <span class="tool-status coming">Under Review...</span>
+                        </div>
+                        <h3 class="tool-name">Bearing Vibration Diagnosis <span class="external-mark" aria-hidden="true">&#8599;</span><span class="visually-hidden"> (separate site)</span></h3>
+                        <p class="tool-description">Opens a raw accelerometer record from a rotating machine and diagnoses bearing faults, computed in your browser. Demo signals, trending across a sequence of records, a guide and a reference.</p>
+                        <p class="tool-host">vibes.jesse-anderson.net</p>
+                        <div class="tool-tags">
+                            <span class="tool-tag">vibration</span>
+                            <span class="tool-tag">bearings</span>
+                            <span class="tool-tag">condition monitoring</span>
+                            <span class="tool-tag">Rust</span>
+                            <span class="tool-tag">WASM</span>
+                        </div>
+                    </a>
+
+
+                    <a href="https://pipetool.jesse-anderson.net/" class="tool-card engineering" data-external>
+                        <div class="tool-card-header">
+                            <div class="tool-icon engineering">
+                                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M3 7h6v10h6V7h6"/>
+                                    <circle cx="9" cy="7" r="1.5"/>
+                                    <circle cx="15" cy="17" r="1.5"/>
+                                </svg>
+                            </div>
+                            <span class="tool-status coming">Under Review...</span>
+                        </div>
+                        <h3 class="tool-name">PipeFlow Pipe Network Simulator <span class="external-mark" aria-hidden="true">&#8599;</span><span class="visually-hidden"> (separate site)</span></h3>
+                        <p class="tool-description">A pipe network solver in Rust compiled to WebAssembly, with flow particles drawn on WebGPU. Needs a browser with WebGPU enabled.</p>
+                        <p class="tool-host">pipetool.jesse-anderson.net</p>
+                        <div class="tool-tags">
+                            <span class="tool-tag">pipe network</span>
+                            <span class="tool-tag">hydraulics</span>
+                            <span class="tool-tag">fluids</span>
+                            <span class="tool-tag">WebGPU</span>
+                            <span class="tool-tag">WASM</span>
+                        </div>
+                    </a>
+
                 </div>
             </section>
 
@@ -1561,6 +1728,30 @@
                             <span class="tool-tag">mass</span>
                         </div>
                     </a>
+
+                    <a href="https://bioreactor-mpc.jesse-anderson.net/" class="tool-card biochemical" data-external>
+                        <div class="tool-card-header">
+                            <div class="tool-icon biochemical">
+                                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M9 3h6"/>
+                                    <path d="M10 3v5L5 19a1 1 0 0 0 1 2h12a1 1 0 0 0 1-2l-5-11V3"/>
+                                    <path d="M7 15h10"/>
+                                </svg>
+                            </div>
+                            <span class="tool-status coming">Under Review...</span>
+                        </div>
+                        <h3 class="tool-name">Penicillin Fed-Batch Controller Comparison <span class="external-mark" aria-hidden="true">&#8599;</span><span class="visually-hidden"> (separate site)</span></h3>
+                        <p class="tool-description">One simulated fed-batch penicillin fermentation under PID, model predictive control, and both together, run in your browser. The physics and the optimizer are Rust compiled to WebAssembly.</p>
+                        <p class="tool-host">bioreactor-mpc.jesse-anderson.net</p>
+                        <div class="tool-tags">
+                            <span class="tool-tag">bioreactor</span>
+                            <span class="tool-tag">MPC</span>
+                            <span class="tool-tag">PID</span>
+                            <span class="tool-tag">fermentation</span>
+                            <span class="tool-tag">WASM</span>
+                        </div>
+                    </a>
+
                 </div> 
             <!-- final div for section(s) there.  -->
             </section>
@@ -1813,8 +2004,114 @@
                             <span class="tool-tag">education</span>
                         </div>
                     </a>
+
+                    <a href="https://nback.jesse-anderson.net/" class="tool-card educational" data-external>
+                        <div class="tool-card-header">
+                            <div class="tool-icon educational">
+                                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="3" y="3" width="7" height="7" rx="1"/>
+                                    <rect x="14" y="3" width="7" height="7" rx="1"/>
+                                    <rect x="3" y="14" width="7" height="7" rx="1"/>
+                                    <rect x="14" y="14" width="7" height="7" rx="1"/>
+                                </svg>
+                            </div>
+                            <span class="tool-status coming">Under Review...</span>
+                        </div>
+                        <h3 class="tool-name">N-Back Trainer <span class="external-mark" aria-hidden="true">&#8599;</span><span class="visually-hidden"> (separate site)</span></h3>
+                        <p class="tool-description">Working-memory training with adaptive difficulty, in single, dual, triple and quad n-back modes, with progress tracking.</p>
+                        <p class="tool-host">nback.jesse-anderson.net</p>
+                        <div class="tool-tags">
+                            <span class="tool-tag">n-back</span>
+                            <span class="tool-tag">working memory</span>
+                            <span class="tool-tag">training</span>
+                            <span class="tool-tag">brain game</span>
+                        </div>
+                    </a>
+
                 </div> 
             
+            </section>
+            <!-- Demos: showcases of data projects on their own subdomains -->
+            <section class="category-section">
+                <div class="category-header">
+                    <div class="category-indicator demo"></div>
+                    <h2 class="category-title">Demos</h2>
+                    <span class="category-count">-- tools</span>
+                    <div class="collapse-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="6 9 12 15 18 9"/>
+                        </svg>
+                    </div>
+                </div>
+                <p class="category-note">Showcases of data projects rather than tools for your own data. Each is a separate site.</p>
+                <div class="tools-grid">
+                    <a href="https://opcrime.jesse-anderson.net/" class="tool-card demo" data-external>
+                        <div class="tool-card-header">
+                            <div class="tool-icon demo">
+                                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/>
+                                    <circle cx="12" cy="10" r="2.5"/>
+                                </svg>
+                            </div>
+                            <span class="tool-status demo">Demo</span>
+                        </div>
+                        <h3 class="tool-name">Oak Park Crime Map <span class="external-mark" aria-hidden="true">&#8599;</span><span class="visually-hidden"> (separate site)</span></h3>
+                        <p class="tool-description">Interactive map of incidents from Oak Park Police Department public activity reports. Filter by date, offense and zone, or search the narratives.</p>
+                        <p class="tool-host">opcrime.jesse-anderson.net</p>
+                        <div class="tool-tags">
+                            <span class="tool-tag">map</span>
+                            <span class="tool-tag">public data</span>
+                            <span class="tool-tag">Oak Park</span>
+                            <span class="tool-tag">DuckDB</span>
+                        </div>
+                    </a>
+
+
+                    <a href="https://opcrimeds.jesse-anderson.net/" class="tool-card demo" data-external>
+                        <div class="tool-card-header">
+                            <div class="tool-icon demo">
+                                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M3 3v18h18"/>
+                                    <path d="M7 15l4-4 3 3 5-6"/>
+                                </svg>
+                            </div>
+                            <span class="tool-status demo">Demo</span>
+                        </div>
+                        <h3 class="tool-name">Oak Park Crime Dashboard <span class="external-mark" aria-hidden="true">&#8599;</span><span class="visually-hidden"> (separate site)</span></h3>
+                        <p class="tool-description">A data-science dashboard over the same Oak Park crime data: overview, trends over time, places, topics and search. Descriptive, historical and source-linked.</p>
+                        <p class="tool-host">opcrimeds.jesse-anderson.net</p>
+                        <div class="tool-tags">
+                            <span class="tool-tag">dashboard</span>
+                            <span class="tool-tag">public data</span>
+                            <span class="tool-tag">Oak Park</span>
+                            <span class="tool-tag">data science</span>
+                        </div>
+                    </a>
+
+
+                    <a href="https://sensors.jesse-anderson.net/public/" class="tool-card demo" data-external>
+                        <div class="tool-card-header">
+                            <div class="tool-icon demo">
+                                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M4 15a8 8 0 0 1 16 0"/>
+                                    <path d="M12 15l4-5"/>
+                                    <path d="M3 19h18"/>
+                                </svg>
+                            </div>
+                            <span class="tool-status demo">Demo</span>
+                        </div>
+                        <h3 class="tool-name">Home Air-Quality Statistics <span class="external-mark" aria-hidden="true">&#8599;</span><span class="visually-hidden"> (separate site)</span></h3>
+                        <p class="tool-description">Daily statistics from home air-quality sensors, set against an outdoor baseline. Each value covers a full day and appears only once it is at least 30 days old.</p>
+                        <p class="tool-host">sensors.jesse-anderson.net/public</p>
+                        <div class="tool-tags">
+                            <span class="tool-tag">air quality</span>
+                            <span class="tool-tag">PM2.5</span>
+                            <span class="tool-tag">sensors</span>
+                            <span class="tool-tag">IoT</span>
+                        </div>
+                    </a>
+
+                </div>
             </section>
         </main>
 
@@ -1887,6 +2184,7 @@
                         <li><strong>Database:</strong> SQLite viewer, DuckDB playground</li>
                         <li><strong>Biochemical:</strong> Dosage calculators, toxicology tools</li>
                         <li><strong>Data Science:</strong> Linear regression, clustering visualizer, scientific graph compare, Sankey diagrams</li>
+                        <li><strong>Demos:</strong> Data project showcases on their own sites. Cards marked &#8599; open a separate site with no link back; use Back to return.</li>
                     </ul>
 
                     <h3>Version</h3>
@@ -2000,7 +2298,8 @@
             datascience: 'Data Science',
             ai: 'AI',
             database: 'Database',
-            educational: 'Educational'
+            educational: 'Educational',
+            demo: 'Demo'
         };
 
         const statusOrder = [
@@ -2308,6 +2607,7 @@
         window.addEventListener('hashchange', openSiteDisclaimerFromHash);
     </script>
     <script type="module" src="js/shared.js"></script>
+    <script type="module" src="js/external-link-notice.js"></script>
     <!-- the curse of cloudflare and their optimization... -->
 </body>
 </html>

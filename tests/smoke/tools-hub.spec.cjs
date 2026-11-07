@@ -243,3 +243,94 @@ test('tools.html notice carries the damages and indemnity clauses', async ({ pag
   await expect(footer).toContainText('even if advised of the possibility');
   await expect(footer).toContainText('indemnify and hold');
 });
+
+// Separate *.jesse-anderson.net apps. They have no link back to the hub, so
+// a click shows a notice to use Back and opens them in the same tab.
+const EXTERNAL = {
+  'Engineering Calculators': ['https://vibes.jesse-anderson.net/', 'https://pipetool.jesse-anderson.net/'],
+  'Biochemical Engineering Utilities': ['https://bioreactor-mpc.jesse-anderson.net/'],
+  Educational: ['https://nback.jesse-anderson.net/'],
+  Demos: ['https://opcrime.jesse-anderson.net/', 'https://opcrimeds.jesse-anderson.net/', 'https://sensors.jesse-anderson.net/public/'],
+};
+
+test('separate-site apps sit in their categories, and Demos is the last section', () => {
+  for (const [section, hrefs] of Object.entries(EXTERNAL)) {
+    const markup = getSectionMarkup(toolsIndexMarkup, section);
+    for (const href of hrefs) expect(markup, `${href} in ${section}`).toContain(`href="${href}"`);
+  }
+  const titles = [...toolsIndexMarkup.matchAll(/<h2 class="category-title">([^<]+)<\/h2>/g)].map((m) => m[1]);
+  expect(titles[titles.length - 1]).toBe('Demos');
+});
+
+test('every off-site card is marked external, with a status, a host line and the arrow', () => {
+  const cards = toolsIndexMarkup.match(/<a href="https:[^"]+" class="tool-card[^"]*"[^>]*>[\s\S]*?<\/a>/g) || [];
+  expect(cards).toHaveLength(Object.values(EXTERNAL).flat().length);
+  for (const c of cards) {
+    expect(c).toContain('data-external');
+    expect(c).toMatch(/href="https:\/\/[a-z-]+\.jesse-anderson\.net\//);
+    expect(c).toContain('class="tool-status');
+    expect(c).toContain('class="tool-host"');
+    expect(c).toContain('(separate site)');
+    expect(c).not.toContain('target=');
+  }
+});
+
+test.describe('leaving-the-hub notice', () => {
+  test.beforeEach(async ({ page }) => {
+    // Never touch the real sites from the suite.
+    await page.route(/https:\/\/[a-z-]+\.jesse-anderson\.net\/.*/, (route) => route.fulfill({ status: 200, contentType: 'text/html', body: '<title>stub</title>' }));
+    await page.goto('/tools.html', { waitUntil: 'domcontentloaded' });
+  });
+
+  test('a click shows the notice, and Stay here keeps the hub', async ({ page }) => {
+    await page.locator('a[href="https://vibes.jesse-anderson.net/"]').click();
+    const dialog = page.locator('#externalNotice');
+    await expect(dialog).toBeVisible();
+    await expect(dialog).toContainText('Bearing Vibration Diagnosis');
+    await expect(dialog).toContainText("use your browser's Back button");
+    await expect(dialog).toContainText('disclaimer does not cover it');
+    await expect(dialog).toContainText('analytics');
+    await expect(page.locator('.external-notice-go')).toBeFocused();
+    // The page reset once stripped the dialog's centering margin.
+    const box = await dialog.boundingBox();
+    const width = page.viewportSize().width;
+    expect(Math.abs(box.x + box.width / 2 - width / 2)).toBeLessThan(4);
+    await page.getByRole('button', { name: 'Stay here' }).click();
+    await expect(dialog).toBeHidden();
+    expect(new URL(page.url()).pathname).toBe('/tools.html');
+  });
+
+  test('Continue opens the site in this tab, and Back returns to the hub', async ({ page }) => {
+    await page.locator('a[href="https://nback.jesse-anderson.net/"]').click();
+    await page.getByRole('button', { name: 'Continue to nback.jesse-anderson.net' }).click();
+    await expect(page).toHaveURL('https://nback.jesse-anderson.net/');
+    await page.goBack();
+    await expect(page).toHaveURL(/\/tools\.html$/);
+  });
+
+  test("Don't show this again skips the notice next time", async ({ page }) => {
+    await page.locator('a[href="https://opcrime.jesse-anderson.net/"]').click();
+    await page.locator('#externalNoticeSkip').check();
+    await page.locator('.external-notice-go').click();
+    await expect(page).toHaveURL('https://opcrime.jesse-anderson.net/');
+    await page.goBack();
+    await page.locator('a[href="https://opcrimeds.jesse-anderson.net/"]').click();
+    await expect(page).toHaveURL('https://opcrimeds.jesse-anderson.net/');
+  });
+
+  test('Escape closes the notice, and a modified click is not intercepted', async ({ page }) => {
+    await page.locator('a[href="https://pipetool.jesse-anderson.net/"]').click();
+    await expect(page.locator('#externalNotice')).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#externalNotice')).toBeHidden();
+    const intercepted = await page.evaluate(() => {
+      const a = document.querySelector('a[href="https://pipetool.jesse-anderson.net/"]');
+      const ev = new MouseEvent('click', { bubbles: true, cancelable: true, ctrlKey: true });
+      // Stop the navigation itself; the notice handler runs on the document first or not at all.
+      a.addEventListener('click', (e) => e.preventDefault(), { once: true });
+      a.dispatchEvent(ev);
+      return document.getElementById('externalNotice').open;
+    });
+    expect(intercepted).toBe(false);
+  });
+});
