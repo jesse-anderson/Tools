@@ -59,6 +59,7 @@ const TOOLS_WITH_DISCLAIMER_HEADINGS = [
   'parquet-viewer',
   'pdf-diff',
   'ocr-text-extractor',
+  'wfh-calculator',
   'oral-multidose',
   'pid-playground',
   'psychrometric-calculator',

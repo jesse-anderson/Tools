@@ -48,6 +48,7 @@ const CLAUSE_PAGES = [
   '/tools/sankey-diagram.html',
   '/tools/process-flow-mapper.html',
   '/tools/ocr-text-extractor.html',
+  '/tools/wfh-calculator.html',
 ];
 
 const REQUIRED = [

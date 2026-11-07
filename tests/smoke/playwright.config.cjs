@@ -71,6 +71,7 @@ module.exports = defineConfig({
     'ocr-text-extractor-photo.spec.cjs',
     'ocr-text-extractor-layout.spec.cjs',
     'ocr-text-extractor-second.spec.cjs',
+    'wfh-calculator.spec.cjs',
     'legal-clauses.spec.cjs',
     'p3-short-notices.spec.cjs',
     'tool-surface-conformance.spec.cjs',

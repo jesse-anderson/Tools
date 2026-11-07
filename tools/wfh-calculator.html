@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<!--
+============================================
+WORK FROM HOME CALCULATOR v1.0.0
+============================================
+Description: What a day in the office costs in money and time, what a
+day at home costs instead, and the yearly difference for every pattern
+from five office days to fully remote. Compares two job offers.
+
+Dependencies: None (Vanilla JavaScript)
+Google Fonts (JetBrains Mono, Space Grotesk) loaded from CDN.
+
+Project: Tools Hub by Jesse Anderson
+Repository: https://github.com/jesse-anderson/Tools
+License: GPL-3.0 - https://github.com/jesse-anderson/Tools/blob/main/LICENSE
+
+Features:
+- Commute by car (fuel, fuel and wear, or an all-in rate), electric car,
+  carpool, transit, rideshare, bike or walk, with different trips in and home
+- Commute time valued at after-tax pay, half of pay (US DOT), full pay,
+  a custom rate, or not at all
+- Food, care, clothing and office extras against home energy, lunch at
+  home, coworking, a home office setup and a remote stipend
+- Monthly pass and parking permit break-even, pre-tax commuter benefits
+- Equivalent pre-tax raise for every office-day pattern
+- Regained hours split across family, sleep, exercise, chores and work
+- Two job offers side by side with the break-even salary
+- US or metric units; scenarios saved in this browser, JSON import and
+  export, CSV, SVG and PNG export, printable summary
+
+Last Updated: November 2026
+============================================
+-->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Work from home calculator: what commuting costs in gas, fares, food, care and time, yearly savings for hybrid or remote, and the raise an office job must pay.">
+    <link rel="canonical" href="https://tools.jesse-anderson.net/tools/wfh-calculator.html">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Tools Hub">
+    <meta property="og:title" content="Work From Home Calculator">
+    <meta property="og:description" content="Work from home calculator: what commuting costs in gas, fares, food, care and time, yearly savings for hybrid or remote, and the raise an office job must pay.">
+    <meta property="og:url" content="https://tools.jesse-anderson.net/tools/wfh-calculator.html">
+    <meta name="twitter:card" content="summary">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self'; base-uri 'none'; form-action 'none'">
+    <title>Work From Home Calculator | Tools Hub</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/shared.css">
+    <link rel="stylesheet" href="../css/wfh_calculator/wfh-calculator.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <div class="header-left">
+                    <a href="../tools.html" class="back-link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <line x1="19" y1="12" x2="5" y2="12"/>
+                            <polyline points="12 19 5 12 12 5"/>
+                        </svg>
+                        Back to Tools
+                    </a>
+                </div>
+                <div class="header-right">
+                    <div class="theme-toggle">
+                        <button data-theme-toggle="light" aria-pressed="false" title="Light mode" aria-label="Light mode">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                <circle cx="12" cy="12" r="5"/>
+                                <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+                            </svg>
+                        </button>
+                        <button data-theme-toggle="dark" aria-pressed="false" title="Dark mode" aria-label="Dark mode">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="tool-title-row">
+                <div class="tool-icon-header general" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 11l9-7 9 7"/>
+                        <path d="M5 10v10h14V10"/>
+                        <path d="M10 20v-5h4v5"/>
+                    </svg>
+                </div>
+                <div>
+                    <h1>Work From Home Calculator</h1>
+                    <p class="tagline">// COMMUTE • FOOD • CARE • TIME • HYBRID • OFFERS</p>
+                </div>
+            </div>
+        </header>
+
+        <details class="disclaimer-card" id="scopeDisclaimer" aria-label="Scope and liability disclaimer">
+            <summary>
+                <span class="disclaimer-icon" aria-hidden="true">&#9888;</span>
+                <span class="disclaimer-summary-text">
+                    <span class="disclaimer-title">Arithmetic on the numbers you enter. Not financial, tax or career advice.</span>
+                    <span class="disclaimer-lead">Every total comes from your own inputs, added up and multiplied out. The tool checks the arithmetic and flags a few likely typos; it cannot check whether your prices, times or tax rate are right, and it leaves out things that matter, like career effects and benefits. Used at your own risk. Open for the full scope limits.</span>
+                </span>
+                <span class="disclaimer-chevron" aria-hidden="true">&#9662;</span>
+            </summary>
+
+            <div class="disclaimer-body">
+                <div class="disclaimer-section">
+                    <h3>What this tool actually does</h3>
+                    <ul>
+                        <li><strong>It multiplies daily costs by days.</strong> An office day and a home day each have a cost you describe. The yearly figure is those costs times the number of each kind of day, plus the yearly items you enter.</li>
+                        <li><strong>Commute time is turned into money only at the rate you choose.</strong> The money total without time value is always shown beside the total with it.</li>
+                        <li><strong>The equivalent raise is one division.</strong> A saving paid from take-home pay is divided by one minus your marginal tax rate. It assumes the whole raise is taxed at that one rate.</li>
+                        <li><strong>Published figures are national averages.</strong> The IRS mileage rate, AAA's costs per mile and gas price, and the Census commute time describe the average driver, not you.</li>
+                    </ul>
+                </div>
+
+                <div class="disclaimer-section">
+                    <h3>Not checked, at all</h3>
+                    <ul>
+                        <li><strong>Your tax rate.</strong> The tool takes the marginal rate you type. It does not compute federal, state, local or payroll tax, phase-outs, credits or brackets a raise could cross.</li>
+                        <li><strong>Tax rules.</strong> The notes on commuting, home office and pre-tax commuter benefits are a US federal outline from 2025 and 2026 publications. Rules differ by state and country and change every year.</li>
+                        <li><strong>Pay beyond salary.</strong> Health insurance, retirement match, equity, bonus, paid leave and job security are not compared unless you enter them yourself as other pay.</li>
+                        <li><strong>Prices over time.</strong> Gas, fares, food and energy are held constant for the year.</li>
+                        <li><strong>Things with no agreed price.</strong> Promotion and career effects, productivity, health, isolation and mentoring are listed on the page and left out of every number.</li>
+                    </ul>
+                    <p class="disclaimer-note">A large saving tells you your inputs add up to a large saving. It does not tell you a job is the better job.</p>
+                </div>
+
+                <div class="disclaimer-section">
+                    <h3>Never use this for</h3>
+                    <ul>
+                        <li>Preparing a tax return, claiming a deduction, or setting up a commuter benefit election.</li>
+                        <li>Payroll, expense reimbursement, mileage claims or any figure an employer or the IRS will rely on.</li>
+                        <li>A salary negotiation figure presented to anyone as fact.</li>
+                        <li>Legal decisions about employment terms, relocation or child custody arrangements.</li>
+                    </ul>
+                </div>
+
+                <div class="disclaimer-section">
+                    <h3>Scenarios are stored in this browser only</h3>
+                    <p>Saved scenarios, including the salary you enter, are kept in this browser's local storage on this device and are never sent anywhere. Clearing site data, a private window, or another browser or device loses them. Use Export file to keep a copy.</p>
+                </div>
+
+                <div class="disclaimer-section">
+                    <h3>Before you rely on a result</h3>
+                    <p>Check your marginal tax rate against last year's return or a tax professional, price your own commute for a few real weeks, read the offer's full benefits, and talk the decision through with the people it affects.</p>
+                </div>
+
+                <div class="disclaimer-footer">
+                    <p><strong>No warranty. No liability. You assume all risk.</strong> This page and everything it computes are provided as-is and as-available, without warranty of any kind, express or implied, including accuracy, completeness, timeliness, reliability, fitness for a particular purpose, merchantability, financial, tax or professional suitability, or non-infringement. To the maximum extent permitted by law, the author accepts no liability for any loss, damage, cost or claim arising from use of or reliance on this page.</p>
+                    <p><strong>Independent verification required.</strong> Verify every figure against your own records, current tax rules and qualified professional advice before acting on it. Where this page disagrees with them, this page is wrong.</p>
+                    <p><strong>Consequential damages excluded.</strong> To the maximum extent permitted by law, in no event will the author or maintainers be liable for any direct, indirect, incidental, special, exemplary, punitive or consequential damages, including a job accepted or declined, lost income, tax owed, penalties, lost saved data, or loss of use, data, profits or business interruption, however caused and on any theory of liability, whether in contract, strict liability or tort including negligence, arising out of or in connection with this page, even if advised of the possibility of such damage.</p>
+                    <p><strong>Indemnity.</strong> By using this page you agree to indemnify and hold harmless the author and maintainers against any claim, demand, loss or expense arising out of your use of it or of anything derived from it.</p>
+                    <p><strong>Severability.</strong> If any part of this notice is held unenforceable, the remainder continues to apply, and the unenforceable part is limited to the least extent necessary rather than struck out.</p>
+                </div>
+            </div>
+        </details>
+
+        <details class="usage-note" id="howTo">
+            <summary>How to use</summary>
+            <div class="usage-body">
+                <p><strong>Two minutes:</strong> enter your pay and tax rate, describe your trip in, and read the cost of one office day on the right. Or load an example to see a filled-in scenario.</p>
+                <ol>
+                    <li><strong>Pay and schedule.</strong> Salary or hourly pay, hours, and your marginal tax rate: the share of one more dollar of pay that goes to tax. Federal plus state plus payroll tax is a typical way to add it up; last year's return or a paycheck calculator will tell you yours. Then the office days your job asks for.</li>
+                    <li><strong>Getting there.</strong> One or more legs for the trip in, such as drive to a station then take a train, with the door to door minutes. Untick "Same trip home" if the trip home differs. Fuel cost is <em>distance ÷ mpg × price</em>: 20 miles at 25 mpg and $3.50 a gallon is $2.80.</li>
+                    <li><strong>Food, care and extras.</strong> What an office day costs that a home day does not: bought lunch, coffee, after-school care, a dog walker, dry cleaning. Lunch and coffee at home go in the Home side section, so only the difference counts.</li>
+                    <li><strong>Home side.</strong> What a home day adds: energy, a coworking day now and then, a desk and chair spread over their life.</li>
+                    <li><strong>Time.</strong> How to value an hour of commuting, and where the regained hours would go. Family time is counted in hours; a dollar value for it is optional and kept out of the totals.</li>
+                </ol>
+                <p>The chart and table cover every pattern from full office to fully remote. A monthly pass or parking permit is used only where it is cheaper than paying per day, so the bars do not fall in a straight line. Tick "Compare a second job" to put two offers side by side.</p>
+            </div>
+        </details>
+
+        <main class="wfh-layout">
+            <section class="panel input-panel" aria-labelledby="inputsHeading">
+                <div class="panel-header">
+                    <h2 id="inputsHeading">Your workday</h2>
+                    <p>Leave a field blank to count it as zero.</p>
+                </div>
+
+                <fieldset class="toolbar">
+                    <legend>Scenario</legend>
+                    <div class="field-grid">
+                        <div class="input-group">
+                            <label for="exampleSelect">Example</label>
+                            <div class="inline">
+                                <select id="exampleSelect"></select>
+                                <button type="button" class="tool-btn small" id="loadExample">Load</button>
+                            </div>
+                        </div>
+                        <div class="input-group">
+                            <label for="savedSelect">Saved in this browser</label>
+                            <div class="inline">
+                                <select id="savedSelect"></select>
+                                <button type="button" class="tool-btn small" id="openSaved">Open</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="button-row">
+                        <button type="button" class="tool-btn small" id="saveScenario">Save as…</button>
+                        <button type="button" class="tool-btn small" id="deleteSaved">Delete saved</button>
+                        <button type="button" class="tool-btn small" id="exportJson">Export file</button>
+                        <button type="button" class="tool-btn small" id="importJsonBtn">Import file</button>
+                        <input type="file" id="importJson" accept="application/json,.json" hidden>
+                        <button type="button" class="tool-btn small" id="resetScenario">Clear all</button>
+                    </div>
+                    <div class="save-row" id="saveRow" hidden>
+                        <label for="saveName">Name</label>
+                        <input type="text" id="saveName" maxlength="40">
+                        <button type="button" class="tool-btn small primary" id="confirmSave">Save</button>
+                        <button type="button" class="tool-btn small" id="cancelSave">Cancel</button>
+                    </div>
+                    <p class="helper-text" id="exampleNote" aria-live="polite"></p>
+                    <div class="field-grid">
+                        <div class="input-group">
+                            <span class="group-label" id="unitsLabel">Units</span>
+                            <div class="segmented" role="radiogroup" aria-labelledby="unitsLabel">
+                                <label><input type="radio" name="units" value="us" checked> Miles, mpg</label>
+                                <label><input type="radio" name="units" value="metric"> km, L/100 km</label>
+                            </div>
+                        </div>
+                        <div class="input-group">
+                            <label for="currency">Currency symbol</label>
+                            <input type="text" id="currency" data-bind="currency" maxlength="4" class="short">
+                        </div>
+                    </div>
+                    <label class="check"><input type="checkbox" id="compareToggle" data-bind="compare"> Compare a second job</label>
+                </fieldset>
+
+                <div class="input-group">
+                    <span class="group-label">Working year</span>
+                    <div class="field-grid">
+                        <div class="input-group">
+                            <label for="workDaysPerWeek">Workdays per week</label>
+                            <input type="number" id="workDaysPerWeek" data-bind="person.workDaysPerWeek" min="1" max="7" step="1" inputmode="numeric">
+                        </div>
+                        <div class="input-group">
+                            <label for="daysOff">Days off a year</label>
+                            <input type="number" id="daysOff" data-bind="person.daysOff" min="0" step="1" inputmode="numeric" aria-describedby="daysOffHint">
+                            <p class="hint" id="daysOffHint">Vacation, holidays and sick days.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="jobsContainer"></div>
+
+                <details class="section" open>
+                    <summary><span>Time</span><span class="subtotal" data-subtotal="time"></span></summary>
+                    <div class="section-body">
+                        <div class="input-group">
+                            <label for="timeValueMode">Value an hour of commuting at</label>
+                            <select id="timeValueMode" data-bind="person.timeValueMode">
+                                <option value="net">After-tax hourly pay</option>
+                                <option value="dot">Half of hourly pay (US DOT convention)</option>
+                                <option value="gross">Full hourly pay, before tax</option>
+                                <option value="custom">A rate I choose</option>
+                                <option value="none">Nothing: show hours only</option>
+                            </select>
+                            <p class="hint" id="timeValueHint"></p>
+                        </div>
+                        <div class="input-group" id="customRateGroup" hidden>
+                            <label for="customTimeRate">Rate per hour</label>
+                            <input type="number" id="customTimeRate" data-bind="person.customTimeRate" min="0" step="0.01" inputmode="decimal">
+                        </div>
+                        <div class="input-group">
+                            <label for="prepMinutes">Extra minutes an office day costs at home</label>
+                            <input type="number" id="prepMinutes" data-bind="person.prepMinutes" min="0" step="1" inputmode="numeric" aria-describedby="prepHint">
+                            <p class="hint" id="prepHint">Getting ready, packing lunch, the walk to the car. Added once per office day.</p>
+                        </div>
+                        <fieldset class="split">
+                            <legend>Where regained hours would go (%)</legend>
+                            <div class="split-grid">
+                                <label>Family, partner, pets <input type="number" data-bind="person.hoursSplit.family" min="0" max="100" step="1" inputmode="numeric"></label>
+                                <label>Sleep <input type="number" data-bind="person.hoursSplit.sleep" min="0" max="100" step="1" inputmode="numeric"></label>
+                                <label>Exercise <input type="number" data-bind="person.hoursSplit.exercise" min="0" max="100" step="1" inputmode="numeric"></label>
+                                <label>Chores, errands <input type="number" data-bind="person.hoursSplit.chores" min="0" max="100" step="1" inputmode="numeric"></label>
+                                <label>More work <input type="number" data-bind="person.hoursSplit.work" min="0" max="100" step="1" inputmode="numeric"></label>
+                            </div>
+                        </fieldset>
+                        <div class="input-group">
+                            <label for="familyValue">Optional: what an hour of family time is worth to you</label>
+                            <input type="number" id="familyValue" data-bind="person.familyValuePerHour" min="0" step="0.01" inputmode="decimal" aria-describedby="familyHint">
+                            <p class="hint" id="familyHint">Shown on its own line, never added to the totals.</p>
+                        </div>
+                    </div>
+                </details>
+
+                <details class="section">
+                    <summary><span>Care and office extras</span><span class="subtotal" data-subtotal="care"></span></summary>
+                    <div class="section-body">
+                        <p class="helper-text">Costs that exist only because you are at the office: care for children or pets while nobody is home, and what the office itself costs you.</p>
+                        <div class="line-list" id="careLines"></div>
+                        <button type="button" class="tool-btn small" id="addCare">Add a care cost</button>
+                        <div class="field-grid spaced">
+                            <div class="input-group">
+                                <label for="clothing">Clothing and dry cleaning, per office day</label>
+                                <input type="number" id="clothing" data-bind="person.clothingPerOfficeDay" min="0" step="0.01" inputmode="decimal">
+                            </div>
+                            <div class="input-group">
+                                <label for="social">Drinks, collections, team lunches, per office day</label>
+                                <input type="number" id="social" data-bind="person.socialPerOfficeDay" min="0" step="0.01" inputmode="decimal">
+                            </div>
+                        </div>
+                        <p class="hint">A yearly bill divided by your office days gives the per-day figure: $600 over 230 days is about $2.60.</p>
+                    </div>
+                </details>
+
+                <details class="section">
+                    <summary><span>Home side</span><span class="subtotal" data-subtotal="home"></span></summary>
+                    <div class="section-body">
+                        <div class="field-grid">
+                            <div class="input-group">
+                                <label for="homeLunch">Lunch at home</label>
+                                <input type="number" id="homeLunch" data-bind="person.homeLunch" min="0" step="0.01" inputmode="decimal">
+                            </div>
+                            <div class="input-group">
+                                <label for="homeCoffee">Coffee and snacks at home</label>
+                                <input type="number" id="homeCoffee" data-bind="person.homeCoffee" min="0" step="0.01" inputmode="decimal">
+                            </div>
+                        </div>
+                        <div class="input-group">
+                            <label for="homeEnergy">Extra energy per home day</label>
+                            <input type="number" id="homeEnergy" data-bind="person.homeEnergyPerDay" min="0" step="0.01" inputmode="decimal" aria-describedby="energyHint">
+                            <p class="hint" id="energyHint">Published estimates run from tens of cents a day for a laptop and lights to several dollars a day when the home is heated or cooled only because you are in it. Use your own bill if you can.</p>
+                        </div>
+                        <details class="mini-calc">
+                            <summary>Work it out from watts</summary>
+                            <div class="field-grid three">
+                                <label>Equipment watts <input type="number" id="ecWatts" min="0" step="1" inputmode="numeric"></label>
+                                <label>Hours <input type="number" id="ecHours" min="0" step="0.5" inputmode="decimal"></label>
+                                <label>Price per kWh <input type="number" id="ecPrice" min="0" step="0.001" inputmode="decimal"></label>
+                                <label>Heating or cooling kW <input type="number" id="ecHvacKw" min="0" step="0.1" inputmode="decimal"></label>
+                                <label>Its extra hours <input type="number" id="ecHvacHours" min="0" step="0.5" inputmode="decimal"></label>
+                            </div>
+                            <p class="hint" id="ecResult" aria-live="polite"></p>
+                            <button type="button" class="tool-btn small" id="ecApply">Use this figure</button>
+                        </details>
+                        <div class="field-grid">
+                            <div class="input-group">
+                                <label for="coworkDays">Coworking or cafe days a year</label>
+                                <input type="number" id="coworkDays" data-bind="person.coworkDaysPerYear" min="0" step="1" inputmode="numeric">
+                            </div>
+                            <div class="input-group">
+                                <label for="coworkCost">Cost per such day</label>
+                                <input type="number" id="coworkCost" data-bind="person.coworkCostPerDay" min="0" step="0.01" inputmode="decimal">
+                            </div>
+                            <div class="input-group">
+                                <label for="homeOfficeCost">Home office setup cost</label>
+                                <input type="number" id="homeOfficeCost" data-bind="person.homeOfficeCost" min="0" step="1" inputmode="decimal">
+                            </div>
+                            <div class="input-group">
+                                <label for="homeOfficeLife">Lasts how many years</label>
+                                <input type="number" id="homeOfficeLife" data-bind="person.homeOfficeLifeYears" min="0" step="0.5" inputmode="decimal">
+                            </div>
+                        </div>
+                        <p class="hint">The setup counts for any pattern with at least one home day. A remote stipend is entered with each job.</p>
+                    </div>
+                </details>
+
+                <details class="section">
+                    <summary><span>Car and other yearly costs</span><span class="subtotal" data-subtotal="fixed"></span></summary>
+                    <div class="section-body">
+                        <p class="helper-text">Costs that change only at some patterns. Each applies when office days per week are above the number you give, and drops away at or below it.</p>
+                        <div class="field-grid">
+                            <div class="input-group">
+                                <label for="carDrop">Yearly cost of a car you could drop or downsize</label>
+                                <input type="number" id="carDrop" data-bind="person.carDropSavingPerYear" min="0" step="1" inputmode="decimal" aria-describedby="carDropHint">
+                                <p class="hint" id="carDropHint">Insurance, depreciation, registration. AAA's 2025 averages for a new car: insurance $1,694, depreciation $4,334, fees $813.</p>
+                            </div>
+                            <div class="input-group">
+                                <label for="carDropAt">Possible at or below office days per week</label>
+                                <input type="number" id="carDropAt" data-bind="person.carDropAtOrBelow" min="0" max="7" step="1" inputmode="numeric">
+                            </div>
+                            <div class="input-group">
+                                <label for="insDisc">Low-mileage insurance discount per year</label>
+                                <input type="number" id="insDisc" data-bind="person.insuranceDiscountPerYear" min="0" step="1" inputmode="decimal">
+                            </div>
+                            <div class="input-group">
+                                <label for="insDiscAt">Applies at or below office days per week</label>
+                                <input type="number" id="insDiscAt" data-bind="person.insuranceDiscountAtOrBelow" min="0" max="7" step="1" inputmode="numeric">
+                            </div>
+                        </div>
+                        <span class="group-label">Anything else</span>
+                        <div class="line-list" id="customLines"></div>
+                        <button type="button" class="tool-btn small" id="addCustom">Add a line</button>
+                    </div>
+                </details>
+            </section>
+
+            <section class="panel results-panel" aria-labelledby="resultsHeading">
+                <div class="panel-header">
+                    <h2 id="resultsHeading">What it costs</h2>
+                    <p id="resultsSubtitle">Yearly, at the office days your job asks for.</p>
+                </div>
+
+                <div class="message-list" id="errors" role="alert"></div>
+                <ul class="warning-list" id="warnings" aria-live="polite"></ul>
+
+                <div id="resultsBody">
+                    <div class="tiles" id="tiles"></div>
+                    <div class="comparison" id="comparison" hidden></div>
+
+                    <div class="chart-card">
+                        <div class="chart-head">
+                            <h3 id="chartHeading">Yearly cost by office days per week</h3>
+                            <div class="button-row">
+                                <button type="button" class="tool-btn small" id="exportSvg">SVG</button>
+                                <button type="button" class="tool-btn small" id="exportPng">PNG</button>
+                            </div>
+                        </div>
+                        <p class="helper-text" id="chartNote"></p>
+                        <div class="legend" id="legend"></div>
+                        <div class="chart-wrap" id="chartWrap"></div>
+                        <div class="chart-tooltip" id="chartTooltip" role="status" hidden></div>
+                    </div>
+
+                    <div class="table-card">
+                        <div class="chart-head">
+                            <h3 id="tableHeading">Every pattern</h3>
+                            <div class="button-row">
+                                <button type="button" class="tool-btn small" id="exportCsv">CSV</button>
+                                <button type="button" class="tool-btn small" id="printSummary">Print</button>
+                            </div>
+                        </div>
+                        <div class="table-scroll" tabindex="0" role="group" aria-labelledby="tableHeading">
+                            <table id="patternTable" aria-labelledby="tableHeading"></table>
+                        </div>
+                        <p class="helper-text" id="breakEvenNote"></p>
+                    </div>
+
+                    <div class="table-card">
+                        <h3 id="hoursHeading">Hours</h3>
+                        <div id="hoursBody"></div>
+                    </div>
+
+                    <p class="disclaimer">These figures are arithmetic on your own inputs, with US tax notes in outline only. They leave out benefits, career effects and everything listed under "Not in the number". Provided as-is, without warranty, and used at your own risk; see the <a href="#scopeDisclaimer" id="disclaimerLink">full disclaimer</a> above.</p>
+
+                    <details class="usage-note" id="notPriced">
+                        <summary>Not in the number</summary>
+                        <div class="usage-body">
+                            <ul id="contextList"></ul>
+                        </div>
+                    </details>
+                </div>
+            </section>
+        </main>
+
+        <footer data-footer></footer>
+    </div>
+
+    <template id="jobTemplate">
+        <details class="section job-section" open>
+            <summary><span class="job-title">Job</span><span class="subtotal" data-subtotal="commute"></span></summary>
+            <div class="section-body">
+                <div class="input-group job-name-group">
+                    <label data-for="name">Name</label>
+                    <input type="text" data-bind="name" maxlength="40">
+                </div>
+
+                <span class="group-label">Pay</span>
+                <div class="segmented" role="radiogroup" data-label="Pay type">
+                    <label><input type="radio" data-bind="payMode" value="salary"> Salary</label>
+                    <label><input type="radio" data-bind="payMode" value="hourly"> Hourly</label>
+                </div>
+                <div class="field-grid">
+                    <div class="input-group" data-show="salary">
+                        <label data-for="salary">Salary per year</label>
+                        <input type="number" data-bind="salary" min="0" step="100" inputmode="decimal">
+                    </div>
+                    <div class="input-group" data-show="hourly" hidden>
+                        <label data-for="hourly">Pay per hour</label>
+                        <input type="number" data-bind="hourly" min="0" step="0.01" inputmode="decimal">
+                    </div>
+                    <div class="input-group">
+                        <label data-for="marginalRatePct">Marginal tax rate (%)</label>
+                        <input type="number" data-bind="marginalRatePct" min="0" max="60" step="0.5" inputmode="decimal">
+                    </div>
+                    <div class="input-group">
+                        <label data-for="hoursPerWeek">Paid hours per week</label>
+                        <input type="number" data-bind="hoursPerWeek" min="0" max="100" step="0.5" inputmode="decimal">
+                    </div>
+                    <div class="input-group">
+                        <label data-for="paidWeeks">Paid weeks per year</label>
+                        <input type="number" data-bind="paidWeeks" min="0" max="52" step="1" inputmode="numeric">
+                    </div>
+                </div>
+                <div class="input-group compare-only">
+                    <label data-for="otherPayNet">Other pay per year, after tax</label>
+                    <input type="number" data-bind="otherPayNet" step="1" inputmode="decimal">
+                    <p class="hint">Bonus, retirement match or anything else you want counted, as take-home dollars.</p>
+                </div>
+
+                <span class="group-label">Office days</span>
+                <div class="field-grid">
+                    <div class="input-group">
+                        <label data-for="policyMode">Counted</label>
+                        <select data-bind="policyMode">
+                            <option value="week">Per week</option>
+                            <option value="month">Per month</option>
+                        </select>
+                    </div>
+                    <div class="input-group" data-show="week">
+                        <label data-for="officeDaysPerWeek">Office days per week</label>
+                        <input type="number" data-bind="officeDaysPerWeek" min="0" max="7" step="0.5" inputmode="decimal">
+                    </div>
+                    <div class="input-group" data-show="month" hidden>
+                        <label data-for="officeDaysPerMonth">Office days per month</label>
+                        <input type="number" data-bind="officeDaysPerMonth" min="0" max="31" step="1" inputmode="numeric">
+                    </div>
+                </div>
+
+                <span class="group-label">Getting there</span>
+                <div class="trip" data-trip="tripIn">
+                    <div class="trip-head">
+                        <span class="trip-title">Trip in</span>
+                        <label class="minutes">Door to door minutes <input type="number" data-bind="tripIn.minutes" min="0" step="1" inputmode="numeric"></label>
+                        <button type="button" class="link-btn" data-source="censusCommute" data-target="tripIn.minutes">US average</button>
+                    </div>
+                    <div class="legs"></div>
+                    <button type="button" class="tool-btn small" data-add-leg="tripIn">Add a leg</button>
+                </div>
+                <label class="check"><input type="checkbox" data-bind="sameTripHome"> Same trip home</label>
+                <div class="trip" data-trip="tripHome" hidden>
+                    <div class="trip-head">
+                        <span class="trip-title">Trip home</span>
+                        <label class="minutes">Door to door minutes <input type="number" data-bind="tripHome.minutes" min="0" step="1" inputmode="numeric"></label>
+                    </div>
+                    <div class="legs"></div>
+                    <button type="button" class="tool-btn small" data-add-leg="tripHome">Add a leg</button>
+                </div>
+
+                <div class="field-grid">
+                    <div class="input-group">
+                        <label data-for="tollsPerDay">Tolls per office day</label>
+                        <input type="number" data-bind="tollsPerDay" min="0" step="0.01" inputmode="decimal">
+                    </div>
+                    <div class="input-group">
+                        <label data-for="parkingPerDay">Parking per office day</label>
+                        <input type="number" data-bind="parkingPerDay" min="0" step="0.01" inputmode="decimal">
+                    </div>
+                    <div class="input-group">
+                        <label data-for="parkingPermitMonthly">Or a monthly parking permit</label>
+                        <input type="number" data-bind="parkingPermitMonthly" min="0" step="0.01" inputmode="decimal">
+                    </div>
+                    <div class="input-group">
+                        <label data-for="transitPassMonthly">Monthly transit pass</label>
+                        <input type="number" data-bind="transitPassMonthly" min="0" step="0.01" inputmode="decimal">
+                    </div>
+                </div>
+                <label class="check"><input type="checkbox" data-bind="transitPretax"> Transit paid pre-tax through my employer</label>
+                <label class="check"><input type="checkbox" data-bind="parkingPretax"> Parking paid pre-tax through my employer</label>
+                <p class="hint">Up to $340 a month each for transit and for parking in 2026 (Rev. Proc. 2025-32). Rideshare does not qualify.</p>
+
+                <span class="group-label">At the office</span>
+                <div class="field-grid">
+                    <div class="input-group">
+                        <label data-for="officeLunch">Lunch on an office day</label>
+                        <input type="number" data-bind="officeLunch" min="0" step="0.01" inputmode="decimal">
+                    </div>
+                    <div class="input-group">
+                        <label data-for="officeCoffee">Coffee and snacks on an office day</label>
+                        <input type="number" data-bind="officeCoffee" min="0" step="0.01" inputmode="decimal">
+                    </div>
+                    <div class="input-group">
+                        <label data-for="extrasPerOfficeDay">Other costs of this office, per day</label>
+                        <input type="number" data-bind="extrasPerOfficeDay" min="0" step="0.01" inputmode="decimal">
+                    </div>
+                </div>
+
+                <span class="group-label">Remote stipend</span>
+                <div class="field-grid">
+                    <div class="input-group">
+                        <label data-for="stipendPerMonth">Stipend per month</label>
+                        <input type="number" data-bind="stipendPerMonth" min="0" step="1" inputmode="decimal">
+                    </div>
+                    <div class="input-group">
+                        <label data-for="stipendMaxOfficeDays">Paid at or below office days per week</label>
+                        <input type="number" data-bind="stipendMaxOfficeDays" min="0" max="7" step="1" inputmode="numeric">
+                    </div>
+                </div>
+            </div>
+        </details>
+    </template>
+
+    <script src="../js/shared.js"></script>
+    <script type="module" src="../js/footer.js"></script>
+    <script type="module" src="../js/wfh_calculator/wfh-calculator.js"></script>
+</body>
+</html>
