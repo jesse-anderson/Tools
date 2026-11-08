@@ -48,6 +48,10 @@ function renderTiles(state, r, cur) {
     box.appendChild(tile('Equivalent pre-tax raise', money(withTime ? p.equivalentRaise : p.equivalentRaiseMoney, cur),
         pct !== null && withTime ? `${round(pct, 1)}% of pay; what a full-office job would have to add` : 'what a full-office job would have to add'));
     box.appendChild(tile('Commuting a year', hrs(p.hours), `${hrs(r.hours.regained)} fewer than full office`));
+    if (ev.rates) {
+        box.appendChild(tile('Pay per hour worked', money(ev.rates.pure, cur, 2),
+            `${money(ev.rates.withCommute, cur, 2)} counting commute time as work`));
+    }
 }
 
 function renderComparison(state, r, cur) {
@@ -92,6 +96,16 @@ function renderComparison(state, r, cur) {
         row('Better or worse off, counting time', '', '', money(c.difference, cur), true);
     }
     row('Commuting hours a year', hrs(c.a.policy.hours), hrs(c.b.policy.hours), hrs(c.differenceHours));
+    row('Days off a year', String(Number(state.jobs[0].daysOff) || 0), String(Number(state.jobs[1].daysOff) || 0), '');
+    const ra = c.a.rates;
+    const rb = c.b.rates;
+    if (ra && rb) {
+        row('Pay per hour worked', money(ra.pure, cur, 2), money(rb.pure, cur, 2), money(rb.pure - ra.pure, cur, 2));
+        row('Pay per hour, counting commute as work', money(ra.withCommute, cur, 2), money(rb.withCommute, cur, 2), money(rb.withCommute - ra.withCommute, cur, 2));
+        if (ra.takeHomeWithCommute !== null && rb.takeHomeWithCommute !== null) {
+            row('Take-home per hour, after commute costs and time', money(ra.takeHomeWithCommute, cur, 2), money(rb.takeHomeWithCommute, cur, 2), money(rb.takeHomeWithCommute - ra.takeHomeWithCommute, cur, 2));
+        }
+    }
     table.appendChild(tbody);
     const scroll = node('div', 'table-scroll');
     scroll.appendChild(table);
@@ -104,6 +118,7 @@ function renderComparison(state, r, cur) {
         taxNote = 'Only the difference in pay is taxed here, at the typed marginal rate of the higher-paid job. Choose 2026 US brackets for both jobs to tax each salary in full.';
     }
     box.appendChild(node('p', 'helper-text', `${taxNote} Costs are subtracted, so a positive figure favors ${names[1]}.`));
+    if (ra && rb) box.appendChild(node('p', 'helper-text', 'Pay per hour worked spreads pay over the hours you actually work, so more days off raise it. Counting commute adds each job\'s commute and getting-ready time to those hours. The take-home rate also takes off tax and the money each job costs to get to.'));
 
     const diff = withTime ? c.difference : c.differenceMoney;
     const better = diff > 0.5 ? names[1] : diff < -0.5 ? names[0] : null;
@@ -131,6 +146,10 @@ function renderCostOfLiving(box, col, names, cur) {
     if (!col) return;
     const h = node('h4', 'col-heading', 'Cost of living');
     box.appendChild(h);
+    if (col.incomplete) {
+        box.appendChild(node('p', 'helper-text', `Choose where you would live for ${col.placeA ? names[1] : names[0]} too, under "Where you would live" in that job, to compare prices.`));
+        return;
+    }
     if (col.needsBrackets) {
         box.appendChild(node('p', 'helper-text', 'The cost-of-living line needs take-home pay, so choose 2026 US brackets for both jobs.'));
         return;
@@ -356,14 +375,13 @@ function renderHours(state, r, cur) {
 }
 
 function renderSubtotals(state, r, cur) {
-    const p = r.single.policy;
-    // With two jobs, the shared sections show the first job's figures and say so.
-    const tag = r.comparison ? ` (${state.jobs[0].name || 'Job A'})` : '';
-    const set = (key, text) => document.querySelectorAll(`[data-subtotal="${key}"]`).forEach((e) => { e.textContent = key === 'commute' ? text : text + tag; });
-    set('time', timeOn(state) ? `${money(p.time, cur)} / yr` : `${hrs(p.hours)} / yr`);
-    set('care', `${money(p.care, cur)} / yr`);
-    set('home', `${money(p.home, cur)} / yr`);
-    set('fixed', `${money(p.fixed, cur)} / yr`);
+    // The shared sections apply to both jobs; with two, show each job's figure.
+    const jobs = r.comparison ? [r.comparison.a.policy, r.comparison.b.policy] : [r.single.policy];
+    const fmt = (key, p) => (key === 'time' ? (timeOn(state) ? money(p.time, cur) : hrs(p.hours)) : money(p[key], cur));
+    const set = (key) => document.querySelectorAll(`[data-subtotal="${key}"]`).forEach((e) => {
+        e.textContent = jobs.length > 1 ? `A ${fmt(key, jobs[0])} · B ${fmt(key, jobs[1])}` : `${fmt(key, jobs[0])} / yr`;
+    });
+    ['time', 'care', 'home', 'fixed'].forEach(set);
     document.querySelectorAll('[data-job]').forEach((n) => {
         const ev = r.comparison ? (n.dataset.job === '1' ? r.comparison.b : r.comparison.a) : r.single;
         const s = n.querySelector('[data-subtotal="commute"]');

@@ -23,9 +23,11 @@ export const TAX_2026 = {
     additionalMedicareThreshold: { single: 200000, joint: 250000, head: 200000 },
 };
 
+const STATE_CODES = new Set(RPP_PLACES.filter((r) => r[2] === 'state').map((r) => r[5][0]));
+
 export const FILING_STATUSES = { single: 'Single', joint: 'Married filing jointly', head: 'Head of household' };
 
-export const RPP_BY_FIPS = new Map(RPP_PLACES.map(([fips, name, kind, all, housing]) => [fips, { fips, name, kind, all, housing }]));
+export const RPP_BY_FIPS = new Map(RPP_PLACES.map(([fips, name, kind, all, housing, states]) => [fips, { fips, name, kind, all, housing, states }]));
 
 // Monthly cap on pre-tax transit and on pre-tax parking, 2026 (Rev. Proc. 2025-32).
 export const COMMUTER_BENEFIT_MONTHLY_CAP = 340;
@@ -243,9 +245,10 @@ export function timeRate(person, pay) {
     }
 }
 
-export function calendar(person) {
+// Workdays per week are the person's; days off belong to each job.
+export function calendar(person, job = {}) {
     const perWeek = num(person.workDaysPerWeek) || 5;
-    const days = Math.max(0, 52 * perWeek - num(person.daysOff));
+    const days = Math.max(0, 52 * perWeek - num(job.daysOff));
     return { workDaysPerWeek: perWeek, workingDays: days, workingWeeks: days / perWeek };
 }
 
@@ -300,7 +303,7 @@ function pretaxSpend(spend, enabled) {
 // Full cost breakdown for one job at one pattern (office days per week).
 export function evaluatePattern(scenario, job, daysPerWeek) {
     const person = scenario.person;
-    const cal = calendar(person);
+    const cal = calendar(person, job);
     const pay = payFigures(job, person);
     const model = taxModel(person, job);
     const d = dailyFigures(scenario, job);
@@ -354,7 +357,7 @@ export function breakEvenDays(perDay, monthly, cal) {
 // equivalent raise against full office.
 export function evaluateJob(scenario, job) {
     const person = scenario.person;
-    const cal = calendar(person);
+    const cal = calendar(person, job);
     const pay = payFigures(job, person);
     const model = taxModel(person, job);
     const max = Math.round(cal.workDaysPerWeek);
@@ -385,12 +388,29 @@ export function evaluateJob(scenario, job) {
     } : { money: 0, time: 0, total: 0 };
     return {
         pay, calendar: cal, daily: d,
+        rates: hourlyRates(job, cal, pay, policy),
         patterns: patterns.map(annotate),
         policy: annotate(policy),
         policyDays,
         officeDayCost,
         transitBreakEven: breakEvenDays(d.transitPerDay, num(job.transitPassMonthly), cal),
         parkingBreakEven: breakEvenDays(num(job.parkingPerDay), num(job.parkingPermitMonthly), cal),
+    };
+}
+
+// Pay per hour actually worked: paid hours a week spread over workdays, times
+// working days, so paid time off raises the rate. Counting commute adds the
+// policy pattern's commute and prep hours as if they were work hours.
+export function hourlyRates(job, cal, pay, policy) {
+    const worked = num(job.hoursPerWeek) / cal.workDaysPerWeek * cal.workingDays;
+    if (!(worked > 0) || !(pay.annual > 0)) return null;
+    const withCommuteHours = worked + policy.hours;
+    return {
+        workedHours: worked,
+        commuteHours: policy.hours,
+        pure: pay.annual / worked,
+        withCommute: pay.annual / withCommuteHours,
+        takeHomeWithCommute: pay.net === null ? null : (pay.net - policy.money) / withCommuteHours,
     };
 }
 
@@ -453,7 +473,8 @@ export function compareJobs(scenario) {
 export function costOfLiving(a, b, ea, eb) {
     const pa = RPP_BY_FIPS.get(a.placeFips);
     const pb = RPP_BY_FIPS.get(b.placeFips);
-    if (!pa || !pb) return null;
+    if (!pa && !pb) return null;
+    if (!pa || !pb) return { incomplete: true, placeA: pa || null, placeB: pb || null };
     if (!(ea.pay.exactTax && eb.pay.exactTax)) return { placeA: pa, placeB: pb, needsBrackets: true };
     const keptA = ea.pay.net + num(a.otherPayNet) - ea.policy.money;
     const keptB = eb.pay.net + num(b.otherPayNet) - eb.policy.money;
@@ -520,10 +541,9 @@ export function validate(scenario) {
     const errors = [];
     const warnings = [];
     const person = scenario.person || {};
-    const cal = calendar(person);
+    const week = calendar(person);
     const metric = scenario.units === 'metric';
-    if (!(cal.workDaysPerWeek >= 1 && cal.workDaysPerWeek <= 7) || !Number.isInteger(cal.workDaysPerWeek)) errors.push({ field: 'person.workDaysPerWeek', text: 'Workdays per week must be a whole number from 1 to 7.' });
-    if (num(person.daysOff) < 0 || cal.workingDays <= 0) errors.push({ field: 'person.daysOff', text: 'Days off leave no working days in the year.' });
+    if (!(week.workDaysPerWeek >= 1 && week.workDaysPerWeek <= 7) || !Number.isInteger(week.workDaysPerWeek)) errors.push({ field: 'person.workDaysPerWeek', text: 'Workdays per week must be a whole number from 1 to 7.' });
     const pctTotal = HOURS_CATEGORIES.reduce((s, c) => s + num((person.hoursSplit || {})[c.key]), 0);
     if (pctTotal > 100.0001) errors.push({ field: 'person.hoursSplit', text: `The time split adds to ${round(pctTotal, 1)}%, over 100%.` });
 
@@ -533,6 +553,8 @@ export function validate(scenario) {
     jobs.forEach((job, i) => {
         const tag = jobs.length > 1 ? `${job.name || (i === 0 ? 'Job A' : 'Job B')}: ` : '';
         const p = `jobs.${i}.`;
+        const cal = calendar(person, job);
+        if (num(job.daysOff) < 0 || cal.workingDays <= 0) errors.push({ field: p + 'daysOff', text: `${tag}Days off leave no working days in the year.` });
         const rate = num(job.marginalRatePct);
         const brackets = job.taxMode === 'brackets';
         if (brackets && (num(job.stateRatePct) < 0 || num(job.stateRatePct) > 20)) errors.push({ field: p + 'stateRatePct', text: `${tag}State and local tax must be between 0 and 20%.` });
@@ -701,11 +723,14 @@ export function sanitizeScenario(input, blank) {
         j.tripHome.legs = cleanLegs(raw.tripHome && raw.tripHome.legs);
         j.payMode = j.payMode === 'hourly' ? 'hourly' : 'salary';
         j.policyMode = j.policyMode === 'month' ? 'month' : 'week';
+        // Days off moved from the person to each job in v1.3.0.
+        if (raw.daysOff === undefined && input && input.person && has(input.person.daysOff)) j.daysOff = num(input.person.daysOff);
         // Files saved before bracket mode carried only a typed rate: keep it.
         if (raw.taxMode === undefined && has(raw.marginalRatePct)) j.taxMode = 'flat';
         j.taxMode = j.taxMode === 'flat' ? 'flat' : 'brackets';
         // Read raw: the blank template is '', which the cleaner treats as a number.
         j.placeFips = typeof raw.placeFips === 'string' && RPP_BY_FIPS.has(raw.placeFips) ? raw.placeFips : '';
+        j.placeState = typeof raw.placeState === 'string' && STATE_CODES.has(raw.placeState) ? raw.placeState : '';
         return j;
     });
     const p = (input && input.person) || {};

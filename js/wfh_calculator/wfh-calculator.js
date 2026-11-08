@@ -95,14 +95,7 @@ function buildJobs() {
             const input = group && group.querySelector('input');
             if (input) input.setAttribute('aria-describedby', h.id);
         });
-        const place = node.querySelector('[data-place]');
-        place.id = `job${i}-place`;
-        node.querySelector('[data-place-label]').htmlFor = place.id;
-        place.addEventListener('input', () => {
-            const match = PLACE_BY_LABEL.get(place.value.trim().toLowerCase());
-            state.jobs[i].placeFips = match ? match.fips : '';
-            recalc();
-        });
+        wirePlace(node, i);
         container.appendChild(node);
         renderLegs(node, i, 'tripIn');
         renderLegs(node, i, 'tripHome');
@@ -307,23 +300,66 @@ function renderAllLines() {
     ], 'line');
 }
 
-// Places for the cost-of-living field, labeled as the datalist shows them.
-function placeLabel(p) {
-    return p.kind === 'state' ? `${p.name}, statewide average` : p.name;
-}
-const PLACE_BY_LABEL = new Map(RPP_PLACES.map(([fips, name, kind, all, housing]) => {
-    const p = { fips, name, kind, all, housing };
-    return [placeLabel(p).toLowerCase(), p];
-}));
-const PLACE_BY_FIPS = new Map([...PLACE_BY_LABEL.values()].map((p) => [p.fips, p]));
+// Places for the cost-of-living field: a state, then an area within it.
+const PLACES = RPP_PLACES.map(([fips, name, kind, all, housing, states]) => ({ fips, name, kind, all, housing, states }));
+const PLACE_BY_FIPS = new Map(PLACES.map((p) => [p.fips, p]));
+const STATES = PLACES.filter((p) => p.kind === 'state');
+const STATE_BY_CODE = new Map(STATES.map((p) => [p.states[0], p]));
+const OUTSIDE_METROS = '00999';
+const idx = (x) => x.toFixed(1);
 
-function fillPlaceList() {
-    const list = $('rppPlaces');
-    for (const p of PLACE_BY_LABEL.values()) {
-        const o = document.createElement('option');
-        o.value = placeLabel(p);
-        list.appendChild(o);
+function addOption(select, value, text) {
+    const o = document.createElement('option');
+    o.value = value;
+    o.textContent = text;
+    select.appendChild(o);
+}
+
+// A metro can span states, so the chosen state is kept beside the place.
+function placeState(job) {
+    const place = PLACE_BY_FIPS.get(job.placeFips);
+    if (!place) return '';
+    if (job.placeState && (place.fips === OUTSIDE_METROS || place.states.includes(job.placeState))) return job.placeState;
+    return place.states[0] || '';
+}
+
+function fillAreas(node, job) {
+    const area = node.querySelector('[data-place-area]');
+    const code = placeState(job) || node.querySelector('[data-place-state]').value;
+    area.textContent = '';
+    area.disabled = !code;
+    if (!code) {
+        addOption(area, '', 'Choose a state first');
+        return;
     }
+    const st = STATE_BY_CODE.get(code);
+    addOption(area, st.fips, `Statewide average (${idx(st.all)})`);
+    PLACES.filter((p) => p.kind === 'metro' && p.states.includes(code))
+        .forEach((p) => addOption(area, p.fips, `${p.name} (${idx(p.all)})`));
+    addOption(area, OUTSIDE_METROS, `Outside a metro area, US-wide (${idx(PLACE_BY_FIPS.get(OUTSIDE_METROS).all)})`);
+    area.value = job.placeFips || st.fips;
+}
+
+function wirePlace(node, i) {
+    const st = node.querySelector('[data-place-state]');
+    const area = node.querySelector('[data-place-area]');
+    st.id = `job${i}-placeState`;
+    area.id = `job${i}-placeArea`;
+    node.querySelector('[data-place-state-label]').htmlFor = st.id;
+    node.querySelector('[data-place-area-label]').htmlFor = area.id;
+    addOption(st, '', 'Choose a state');
+    STATES.forEach((p) => addOption(st, p.states[0], p.name));
+    st.addEventListener('change', () => {
+        const job = state.jobs[i];
+        job.placeState = st.value;
+        job.placeFips = st.value ? STATE_BY_CODE.get(st.value).fips : '';
+        fillAreas(node, job);
+        recalc();
+    });
+    area.addEventListener('change', () => {
+        state.jobs[i].placeFips = area.value;
+        recalc();
+    });
 }
 
 const pct = (x) => `${Engine.round(x * 100, 2)}%`;
@@ -343,14 +379,13 @@ function renderJobReadouts() {
         } else text = 'This rate is applied to each change in pay, such as a raise or the gap between two offers, never to the whole salary.';
         if (out.textContent !== text) out.textContent = text;
 
-        const input = node.querySelector('[data-place]');
         const hint = node.querySelector('[data-place-hint]');
         const place = PLACE_BY_FIPS.get(job.placeFips);
-        let h = 'Pick a metro area or a state from the list. Prices come from BEA Regional Price Parities.';
+        let h = 'Choose a place for each job to compare prices. Figures are BEA Regional Price Parities, US = 100.';
         if (place) {
             const diff = place.all - 100;
-            h = `Prices ${Math.abs(diff).toFixed(1)}% ${diff >= 0 ? 'above' : 'below'} the US average in ${RPP_YEAR}${place.housing ? `; rent index ${place.housing.toFixed(1)}` : ''} (BEA, US = 100).`;
-        } else if (input.value.trim()) h = 'No match. Pick a name from the list.';
+            h = `Prices ${idx(Math.abs(diff))}% ${diff >= 0 ? 'above' : 'below'} the US average in ${RPP_YEAR}${place.housing ? `; rent index ${idx(place.housing)}` : ''} (BEA, US = 100).`;
+        }
         if (hint.textContent !== h) hint.textContent = h;
     });
 }
@@ -360,8 +395,9 @@ function fillForm() {
     buildJobs();
     document.querySelectorAll('[data-bind]').forEach((input) => writeInput(input, getPath(state, fullPath(input))));
     document.querySelectorAll('[data-job]').forEach((node) => {
-        const place = PLACE_BY_FIPS.get(state.jobs[Number(node.dataset.job)].placeFips);
-        node.querySelector('[data-place]').value = place ? placeLabel(place) : '';
+        const job = state.jobs[Number(node.dataset.job)];
+        node.querySelector('[data-place-state]').value = placeState(job);
+        fillAreas(node, job);
     });
     document.querySelectorAll('input[name="units"]').forEach((r) => { r.checked = r.value === state.units; });
     renderAllLines();
@@ -383,6 +419,7 @@ function syncVisibility() {
         node.querySelector('.job-title').textContent = state.compare ? (job.name || `Job ${node.dataset.job === '0' ? 'A' : 'B'}`) : 'Your job';
     });
     $('customRateGroup').hidden = state.person.timeValueMode !== 'custom';
+    document.querySelectorAll('.shared-note').forEach((e) => { e.hidden = !state.compare; });
 }
 
 function showNote(text) {
@@ -608,9 +645,7 @@ function currentTableJob() {
 }
 
 function init() {
-    fillPlaceList();
     wire();
-    document.querySelectorAll('.input-panel > .input-group .info-tip[data-info]').forEach((t) => renderInfoTip(t, 'page'));
     wireInfoTips();
     refreshSaved();
     const store = loadStore();

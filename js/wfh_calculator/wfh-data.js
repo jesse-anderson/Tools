@@ -141,9 +141,9 @@ export function blankLeg(mode = 'car_fuel') {
 export function blankJob(name) {
     return {
         name,
-        payMode: 'salary', salary: '', hourly: '', hoursPerWeek: '', paidWeeks: '',
+        payMode: 'salary', salary: '', hourly: '', hoursPerWeek: '', paidWeeks: '', daysOff: '',
         taxMode: 'brackets', stateRatePct: '', pretaxDeductions: '', marginalRatePct: '',
-        otherPayNet: '', placeFips: '',
+        otherPayNet: '', placeFips: '', placeState: '',
         policyMode: 'week', officeDaysPerWeek: '', officeDaysPerMonth: '',
         tripIn: { minutes: '', legs: [blankLeg()] },
         sameTripHome: true,
@@ -162,7 +162,7 @@ export function blankScenario() {
         currency: '$',
         compare: false,
         person: {
-            workDaysPerWeek: 5, daysOff: '',
+            workDaysPerWeek: 5,
             filingStatus: 'single', otherIncome: '',
             timeValueMode: 'net', customTimeRate: '', prepMinutes: '',
             homeLunch: '', homeCoffee: '', homeEnergyPerDay: '',
@@ -192,7 +192,7 @@ function driverLeg(miles) {
 
 function basePerson(p) {
     Object.assign(p, {
-        daysOff: 25, prepMinutes: 15,
+        prepMinutes: 15,
         homeLunch: 4, homeCoffee: 0.5, homeEnergyPerDay: 1,
         clothingPerOfficeDay: 2, socialPerOfficeDay: 3,
         hoursSplit: { family: 50, sleep: 20, exercise: 15, chores: 15, work: '' },
@@ -201,7 +201,7 @@ function basePerson(p) {
 
 // 2026 brackets, single, with a made-up 5% state rate.
 function basePay(j, salary) {
-    Object.assign(j, { salary, hoursPerWeek: 40, paidWeeks: 52, taxMode: 'brackets', stateRatePct: 5 });
+    Object.assign(j, { salary, hoursPerWeek: 40, paidWeeks: 52, daysOff: 25, taxMode: 'brackets', stateRatePct: 5 });
 }
 
 // Salaries, fares and food prices here are made up. Commute time, gas price

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
 ============================================
-WORK FROM HOME CALCULATOR v1.2.0
+WORK FROM HOME CALCULATOR v1.3.0
 ============================================
 Description: What a day in the office costs in money and time, what a
 day at home costs instead, and the yearly difference for every pattern
@@ -30,6 +30,7 @@ Features:
 - Tax worked out from 2026 federal brackets, payroll tax and a state rate,
   so raises and pay gaps are taxed at every rate they pass through
 - Cost of living between two offers from BEA Regional Price Parities (2024)
+- Days off per job, and pay per hour worked with and without commute time
 - US or metric units; scenarios saved in this browser, JSON import and
   export, CSV, SVG and PNG export, printable summary
 
@@ -236,19 +237,11 @@ Last Updated: November 2026
                 </fieldset>
 
                 <div class="input-group">
-                    <span class="group-label">Working year</span>
+                    <span class="group-label">Week and tax</span>
                     <div class="field-grid">
                         <div class="input-group">
                             <label for="workDaysPerWeek">Workdays per week</label>
                             <input type="number" id="workDaysPerWeek" data-bind="person.workDaysPerWeek" min="1" max="7" step="1" inputmode="numeric">
-                        </div>
-                        <div class="input-group">
-                            <div class="label-row">
-                                <label for="daysOff">Days off a year</label>
-                                <span class="info-tip" data-info="daysOff"></span>
-                            </div>
-                            <input type="number" id="daysOff" data-bind="person.daysOff" min="0" step="1" inputmode="numeric" aria-describedby="daysOffHint">
-                            <p class="hint" id="daysOffHint">Vacation, holidays and sick days. The i shows US averages.</p>
                         </div>
                         <div class="input-group">
                             <label for="filingStatus">Tax filing status</label>
@@ -271,6 +264,7 @@ Last Updated: November 2026
                 <details class="section" open>
                     <summary><span>Time</span><span class="subtotal" data-subtotal="time"></span></summary>
                     <div class="section-body">
+                        <p class="helper-text shared-note" hidden>Shared by both jobs. Each job's figure uses its own office days and days off.</p>
                         <div class="input-group">
                             <label for="timeValueMode">Value an hour of commuting at</label>
                             <select id="timeValueMode" data-bind="person.timeValueMode">
@@ -312,6 +306,7 @@ Last Updated: November 2026
                 <details class="section">
                     <summary><span>Care and office extras</span><span class="subtotal" data-subtotal="care"></span></summary>
                     <div class="section-body">
+                        <p class="helper-text shared-note" hidden>Shared by both jobs. Each job's figure uses its own office days and days off.</p>
                         <p class="helper-text">Costs that exist only because you are at the office: care for children or pets while nobody is home, and what the office itself costs you.</p>
                         <div class="line-list" id="careLines"></div>
                         <button type="button" class="tool-btn small" id="addCare">Add a care cost</button>
@@ -332,6 +327,7 @@ Last Updated: November 2026
                 <details class="section">
                     <summary><span>Home side</span><span class="subtotal" data-subtotal="home"></span></summary>
                     <div class="section-body">
+                        <p class="helper-text shared-note" hidden>Shared by both jobs. Each job's figure uses its own office days and days off.</p>
                         <div class="field-grid">
                             <div class="input-group">
                                 <label for="homeLunch">Lunch at home</label>
@@ -384,6 +380,7 @@ Last Updated: November 2026
                 <details class="section">
                     <summary><span>Car and other yearly costs</span><span class="subtotal" data-subtotal="fixed"></span></summary>
                     <div class="section-body">
+                        <p class="helper-text shared-note" hidden>Shared by both jobs. Each job's figure uses its own office days and days off.</p>
                         <p class="helper-text">Costs that change only at some patterns. Each applies when office days per week are above the number you give, and drops away at or below it.</p>
                         <div class="field-grid">
                             <div class="input-group">
@@ -472,8 +469,6 @@ Last Updated: November 2026
         <footer data-footer></footer>
     </div>
 
-    <datalist id="rppPlaces"></datalist>
-
     <template id="jobTemplate">
         <details class="section job-section" open>
             <summary><span class="job-title">Job</span><span class="subtotal" data-subtotal="commute"></span></summary>
@@ -508,6 +503,14 @@ Last Updated: November 2026
                         </div>
                         <input type="number" data-bind="paidWeeks" min="0" max="52" step="1" inputmode="numeric">
                     </div>
+                    <div class="input-group">
+                        <div class="label-row">
+                            <label data-for="daysOff">Days off a year</label>
+                            <span class="info-tip" data-info="daysOff"></span>
+                        </div>
+                        <input type="number" data-bind="daysOff" min="0" step="1" inputmode="numeric">
+                        <p class="hint">Vacation, holidays and sick days at this job.</p>
+                    </div>
                 </div>
                 <div class="label-row tax-head">
                     <span class="group-label">Tax</span>
@@ -541,11 +544,20 @@ Last Updated: November 2026
                     <p class="hint">Bonus, retirement match or anything else you want counted, as take-home dollars.</p>
                 </div>
 
-                <div class="input-group compare-only">
-                    <label data-place-label>Where you would live</label>
-                    <input type="text" data-place list="rppPlaces" maxlength="80" autocomplete="off" placeholder="Type a city or state">
+                <fieldset class="place compare-only">
+                    <legend>Where you would live</legend>
+                    <div class="field-grid">
+                        <div class="input-group">
+                            <label data-place-state-label>State</label>
+                            <select data-place-state></select>
+                        </div>
+                        <div class="input-group">
+                            <label data-place-area-label>Area</label>
+                            <select data-place-area></select>
+                        </div>
+                    </div>
                     <p class="hint" data-place-hint></p>
-                </div>
+                </fieldset>
 
                 <span class="group-label">Office days</span>
                 <div class="field-grid">

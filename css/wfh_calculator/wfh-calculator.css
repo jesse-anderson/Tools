@@ -105,6 +105,7 @@ fieldset {
 
 .toolbar > legend,
 .split > legend,
+.place > legend,
 .group-label {
     display: block;
     margin: 6px 0 8px;
@@ -903,4 +904,13 @@ p.disclaimer {
     #notPriced > :not(summary) {
         display: block;
     }
+}
+
+/* Metro names are long: state and area each get a full row. */
+.place .field-grid {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.place select {
+    font-family: 'Space Grotesk', sans-serif;
 }

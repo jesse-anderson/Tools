@@ -15,9 +15,9 @@ async function openTool(page) {
 const BASE = `(() => {
   const W = window.WfhCalculator;
   const s = W.blankScenario();
-  Object.assign(s.person, { daysOff: 20, homeLunch: 4, homeEnergyPerDay: 1 });
+  Object.assign(s.person, { homeLunch: 4, homeEnergyPerDay: 1 });
   const j = s.jobs[0];
-  Object.assign(j, { salary: 52000, hoursPerWeek: 40, paidWeeks: 52, taxMode: 'flat', marginalRatePct: 30, officeDaysPerWeek: 3, officeLunch: 14 });
+  Object.assign(j, { daysOff: 20, salary: 52000, hoursPerWeek: 40, paidWeeks: 52, taxMode: 'flat', marginalRatePct: 30, officeDaysPerWeek: 3, officeLunch: 14 });
   j.tripIn = { minutes: 30, legs: [{ ...j.tripIn.legs[0], mode: 'car_fuel', distance: 20, efficiency: 25, fuelPrice: 3.5 }] };
   return s;
 })()`;
@@ -100,7 +100,7 @@ test.describe('engine', () => {
     const r = await page.evaluate(() => {
       const W = window.WfhCalculator;
       const s = W.blankScenario();
-      s.person.daysOff = 20;
+      s.jobs[0].daysOff = 20;
       const j = s.jobs[0];
       Object.assign(j, { salary: 52000, hoursPerWeek: 40, paidWeeks: 52, taxMode: 'flat', marginalRatePct: 30, officeDaysPerWeek: 5, transitPassMonthly: 100 });
       j.tripIn = { minutes: 30, legs: [{ mode: 'transit', fare: 2.5 }] };
@@ -251,7 +251,10 @@ test.describe('engine', () => {
     expect(s.units).toBe('us');
     expect(s.evil).toBeUndefined();
     expect(s.compare).toBe(false);
-    expect(s.person.daysOff).toBe(12);
+    // Days off moved to each job; an old file's person-level value is carried over.
+    expect(s.person.daysOff).toBeUndefined();
+    expect(s.jobs[0].daysOff).toBe(12);
+    expect(s.jobs[1].daysOff).toBe(12);
     expect(s.person.timeValueMode).toBe('net');
     expect(s.person.careLines[0].label.length).toBe(60);
     expect(s.person.careLines[0].perOfficeDay).toBe('');
@@ -405,6 +408,39 @@ test.describe('2026 tax and cost of living', () => {
   });
 });
 
+test.describe('days off and hourly rates', () => {
+  test.beforeEach(async ({ page }) => { await openTool(page); });
+
+  test('pay per hour worked by hand, with and without commute', async ({ page }) => {
+    const r = await page.evaluate(`(() => { const W = window.WfhCalculator; return W.calculate(${BASE}).single; })()`);
+    // 40 h over 5 days is 8 h a day; 260 - 20 days off = 240 days, 1,920 h.
+    expect(r.rates.workedHours).toBeCloseTo(1920, 9);
+    expect(r.rates.pure).toBeCloseTo(52000 / 1920, 9);
+    expect(r.rates.withCommute).toBeCloseTo(52000 / (1920 + r.policy.hours), 9);
+    // Flat mode has no take-home figure.
+    expect(r.rates.takeHomeWithCommute).toBeNull();
+  });
+
+  test('each job uses its own days off', async ({ page }) => {
+    const r = await page.evaluate(`(() => {
+      const W = window.WfhCalculator;
+      const s = ${BASE};
+      s.compare = true;
+      s.jobs[1] = structuredClone(s.jobs[0]);
+      s.jobs[0].daysOff = 10;
+      s.jobs[1].daysOff = 30;
+      return W.compareJobs(s);
+    })()`);
+    expect(r.a.calendar.workingDays).toBe(250);
+    expect(r.b.calendar.workingDays).toBe(230);
+    // Same office days per week, fewer working days: fewer office days and less cost.
+    expect(r.b.policy.officeDays).toBeCloseTo(r.a.policy.officeDays * 230 / 250, 9);
+    expect(r.b.policy.money).toBeLessThan(r.a.policy.money);
+    expect(r.b.rates.pure).toBeCloseTo(52000 / (8 * 230), 9);
+    expect(r.a.rates.pure).toBeCloseTo(52000 / (8 * 250), 9);
+  });
+});
+
 test.describe('page', () => {
   test('loads cleanly', async ({ page, baseURL }) => {
     await expectPageToLoadCleanly(page, baseURL, PAGE);
@@ -441,17 +477,38 @@ test.describe('page', () => {
     await expect(page.locator('[data-tax-readout]').first()).toContainText('never to the whole salary');
   });
 
-  test('two places give a cost-of-living line, and a typo removes it', async ({ page }) => {
+  test('places are chosen by state then area, and one missing place says so', async ({ page }) => {
     await openTool(page);
     await page.selectOption('#exampleSelect', 'offers');
     await page.click('#loadExample');
-    await expect(page.locator('#job0-place')).toHaveValue('Indianapolis-Carmel-Greenwood, IN');
+    await expect(page.locator('#job0-placeState')).toHaveValue('IN');
+    await expect(page.locator('#job0-placeArea')).toHaveValue('26900');
     await expect(page.locator('#comparison')).toContainText('Adjusted for prices, Remote offer leaves you $5,643');
-    await page.fill('#job1-place', 'Chicagoo');
-    await expect(page.locator('#job1-place').locator('xpath=..').locator('[data-place-hint]')).toContainText('No match');
-    await expect(page.locator('#comparison')).not.toContainText('Adjusted for prices');
-    await page.fill('#job1-place', 'illinois, statewide average');
+    await page.selectOption('#job1-placeState', '');
+    await expect(page.locator('#job1-placeArea')).toBeDisabled();
+    await expect(page.locator('#comparison')).toContainText('Choose where you would live for Hybrid offer too');
+    await page.selectOption('#job1-placeState', 'IL');
+    await expect(page.locator('#job1-placeArea')).toHaveValue('17000');
     await expect(page.locator('#comparison')).toContainText('Adjusted for prices');
+    // Chicago spans Illinois and Indiana, so it is listed under both.
+    await expect(page.locator('#job1-placeArea option[value="16980"]')).toHaveCount(1);
+    await page.selectOption('#job1-placeArea', '16980');
+    await expect(page.locator('#comparison')).toContainText('$5,643');
+    await page.selectOption('#job0-placeState', 'IL');
+    await expect(page.locator('#job0-placeArea option[value="16980"]')).toHaveCount(1);
+    await page.selectOption('#job0-placeArea', '00999');
+    await expect(page.locator('#job0-placeState')).toHaveValue('IL');
+  });
+
+  test('shared sections show both jobs and say they are shared', async ({ page }) => {
+    await openTool(page);
+    await expect(page.locator('.shared-note').first()).toBeHidden();
+    await page.selectOption('#exampleSelect', 'offers');
+    await page.click('#loadExample');
+    await expect(page.locator('[data-subtotal="care"]')).toHaveText(/^A \$[\d,]+ · B \$[\d,]+$/);
+    await expect(page.locator('.shared-note')).toHaveCount(4);
+    await expect(page.locator('.shared-note').first()).toBeVisible();
+    await expect(page.locator('#comparison')).toContainText('Pay per hour, counting commute as work');
   });
 
   test('a source button fills the field and names its source', async ({ page }) => {
