@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<!--
+============================================
+DATASET DIFF AND RECONCILIATION v0.1.0
+============================================
+Description: Compares two spreadsheet-like tables by their exact stored
+values, first in their existing row order and then with every column
+sorted, and lists every difference with its source cell.
+
+Dependencies (pinned versions, served from this site):
+- SheetJS Community Edition: 0.20.3 (reads XLSX workbooks)
+    https://sheetjs.com/
+    Apache License 2.0: https://git.sheetjs.com/sheetjs/sheetjs/src/branch/master/LICENSE
+    Local copy and license text: js/vendor/dataset_diff/
+Google Fonts (JetBrains Mono, Space Grotesk) loaded from CDN.
+
+Project: Tools Hub by Jesse Anderson
+Repository: https://github.com/jesse-anderson/Tools
+License: GPL-3.0 - https://github.com/jesse-anderson/Tools/blob/main/LICENSE
+
+Features:
+- CSV, TSV, TXT, pasted text and XLSX, the two sides in any mix
+- One sheet pair or several, paired by name or by hand, with ranges
+- Same-row-order check and sorted-all-columns check, duplicates counted
+- Exact stored values: no rounding, display formats or recalculation
+- Workbooks read in background workers, with Stop
+- Plaintext differences with a 50,000 character preview and full export
+
+Last Updated: November 2026
+============================================
+-->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Compare two CSV or Excel tables cell by cell, in row order and after sorting every column, with duplicate rows counted. Runs in your browser.">
+    <link rel="canonical" href="https://tools.jesse-anderson.net/tools/dataset-diff.html">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Tools Hub">
+    <meta property="og:title" content="Dataset Diff and Reconciliation">
+    <meta property="og:description" content="Compare two CSV or Excel tables cell by cell, in row order and after sorting every column, with duplicate rows counted. Runs in your browser.">
+    <meta property="og:url" content="https://tools.jesse-anderson.net/tools/dataset-diff.html">
+    <meta name="twitter:card" content="summary">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; worker-src 'self'; base-uri 'none'; form-action 'none'">
+    <title>Dataset Diff and Reconciliation | Tools Hub</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/shared.css">
+    <link rel="stylesheet" href="../css/dataset_diff/dataset-diff.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <div class="header-left">
+                    <a href="../tools.html" class="back-link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <line x1="19" y1="12" x2="5" y2="12"/>
+                            <polyline points="12 19 5 12 12 5"/>
+                        </svg>
+                        Back to Tools
+                    </a>
+                </div>
+                <div class="header-right">
+                    <div class="theme-toggle">
+                        <button data-theme-toggle="light" aria-pressed="false" title="Light mode" aria-label="Light mode">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                <circle cx="12" cy="12" r="5"/>
+                                <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+                            </svg>
+                        </button>
+                        <button data-theme-toggle="dark" aria-pressed="false" title="Dark mode" aria-label="Dark mode">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="tool-title-row">
+                <div class="tool-icon-header it" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="4" width="7" height="16" rx="1"/>
+                        <rect x="14" y="4" width="7" height="16" rx="1"/>
+                        <path d="M3 9h7M3 14h7M14 9h7M14 14h7"/>
+                    </svg>
+                </div>
+                <div>
+                    <h1>Dataset Diff and Reconciliation</h1>
+                    <p class="tagline">// TWO TABLES • ROW ORDER • SORTED • EXACT VALUES</p>
+                </div>
+            </div>
+        </header>
+
+        <details class="disclaimer-card" id="scopeDisclaimer" aria-label="Scope, data safety and liability disclaimer">
+            <summary>
+                <span class="disclaimer-icon" aria-hidden="true">&#9888;</span>
+                <span class="disclaimer-summary-text">
+                    <span class="disclaimer-title">An exact comparison of the values you selected, under the import rules shown. Not an audit, not a reconciliation sign-off, and not a check of formulas or formatting.</span>
+                    <span class="disclaimer-lead">A match says the selected cells hold the same stored values; it says nothing about sheets, ranges or columns you left out, about how a value was calculated, or about whether either table is right. Use at your own risk. Open for the full scope limits.</span>
+                </span>
+                <span class="disclaimer-chevron" aria-hidden="true">&#9662;</span>
+            </summary>
+
+            <div class="disclaimer-body">
+                <div class="disclaimer-section">
+                    <h3>What this tool actually does</h3>
+                    <p><strong>Use at your own risk.</strong> It reads two tables, lines their columns up by exact header name, and compares the stored cell values twice: row by row in the order they arrived, and as whole rows with every column sorted. It is provided for convenience only and is not a substitute for reconciliation procedures, audit work, database tooling, or review by someone responsible for the data.</p>
+                </div>
+
+                <div class="disclaimer-section">
+                    <h3>What it does not compare</h3>
+                    <ul>
+                        <li>Sheets, ranges and pairs you did not select. "All selected pairs match" is the whole claim.</li>
+                        <li>Formatting, number formats, comments, charts, macros, connections and other workbook metadata.</li>
+                        <li>Formulas. A formula cell is compared by the result Excel stored the last time it calculated. Nothing is recalculated, and a formula with no stored result makes the pair incomplete.</li>
+                        <li>What a cell displays. A stored 1.234 shown as 1.23 is 1.234 here, and a date is the serial number Excel stores.</li>
+                    </ul>
+                </div>
+
+                <div class="disclaimer-section">
+                    <h3>Import rules decide what "equal" means</h3>
+                    <p>CSV has no cell types, so a column is read as numbers only when every value in it is a plain number with no leading zero; otherwise it is text, and text <code>1</code> is not number <code>1</code>. Separators, header rows, column types and how empty fields are read are settings you can see and change; the report records them. Excel writes displayed text when it saves a CSV, so a workbook compared with its own CSV export will differ wherever formatting changed the text.</p>
+                </div>
+
+                <div class="disclaimer-section">
+                    <h3>Sorted differences are not record matches</h3>
+                    <p>The sorted check lists rows found only on one side. A record that changed shows up as one row missing on the left and one on the right; the tool does not decide that they are the same record, and it does not know which copy of a duplicated row is the extra one.</p>
+                </div>
+
+                <div class="disclaimer-section">
+                    <h3>Limits and incomplete runs</h3>
+                    <p>Each source is limited to 40 MB, 200,000 data rows, 256 columns and 2 million selected cells. A source over a limit is refused, never compared in part. A stopped, refused or unreadable pair is reported as incomplete, and an incomplete run never shows a match.</p>
+                </div>
+
+                <div class="disclaimer-section">
+                    <h3>Local processing with browser limits</h3>
+                    <p>Files are read in your browser and are not intentionally uploaded by this page. Browser extensions, local policies, crashes, memory pressure and device behavior remain outside this tool's control. The exported report contains values from both tables and lands unencrypted in your downloads folder.</p>
+                    <p class="disclaimer-note">Local is about transmission, not permission. It says nothing about whether you are allowed to open the files you just opened.</p>
+                </div>
+
+                <div class="disclaimer-section">
+                    <h3>Never use this for</h3>
+                    <ul>
+                        <li>Signing off a financial close, a migration, a data load or any reconciliation someone else will rely on, without the procedures that process requires.</li>
+                        <li>Audit evidence or a compliance record that two datasets agree.</li>
+                        <li>Concluding that either table is correct, complete or free of duplicates.</li>
+                        <li>Regulated data on a machine or browser you do not control, including protected health information under HIPAA, cardholder data under PCI DSS, and personal data under GDPR.</li>
+                    </ul>
+                </div>
+
+                <div class="disclaimer-section">
+                    <h3>Verify independently</h3>
+                    <p>Before acting on a result, confirm the selected ranges, header alignment, column types and row counts against the source systems with trusted tools. Those systems control; where this page disagrees with them, this page is wrong.</p>
+                </div>
+
+                <div class="disclaimer-footer">
+                    <p><strong>No warranty. No liability. You assume all risk.</strong> This page and its outputs are provided as-is and as-available, without warranty of any kind, express or implied, including accuracy, completeness, reliability, data integrity, security, confidentiality, fitness for a particular purpose, merchantability, regulatory acceptability, or non-infringement. To the maximum extent permitted by law, the author accepts no liability for any loss, damage, cost or claim arising from use of or reliance on this page.</p>
+                    <p><strong>Independent verification required.</strong> Check every verdict and difference against the source data with trusted tools before acting on it. Those tools and professional judgment control; where this page disagrees with them, this page is wrong.</p>
+                    <p><strong>Consequential damages excluded.</strong> To the maximum extent permitted by law, in no event will the author or maintainers be liable for any direct, indirect, incidental, special, exemplary, punitive or consequential damages, including bad decisions, failed reconciliations, data loss, corruption, compliance failures, or loss of use, profits or business interruption, however caused and on any theory of liability, whether in contract, strict liability or tort including negligence, arising out of or in connection with this page, even if advised of the possibility of such damage.</p>
+                    <p><strong>Indemnity.</strong> By using this page you agree to indemnify and hold harmless the author and maintainers against any claim, demand, loss or expense arising out of your use of it or of anything derived from it.</p>
+                    <p><strong>Severability.</strong> If any part of this notice is held unenforceable, the remainder continues to apply, and the unenforceable part is limited to the least extent necessary rather than struck out.</p>
+                </div>
+            </div>
+        </details>
+
+        <main class="dd-layout">
+            <section class="dd-panel" aria-labelledby="sourcesTitle">
+                <div class="dd-panel-head">
+                    <h2 id="sourcesTitle">1. Choose two sources</h2>
+                    <label class="dd-inline">Example
+                        <select id="exampleSelect">
+                            <option value="">Load an example...</option>
+                        </select>
+                    </label>
+                </div>
+                <div class="dd-sources">
+                    <div class="dd-source" data-side="left">
+                        <h3>Left</h3>
+                        <label class="dd-drop">
+                            <input type="file" id="leftFile" class="dd-file" accept=".csv,.tsv,.txt,.xlsx">
+                            <span>Choose a CSV, TSV, TXT or XLSX file, or drop it here</span>
+                        </label>
+                        <details class="dd-paste">
+                            <summary>Or paste a table</summary>
+                            <textarea id="leftPaste" rows="5" spellcheck="false" aria-label="Paste the left table"></textarea>
+                            <button type="button" class="tool-btn small" id="leftPasteUse">Use pasted text</button>
+                        </details>
+                        <p class="dd-status" id="leftStatus" role="status">No source yet.</p>
+                        <div class="dd-errors" id="leftErrors" role="alert" hidden></div>
+                        <div class="dd-text-options" id="leftTextOptions" hidden></div>
+                    </div>
+                    <div class="dd-source" data-side="right">
+                        <h3>Right</h3>
+                        <label class="dd-drop">
+                            <input type="file" id="rightFile" class="dd-file" accept=".csv,.tsv,.txt,.xlsx">
+                            <span>Choose a CSV, TSV, TXT or XLSX file, or drop it here</span>
+                        </label>
+                        <details class="dd-paste">
+                            <summary>Or paste a table</summary>
+                            <textarea id="rightPaste" rows="5" spellcheck="false" aria-label="Paste the right table"></textarea>
+                            <button type="button" class="tool-btn small" id="rightPasteUse">Use pasted text</button>
+                        </details>
+                        <p class="dd-status" id="rightStatus" role="status">No source yet.</p>
+                        <div class="dd-errors" id="rightErrors" role="alert" hidden></div>
+                        <div class="dd-text-options" id="rightTextOptions" hidden></div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="dd-panel" aria-labelledby="pairsTitle">
+                <h2 id="pairsTitle">2. Pair the tables</h2>
+                <p class="dd-help">Each pair compares one range on the left with one on the right. A blank range means the sheet's cells that hold values; the first row of a range is its header row. Sheets are paired by name only, never by tab position.</p>
+                <div class="table-scroll">
+                    <table class="dd-table" id="pairsTable">
+                        <thead>
+                            <tr><th scope="col">Include</th><th scope="col">Left sheet</th><th scope="col">Left range</th><th scope="col">Right sheet</th><th scope="col">Right range</th><th scope="col">Status</th><th scope="col"><span class="visually-hidden">Remove</span></th></tr>
+                        </thead>
+                        <tbody id="pairsBody"></tbody>
+                    </table>
+                </div>
+                <div class="dd-actions">
+                    <button type="button" class="tool-btn small" id="addPair">Add pair</button>
+                    <button type="button" class="tool-btn small" id="suggestPairs">Pair sheets with the same name</button>
+                </div>
+                <p class="dd-note" id="excludedSheets"></p>
+                <div class="dd-errors" id="planErrors" role="alert" hidden></div>
+            </section>
+
+            <section class="dd-panel" aria-labelledby="compareTitle">
+                <h2 id="compareTitle">3. Compare</h2>
+                <div class="dd-actions">
+                    <button type="button" class="tool-btn primary" id="compareBtn">Compare</button>
+                    <button type="button" class="tool-btn" id="stopBtn" disabled>Stop</button>
+                </div>
+                <p class="dd-progress" id="progress" role="status" aria-live="polite"></p>
+            </section>
+
+            <section class="dd-panel" id="resultsPanel" aria-labelledby="resultsTitle" hidden>
+                <h2 id="resultsTitle">4. Results</h2>
+                <p class="dd-stale" id="staleNote" hidden>Sources or settings changed after this run. These results describe the earlier settings; compare again to update them.</p>
+                <div class="dd-aggregate" id="aggregate"></div>
+                <div class="table-scroll">
+                    <table class="dd-table" id="summaryTable">
+                        <thead>
+                            <tr><th scope="col">Pair</th><th scope="col">Same row order</th><th scope="col">Sorted all columns</th><th scope="col">Rows (left / right)</th><th scope="col">What it means</th></tr>
+                        </thead>
+                        <tbody id="summaryBody"></tbody>
+                    </table>
+                </div>
+                <p class="disclaimer">These verdicts cover the selected ranges and the import settings recorded in the report, nothing else. A sorted difference is a row found on one side only, not a matched record. Provided as-is, without warranty, and used at your own risk; see the <a href="#scopeDisclaimer" id="disclaimerLink">full disclaimer</a> above.</p>
+                <div class="dd-report-head">
+                    <h3 id="reportTitle">Differences</h3>
+                    <div class="dd-actions">
+                        <label class="dd-inline"><input type="checkbox" id="wrapToggle" checked> Wrap lines</label>
+                        <button type="button" class="tool-btn small" id="copyShown">Copy shown text</button>
+                        <button type="button" class="tool-btn small primary" id="exportFull">Export full diff (.txt)</button>
+                    </div>
+                </div>
+                <p class="dd-prompt" id="truncationPrompt" role="status" hidden></p>
+                <textarea id="reportBox" class="dd-report" readonly rows="20" spellcheck="false" aria-labelledby="reportTitle"></textarea>
+                <p class="dd-note" id="exportStatus" role="status"></p>
+            </section>
+
+            <section class="dd-panel" aria-labelledby="howTitle">
+                <h2 id="howTitle">How to use</h2>
+                <div class="dd-how">
+                    <h3>The two checks</h3>
+                    <p><strong>Same row order</strong> compares row 1 with row 1, row 2 with row 2, and so on, cell by cell. <strong>Sorted all columns</strong> asks whether the two tables hold the same rows the same number of times, as if both were sorted by every column first. If the first check fails and the second passes, only the row order differs. One inserted row shifts every row after it in the first check; read the second check before concluding that many cells changed.</p>
+                    <h3>Columns are matched by header</h3>
+                    <p>A column on the right is found by its exact header text, so reordered columns still line up. <code>Qty</code>, <code>qty</code> and <code>Qty </code> (with a space) are three different headers; the results point out names that differ only in case or spaces. A header on one side only stops the comparison for that pair, rather than quietly dropping the column.</p>
+                    <h3>Duplicates count</h3>
+                    <p>If a row appears three times on the left and twice on the right, one copy is unmatched. The report lists every source row holding that pattern, because which copy is the extra one cannot be known.</p>
+                    <h3>Excel stores, it does not display</h3>
+                    <p>Values are compared as Excel stored them. Two cells both showing 1.23 can differ (1.234 and 1.233), and two cells showing a date differently can match. A date is a serial number; workbooks using the 1904 date system store different serials for the same calendar date, and the report says so. Hidden rows and columns inside a range are compared.</p>
+                    <h3>Row numbers</h3>
+                    <p>References in the report are to the source: a worksheet cell such as <code>C8</code>, or a CSV record and field. A record that spans several lines because of a quoted line break is still one record. The order rows appear in the sorted section is only a display order.</p>
+                    <h3>Example files</h3>
+                    <p>The examples above load small files that each show one thing. To open a pair in Excel, download <a href="../data/dataset_diff/display-left.xlsx" download>display-left.xlsx</a> and <a href="../data/dataset_diff/display-right.xlsx" download>display-right.xlsx</a>: both show 1.23 in cell B2, and the comparison says why they still differ.</p>
+                </div>
+            </section>
+
+            <section class="dd-panel" aria-labelledby="aboutTitle">
+                <h2 id="aboutTitle">About this tool</h2>
+                <p class="dd-help">Workbooks are read by SheetJS Community Edition 0.20.3, served from this site. Comparison, CSV parsing and the report are written for this tool.</p>
+                <button type="button" class="tool-btn small" id="viewLicenses">View Licenses</button>
+            </section>
+        </main>
+
+        <dialog id="attributionsModal" class="licenses-dialog" aria-labelledby="licensesTitle">
+            <div class="modal-header">
+                <h2 class="modal-title" id="licensesTitle">Attributions &amp; Licenses</h2>
+                <button type="button" class="tool-btn small" id="closeAttributions" aria-label="Close licenses">Close</button>
+            </div>
+            <div class="modal-content">
+                <p class="dd-help">The library below is served from this site, at the version shown, with its license text in <code>js/vendor/dataset_diff/</code>.</p>
+                <div class="library-entry">
+                    <h3>SheetJS Community Edition 0.20.3</h3>
+                    <p>Reads XLSX workbooks in a browser worker.</p>
+                    <p class="library-license">License: <a href="https://git.sheetjs.com/sheetjs/sheetjs/src/branch/master/LICENSE" target="_blank" rel="noopener">Apache-2.0</a></p>
+                </div>
+                <div class="library-entry">
+                    <h3>JetBrains Mono and Space Grotesk</h3>
+                    <p>Fonts delivered by Google Fonts.</p>
+                    <p class="library-license">License: <a href="https://openfontlicense.org/" target="_blank" rel="noopener">SIL Open Font License 1.1</a></p>
+                </div>
+            </div>
+        </dialog>
+
+        <footer data-footer></footer>
+    </div>
+
+    <script src="../js/shared.js"></script>
+    <script type="module" src="../js/footer.js"></script>
+    <script type="module" src="../js/dataset_diff/dataset-diff.js"></script>
+</body>
+</html>

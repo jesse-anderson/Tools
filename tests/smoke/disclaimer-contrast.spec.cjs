@@ -60,6 +60,7 @@ const TOOLS_WITH_DISCLAIMER_HEADINGS = [
   'pdf-diff',
   'ocr-text-extractor',
   'wfh-calculator',
+  'dataset-diff',
   'oral-multidose',
   'pid-playground',
   'psychrometric-calculator',

@@ -10,7 +10,7 @@ export class Runner {
     constructor(workerUrl, { timeLimitMs = LIMITS.requestSeconds * 1000 } = {}) {
         this.url = workerUrl;
         this.timeLimitMs = timeLimitMs;
-        this.workers = { left: null, right: null };
+        this.workers = { left: null, right: null, compare: null };
         this.pending = new Map();
         this.nextId = 1;
         this.dropped = 0;
@@ -69,14 +69,25 @@ export class Runner {
         return this.request(side, { type: 'open-text', bytes, text, name, delimiter }, transfer);
     }
 
-    async table(side, { sheet, range, options } = {}) {
+    // raw keeps the rows as JSON strings, to pass on to the compare worker.
+    async table(side, { sheet, range, options, raw = false } = {}) {
         const value = await this.request(side, { type: 'table', sheet, range, options });
+        if (raw) return value;
         const { keys, ...table } = value.table;
         return { ...value, table: { ...table, rows: decodeRows(keys) } };
     }
 
-    stop() {
+    hasWorker(side) { return this.workers[side] !== null; }
+
+    // Stops reading both sources. A comparison already running is short and
+    // is left to finish, so the pairs done so far stay in the report.
+    stopReading() {
         this.reset('left', { kind: 'cancelled' });
         this.reset('right', { kind: 'cancelled' });
+    }
+
+    stop() {
+        this.stopReading();
+        this.reset('compare', { kind: 'cancelled' });
     }
 }

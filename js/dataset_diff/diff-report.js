@@ -41,6 +41,7 @@ const REASONS = {
     'unresolved-formula': 'formulas without stored results',
     'missing-sheet': 'a selected sheet is missing',
     'not-finished': 'the run stopped before this pair finished',
+    'import-refused': 'a table could not be imported; the notes say why',
 };
 
 export function headline(result) {

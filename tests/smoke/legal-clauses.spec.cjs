@@ -49,6 +49,7 @@ const CLAUSE_PAGES = [
   '/tools/process-flow-mapper.html',
   '/tools/ocr-text-extractor.html',
   '/tools/wfh-calculator.html',
+  '/tools/dataset-diff.html',
 ];
 
 const REQUIRED = [

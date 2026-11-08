@@ -1,0 +1,471 @@
+/* Dataset Diff and Reconciliation. Shared theme variables come from
+   shared.css; every component class used on the page is defined here. */
+
+[hidden] { display: none !important; }
+
+.visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+}
+
+.dd-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.dd-panel {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 20px;
+    min-width: 0;
+}
+
+.dd-panel h2 {
+    margin: 0 0 12px;
+    font-size: 1.25rem;
+}
+
+.dd-panel h3 {
+    margin: 0 0 8px;
+    font-size: 1rem;
+}
+
+.dd-panel-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.dd-panel-head h2 { margin: 0; }
+
+.dd-help,
+.dd-note {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    line-height: 1.55;
+    margin: 0 0 12px;
+}
+
+.dd-warn {
+    border-left: 3px solid var(--accent-warning);
+    padding: 6px 10px;
+    margin: 8px 0;
+    color: var(--text-primary);
+    background: color-mix(in srgb, var(--accent-warning) 10%, transparent);
+    font-size: 0.875rem;
+}
+
+.dd-inline {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.875rem;
+}
+
+/* shared.css styles every label as an uppercase monospace caption; these
+   labels are sentences and controls, so they read as normal text. */
+.dd-inline,
+.dd-drop,
+.dd-field,
+.dd-check {
+    font-family: inherit;
+    text-transform: none;
+    letter-spacing: normal;
+}
+
+.dd-panel code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.875em;
+    padding: 0 3px;
+    border-radius: 4px;
+    background: var(--bg-secondary);
+}
+
+/* Sources */
+
+.dd-sources {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.dd-source {
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 14px;
+    min-width: 0;
+}
+
+.dd-source.is-drop {
+    outline: 2px dashed var(--accent-it);
+    outline-offset: 2px;
+}
+
+.dd-drop {
+    display: block;
+    border: 1px dashed var(--border-color);
+    border-radius: 8px;
+    padding: 14px;
+    cursor: pointer;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.dd-drop span { display: block; margin-top: 8px; }
+
+.dd-file {
+    max-width: 100%;
+    font: inherit;
+    color: var(--text-primary);
+}
+
+.dd-paste {
+    margin-top: 10px;
+    font-size: 0.875rem;
+}
+
+.dd-paste summary { cursor: pointer; padding: 4px 0; }
+
+.dd-paste textarea {
+    display: block;
+    width: 100%;
+    margin: 8px 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8125rem;
+}
+
+.dd-status {
+    margin: 10px 0 0;
+    font-size: 0.875rem;
+    overflow-wrap: anywhere;
+}
+
+.dd-errors {
+    margin-top: 10px;
+    padding: 8px 10px;
+    border-left: 3px solid var(--accent-error);
+    background: color-mix(in srgb, var(--accent-error) 10%, transparent);
+    color: var(--text-primary);
+    font-size: 0.875rem;
+    line-height: 1.5;
+}
+
+.dd-text-options { margin-top: 12px; }
+
+.dd-option-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 14px;
+    align-items: flex-end;
+}
+
+.dd-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 0.8125rem;
+    color: var(--text-secondary);
+    min-width: 0;
+}
+
+.dd-field select,
+.dd-field input,
+.dd-table select,
+.dd-range {
+    font: inherit;
+    font-size: 0.875rem;
+    color: var(--text-primary);
+    background: var(--bg-input);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 6px 8px;
+    min-height: 36px;
+    max-width: 100%;
+}
+
+.dd-field input[type="number"] { width: 6em; }
+
+.dd-check {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.8125rem;
+    min-height: 36px;
+}
+
+.dd-columns {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 14px;
+    margin-top: 12px;
+}
+
+.dd-columns .dd-note { flex-basis: 100%; margin: 0; }
+
+.dd-preview { margin-top: 12px; font-size: 0.875rem; }
+.dd-preview summary { cursor: pointer; padding: 4px 0; }
+
+/* Tables */
+
+/* position: relative keeps absolutely placed hidden labels inside the scroll
+   box; without it they widen the whole page on a phone. */
+.table-scroll {
+    position: relative;
+    overflow-x: auto;
+    max-width: 100%;
+}
+
+.dd-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+}
+
+.dd-table th,
+.dd-table td {
+    text-align: left;
+    vertical-align: top;
+    padding: 8px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.dd-table thead th {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-secondary);
+}
+
+.dd-table tbody th { font-weight: 600; overflow-wrap: break-word; }
+
+/* Wide tables scroll inside .table-scroll on a phone rather than squeezing
+   a column to one letter per line. */
+#pairsTable,
+#summaryTable { min-width: 720px; }
+#summaryTable tbody th { min-width: 14em; }
+
+.dd-mini td,
+.dd-mini th {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    white-space: pre;
+}
+
+.dd-range {
+    width: 9em;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.dd-pair-status { min-width: 12em; color: var(--text-secondary); }
+
+.dd-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+/* Buttons */
+
+.tool-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 44px;
+    padding: 10px 16px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.tool-btn.small {
+    min-height: 36px;
+    padding: 6px 12px;
+    font-size: 0.875rem;
+}
+
+.tool-btn:hover:not(:disabled) { border-color: var(--accent-it); }
+
+.tool-btn.primary {
+    background: var(--text-primary);
+    border-color: var(--text-primary);
+    color: var(--bg-card);
+}
+
+.tool-btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.tool-btn:focus-visible,
+.dd-file:focus-visible,
+.dd-table select:focus-visible,
+.dd-range:focus-visible,
+.dd-field select:focus-visible,
+.dd-field input:focus-visible,
+.dd-report:focus-visible {
+    outline: 2px solid var(--accent-it);
+    outline-offset: 2px;
+}
+
+.dd-progress {
+    margin: 12px 0 0;
+    font-size: 0.875rem;
+    min-height: 1.4em;
+}
+
+/* Results */
+
+.dd-stale {
+    padding: 8px 10px;
+    border-left: 3px solid var(--accent-warning);
+    background: color-mix(in srgb, var(--accent-warning) 10%, transparent);
+    font-size: 0.875rem;
+}
+
+.is-stale .dd-aggregate,
+.is-stale #summaryTable { opacity: 0.6; }
+
+.dd-agg-line {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 18px;
+    font-size: 1rem;
+    margin: 0 0 8px;
+}
+
+.dd-verdict {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--border-color);
+    font-weight: 600;
+    font-size: 0.8125rem;
+    color: var(--text-primary);
+    white-space: nowrap;
+}
+
+.dd-v-match { border-color: var(--accent-success); background: color-mix(in srgb, var(--accent-success) 14%, transparent); }
+.dd-v-different { border-color: var(--accent-error); background: color-mix(in srgb, var(--accent-error) 12%, transparent); }
+.dd-v-incomplete { border-color: var(--accent-warning); background: color-mix(in srgb, var(--accent-warning) 14%, transparent); }
+.dd-v-unavailable { border-style: dashed; }
+
+.dd-headline { margin: 0 0 4px; font-weight: 600; }
+
+.dd-notes {
+    margin: 4px 0 0;
+    padding-left: 18px;
+    color: var(--text-secondary);
+    font-size: 0.8125rem;
+    line-height: 1.5;
+}
+
+.dd-report-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 16px;
+}
+
+.dd-report-head h3 { margin: 0; }
+.dd-report-head .dd-actions { margin-top: 0; }
+
+.dd-prompt {
+    margin: 10px 0;
+    padding: 8px 10px;
+    border-left: 3px solid var(--accent-it);
+    background: color-mix(in srgb, var(--accent-it) 10%, transparent);
+    font-size: 0.875rem;
+}
+
+.dd-report {
+    display: block;
+    width: 100%;
+    margin-top: 10px;
+    min-height: 18em;
+    padding: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    color: var(--text-primary);
+    background: var(--bg-input);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    resize: vertical;
+}
+
+.dd-report.is-nowrap { white-space: pre; overflow-x: auto; }
+
+.dd-how p { color: var(--text-secondary); line-height: 1.6; margin: 0 0 14px; }
+.dd-how h3 { margin-top: 6px; }
+
+.dd-how a,
+.dd-panel p a {
+    color: var(--text-primary);
+    text-decoration: underline;
+}
+
+/* Licenses dialog */
+
+.licenses-dialog {
+    max-width: 560px;
+    width: calc(100% - 32px);
+    margin: auto;
+    padding: 0;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    background: var(--bg-card);
+    color: var(--text-primary);
+}
+
+.licenses-dialog::backdrop { background: rgba(0, 0, 0, 0.6); }
+
+.modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.modal-title { margin: 0; font-size: 1.125rem; }
+.modal-content { padding: 16px 20px; }
+
+.library-entry {
+    padding-bottom: 12px;
+    margin-bottom: 12px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.library-entry:last-child { border-bottom: 0; margin-bottom: 0; }
+.library-entry h3 { margin: 0 0 4px; font-size: 1rem; }
+.library-entry p { margin: 0 0 4px; font-size: 0.875rem; color: var(--text-secondary); }
+.library-license a { color: var(--text-primary); }
+
+@media (max-width: 768px) {
+    .dd-sources { grid-template-columns: minmax(0, 1fr); }
+    .dd-panel { padding: 14px; }
+}

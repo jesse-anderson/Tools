@@ -1,6 +1,8 @@
-// One source per worker: parse it once, then hand out tables on request.
-// A classic worker, because SheetJS is a plain script; the ES modules come
-// in through import(). Tables leave as one JSON string per row.
+// Two roles. A side worker parses one source once and hands out tables on
+// request. The compare worker holds a run: it compares pairs, keeps their
+// tables and builds the preview and the full report. A classic worker,
+// because SheetJS is a plain script; the ES modules come in through import().
+// Tables travel as one JSON string per row.
 
 importScripts('../vendor/dataset_diff/xlsx.full.min.js');
 
@@ -8,16 +10,18 @@ const modules = Promise.all([
     import('./diff-workbook.js'),
     import('./diff-csv.js'),
     import('./diff-values.js'),
+    import('./diff-session.js'),
 ]);
 
 let source = null;
+let session = null;
 
 class Refusal extends Error {
     constructor(detail) { super(detail.kind); this.detail = detail; }
 }
 
 async function handle(m) {
-    const [W, C, V] = await modules;
+    const [W, C, V, S] = await modules;
     if (m.type === 'open-workbook') {
         source = null;
         const audit = W.auditContainer(m.bytes);
@@ -59,6 +63,17 @@ async function handle(m) {
             columns: built.columns || null,
             warnings: built.warnings || (built.info && built.info.warnings) || [],
         };
+    }
+    if (m.type === 'run-start') {
+        session = S.createSession();
+        session.start();
+        return true;
+    }
+    if (m.type === 'run-pair') return session.addPair(m.pair);
+    if (m.type === 'run-finish') return session.finish(m.meta, m.cap);
+    if (m.type === 'run-export') {
+        const { chunks, totalCodePoints } = session.exportChunks();
+        return { blob: new Blob(chunks, { type: 'text/plain;charset=utf-8' }), totalCodePoints };
     }
     throw new Refusal({ kind: 'unknown-request', type: m.type });
 }

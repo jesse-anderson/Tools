@@ -74,6 +74,7 @@ module.exports = defineConfig({
     'wfh-calculator.spec.cjs',
     'dataset-diff.spec.cjs',
     'dataset-diff-import.spec.cjs',
+    'dataset-diff-page.spec.cjs',
     'legal-clauses.spec.cjs',
     'p3-short-notices.spec.cjs',
     'tool-surface-conformance.spec.cjs',
