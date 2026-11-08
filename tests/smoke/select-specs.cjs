@@ -43,6 +43,17 @@ function pageFolders() {
         const html = read(path.join(ROOT, 'tools', file));
         const folders = new Set();
         for (const m of html.matchAll(/\.\.\/((?:css|js)\/[A-Za-z0-9_\-/]+)\/[^"'/]+\.(?:css|js)/g)) folders.add(m[1]);
+        // A page's scripts can import from a sibling folder, such as js/diagram_common.
+        for (const folder of [...folders].filter((f) => f.startsWith('js/'))) {
+            let names = [];
+            try { names = fs.readdirSync(path.join(ROOT, folder)); } catch (e) { names = []; }
+            for (const name of names.filter((n) => n.endsWith('.js'))) {
+                const source = read(path.join(ROOT, folder, name));
+                for (const m of source.matchAll(/from\s+'\.\.\/([A-Za-z0-9_-]+)\//g)) {
+                    if (m[1] !== 'vendor') folders.add(`js/${m[1]}`);
+                }
+            }
+        }
         pages.set(file, folders);
     }
     return pages;

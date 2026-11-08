@@ -17,7 +17,7 @@ const BASE = `(() => {
   const s = W.blankScenario();
   Object.assign(s.person, { daysOff: 20, homeLunch: 4, homeEnergyPerDay: 1 });
   const j = s.jobs[0];
-  Object.assign(j, { salary: 52000, hoursPerWeek: 40, paidWeeks: 52, marginalRatePct: 30, officeDaysPerWeek: 3, officeLunch: 14 });
+  Object.assign(j, { salary: 52000, hoursPerWeek: 40, paidWeeks: 52, taxMode: 'flat', marginalRatePct: 30, officeDaysPerWeek: 3, officeLunch: 14 });
   j.tripIn = { minutes: 30, legs: [{ ...j.tripIn.legs[0], mode: 'car_fuel', distance: 20, efficiency: 25, fuelPrice: 3.5 }] };
   return s;
 })()`;
@@ -102,7 +102,7 @@ test.describe('engine', () => {
       const s = W.blankScenario();
       s.person.daysOff = 20;
       const j = s.jobs[0];
-      Object.assign(j, { salary: 52000, hoursPerWeek: 40, paidWeeks: 52, marginalRatePct: 30, officeDaysPerWeek: 5, transitPassMonthly: 100 });
+      Object.assign(j, { salary: 52000, hoursPerWeek: 40, paidWeeks: 52, taxMode: 'flat', marginalRatePct: 30, officeDaysPerWeek: 5, transitPassMonthly: 100 });
       j.tripIn = { minutes: 30, legs: [{ mode: 'transit', fare: 2.5 }] };
       const r1 = W.calculate(s);
       // Fares of $40 a day make the $400 pass the cheaper choice, so the cap binds.
@@ -150,8 +150,8 @@ test.describe('engine', () => {
       const W = window.WfhCalculator;
       const s = W.blankScenario();
       s.compare = true;
-      Object.assign(s.jobs[0], { salary: 95000, hoursPerWeek: 40, paidWeeks: 52, marginalRatePct: 30 });
-      Object.assign(s.jobs[1], { salary: 105000, hoursPerWeek: 40, paidWeeks: 52, marginalRatePct: 32 });
+      Object.assign(s.jobs[0], { salary: 95000, hoursPerWeek: 40, paidWeeks: 52, taxMode: 'flat', marginalRatePct: 30 });
+      Object.assign(s.jobs[1], { salary: 105000, hoursPerWeek: 40, paidWeeks: 52, taxMode: 'flat', marginalRatePct: 32 });
       const up = W.compareJobs(s);
       [s.jobs[0].marginalRatePct, s.jobs[1].marginalRatePct] = [32, 30];
       s.jobs[1].salary = 85000;
@@ -222,11 +222,13 @@ test.describe('engine', () => {
       });
     });
     const golden = {
-      // mixed and transit checked by hand in the build notes; all five pinned here.
-      driver: [4703.018, 8563.707],
-      transit: [4614.46, 11672.934],
-      mixed: [5804.5, 9094.5],
-      parent: [16711.329, 24778.156],
+      // Bracket mode, single, 5% state: every example salary sits at 34.65%
+      // marginal. Each value equals the earlier hand-checked flat-30% golden
+      // with time scaled by 0.6535 / 0.7 and pre-tax savings by 0.3465 / 0.3.
+      driver: [4703.018, 8307.247],
+      transit: [4576.432, 11166.022],
+      mixed: [5804.5, 8875.95],
+      parent: [16711.329, 24242.288],
       offers: [692.5, 692.5],
     };
     for (const e of r) {
@@ -265,6 +267,144 @@ test.describe('engine', () => {
   });
 });
 
+test.describe('2026 tax and cost of living', () => {
+  test.beforeEach(async ({ page }) => { await openTool(page); });
+
+  test('bracket tables reproduce the cumulative amounts printed in Rev. Proc. 2025-32', async ({ page }) => {
+    const r = await page.evaluate(() => {
+      const W = window.WfhCalculator;
+      const out = {};
+      for (const st of ['single', 'joint', 'head']) out[st] = W.TAX_2026.brackets[st].slice(1).map(([start]) => W.federalIncomeTax(start, st));
+      return out;
+    });
+    // The "$X plus N% of the excess" amounts in sections 4.01 Tables 1 to 3.
+    expect(r.single).toEqual([1240, 5800, 17966, 41024, 58448, 192979.25].map((x) => expect.closeTo(x, 6)));
+    expect(r.joint).toEqual([2480, 11600, 35932, 82048, 116896, 206583.5].map((x) => expect.closeTo(x, 6)));
+    expect(r.head).toEqual([1770, 7740, 16155, 39207, 56631, 191171].map((x) => expect.closeTo(x, 6)));
+  });
+
+  test('a salary is taxed by hand: $72,000 single at 5% state', async ({ page }) => {
+    const r = await page.evaluate(() => {
+      const W = window.WfhCalculator;
+      const m = W.taxModel({ filingStatus: 'single' }, { taxMode: 'brackets', stateRatePct: 5 });
+      return { tax: m.tax(72000), marginal: m.marginal(72000) };
+    });
+    // Taxable 55,900: 5,800 + 22% of 5,500 = 7,010. Payroll 7.65% = 5,508. State 3,600.
+    expect(r.tax).toBeCloseTo(16118, 6);
+    expect(r.marginal).toBeCloseTo(0.3465, 6);
+  });
+
+  test('a big jump in pay is taxed at every rate it crosses', async ({ page }) => {
+    const r = await page.evaluate(() => {
+      const W = window.WfhCalculator;
+      const s = W.blankScenario();
+      s.compare = true;
+      Object.assign(s.jobs[0], { salary: 95000, hoursPerWeek: 40, paidWeeks: 52, stateRatePct: 5 });
+      Object.assign(s.jobs[1], { salary: 210000, hoursPerWeek: 40, paidWeeks: 52, stateRatePct: 5 });
+      const exact = W.compareJobs(s);
+      s.jobs.forEach((j) => { j.taxMode = 'flat'; j.marginalRatePct = 31.35; });
+      return { exact, flat: W.compareJobs(s) };
+    });
+    // 210,000: taxable 193,900 gives 17,966 + 24% of 88,200 = 39,134; payroll
+    // 11,439 + 3,045 + 90 = 14,574; state 10,500; take-home 145,792.
+    // 95,000: 12,070 + 7,267.50 + 4,750; take-home 70,912.50.
+    expect(r.exact.payGapNet).toBeCloseTo(145792 - 70912.5, 6);
+    // One rate at the top (24 + 1.45 + 0.9 + 5) overstates the gap by about $4,000.
+    expect(r.flat.payGapNet - r.exact.payGapNet).toBeCloseTo(115000 * 0.6865 - 74879.5, 6);
+    expect(r.exact.thresholds.map((t) => [t.label, t.wage])).toEqual([
+      ['the 24% federal bracket', 121800],
+      ['the Social Security wage base', 184500],
+      ['the Additional Medicare threshold', 200000],
+    ]);
+  });
+
+  test('the equivalent raise and pre-tax savings are exact across a bracket', async ({ page }) => {
+    const r = await page.evaluate(() => {
+      const W = window.WfhCalculator;
+      const model = W.taxModel({ filingStatus: 'single' }, { taxMode: 'brackets', stateRatePct: 0 });
+      const raise = W.grossUp(model, 120000, 20000);
+      const s = W.blankScenario();
+      const j = s.jobs[0];
+      Object.assign(j, { salary: 124000, hoursPerWeek: 40, paidWeeks: 52, officeDaysPerWeek: 5, transitPassMonthly: 400, transitPretax: true });
+      j.tripIn = { minutes: 30, legs: [{ mode: 'transit', fare: 20 }] };
+      const pol = W.calculate(s).single.policy;
+      return { kept: raise - (model.tax(120000 + raise) - model.tax(120000)), raise, pretax: pol.pretaxSaving, expected: model.tax(124000) - model.tax(124000 - 4080) };
+    });
+    expect(r.kept).toBeCloseTo(20000, 6);
+    // From 120,000 the raise starts in the 22% bracket and crosses into 24% at 121,800.
+    expect(r.raise).toBeGreaterThan(20000 / (1 - 0.2965));
+    expect(r.raise).toBeLessThan(20000 / (1 - 0.3165));
+    // 4,080 of pass sheltered from 124,000 straddles the same line.
+    expect(r.pretax).toBeCloseTo(r.expected, 6);
+    expect(r.pretax).toBeGreaterThan(4080 * 0.2965);
+    expect(r.pretax).toBeLessThan(4080 * 0.3165);
+  });
+
+  test('bracket-mode break-even equalizes the two offers', async ({ page }) => {
+    const r = await page.evaluate(() => {
+      const W = window.WfhCalculator;
+      const s = W.EXAMPLES.find((e) => e.id === 'offers').build();
+      const c = W.compareJobs(s);
+      const t = structuredClone(s);
+      t.jobs[1].salary = c.breakEven.annual;
+      const u = structuredClone(s);
+      u.jobs[1].salary = c.breakEvenMoney.annual;
+      return { exact: c.exactTax, time: W.compareJobs(t).difference, money: W.compareJobs(u).differenceMoney };
+    });
+    expect(r.exact).toBe(true);
+    expect(Math.abs(r.time)).toBeLessThan(0.01);
+    expect(Math.abs(r.money)).toBeLessThan(0.01);
+  });
+
+  test('cost of living restates Job B in Job A prices', async ({ page }) => {
+    const r = await page.evaluate(() => {
+      const W = window.WfhCalculator;
+      const s = W.EXAMPLES.find((e) => e.id === 'offers').build();
+      const c = W.compareJobs(s);
+      const flat = structuredClone(s);
+      flat.jobs[0].taxMode = 'flat';
+      return { col: c.costOfLiving, a: c.a, b: c.b, flat: W.compareJobs(flat).costOfLiving };
+    });
+    const keptA = r.a.pay.net - r.a.policy.money;
+    const keptB = r.b.pay.net - r.b.policy.money;
+    expect(r.col.placeA.all).toBe(95.7);
+    expect(r.col.placeB.all).toBe(103.6);
+    expect(r.col.difference).toBeCloseTo(keptB * 95.7 / 103.6 - keptA, 6);
+    expect(r.flat.needsBrackets).toBe(true);
+  });
+
+  test('the price table matches the committed BEA extract', async ({ page }) => {
+    const fs = require('fs');
+    const path = require('path');
+    const rows = fs.readFileSync(path.join(__dirname, '../../data/wfh_calculator/bea_rpp_2024.csv'), 'utf8').trim().split('\n').slice(1);
+    const parsed = rows.map((line) => {
+      const m = line.match(/^(\d{5}),("(?:[^"]|"")*"|[^,]*),(\w+),([\d.]*),([\d.]*)$/);
+      return [m[1], m[2].replace(/^"|"$/g, ''), m[3], Number(m[4]), m[5] ? Number(m[5]) : null];
+    });
+    const fromPage = await page.evaluate(() => [...window.WfhCalculator.RPP_BY_FIPS.values()].map((p) => [p.fips, p.name, p.kind, p.all, p.housing]));
+    expect(fromPage).toEqual(parsed);
+    const kinds = fromPage.reduce((o, p) => ({ ...o, [p[2]]: (o[p[2]] || 0) + 1 }), {});
+    expect(kinds).toEqual({ us: 2, state: 51, metro: 387 });
+    const byName = Object.fromEntries(fromPage.map((p) => [p[1], p[3]]));
+    expect(byName['United States']).toBe(100);
+    expect(byName['San Francisco-Oakland-Fremont, CA']).toBe(115.6);
+    expect(byName['Napa, CA']).toBe(112.6);
+  });
+
+  test('imports keep old typed rates and drop unknown places', async ({ page }) => {
+    const r = await page.evaluate(() => {
+      const W = window.WfhCalculator;
+      const s = W.sanitizeScenario({ jobs: [{ salary: 80000, marginalRatePct: 28, placeFips: '16980' }, { placeFips: 16980, taxMode: 'bogus' }], person: { filingStatus: 'x' } }, W.blankScenario());
+      return { a: s.jobs[0], b: s.jobs[1], status: s.person.filingStatus };
+    });
+    expect(r.a.taxMode).toBe('flat');
+    expect(r.a.placeFips).toBe('16980');
+    expect(r.b.taxMode).toBe('brackets');
+    expect(r.b.placeFips).toBe('');
+    expect(r.status).toBe('single');
+  });
+});
+
 test.describe('page', () => {
   test('loads cleanly', async ({ page, baseURL }) => {
     await expectPageToLoadCleanly(page, baseURL, PAGE);
@@ -273,6 +413,7 @@ test.describe('page', () => {
   test('typing a commute fills the office day tile, table and chart', async ({ page }) => {
     await openTool(page);
     await page.fill('#job0-salary', '52000');
+    await page.check('#job0-taxMode-flat');
     await page.fill('#job0-marginalRatePct', '30');
     await page.fill('#job0-hoursPerWeek', '40');
     await page.fill('#job0-paidWeeks', '52');
@@ -286,6 +427,31 @@ test.describe('page', () => {
     await expect(page.locator('#patternTable tbody tr')).toHaveCount(6);
     await expect(page.locator('#patternTable tr.policy-row')).toHaveCount(1);
     await expect(page.locator('#chartWrap svg .bar')).toHaveCount(6);
+  });
+
+  test('tax mode switches its fields and reads out the rate', async ({ page }) => {
+    await openTool(page);
+    await page.fill('#job0-salary', '72000');
+    await page.fill('#job0-stateRatePct', '5');
+    await expect(page.locator('[data-tax-readout]').first()).toContainText('22% federal + 7.65% payroll + 5% state = 34.65%');
+    await expect(page.locator('#job0-marginalRatePct')).toBeHidden();
+    await page.check('#job0-taxMode-flat');
+    await expect(page.locator('#job0-marginalRatePct')).toBeVisible();
+    await expect(page.locator('#job0-stateRatePct')).toBeHidden();
+    await expect(page.locator('[data-tax-readout]').first()).toContainText('never to the whole salary');
+  });
+
+  test('two places give a cost-of-living line, and a typo removes it', async ({ page }) => {
+    await openTool(page);
+    await page.selectOption('#exampleSelect', 'offers');
+    await page.click('#loadExample');
+    await expect(page.locator('#job0-place')).toHaveValue('Indianapolis-Carmel-Greenwood, IN');
+    await expect(page.locator('#comparison')).toContainText('Adjusted for prices, Remote offer leaves you $5,643');
+    await page.fill('#job1-place', 'Chicagoo');
+    await expect(page.locator('#job1-place').locator('xpath=..').locator('[data-place-hint]')).toContainText('No match');
+    await expect(page.locator('#comparison')).not.toContainText('Adjusted for prices');
+    await page.fill('#job1-place', 'illinois, statewide average');
+    await expect(page.locator('#comparison')).toContainText('Adjusted for prices');
   });
 
   test('a source button fills the field and names its source', async ({ page }) => {
@@ -321,6 +487,7 @@ test.describe('page', () => {
 
   test('an error hides the results and says why', async ({ page }) => {
     await openTool(page);
+    await page.check('#job0-taxMode-flat');
     await page.fill('#job0-marginalRatePct', '80');
     await expect(page.locator('#errors')).toContainText('between 0 and 60%');
     await expect(page.locator('#resultsBody')).toBeHidden();

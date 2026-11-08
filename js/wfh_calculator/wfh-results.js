@@ -78,7 +78,12 @@ function renderComparison(state, r, cur) {
     const ob = Number(state.jobs[1].otherPayNet) || 0;
     row('Office days per week', daysLabel(c.a.policyDays), daysLabel(c.b.policyDays), '');
     row('Pay before tax', money(c.a.pay.annual, cur), money(c.b.pay.annual, cur), money(c.payGap, cur));
-    row(`Pay gap kept after tax (${round(c.gapRate * 100, 1)}%)`, '', '', money(c.payGapNet, cur));
+    row('Tax on the next dollar', `${round(c.a.pay.marginalRate * 100, 2)}%`, `${round(c.b.pay.marginalRate * 100, 2)}%`, '');
+    if (c.exactTax) {
+        row('Take-home pay', money(c.a.pay.net, cur), money(c.b.pay.net, cur), money(c.payGapNet, cur));
+    } else {
+        row(`Pay gap kept after tax (${round(c.gapRate * 100, 1)}%)`, '', '', money(c.payGapNet, cur));
+    }
     if (oa || ob) row('Other pay after tax', money(oa, cur), money(ob, cur), money(c.otherGap, cur));
     row('What working costs (money)', money(c.a.policy.money, cur), money(c.b.policy.money, cur), money(-c.costGap, cur));
     row('Better or worse off, money only', '', '', money(c.differenceMoney, cur), !withTime);
@@ -91,7 +96,14 @@ function renderComparison(state, r, cur) {
     const scroll = node('div', 'table-scroll');
     scroll.appendChild(table);
     box.appendChild(scroll);
-    box.appendChild(node('p', 'helper-text', `Only the difference in pay is taxed here, at the marginal rate of the higher-paid job. Costs are subtracted, so a positive figure favors ${names[1]}.`));
+    let taxNote;
+    if (c.exactTax) {
+        taxNote = `Each salary is taxed with the 2026 federal brackets, payroll tax and its state rate, so ${round(c.gapRate * 100, 2)}% of the gap goes to tax.`;
+        if (c.thresholds.length) taxNote += ` Between the two salaries pay crosses ${listJoin(c.thresholds.map((t) => `${t.label} (${money(t.wage, cur)} of pay)`))}, so the gap is taxed at more than one rate.`;
+    } else {
+        taxNote = 'Only the difference in pay is taxed here, at the typed marginal rate of the higher-paid job. Choose 2026 US brackets for both jobs to tax each salary in full.';
+    }
+    box.appendChild(node('p', 'helper-text', `${taxNote} Costs are subtracted, so a positive figure favors ${names[1]}.`));
 
     const diff = withTime ? c.difference : c.differenceMoney;
     const better = diff > 0.5 ? names[1] : diff < -0.5 ? names[0] : null;
@@ -104,8 +116,38 @@ function renderComparison(state, r, cur) {
     const p = node('p', 'helper-text');
     p.textContent = be
         ? `${names[1]} breaks even with ${names[0]} at ${money(be.annual, cur)} a year (${money(be.hourly, cur, 2)} an hour), all else held the same.${withTime && state.person.timeValueMode !== 'custom' ? ' Time is valued at each job\'s own pay, so the break-even moves the rate with it.' : ''}`
-        : 'No break-even salary: at this tax rate and commute, more pay never closes the gap.';
+        : 'No break-even salary found for these inputs.';
     box.appendChild(p);
+    renderCostOfLiving(box, c.costOfLiving, names, cur);
+}
+
+function listJoin(items) {
+    if (items.length < 2) return items.join('');
+    return `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}`;
+}
+
+// Job B's money position restated in Job A's prices.
+function renderCostOfLiving(box, col, names, cur) {
+    if (!col) return;
+    const h = node('h4', 'col-heading', 'Cost of living');
+    box.appendChild(h);
+    if (col.needsBrackets) {
+        box.appendChild(node('p', 'helper-text', 'The cost-of-living line needs take-home pay, so choose 2026 US brackets for both jobs.'));
+        return;
+    }
+    const pctAbove = (x) => `${round(Math.abs(x - 100), 1)}% ${x >= 100 ? 'above' : 'below'} the US average`;
+    const lines = [
+        `Prices: ${col.placeA.name} ${round(col.placeA.all, 1)} (${pctAbove(col.placeA.all)}), ${col.placeB.name} ${round(col.placeB.all, 1)} (${pctAbove(col.placeB.all)}).`,
+        `Left after tax and working costs: ${names[0]} ${money(col.keptA, cur)}; ${names[1]} ${money(col.keptB, cur)}, worth ${money(col.keptBInA, cur)} at ${names[0]}'s prices.`,
+    ];
+    lines.forEach((t) => box.appendChild(node('p', 'helper-text', t)));
+    const better = col.difference > 0.5 ? names[1] : col.difference < -0.5 ? names[0] : null;
+    const v = node('p', 'verdict');
+    v.textContent = better
+        ? `Adjusted for prices, ${better} leaves you ${money(Math.abs(col.difference), cur)} a year better off, money only.`
+        : 'Adjusted for prices, the two come out about even, money only.';
+    box.appendChild(v);
+    box.appendChild(node('p', 'helper-text', 'BEA Regional Price Parities for 2024, released February 2026, the latest published. Only the ratio between the two places is used, so inflation since then does not change it. The index prices typical spending including rent; it does not know about a mortgage you already have, and money you save rather than spend goes no further in a cheaper place, so a high saver should read the gap as an upper bound.'));
 }
 
 function renderChart(state, r, cur) {

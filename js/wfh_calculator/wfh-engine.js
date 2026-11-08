@@ -1,7 +1,31 @@
 // Work From Home Calculator engine. Pure: takes a plain scenario object,
 // returns numbers. No DOM, no storage, no network.
 
-export const ENGINE_VERSION = 1;
+import { RPP_PLACES } from './wfh-rpp-data.js';
+
+export const ENGINE_VERSION = 2;
+
+// 2026 federal income tax brackets (start of each bracket, in taxable income)
+// and standard deductions, Rev. Proc. 2025-32 sections 4.01 and 4.14.
+// Payroll tax from IRS Topic 751; Additional Medicare thresholds from the IRS
+// Additional Medicare Tax questions and answers.
+export const TAX_2026 = {
+    brackets: {
+        single: [[0, 0.10], [12400, 0.12], [50400, 0.22], [105700, 0.24], [201775, 0.32], [256225, 0.35], [640600, 0.37]],
+        joint: [[0, 0.10], [24800, 0.12], [100800, 0.22], [211400, 0.24], [403550, 0.32], [512450, 0.35], [768700, 0.37]],
+        head: [[0, 0.10], [17700, 0.12], [67450, 0.22], [105700, 0.24], [201750, 0.32], [256200, 0.35], [640600, 0.37]],
+    },
+    standardDeduction: { single: 16100, joint: 32200, head: 24150 },
+    socialSecurityRate: 0.062,
+    socialSecurityWageBase: 184500,
+    medicareRate: 0.0145,
+    additionalMedicareRate: 0.009,
+    additionalMedicareThreshold: { single: 200000, joint: 250000, head: 200000 },
+};
+
+export const FILING_STATUSES = { single: 'Single', joint: 'Married filing jointly', head: 'Head of household' };
+
+export const RPP_BY_FIPS = new Map(RPP_PLACES.map(([fips, name, kind, all, housing]) => [fips, { fips, name, kind, all, housing }]));
 
 // Monthly cap on pre-tax transit and on pre-tax parking, 2026 (Rev. Proc. 2025-32).
 export const COMMUTER_BENEFIT_MONTHLY_CAP = 340;
@@ -97,7 +121,93 @@ export function tripSummary(trip, units) {
     return { transit, other, distance, minutes: num(trip && trip.minutes) };
 }
 
-export function payFigures(job) {
+export function federalIncomeTax(taxable, status = 'single') {
+    const table = TAX_2026.brackets[status] || TAX_2026.brackets.single;
+    let tax = 0;
+    for (let i = 0; i < table.length; i += 1) {
+        const [start, rate] = table[i];
+        const end = i + 1 < table.length ? table[i + 1][0] : Infinity;
+        if (taxable > start) tax += (Math.min(taxable, end) - start) * rate;
+    }
+    return tax;
+}
+
+function filingStatus(person) {
+    return TAX_2026.brackets[person && person.filingStatus] ? person.filingStatus : 'single';
+}
+
+// Tax on all income in the return, split by kind. Payroll tax is on wages
+// before pre-tax deductions (true of 401(k) deferrals, not of health premiums).
+export function taxParts(person, job, wages) {
+    const status = filingStatus(person);
+    const pretax = Math.max(0, num(job.pretaxDeductions));
+    const other = Math.max(0, num(person && person.otherIncome));
+    const w = Math.max(0, wages);
+    const taxable = Math.max(0, w - pretax + other - TAX_2026.standardDeduction[status]);
+    const federal = federalIncomeTax(taxable, status);
+    const payroll = TAX_2026.socialSecurityRate * Math.min(w, TAX_2026.socialSecurityWageBase)
+        + TAX_2026.medicareRate * w
+        + TAX_2026.additionalMedicareRate * Math.max(0, w - TAX_2026.additionalMedicareThreshold[status]);
+    const state = num(job.stateRatePct) / 100 * Math.max(0, w - pretax);
+    return { federal, payroll, state };
+}
+
+// How a job's pay is taxed. In bracket mode tax(w) is the tax this job's wages
+// add to the return, so differences between salaries are exact across every
+// threshold. In flat mode it is the typed marginal rate times the change.
+export function taxModel(person, job) {
+    if (job.taxMode !== 'brackets') {
+        const m = num(job.marginalRatePct) / 100;
+        return { exact: false, tax: (w) => m * w, marginal: () => m, parts: null };
+    }
+    const sum = (p) => p.federal + p.payroll + p.state;
+    const base = sum(taxParts(person, job, 0));
+    const tax = (w) => sum(taxParts(person, job, w)) - base;
+    const parts = (w) => {
+        const a = taxParts(person, job, w);
+        const b = taxParts(person, job, w + 1);
+        return { federal: b.federal - a.federal, payroll: b.payroll - a.payroll, state: b.state - a.state };
+    };
+    return { exact: true, tax, marginal: (w) => tax(w + 1) - tax(w), parts };
+}
+
+// Wage levels between lo and hi where the rate on the next dollar changes.
+export function taxThresholds(person, job, lo, hi) {
+    if (job.taxMode !== 'brackets') return [];
+    const status = filingStatus(person);
+    const shift = TAX_2026.standardDeduction[status] + Math.max(0, num(job.pretaxDeductions)) - Math.max(0, num(person && person.otherIncome));
+    const out = TAX_2026.brackets[status].slice(1).map(([start, rate]) => ({ wage: start + shift, label: `the ${Math.round(rate * 100)}% federal bracket` }));
+    out.push({ wage: TAX_2026.socialSecurityWageBase, label: 'the Social Security wage base' });
+    out.push({ wage: TAX_2026.additionalMedicareThreshold[status], label: 'the Additional Medicare threshold' });
+    return out.filter((t) => t.wage > lo && t.wage < hi).sort((x, y) => x.wage - y.wage);
+}
+
+// Pre-tax raise that leaves `target` more after tax. Exact across brackets.
+export function grossUp(model, salary, target) {
+    if (!model.exact) {
+        const m = model.marginal(salary);
+        return m < 1 ? target / (1 - m) : null;
+    }
+    const kept = (r) => r - (model.tax(salary + r) - model.tax(salary));
+    if (target === 0) return 0;
+    let lo = 0;
+    let hi = 0;
+    if (target > 0) {
+        hi = Math.max(1, target);
+        while (kept(hi) < target && hi < 1e10) hi *= 2;
+    } else {
+        lo = -Math.max(1, -target);
+        while (kept(lo) > target && lo > -salary) lo = Math.max(-salary, lo * 2);
+        if (kept(lo) > target) return null;
+    }
+    for (let i = 0; i < 100; i += 1) {
+        const mid = (lo + hi) / 2;
+        if (kept(mid) < target) lo = mid; else hi = mid;
+    }
+    return (lo + hi) / 2;
+}
+
+export function payFigures(job, person = {}) {
     const hoursPerWeek = num(job.hoursPerWeek);
     const paidWeeks = num(job.paidWeeks);
     const hoursPerYear = hoursPerWeek * paidWeeks;
@@ -110,8 +220,14 @@ export function payFigures(job) {
         annual = num(job.salary);
         hourly = hoursPerYear > 0 ? annual / hoursPerYear : 0;
     }
-    const m = num(job.marginalRatePct) / 100;
-    return { annual, hourly, hourlyNet: hourly * (1 - m), hoursPerYear, marginalRate: m };
+    const model = taxModel(person, job);
+    const m = model.marginal(annual);
+    const tax = model.exact ? model.tax(annual) : null;
+    return {
+        annual, hourly, hourlyNet: hourly * (1 - m), hoursPerYear, marginalRate: m,
+        exactTax: model.exact, tax, net: tax === null ? null : annual - tax,
+        rateParts: model.exact ? model.parts(annual) : null,
+    };
 }
 
 // Dollars per hour of commute time, and how that rate scales with pay
@@ -175,25 +291,26 @@ function passChoice(perDay, officeDays, monthly) {
     return pass < daily ? { cost: pass, usesPass: true } : { cost: daily, usesPass: false };
 }
 
-// Pre-tax payment saves the marginal rate on spending up to the yearly cap.
-function pretaxSaving(spend, enabled, m) {
+// Spending up to the yearly cap comes out of pay before tax.
+function pretaxSpend(spend, enabled) {
     if (!enabled || spend <= 0) return 0;
-    return Math.min(spend, COMMUTER_BENEFIT_MONTHLY_CAP * 12) * m;
+    return Math.min(spend, COMMUTER_BENEFIT_MONTHLY_CAP * 12);
 }
 
 // Full cost breakdown for one job at one pattern (office days per week).
 export function evaluatePattern(scenario, job, daysPerWeek) {
     const person = scenario.person;
     const cal = calendar(person);
-    const pay = payFigures(job);
+    const pay = payFigures(job, person);
+    const model = taxModel(person, job);
     const d = dailyFigures(scenario, job);
     const officeDays = Math.min(cal.workingDays, Math.max(0, daysPerWeek) * cal.workingWeeks);
     const homeDays = cal.workingDays - officeDays;
-    const m = pay.marginalRate;
 
     const transit = passChoice(d.transitPerDay, officeDays, num(job.transitPassMonthly));
     const parking = passChoice(num(job.parkingPerDay), officeDays, num(job.parkingPermitMonthly));
-    const pretax = pretaxSaving(transit.cost, job.transitPretax, m) + pretaxSaving(parking.cost, job.parkingPretax, m);
+    const sheltered = pretaxSpend(transit.cost, job.transitPretax) + pretaxSpend(parking.cost, job.parkingPretax);
+    const pretax = sheltered > 0 ? model.tax(pay.annual) - model.tax(pay.annual - sheltered) : 0;
     const commute = d.otherTravelPerDay * officeDays + transit.cost + parking.cost - pretax;
 
     const food = d.officeFood * officeDays + d.homeFood * homeDays;
@@ -238,7 +355,8 @@ export function breakEvenDays(perDay, monthly, cal) {
 export function evaluateJob(scenario, job) {
     const person = scenario.person;
     const cal = calendar(person);
-    const pay = payFigures(job);
+    const pay = payFigures(job, person);
+    const model = taxModel(person, job);
     const max = Math.round(cal.workDaysPerWeek);
     const patterns = [];
     for (let k = max; k >= 0; k -= 1) patterns.push(evaluatePattern(scenario, job, k));
@@ -246,17 +364,17 @@ export function evaluateJob(scenario, job) {
     const remote = patterns[patterns.length - 1];
     const policyDays = policyDaysPerWeek(job, cal);
     const policy = evaluatePattern(scenario, job, policyDays);
-    const m = pay.marginalRate;
     const annotate = (p) => {
         const saving = full.total - p.total;
         const savingMoney = full.money - p.money;
+        const raise = grossUp(model, pay.annual, saving);
         return {
             ...p,
             savingVsFull: saving,
             savingMoneyVsFull: savingMoney,
-            equivalentRaise: m < 1 ? saving / (1 - m) : null,
-            equivalentRaiseMoney: m < 1 ? savingMoney / (1 - m) : null,
-            equivalentRaisePct: pay.annual > 0 && m < 1 ? saving / (1 - m) / pay.annual * 100 : null,
+            equivalentRaise: raise,
+            equivalentRaiseMoney: grossUp(model, pay.annual, savingMoney),
+            equivalentRaisePct: pay.annual > 0 && raise !== null ? raise / pay.annual * 100 : null,
         };
     };
     const d = dailyFigures(scenario, job);
@@ -298,13 +416,18 @@ function gapRate(payA, payB) {
     return payB.annual >= payA.annual ? payB.marginalRate : payA.marginalRate;
 }
 
+// With both jobs in bracket mode each salary is taxed in full, so the gap
+// is exact. Otherwise only the gap is taxed, at the higher-paid job's rate.
 export function compareJobs(scenario) {
     const [a, b] = scenario.jobs;
     const ea = evaluateJob(scenario, a);
     const eb = evaluateJob(scenario, b);
-    const rate = gapRate(ea.pay, eb.pay);
+    const exact = ea.pay.exactTax && eb.pay.exactTax;
     const payGap = eb.pay.annual - ea.pay.annual;
-    const payGapNet = payGap * (1 - rate);
+    const payGapNet = exact ? eb.pay.net - ea.pay.net : payGap * (1 - gapRate(ea.pay, eb.pay));
+    const rate = exact ? (Math.abs(payGap) > 0.005 ? 1 - payGapNet / payGap : eb.pay.marginalRate) : gapRate(ea.pay, eb.pay);
+    const higher = eb.pay.annual >= ea.pay.annual ? b : a;
+    const thresholds = exact ? taxThresholds(scenario.person, higher, Math.min(ea.pay.annual, eb.pay.annual), Math.max(ea.pay.annual, eb.pay.annual)) : [];
     const otherGap = num(b.otherPayNet) - num(a.otherPayNet);
     const costGap = eb.policy.money - ea.policy.money;
     const timeGap = eb.policy.time - ea.policy.time;
@@ -312,14 +435,30 @@ export function compareJobs(scenario) {
     return {
         a: ea,
         b: eb,
+        exactTax: exact,
         gapRate: rate,
+        thresholds,
         payGap, payGapNet, otherGap, costGap, timeGap,
         differenceMoney,
         difference: differenceMoney - timeGap,
         differenceHours: eb.policy.hours - ea.policy.hours,
         breakEven: breakEvenPay(scenario, a, b, ea, eb, true),
         breakEvenMoney: breakEvenPay(scenario, a, b, ea, eb, false),
+        costOfLiving: costOfLiving(a, b, ea, eb),
     };
+}
+
+// Job B's money position restated in Job A's prices with BEA Regional Price
+// Parities. Needs take-home pay, so both jobs must be in bracket mode.
+export function costOfLiving(a, b, ea, eb) {
+    const pa = RPP_BY_FIPS.get(a.placeFips);
+    const pb = RPP_BY_FIPS.get(b.placeFips);
+    if (!pa || !pb) return null;
+    if (!(ea.pay.exactTax && eb.pay.exactTax)) return { placeA: pa, placeB: pb, needsBrackets: true };
+    const keptA = ea.pay.net + num(a.otherPayNet) - ea.policy.money;
+    const keptB = eb.pay.net + num(b.otherPayNet) - eb.policy.money;
+    const ratio = pa.all / pb.all;
+    return { placeA: pa, placeB: pb, ratio, keptA, keptB, keptBInA: keptB * ratio, difference: keptB * ratio - keptA };
 }
 
 // Pay for job B that makes the difference zero, holding everything else.
@@ -330,6 +469,7 @@ export function compareJobs(scenario) {
 export function breakEvenPay(scenario, jobA, jobB, ea, eb, includeTime = true) {
     const H = eb.pay.hoursPerYear;
     if (!(H > 0)) return null;
+    if (ea.pay.exactTax && eb.pay.exactTax) return breakEvenExact(scenario, jobA, jobB, ea, eb, includeTime);
     const tr = timeRate(scenario.person, eb.pay);
     const hours = includeTime ? eb.policy.hours : 0;
     const timeA = includeTime ? ea.policy.time : 0;
@@ -343,6 +483,35 @@ export function breakEvenPay(scenario, jobA, jobB, ea, eb, includeTime = true) {
     let annual = solve(eb.pay.marginalRate);
     if (annual !== null && annual < ea.pay.annual) annual = solve(ea.pay.marginalRate);
     if (annual === null || !Number.isFinite(annual)) return null;
+    return { annual, hourly: annual / H };
+}
+
+// Bracket mode: the gap is not linear in pay, so bisect on B's salary,
+// re-evaluating B's policy pattern each time (pre-tax savings and time value
+// move with pay). Taxes only rise with pay, so the gap is increasing.
+function breakEvenExact(scenario, jobA, jobB, ea, eb, includeTime) {
+    const H = eb.pay.hoursPerYear;
+    const otherGap = num(jobB.otherPayNet) - num(jobA.otherPayNet);
+    const gap = (salary) => {
+        const job = { ...jobB, payMode: 'salary', salary };
+        const pb = evaluatePattern(scenario, job, eb.policyDays);
+        const pay = payFigures(job, scenario.person);
+        let d = pay.net - ea.pay.net + otherGap - (pb.money - ea.policy.money);
+        if (includeTime) d -= pb.time - ea.policy.time;
+        return d;
+    };
+    let lo = 0;
+    let hi = Math.max(ea.pay.annual, 1000) * 2;
+    if (gap(lo) >= 0) return null;
+    while (gap(hi) < 0) {
+        hi *= 2;
+        if (hi > 1e9) return null;
+    }
+    for (let i = 0; i < 100; i += 1) {
+        const mid = (lo + hi) / 2;
+        if (gap(mid) < 0) lo = mid; else hi = mid;
+    }
+    const annual = (lo + hi) / 2;
     return { annual, hourly: annual / H };
 }
 
@@ -365,7 +534,10 @@ export function validate(scenario) {
         const tag = jobs.length > 1 ? `${job.name || (i === 0 ? 'Job A' : 'Job B')}: ` : '';
         const p = `jobs.${i}.`;
         const rate = num(job.marginalRatePct);
-        if (rate < 0 || rate > 60) errors.push({ field: p + 'marginalRatePct', text: `${tag}Marginal tax rate must be between 0 and 60%.` });
+        const brackets = job.taxMode === 'brackets';
+        if (brackets && (num(job.stateRatePct) < 0 || num(job.stateRatePct) > 20)) errors.push({ field: p + 'stateRatePct', text: `${tag}State and local tax must be between 0 and 20%.` });
+        if (brackets && num(job.pretaxDeductions) > 0 && num(job.pretaxDeductions) >= payFigures(job, person).annual) warnings.push({ field: p + 'pretaxDeductions', text: `${tag}Pre-tax deductions are as large as the pay. Check that they are yearly.` });
+        if (!brackets && (rate < 0 || rate > 60)) errors.push({ field: p + 'marginalRatePct', text: `${tag}Marginal tax rate must be between 0 and 60%.` });
         if (num(job.paidWeeks) > 52 || num(job.paidWeeks) < 0) errors.push({ field: p + 'paidWeeks', text: `${tag}Paid weeks must be between 0 and 52.` });
         if (num(job.hoursPerWeek) > 100 || num(job.hoursPerWeek) < 0) errors.push({ field: p + 'hoursPerWeek', text: `${tag}Hours per week must be between 0 and 100.` });
         const pd = policyDaysPerWeek(job, cal);
@@ -391,7 +563,7 @@ export function validate(scenario) {
         const allIn = legs.some((l) => l.mode === 'car_rate');
         if (allIn && num(person.carDropSavingPerYear) > 0) warnings.push({ field: 'person.carDropSavingPerYear', text: `${tag}An all-in rate per mile already includes depreciation and insurance. Counting a dropped car as well counts them twice.` });
         const paid = job.payMode === 'hourly' ? num(job.hourly) > 0 : num(job.salary) > 0;
-        if (paid && !has(job.marginalRatePct)) warnings.push({ field: p + 'marginalRatePct', text: `${tag}No marginal tax rate entered, so the raise and the after-tax hourly rate assume no tax at all.` });
+        if (paid && !brackets && !has(job.marginalRatePct)) warnings.push({ field: p + 'marginalRatePct', text: `${tag}No marginal tax rate entered, so the raise and the after-tax hourly rate assume no tax at all.` });
         if (job.payMode === 'salary' && num(job.salary) > 0 && !(num(job.hoursPerWeek) > 0 && num(job.paidWeeks) > 0)) warnings.push({ field: p + 'hoursPerWeek', text: `${tag}Hours per week and paid weeks are needed to turn salary into an hourly rate.` });
     });
     return { errors, warnings };
@@ -529,6 +701,11 @@ export function sanitizeScenario(input, blank) {
         j.tripHome.legs = cleanLegs(raw.tripHome && raw.tripHome.legs);
         j.payMode = j.payMode === 'hourly' ? 'hourly' : 'salary';
         j.policyMode = j.policyMode === 'month' ? 'month' : 'week';
+        // Files saved before bracket mode carried only a typed rate: keep it.
+        if (raw.taxMode === undefined && has(raw.marginalRatePct)) j.taxMode = 'flat';
+        j.taxMode = j.taxMode === 'flat' ? 'flat' : 'brackets';
+        // Read raw: the blank template is '', which the cleaner treats as a number.
+        j.placeFips = typeof raw.placeFips === 'string' && RPP_BY_FIPS.has(raw.placeFips) ? raw.placeFips : '';
         return j;
     });
     const p = (input && input.person) || {};
@@ -544,6 +721,7 @@ export function sanitizeScenario(input, blank) {
     s.person.customLines = lines(p.customLines, [['label', 'text'], ['amount', 'num']]).map((l, i) => ({
         ...l, per: ['officeDay', 'homeDay', 'year'].includes(p.customLines[i] && p.customLines[i].per) ? p.customLines[i].per : 'officeDay',
     }));
+    s.person.filingStatus = FILING_STATUSES[s.person.filingStatus] ? s.person.filingStatus : 'single';
     s.person.timeValueMode = ['net', 'dot', 'gross', 'custom', 'none'].includes(s.person.timeValueMode) ? s.person.timeValueMode : 'net';
     s.compare = input && input.compare === true;
     return s;

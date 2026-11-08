@@ -9,7 +9,7 @@ const { repoRoot, toolPaths } = require('./helpers.cjs');
 const read = (rel) => fs.readFileSync(path.join(repoRoot, rel), 'utf8');
 
 // The two sub-pages are unlinked from the catalog but served at a guessable URL.
-const REACHABLE_SUBPAGES = ['tools/figure-rectifier.html', 'tools/meeting-planner-privacy.html'];
+const REACHABLE_SUBPAGES = ['tools/figure-rectifier.html', 'tools/meeting-planner-privacy.html', 'tools/fishbone-diagram-privacy.html'];
 const ALL_PAGES = [...toolPaths.map((p) => p.replace(/^\//, '')), ...REACHABLE_SUBPAGES];
 
 // hormone-research-reference predates the shared component and uses .liability-banner

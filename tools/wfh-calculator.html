@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
 ============================================
-WORK FROM HOME CALCULATOR v1.1.0
+WORK FROM HOME CALCULATOR v1.2.0
 ============================================
 Description: What a day in the office costs in money and time, what a
 day at home costs instead, and the yearly difference for every pattern
@@ -25,8 +25,11 @@ Features:
 - Equivalent pre-tax raise for every office-day pattern
 - Regained hours split across family, sleep, exercise, chores and work
 - Two job offers side by side with the break-even salary
-- Reference popovers beside days off, marginal tax rate and paid weeks:
-  BLS paid leave averages, 2026 federal brackets and payroll tax
+- Reference popovers beside days off, tax and paid weeks: BLS paid leave
+  averages, 2026 federal brackets and payroll tax
+- Tax worked out from 2026 federal brackets, payroll tax and a state rate,
+  so raises and pay gaps are taxed at every rate they pass through
+- Cost of living between two offers from BEA Regional Price Parities (2024)
 - US or metric units; scenarios saved in this browser, JSON import and
   export, CSV, SVG and PNG export, printable summary
 
@@ -113,7 +116,8 @@ Last Updated: November 2026
                     <ul>
                         <li><strong>It multiplies daily costs by days.</strong> An office day and a home day each have a cost you describe. The yearly figure is those costs times the number of each kind of day, plus the yearly items you enter.</li>
                         <li><strong>Commute time is turned into money only at the rate you choose.</strong> The money total without time value is always shown beside the total with it.</li>
-                        <li><strong>The equivalent raise is one division.</strong> A saving paid from take-home pay is divided by one minus your marginal tax rate. It assumes the whole raise is taxed at that one rate.</li>
+                        <li><strong>Tax is a 2026 outline, not a return.</strong> By default each salary is taxed with the 2026 federal brackets and standard deduction, Social Security and Medicare, and one flat state and local rate you enter, so a raise or a pay gap is taxed at each rate it passes through. With "A rate I enter", your one rate is applied to each change in pay instead.</li>
+                        <li><strong>Cost of living is one ratio.</strong> Between two places, what is left after tax and working costs is scaled by BEA's 2024 price levels for the two places. It is a national statistical average for each place, not your rent or your basket.</li>
                         <li><strong>Published figures are national averages.</strong> The IRS mileage rate, AAA's costs per mile and gas price, and the Census commute time describe the average driver, not you.</li>
                     </ul>
                 </div>
@@ -121,7 +125,7 @@ Last Updated: November 2026
                 <div class="disclaimer-section">
                     <h3>Not checked, at all</h3>
                     <ul>
-                        <li><strong>Your tax rate.</strong> The tool takes the marginal rate you type. It does not compute federal, state, local or payroll tax, phase-outs, credits or brackets a raise could cross.</li>
+                        <li><strong>Your actual tax.</strong> Itemized deductions, credits, phase-outs, the alternative minimum tax, state brackets and local rules are not modeled. A spouse's Social Security is not tracked, and payroll tax is taken on pay before every pre-tax deduction, which overstates it slightly when the deductions are health premiums.</li>
                         <li><strong>Tax rules.</strong> The notes on commuting, home office and pre-tax commuter benefits are a US federal outline from 2025 and 2026 publications. Rules differ by state and country and change every year.</li>
                         <li><strong>Pay beyond salary.</strong> Health insurance, retirement match, equity, bonus, paid leave and job security are not compared unless you enter them yourself as other pay.</li>
                         <li><strong>Prices over time.</strong> Gas, fares, food and energy are held constant for the year.</li>
@@ -165,7 +169,7 @@ Last Updated: November 2026
             <div class="usage-body">
                 <p><strong>Two minutes:</strong> enter your pay and tax rate, describe your trip in, and read the cost of one office day on the right. Or load an example to see a filled-in scenario.</p>
                 <ol>
-                    <li><strong>Pay and schedule.</strong> Salary or hourly pay, hours, and your marginal tax rate: the share of one more dollar of pay that goes to tax. Federal plus state plus payroll tax is a typical way to add it up; last year's return or a paycheck calculator will tell you yours. Then the office days your job asks for.</li>
+                    <li><strong>Pay and schedule.</strong> Salary or hourly pay, hours, your filing status and your state's income tax rate. The tool works out federal and payroll tax from the 2026 tables and shows the rate on your next dollar; switch to "A rate I enter" to use your own. Then the office days your job asks for.</li>
                     <li><strong>Getting there.</strong> One or more legs for the trip in, such as drive to a station then take a train, with the door to door minutes. Untick "Same trip home" if the trip home differs. Fuel cost is <em>distance ÷ mpg × price</em>: 20 miles at 25 mpg and $3.50 a gallon is $2.80.</li>
                     <li><strong>Food, care and extras.</strong> What an office day costs that a home day does not: bought lunch, coffee, after-school care, a dog walker, dry cleaning. Lunch and coffee at home go in the Home side section, so only the difference counts.</li>
                     <li><strong>Home side.</strong> What a home day adds: energy, a coworking day now and then, a desk and chair spread over their life.</li>
@@ -245,6 +249,19 @@ Last Updated: November 2026
                             </div>
                             <input type="number" id="daysOff" data-bind="person.daysOff" min="0" step="1" inputmode="numeric" aria-describedby="daysOffHint">
                             <p class="hint" id="daysOffHint">Vacation, holidays and sick days. The i shows US averages.</p>
+                        </div>
+                        <div class="input-group">
+                            <label for="filingStatus">Tax filing status</label>
+                            <select id="filingStatus" data-bind="person.filingStatus">
+                                <option value="single">Single</option>
+                                <option value="joint">Married filing jointly</option>
+                                <option value="head">Head of household</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label for="otherIncome">Other taxable income on the return</label>
+                            <input type="number" id="otherIncome" data-bind="person.otherIncome" min="0" step="100" inputmode="decimal" aria-describedby="otherIncomeHint">
+                            <p class="hint" id="otherIncomeHint">A spouse's pay when filing jointly, or side income. It sets which bracket your pay starts in.</p>
                         </div>
                     </div>
                 </div>
@@ -455,6 +472,8 @@ Last Updated: November 2026
         <footer data-footer></footer>
     </div>
 
+    <datalist id="rppPlaces"></datalist>
+
     <template id="jobTemplate">
         <details class="section job-section" open>
             <summary><span class="job-title">Job</span><span class="subtotal" data-subtotal="commute"></span></summary>
@@ -479,13 +498,6 @@ Last Updated: November 2026
                         <input type="number" data-bind="hourly" min="0" step="0.01" inputmode="decimal">
                     </div>
                     <div class="input-group">
-                        <div class="label-row">
-                            <label data-for="marginalRatePct">Marginal tax rate (%)</label>
-                            <span class="info-tip" data-info="marginalRate"></span>
-                        </div>
-                        <input type="number" data-bind="marginalRatePct" min="0" max="60" step="0.5" inputmode="decimal">
-                    </div>
-                    <div class="input-group">
                         <label data-for="hoursPerWeek">Paid hours per week</label>
                         <input type="number" data-bind="hoursPerWeek" min="0" max="100" step="0.5" inputmode="decimal">
                     </div>
@@ -497,10 +509,42 @@ Last Updated: November 2026
                         <input type="number" data-bind="paidWeeks" min="0" max="52" step="1" inputmode="numeric">
                     </div>
                 </div>
+                <div class="label-row tax-head">
+                    <span class="group-label">Tax</span>
+                    <span class="info-tip" data-info="marginalRate"></span>
+                </div>
+                <div class="segmented" role="radiogroup" data-label="How tax is worked out">
+                    <label><input type="radio" data-bind="taxMode" value="brackets"> 2026 US brackets</label>
+                    <label><input type="radio" data-bind="taxMode" value="flat"> A rate I enter</label>
+                </div>
+                <div class="field-grid" data-show="brackets">
+                    <div class="input-group">
+                        <label data-for="stateRatePct">State and local income tax (%)</label>
+                        <input type="number" data-bind="stateRatePct" min="0" max="20" step="0.1" inputmode="decimal">
+                    </div>
+                    <div class="input-group">
+                        <label data-for="pretaxDeductions">Pre-tax deductions a year</label>
+                        <input type="number" data-bind="pretaxDeductions" min="0" step="100" inputmode="decimal">
+                    </div>
+                </div>
+                <div class="field-grid" data-show="flat" hidden>
+                    <div class="input-group">
+                        <label data-for="marginalRatePct">Marginal tax rate (%)</label>
+                        <input type="number" data-bind="marginalRatePct" min="0" max="60" step="0.5" inputmode="decimal">
+                    </div>
+                </div>
+                <p class="tax-readout" data-tax-readout aria-live="polite"></p>
+
                 <div class="input-group compare-only">
                     <label data-for="otherPayNet">Other pay per year, after tax</label>
                     <input type="number" data-bind="otherPayNet" step="1" inputmode="decimal">
                     <p class="hint">Bonus, retirement match or anything else you want counted, as take-home dollars.</p>
+                </div>
+
+                <div class="input-group compare-only">
+                    <label data-place-label>Where you would live</label>
+                    <input type="text" data-place list="rppPlaces" maxlength="80" autocomplete="off" placeholder="Type a city or state">
+                    <p class="hint" data-place-hint></p>
                 </div>
 
                 <span class="group-label">Office days</span>

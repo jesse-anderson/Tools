@@ -1,4 +1,4 @@
-// SVG and PNG export for the Sankey diagram builder.
+// SVG and PNG export shared by the diagram tools.
 
 // Chromium refuses a canvas past roughly 16384 px a side or 268 MP in area.
 // The area cap here is far lower, because a 4x export is already 8 MP.
@@ -99,7 +99,7 @@ export function downloadBlob(blob, filename) {
 }
 
 /** A safe file stem from the diagram title. */
-export function fileStem(title) {
+export function fileStem(title, fallback = 'diagram') {
     const stem = String(title || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60);
-    return stem || 'sankey-diagram';
+    return stem || fallback;
 }

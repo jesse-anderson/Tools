@@ -4,17 +4,24 @@
 
 import * as parser from './sankey-parse.js';
 import * as engine from './sankey-engine.js';
-import * as projects from './sankey-projects.js';
+import { createProjectStore } from '../diagram_common/projects.js';
 import { buildModel, balanceSummary } from './sankey-model.js';
 import { renderSankey, nodeColors, traceMarkPath, PALETTES } from './sankey-render.js';
 import {
-    serializeSvg, svgToPngBlob, downloadBlob, fileStem, pngSize, PNG_SCALES, loadFontDataUrl, embedFont
-} from './sankey-export.js';
+    serializeSvg, svgToPngBlob, downloadBlob, fileStem as baseStem, pngSize, PNG_SCALES, loadFontDataUrl, embedFont
+} from '../diagram_common/export.js';
 import { PRESETS, PRESETS_BY_ID } from './presets.js';
 import { attachDrag } from './sankey-drag.js';
 import { traceFlows } from './sankey-trace.js';
 
 const el = (id) => document.getElementById(id);
+const fileStem = (title) => baseStem(title, 'sankey-diagram');
+const projects = createProjectStore({
+    storageKey: 'sankeyDiagram.projects.v1',
+    fileFormat: 'sankey-diagram-project',
+    label: 'Sankey',
+    noContentMessage: 'That project file has no flow list in it'
+});
 const TEXT_DEBOUNCE_MS = 120;
 const DELETE_ARM_MS = 4000;
 const RESIZE_STEP = 20;

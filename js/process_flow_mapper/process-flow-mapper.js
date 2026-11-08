@@ -9,7 +9,8 @@ import * as simulator from './flow-simulate.js';
 import * as parallel from './flow-parallel.js';
 import * as router from './flow-route.js';
 import * as layouts from './flow-layout.js';
-import * as projects from './flow-projects.js';
+import { createProjectStore } from '../diagram_common/projects.js';
+import { createTextMeasure } from '../diagram_common/text-measure.js';
 import { buildModel, headline, headlineChanges, summarySentence, summaryLine, footnoteText, formatDuration, formatPercent } from './flow-model.js';
 import { renderFlow, tintLevels, mix, stepOrder, PALETTES } from './flow-render.js';
 import { fillHeadline, fillBars, fillTables, fillSpread, tableToCsv } from './flow-panels.js';
@@ -17,11 +18,18 @@ import { attachDrag } from './flow-drag.js';
 import { toMermaid } from './flow-mermaid.js';
 import { createSpreadRunner } from './flow-sim-runner.js';
 import {
-    serializeSvg, svgToPngBlob, downloadBlob, fileStem, pngSize, PNG_SCALES, loadFontDataUrl, embedFont
-} from './flow-export.js';
+    serializeSvg, svgToPngBlob, downloadBlob, fileStem as baseStem, pngSize, PNG_SCALES, loadFontDataUrl, embedFont
+} from '../diagram_common/export.js';
 import { PRESETS, PRESETS_BY_ID } from './presets.js';
 
 const el = (id) => document.getElementById(id);
+const fileStem = (title) => baseStem(title, 'process-flow');
+const projects = createProjectStore({
+    storageKey: 'processFlowMapper.projects.v1',
+    fileFormat: 'process-flow-project',
+    label: 'process flow',
+    noContentMessage: 'That project file has no flow list in it'
+});
 const TEXT_DEBOUNCE_MS = 120;
 const DELETE_ARM_MS = 4000;
 const FONT = "'Space Grotesk', system-ui, 'Segoe UI', Arial, sans-serif";
@@ -52,12 +60,7 @@ const runSpread = createSpreadRunner((key) => {
 }, { workerUrl: new URL('./flow-sim-worker.js', import.meta.url) });
 
 // Text is measured on a canvas, so boxes and labels fit what is actually drawn.
-const ruler = document.createElement('canvas').getContext('2d');
-function measure(text, size, weight = 400) {
-    if (!ruler) return text.length * size * 0.6;
-    ruler.font = `${weight} ${size}px ${FONT}`;
-    return ruler.measureText(text).width;
-}
+const measure = createTextMeasure(document, FONT);
 
 /** Read a number field once. Blank or unparseable falls back to the engine default. */
 function numberField(id) {

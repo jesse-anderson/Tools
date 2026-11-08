@@ -6,6 +6,7 @@
 
 import { ribbonPath, centerPath, centerPoints, linkBand, linkLabelPoint, formatValue, formatPercent } from './sankey-engine.js';
 import { balanceSummary } from './sankey-model.js';
+import { createTextMeasure } from '../diagram_common/text-measure.js';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 const FONT = "'Space Grotesk', system-ui, 'Segoe UI', Arial, sans-serif";
@@ -394,13 +395,7 @@ export function renderSankey(doc, model, viewOptions = {}, palette = PALETTES.li
     const labelGroup = make(doc, 'g', { class: 'sankey-labels' });
     const lineHeight = Math.round(view.fontSize * 1.25);
     // Text is measured on a canvas where there is one, and estimated where there is not.
-    let ruler = null;
-    try { ruler = doc.createElement('canvas').getContext('2d'); } catch (e) { ruler = null; }
-    const textWidth = (text, size, weight = 400) => {
-        if (!ruler) return text.length * size * 0.6;
-        ruler.font = `${weight} ${size}px ${FONT}`;
-        return ruler.measureText(text).width;
-    };
+    const textWidth = createTextMeasure(doc, FONT);
     // What a label must keep off: every node, the title, the footnote, and each label once placed.
     const labelTop = view.title ? margin + 22 : 2;
     const footnote = footnoteText(layout, traces, view.traceStyle);

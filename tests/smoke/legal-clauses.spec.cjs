@@ -51,6 +51,7 @@ const CLAUSE_PAGES = [
   '/tools/wfh-calculator.html',
   '/tools/dataset-diff.html',
   '/tools/milk-fat-calculator.html',
+  '/tools/fishbone-diagram.html',
 ];
 
 const REQUIRED = [

@@ -6,6 +6,7 @@ import { SOURCES, CONTEXT, EXAMPLES, blankScenario, blankLeg } from './wfh-data.
 import { renderResults, money } from './wfh-results.js';
 import { svgString, svgToPngBlob } from './wfh-chart.js';
 import { renderInfoTip, wireInfoTips } from './wfh-info.js';
+import { RPP_PLACES, RPP_YEAR } from './wfh-rpp-data.js';
 
 const STORE_KEY = 'wfhCalculator.v1';
 const MAX_SAVED = 10;
@@ -93,6 +94,14 @@ function buildJobs() {
             const group = h.closest('.input-group');
             const input = group && group.querySelector('input');
             if (input) input.setAttribute('aria-describedby', h.id);
+        });
+        const place = node.querySelector('[data-place]');
+        place.id = `job${i}-place`;
+        node.querySelector('[data-place-label]').htmlFor = place.id;
+        place.addEventListener('input', () => {
+            const match = PLACE_BY_LABEL.get(place.value.trim().toLowerCase());
+            state.jobs[i].placeFips = match ? match.fips : '';
+            recalc();
         });
         container.appendChild(node);
         renderLegs(node, i, 'tripIn');
@@ -298,10 +307,62 @@ function renderAllLines() {
     ], 'line');
 }
 
+// Places for the cost-of-living field, labeled as the datalist shows them.
+function placeLabel(p) {
+    return p.kind === 'state' ? `${p.name}, statewide average` : p.name;
+}
+const PLACE_BY_LABEL = new Map(RPP_PLACES.map(([fips, name, kind, all, housing]) => {
+    const p = { fips, name, kind, all, housing };
+    return [placeLabel(p).toLowerCase(), p];
+}));
+const PLACE_BY_FIPS = new Map([...PLACE_BY_LABEL.values()].map((p) => [p.fips, p]));
+
+function fillPlaceList() {
+    const list = $('rppPlaces');
+    for (const p of PLACE_BY_LABEL.values()) {
+        const o = document.createElement('option');
+        o.value = placeLabel(p);
+        list.appendChild(o);
+    }
+}
+
+const pct = (x) => `${Engine.round(x * 100, 2)}%`;
+
+// The rate each job's pay is taxed at, and what its place costs.
+function renderJobReadouts() {
+    const cur = state.currency || '$';
+    document.querySelectorAll('[data-job]').forEach((node) => {
+        const job = state.jobs[Number(node.dataset.job)];
+        const pay = Engine.payFigures(job, state.person);
+        const out = node.querySelector('[data-tax-readout]');
+        let text;
+        if (!(pay.annual > 0)) text = 'Enter pay to see the rate.';
+        else if (pay.exactTax) {
+            const r = pay.rateParts;
+            text = `On the next dollar: ${pct(r.federal)} federal + ${pct(r.payroll)} payroll + ${pct(r.state)} state = ${pct(pay.marginalRate)}. Take-home from this job about ${money(pay.net, cur)} a year (${pct(pay.tax / pay.annual)} of pay).`;
+        } else text = 'This rate is applied to each change in pay, such as a raise or the gap between two offers, never to the whole salary.';
+        if (out.textContent !== text) out.textContent = text;
+
+        const input = node.querySelector('[data-place]');
+        const hint = node.querySelector('[data-place-hint]');
+        const place = PLACE_BY_FIPS.get(job.placeFips);
+        let h = 'Pick a metro area or a state from the list. Prices come from BEA Regional Price Parities.';
+        if (place) {
+            const diff = place.all - 100;
+            h = `Prices ${Math.abs(diff).toFixed(1)}% ${diff >= 0 ? 'above' : 'below'} the US average in ${RPP_YEAR}${place.housing ? `; rent index ${place.housing.toFixed(1)}` : ''} (BEA, US = 100).`;
+        } else if (input.value.trim()) h = 'No match. Pick a name from the list.';
+        if (hint.textContent !== h) hint.textContent = h;
+    });
+}
+
 // Push the whole state into the form.
 function fillForm() {
     buildJobs();
     document.querySelectorAll('[data-bind]').forEach((input) => writeInput(input, getPath(state, fullPath(input))));
+    document.querySelectorAll('[data-job]').forEach((node) => {
+        const place = PLACE_BY_FIPS.get(state.jobs[Number(node.dataset.job)].placeFips);
+        node.querySelector('[data-place]').value = place ? placeLabel(place) : '';
+    });
     document.querySelectorAll('input[name="units"]').forEach((r) => { r.checked = r.value === state.units; });
     renderAllLines();
     syncVisibility();
@@ -314,6 +375,8 @@ function syncVisibility() {
         node.querySelectorAll('[data-show="hourly"]').forEach((e) => { e.hidden = job.payMode !== 'hourly'; });
         node.querySelectorAll('[data-show="week"]').forEach((e) => { e.hidden = job.policyMode !== 'week'; });
         node.querySelectorAll('[data-show="month"]').forEach((e) => { e.hidden = job.policyMode !== 'month'; });
+        node.querySelectorAll('[data-show="brackets"]').forEach((e) => { e.hidden = job.taxMode !== 'brackets'; });
+        node.querySelectorAll('[data-show="flat"]').forEach((e) => { e.hidden = job.taxMode !== 'flat'; });
         node.querySelector('[data-trip="tripHome"]').hidden = job.sameTripHome === true;
         node.querySelectorAll('.compare-only').forEach((e) => { e.hidden = !state.compare; });
         node.querySelector('.job-name-group').hidden = !state.compare;
@@ -333,6 +396,7 @@ function recalc() {
     pending = requestAnimationFrame(() => {
         syncVisibility();
         lastResult = Engine.calculate(state);
+        renderJobReadouts();
         chartSvg = renderResults(state, lastResult, { CONTEXT });
         autosave();
     });
@@ -346,8 +410,7 @@ function onFormInput(e) {
     const value = readInput(input);
     setPath(state, path, value);
     if (input.dataset.bind === 'compare') {
-        buildJobs();
-        document.querySelectorAll('#jobsContainer [data-bind]').forEach((i) => writeInput(i, getPath(state, fullPath(i))));
+        fillForm();
     }
     recalc();
 }
@@ -545,6 +608,7 @@ function currentTableJob() {
 }
 
 function init() {
+    fillPlaceList();
     wire();
     document.querySelectorAll('.input-panel > .input-group .info-tip[data-info]').forEach((t) => renderInfoTip(t, 'page'));
     wireInfoTips();

@@ -29,7 +29,7 @@ const HUB = 'tools.html';
 
 // Served and reachable from inside another tool, but not in the catalog.
 // They get tags like any page and stay out of the sitemap.
-const SUBPAGES = ['tools/figure-rectifier.html', 'tools/meeting-planner-privacy.html'];
+const SUBPAGES = ['tools/figure-rectifier.html', 'tools/meeting-planner-privacy.html', 'tools/fishbone-diagram-privacy.html'];
 
 // Search results cut a description near 160 characters. Under 70 it says too
 // little to be chosen over text scraped from the page.

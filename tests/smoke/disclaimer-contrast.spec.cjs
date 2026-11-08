@@ -62,6 +62,7 @@ const TOOLS_WITH_DISCLAIMER_HEADINGS = [
   'wfh-calculator',
   'dataset-diff',
   'milk-fat-calculator',
+  'fishbone-diagram',
   'oral-multidose',
   'pid-playground',
   'psychrometric-calculator',

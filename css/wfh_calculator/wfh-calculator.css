@@ -666,6 +666,29 @@ fieldset {
     font-weight: 700;
 }
 
+.col-heading {
+    margin: 18px 0 6px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border-color);
+    font-size: 0.9375rem;
+}
+
+/* The tax header shares a row with its info popover. */
+.tax-head {
+    margin: 6px 0 8px;
+}
+
+.tax-head .group-label {
+    margin: 0;
+}
+
+.tax-readout {
+    margin: 0 0 12px;
+    color: var(--text-secondary);
+    font-size: 0.8125rem;
+    line-height: 1.5;
+}
+
 .legend {
     display: flex;
     flex-wrap: wrap;

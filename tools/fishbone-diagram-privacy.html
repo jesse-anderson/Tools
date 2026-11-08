@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Where data goes in the Ishikawa Fishbone Diagram: nowhere in solo mode, and what online boards will store, for how long, and who will see it.">
+    <link rel="canonical" href="https://tools.jesse-anderson.net/tools/fishbone-diagram-privacy.html">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Tools Hub">
+    <meta property="og:title" content="Ishikawa Fishbone Diagram - Privacy">
+    <meta property="og:description" content="Where data goes in the Ishikawa Fishbone Diagram: nowhere in solo mode, and what online boards will store, for how long, and who will see it.">
+    <meta property="og:url" content="https://tools.jesse-anderson.net/tools/fishbone-diagram-privacy.html">
+    <meta name="twitter:card" content="summary">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'none'">
+    <title>Ishikawa Fishbone Diagram - Privacy | Tools Hub</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/shared.css">
+    <link rel="stylesheet" href="../css/fishbone_diagram/fishbone-diagram.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <div class="header-left">
+                    <a href="fishbone-diagram.html" class="back-link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <line x1="19" y1="12" x2="5" y2="12"/>
+                            <polyline points="12 19 5 12 12 5"/>
+                        </svg>
+                        Back to the fishbone diagram
+                    </a>
+                </div>
+                <div class="header-right">
+                    <div class="theme-toggle">
+                        <button data-theme-toggle="light" aria-pressed="false" title="Light mode" aria-label="Light mode">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                <circle cx="12" cy="12" r="5"/>
+                                <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+                            </svg>
+                        </button>
+                        <button data-theme-toggle="dark" aria-pressed="false" title="Dark mode" aria-label="Dark mode">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="tool-title-row">
+                <div class="tool-icon-header general" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="28" height="28">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                    </svg>
+                </div>
+                <div>
+                    <h1>Ishikawa Fishbone Diagram - Privacy</h1>
+                    <p class="tagline">// SOLO: NOTHING SENT / ONLINE BOARDS: PLANNED</p>
+                </div>
+            </div>
+        </header>
+
+        <main>
+            <article class="fb-panel fb-privacy">
+                <p>The fishbone diagram works in two modes. <strong>Solo mode</strong>, the only one available today, runs entirely in your browser. <strong>Online boards</strong> are planned and not built; this page says now what they will store, so the terms are known before anyone signs in. When online boards open, this page will be updated and the "Last updated" stamp will change.</p>
+
+                <p class="disclaimer"><strong>This page describes how the tool is built and how it will be operated. It is not a contract, a certification, or a compliance statement.</strong> It is written by the one person who runs the site and has not been audited by anyone else. No claim is made of GDPR, CCPA, HIPAA or any other regulatory compliance, so do not put anything on a diagram that would matter under one of them. Provided as-is, without warranty, and used at your own risk. The <a href="../tools.html#siteDisclaimer">site-wide notice</a> carries the full terms.</p>
+
+                <h2>1. What is sent and stored</h2>
+                <ul>
+                    <li><strong>Solo mode:</strong> nothing is sent to any server. Projects are kept in this browser's <code>localStorage</code>; view settings and whether you have seen the guide are kept there too.</li>
+                    <li><strong>Online boards (planned):</strong> a board's contents (problem statement, categories, causes, statuses, evidence, owners, locks), the name the site owner gave each member, and the time of each edit. The site owner's access list will hold each person's email address, name, and a keyed hash of their access phrase.</li>
+                </ul>
+
+                <h2>2. What is not stored</h2>
+                <ul>
+                    <li>The access phrase itself: only its hash, made with a server secret.</li>
+                    <li>Email addresses on boards: a board stores a random member id and a name, never an email. The email list is used only to sign in and is never shown to other members.</li>
+                    <li>IP addresses, except as a hash salted daily, used only for rate limits.</li>
+                    <li>Analytics identifiers or application cookies.</li>
+                </ul>
+
+                <h2>3. Where data is sent</h2>
+                <ul>
+                    <li>Solo mode: nowhere. Exports, project files and snapshot links are made in your browser.</li>
+                    <li>A snapshot link carries the diagram inside the part of the link after <code>#</code>, which browsers do not send to the server that hosts this page. Whoever you send the link to can read it.</li>
+                    <li>Online boards (planned): <code>fishbone.jesse-anderson.net</code>, a Cloudflare Worker with Durable Object storage. Cloudflare Turnstile will load from <code>challenges.cloudflare.com</code> only when someone clicks "Go online".</li>
+                    <li>Web fonts load from Google Fonts, so Google receives your IP address and request headers when the page loads. No diagram content is sent to Google.</li>
+                </ul>
+
+                <h2>4. How long it is kept</h2>
+                <ul>
+                    <li>Solo mode: until you delete the project or clear this site's data.</li>
+                    <li>Online boards (planned): one year after the last edit, extendable by a champion to three years, with a banner 30 days before deletion. A champion can delete a board at any time.</li>
+                </ul>
+
+                <h2>5. Who can see it</h2>
+                <ul>
+                    <li>Solo mode: anyone with access to this browser, and anyone you send a file, an export or a link to.</li>
+                    <li>Online boards (planned): every member of a board can read everything on it, including its history. Brainstorm ideas will show no author, and votes will show totals only.</li>
+                    <li>The site owner will see board metadata (title, champions, member names, size, last edit, expiry) through scripts, not board contents. No script, endpoint or page will read a board's contents for the owner. The operator could read storage technically and does not.</li>
+                </ul>
+
+                <h2>6. Your controls</h2>
+                <ul>
+                    <li>Delete a project, or clear this site's data, to remove solo projects from this browser.</li>
+                    <li>Online boards (planned): a champion can delete a board. Ask the site owner to remove you from the access list; with erasure, your name is replaced with "Former member" on every board and in every history entry.</li>
+                </ul>
+
+                <h2>7. Platform processing and backups</h2>
+                <p>Online boards (planned) will run on Cloudflare's network. Whether Durable Object storage keeps a point-in-time recovery window, and how long, has not been confirmed. It will be stated here before online boards open.</p>
+
+                <h2>8. Security</h2>
+                <ul>
+                    <li>Online traffic will use HTTPS. Nothing will be end-to-end encrypted.</li>
+                    <li>The access phrase is seven random words generated for you. It is not a password: never reuse it elsewhere, and never type one of your own passwords in its place. The page will refuse to send anything that looks like a password.</li>
+                    <li>Board ids will travel in the part of the link after <code>#</code>. A board link alone lets nobody in; access is membership.</li>
+                </ul>
+
+                <h2>9. Children</h2>
+                <p>This tool is not directed at children and collects no age information.</p>
+
+                <h2>10. Changes to this policy</h2>
+                <p>Material changes will update the "Last updated" stamp at the foot of this page and, where it matters, show a notice in the tool.</p>
+
+                <h2>11. Contact</h2>
+                <p>Questions or data requests: email <a class="text-link" href="mailto:jesse@jesse-anderson.net">jesse@jesse-anderson.net</a>.</p>
+
+                <p class="fb-hint">Last updated: 2026-11-08</p>
+            </article>
+        </main>
+
+        <footer data-footer></footer>
+    </div>
+
+    <script src="../js/shared.js"></script>
+    <script type="module" src="../js/footer.js"></script>
+</body>
+</html>

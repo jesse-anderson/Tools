@@ -98,7 +98,7 @@ export const REFERENCE = {
     marginalRate: {
         title: '2026 US federal income tax brackets',
         blocks: [
-            { p: 'A bracket applies to taxable income: pay after pre-tax deductions and the standard deduction of $16,100 (single) or $32,200 (married filing jointly). Each rate applies to taxable income above the amount shown.' },
+            { p: 'With 2026 US brackets chosen, the tool works this out from these figures. A bracket applies to taxable income: pay after pre-tax deductions and the standard deduction of $16,100 (single), $24,150 (head of household) or $32,200 (married filing jointly). Each rate applies to taxable income above the amount shown.' },
             {
                 head: ['Rate', 'Single', 'Married, joint'],
                 rows: [
@@ -111,12 +111,13 @@ export const REFERENCE = {
                     ['37%', '$640,600', '$768,700'],
                 ],
             },
-            { p: 'Add payroll tax: 6.2% Social Security on wages up to $184,500, 1.45% Medicare, and another 0.9% Medicare on wages over $200,000. Then add your state and local income tax rate, if you have one.' },
+            { p: 'Payroll tax adds 6.2% Social Security on wages up to $184,500, 1.45% Medicare, and another 0.9% Medicare on wages over $200,000 ($250,000 married filing jointly). Then add your state and local income tax rate, if you have one.' },
             { p: 'For example, single on a $72,000 salary with no pre-tax deductions: $55,900 of taxable income is in the 22% bracket, plus 7.65% payroll tax, makes 29.65% before state tax.' },
         ],
         sources: [
             { label: 'IRS Rev. Proc. 2025-32, sections 4.01 and 4.14 (2026 brackets and standard deduction)', url: 'https://www.irs.gov/pub/irs-drop/rp-25-32.pdf' },
             { label: 'IRS Topic 751, Social Security and Medicare withholding rates', url: 'https://www.irs.gov/taxtopics/tc751' },
+            { label: 'IRS, Questions and answers for the Additional Medicare Tax', url: 'https://www.irs.gov/businesses/small-businesses-self-employed/questions-and-answers-for-the-additional-medicare-tax' },
         ],
     },
     paidWeeks: {
@@ -141,7 +142,8 @@ export function blankJob(name) {
     return {
         name,
         payMode: 'salary', salary: '', hourly: '', hoursPerWeek: '', paidWeeks: '',
-        marginalRatePct: '', otherPayNet: '',
+        taxMode: 'brackets', stateRatePct: '', pretaxDeductions: '', marginalRatePct: '',
+        otherPayNet: '', placeFips: '',
         policyMode: 'week', officeDaysPerWeek: '', officeDaysPerMonth: '',
         tripIn: { minutes: '', legs: [blankLeg()] },
         sameTripHome: true,
@@ -155,12 +157,13 @@ export function blankJob(name) {
 
 export function blankScenario() {
     return {
-        version: 1,
+        version: 2,
         units: 'us',
         currency: '$',
         compare: false,
         person: {
             workDaysPerWeek: 5, daysOff: '',
+            filingStatus: 'single', otherIncome: '',
             timeValueMode: 'net', customTimeRate: '', prepMinutes: '',
             homeLunch: '', homeCoffee: '', homeEnergyPerDay: '',
             coworkDaysPerYear: '', coworkCostPerDay: '',
@@ -196,8 +199,9 @@ function basePerson(p) {
     });
 }
 
+// 2026 brackets, single, with a made-up 5% state rate.
 function basePay(j, salary) {
-    Object.assign(j, { salary, hoursPerWeek: 40, paidWeeks: 52, marginalRatePct: 30 });
+    Object.assign(j, { salary, hoursPerWeek: 40, paidWeeks: 52, taxMode: 'brackets', stateRatePct: 5 });
 }
 
 // Salaries, fares and food prices here are made up. Commute time, gas price
@@ -206,7 +210,7 @@ export const EXAMPLES = [
     {
         id: 'driver',
         title: 'Driver, suburb to office',
-        note: 'Made-up pay and food prices. 26.4 minutes each way is the 2022 Census average; gas and wear are AAA 2025 figures.',
+        note: 'Made-up pay and food prices. 26.4 minutes each way is the 2022 Census average; gas and wear are AAA 2025 figures. State tax is a made-up 5%.',
         build: () => scenario((s) => {
             basePerson(s.person);
             const j = s.jobs[0];
@@ -218,7 +222,7 @@ export const EXAMPLES = [
     {
         id: 'transit',
         title: 'Transit with a monthly pass',
-        note: 'Made-up pay, fares and pass price. Shows where the pass stops paying off.',
+        note: 'Made-up pay, fares and pass price. Shows where the pass stops paying off. State tax is a made-up 5%.',
         build: () => scenario((s) => {
             basePerson(s.person);
             const j = s.jobs[0];
@@ -230,7 +234,7 @@ export const EXAMPLES = [
     {
         id: 'mixed',
         title: 'Transit in, rideshare home',
-        note: 'Made-up pay and fares. The trip home differs from the trip in.',
+        note: 'Made-up pay and fares. The trip home differs from the trip in. State tax is a made-up 5%.',
         build: () => scenario((s) => {
             basePerson(s.person);
             const j = s.jobs[0];
@@ -243,7 +247,7 @@ export const EXAMPLES = [
     {
         id: 'parent',
         title: 'Parent with after-school care',
-        note: 'Made-up pay and care prices. Care is needed only on office days.',
+        note: 'Made-up pay and care prices. Care is needed only on office days. State tax is a made-up 5%.',
         build: () => scenario((s) => {
             basePerson(s.person);
             s.person.careLines = [
@@ -259,15 +263,15 @@ export const EXAMPLES = [
     {
         id: 'offers',
         title: 'Two offers: remote or hybrid',
-        note: 'Made-up salaries and prices. Job B pays more but needs three office days.',
+        note: 'Made-up salaries, prices and 5% state tax. Job B pays more but needs three office days in Chicago; the remote offer is worked from Indianapolis.',
         build: () => scenario((s) => {
             basePerson(s.person);
             s.compare = true;
             const [a, b] = s.jobs;
             basePay(a, 95000);
-            Object.assign(a, { name: 'Remote offer', officeDaysPerWeek: 0, stipendPerMonth: 50, stipendMaxOfficeDays: 0 });
+            Object.assign(a, { name: 'Remote offer', officeDaysPerWeek: 0, stipendPerMonth: 50, stipendMaxOfficeDays: 0, placeFips: '26900' });
             basePay(b, 105000);
-            Object.assign(b, { name: 'Hybrid offer', officeDaysPerWeek: 3, officeLunch: 15, officeCoffee: 5, parkingPerDay: 15 });
+            Object.assign(b, { name: 'Hybrid offer', officeDaysPerWeek: 3, officeLunch: 15, officeCoffee: 5, parkingPerDay: 15, placeFips: '16980' });
             b.tripIn = { minutes: 40, legs: [driverLeg(22)] };
         }),
     },

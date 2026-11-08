@@ -6,7 +6,7 @@ and the SOW at `docs/SOW/WFH_DELTA_CALCULATOR_SOW.md`. Same convention as
 `data/fishbone_diagram/`: documents in `sources/` are local only, and
 `download_manifest.csv` keeps the SHA-256 of each file that was read.
 
-21 rows, five not obtained:
+24 rows, five not obtained:
 - IRS Announcement 2026-11 itself (404 at the guessed path). The 76 cent rate
   from July 1, 2026 is taken from KPMG and the Journal of Accountancy, which
   both cite it.
@@ -40,6 +40,18 @@ and the SOW at `docs/SOW/WFH_DELTA_CALCULATOR_SOW.md`. Same convention as
   holidays are 2025, the latest average found. Averages count only workers who
   get the leave. Read, not archived.
 - **11 federal holidays**: 5 U.S.C. 6103. Primary, archived.
+- **Bracket tax model** (`TAX_2026` in `wfh-engine.js`): brackets and
+  standard deductions from Rev. Proc. 2025-32; Social Security and Medicare
+  from Topic 751; the Additional Medicare thresholds ($200,000, $250,000
+  joint) from the IRS Additional Medicare Tax Q&A. All primary, archived. The
+  spec rebuilds the Rev. Proc.'s printed cumulative amounts from the tables.
+- **Cost of living**: BEA Regional Price Parities, all items and housing,
+  2024 (released February 19, 2026, the latest; the next release is due
+  December 10, 2026). `bea_rpp_2024.csv` in this folder is committed and is
+  generated, with `js/wfh_calculator/wfh-rpp-data.js`, by
+  `scripts/build-wfh-rpp-data.py` from the two BEA zips in `sources/`. Rerun
+  it when BEA publishes 2025. BEA's February note says it discontinued some
+  metro statistics; check that metro RPPs are still published before then.
 - **Home energy range**: Borenstein (Berkeley Haas) and Energy Networks
   Australia. Context only; the tool uses no default.
 
