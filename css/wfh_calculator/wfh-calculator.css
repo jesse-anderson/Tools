@@ -37,7 +37,7 @@
 
 .wfh-layout {
     display: grid;
-    grid-template-columns: minmax(320px, 440px) minmax(0, 1fr);
+    grid-template-columns: minmax(320px, 480px) minmax(0, 1fr);
     gap: 24px;
     align-items: start;
 }
@@ -167,6 +167,155 @@ fieldset {
 .inline select {
     flex: 1;
     min-width: 0;
+}
+
+/* One picker per row: side by side they left each select about 110px. */
+.picker-stack .input-group {
+    margin-bottom: 10px;
+}
+
+/* Example titles are prose; the monospace input font cut them off. */
+.picker-stack select {
+    font-family: 'Space Grotesk', sans-serif;
+}
+
+/* Info popovers. The row is the positioning box, so a popover lines up with
+   its field's right edge and grows left, staying inside the input panel. */
+.label-row {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 4px;
+}
+
+.input-group .label-row label {
+    margin-bottom: 0;
+}
+
+.info-btn {
+    flex: none;
+    width: 24px;
+    height: 24px;
+    margin: -3px 0;
+    padding: 0;
+    border: 1px solid var(--text-secondary);
+    border-radius: 50%;
+    background: transparent;
+    color: var(--text-secondary);
+    font: 700 0.75rem/1 'JetBrains Mono', monospace;
+    cursor: help;
+}
+
+.info-btn:hover,
+.info-tip.open .info-btn {
+    border-color: var(--accent-general);
+    color: var(--text-primary);
+}
+
+.info-btn:focus-visible {
+    outline: 2px solid var(--accent-general);
+    outline-offset: 2px;
+}
+
+/* Padding, not margin, above the card so the pointer can cross into it. */
+.info-pop {
+    display: none;
+    position: absolute;
+    top: 100%;
+    right: 0;
+    z-index: 30;
+    width: min(360px, calc(100vw - 32px));
+    padding-top: 6px;
+}
+
+.info-tip:hover .info-pop,
+.info-tip:focus-within .info-pop,
+.info-tip.open .info-pop {
+    display: block;
+}
+
+.info-tip.suppressed .info-pop {
+    display: none;
+}
+
+.info-card {
+    padding: 12px 14px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    background: var(--bg-card);
+    box-shadow: var(--shadow-lg);
+    color: var(--text-primary);
+    font-size: 0.8125rem;
+    font-weight: 400;
+    line-height: 1.5;
+    text-align: left;
+}
+
+.info-card p {
+    margin: 0 0 8px;
+}
+
+.info-card .info-title {
+    font-weight: 700;
+}
+
+.info-table-wrap {
+    overflow-x: auto;
+    margin: 0 0 8px;
+}
+
+.info-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.75rem;
+}
+
+.info-table th,
+.info-table td {
+    padding: 3px 6px;
+    border-bottom: 1px solid var(--border-color);
+    text-align: left;
+    white-space: nowrap;
+}
+
+.info-table thead th {
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+
+.info-table thead th + th {
+    text-align: right;
+}
+
+.info-table tbody th {
+    font-weight: 500;
+    white-space: normal;
+}
+
+.info-table td {
+    font-family: 'JetBrains Mono', monospace;
+    text-align: right;
+}
+
+.info-card .info-sources-label {
+    margin: 10px 0 2px;
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.info-sources {
+    margin: 0;
+    padding-left: 16px;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.info-sources a {
+    color: var(--text-secondary);
+    text-decoration-color: var(--accent-general);
+    text-underline-offset: 2px;
 }
 
 .button-row {
@@ -685,6 +834,19 @@ p.disclaimer {
         grid-template-columns: minmax(0, 1fr);
     }
 
+    .picker-stack .inline {
+        flex-wrap: wrap;
+    }
+
+    .picker-stack .inline select {
+        flex-basis: 100%;
+    }
+
+    .info-pop {
+        left: 0;
+        width: auto;
+    }
+
     .input-group input,
     .input-group select {
         font-size: 16px;
@@ -698,6 +860,7 @@ p.disclaimer {
     .disclaimer-card,
     .button-row,
     .chart-head .button-row,
+    .info-tip,
     footer,
     .chart-tooltip {
         display: none !important;

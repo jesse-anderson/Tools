@@ -54,6 +54,82 @@ export const CONTEXT = {
     benefit: 'Rev. Proc. 2025-32: for 2026, up to $340 a month for transit and vanpool, and separately up to $340 a month for parking, can be paid from pre-tax pay through an employer plan.',
 };
 
+// Reference figures shown in the info popovers beside a field. Never filled in
+// or used in the totals; each popover names its sources.
+const BLS_DAYS = {
+    label: 'BLS, average sick and vacation days by length of service, private industry, March 2026',
+    url: 'https://www.bls.gov/charts/employee-benefits/paid-leave-sick-vacation-days-by-service-requirement.htm',
+};
+const BLS_HOLIDAYS = {
+    label: 'BLS, The Economics Daily (2026): 8 paid holidays on average in 2025, private industry',
+    url: 'https://www.bls.gov/opub/ted/2026/paid-sick-leave-was-available-to-80-percent-of-private-industry-workers-in-2025.htm',
+};
+const BLS_ACCESS = {
+    label: 'BLS, Employee Benefits in the United States, March 2026 (released Sep 25, 2026)',
+    url: 'https://www.bls.gov/news.release/ebs2.nr0.htm',
+};
+
+export const REFERENCE = {
+    daysOff: {
+        title: 'US paid leave, for comparison',
+        blocks: [
+            { p: 'Private-industry averages, counted among workers who get each kind of leave:' },
+            {
+                head: ['Leave', 'Days a year'],
+                rows: [
+                    ['Paid holidays', '8'],
+                    ['Vacation, after 1 year', '11'],
+                    ['Vacation, after 5 years', '16'],
+                    ['Vacation, after 10 years', '18'],
+                    ['Vacation, after 20 years', '20'],
+                    ['Sick leave, any length of service', '7'],
+                ],
+            },
+            { p: 'Federal employees get 11 legal public holidays. About 1 in 5 private-industry workers gets no paid vacation, and about 1 in 5 no paid sick leave.' },
+            { p: 'Count the sick days you expect to take, not the days offered. For example, 8 holidays + 11 vacation days + 3 sick days = 22.' },
+        ],
+        sources: [
+            BLS_DAYS,
+            BLS_HOLIDAYS,
+            BLS_ACCESS,
+            { label: '5 U.S.C. 6103, legal public holidays', url: 'https://www.law.cornell.edu/uscode/text/5/6103' },
+        ],
+    },
+    marginalRate: {
+        title: '2026 US federal income tax brackets',
+        blocks: [
+            { p: 'A bracket applies to taxable income: pay after pre-tax deductions and the standard deduction of $16,100 (single) or $32,200 (married filing jointly). Each rate applies to taxable income above the amount shown.' },
+            {
+                head: ['Rate', 'Single', 'Married, joint'],
+                rows: [
+                    ['10%', '$0', '$0'],
+                    ['12%', '$12,400', '$24,800'],
+                    ['22%', '$50,400', '$100,800'],
+                    ['24%', '$105,700', '$211,400'],
+                    ['32%', '$201,775', '$403,550'],
+                    ['35%', '$256,225', '$512,450'],
+                    ['37%', '$640,600', '$768,700'],
+                ],
+            },
+            { p: 'Add payroll tax: 6.2% Social Security on wages up to $184,500, 1.45% Medicare, and another 0.9% Medicare on wages over $200,000. Then add your state and local income tax rate, if you have one.' },
+            { p: 'For example, single on a $72,000 salary with no pre-tax deductions: $55,900 of taxable income is in the 22% bracket, plus 7.65% payroll tax, makes 29.65% before state tax.' },
+        ],
+        sources: [
+            { label: 'IRS Rev. Proc. 2025-32, sections 4.01 and 4.14 (2026 brackets and standard deduction)', url: 'https://www.irs.gov/pub/irs-drop/rp-25-32.pdf' },
+            { label: 'IRS Topic 751, Social Security and Medicare withholding rates', url: 'https://www.irs.gov/taxtopics/tc751' },
+        ],
+    },
+    paidWeeks: {
+        title: 'Paid weeks per year',
+        blocks: [
+            { p: 'Paid weeks turn a salary into an hourly rate. Paid vacation, holidays and sick days are still paid weeks, so with paid leave the answer is 52.' },
+            { p: 'Subtract only time off that is not paid. With no paid leave, taking the private-industry averages of 8 holidays and 11 vacation days unpaid is 19 days, about 4 weeks at 5 days a week, so 48.' },
+            { p: 'There is no published US average for paid weeks. In March 2026, 80% of private-industry workers had paid vacation and 81% had paid holidays.' },
+        ],
+        sources: [BLS_ACCESS, BLS_HOLIDAYS, BLS_DAYS],
+    },
+};
+
 export function blankLeg(mode = 'car_fuel') {
     return {
         mode, distance: '', efficiency: '', fuelPrice: '', wearRate: '', ratePerDistance: '',
@@ -141,7 +217,7 @@ export const EXAMPLES = [
     },
     {
         id: 'transit',
-        title: 'Transit rider with a monthly pass',
+        title: 'Transit with a monthly pass',
         note: 'Made-up pay, fares and pass price. Shows where the pass stops paying off.',
         build: () => scenario((s) => {
             basePerson(s.person);
@@ -182,7 +258,7 @@ export const EXAMPLES = [
     },
     {
         id: 'offers',
-        title: 'Two offers: remote against hybrid',
+        title: 'Two offers: remote or hybrid',
         note: 'Made-up salaries and prices. Job B pays more but needs three office days.',
         build: () => scenario((s) => {
             basePerson(s.person);

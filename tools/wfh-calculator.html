@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
 ============================================
-WORK FROM HOME CALCULATOR v1.0.0
+WORK FROM HOME CALCULATOR v1.1.0
 ============================================
 Description: What a day in the office costs in money and time, what a
 day at home costs instead, and the yearly difference for every pattern
@@ -25,6 +25,8 @@ Features:
 - Equivalent pre-tax raise for every office-day pattern
 - Regained hours split across family, sleep, exercise, chores and work
 - Two job offers side by side with the break-even salary
+- Reference popovers beside days off, marginal tax rate and paid weeks:
+  BLS paid leave averages, 2026 federal brackets and payroll tax
 - US or metric units; scenarios saved in this browser, JSON import and
   export, CSV, SVG and PNG export, printable summary
 
@@ -182,7 +184,7 @@ Last Updated: November 2026
 
                 <fieldset class="toolbar">
                     <legend>Scenario</legend>
-                    <div class="field-grid">
+                    <div class="picker-stack">
                         <div class="input-group">
                             <label for="exampleSelect">Example</label>
                             <div class="inline">
@@ -237,9 +239,12 @@ Last Updated: November 2026
                             <input type="number" id="workDaysPerWeek" data-bind="person.workDaysPerWeek" min="1" max="7" step="1" inputmode="numeric">
                         </div>
                         <div class="input-group">
-                            <label for="daysOff">Days off a year</label>
+                            <div class="label-row">
+                                <label for="daysOff">Days off a year</label>
+                                <span class="info-tip" data-info="daysOff"></span>
+                            </div>
                             <input type="number" id="daysOff" data-bind="person.daysOff" min="0" step="1" inputmode="numeric" aria-describedby="daysOffHint">
-                            <p class="hint" id="daysOffHint">Vacation, holidays and sick days.</p>
+                            <p class="hint" id="daysOffHint">Vacation, holidays and sick days. The i shows US averages.</p>
                         </div>
                     </div>
                 </div>
@@ -474,7 +479,10 @@ Last Updated: November 2026
                         <input type="number" data-bind="hourly" min="0" step="0.01" inputmode="decimal">
                     </div>
                     <div class="input-group">
-                        <label data-for="marginalRatePct">Marginal tax rate (%)</label>
+                        <div class="label-row">
+                            <label data-for="marginalRatePct">Marginal tax rate (%)</label>
+                            <span class="info-tip" data-info="marginalRate"></span>
+                        </div>
                         <input type="number" data-bind="marginalRatePct" min="0" max="60" step="0.5" inputmode="decimal">
                     </div>
                     <div class="input-group">
@@ -482,7 +490,10 @@ Last Updated: November 2026
                         <input type="number" data-bind="hoursPerWeek" min="0" max="100" step="0.5" inputmode="decimal">
                     </div>
                     <div class="input-group">
-                        <label data-for="paidWeeks">Paid weeks per year</label>
+                        <div class="label-row">
+                            <label data-for="paidWeeks">Paid weeks per year</label>
+                            <span class="info-tip" data-info="paidWeeks"></span>
+                        </div>
                         <input type="number" data-bind="paidWeeks" min="0" max="52" step="1" inputmode="numeric">
                     </div>
                 </div>

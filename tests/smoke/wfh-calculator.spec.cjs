@@ -403,4 +403,80 @@ test.describe('page', () => {
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     expect(overflow).toBeLessThanOrEqual(0);
   });
+
+  test('info popover opens on hover and focus, pins on click, closes on Escape', async ({ page }) => {
+    await openTool(page);
+    const tip = page.locator('.info-tip[data-info="daysOff"]');
+    const btn = tip.locator('.info-btn');
+    const pop = tip.locator('.info-pop');
+    await expect(pop).toBeHidden();
+    await btn.hover();
+    await expect(pop).toBeVisible();
+    await expect(pop).toContainText('Vacation, after 1 year');
+    await expect(pop).toContainText('11 legal public holidays');
+    await page.mouse.move(5, 5);
+    await expect(pop).toBeHidden();
+    await btn.focus();
+    await expect(pop).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(pop).toBeHidden();
+    await page.locator('#workDaysPerWeek').focus();
+    await btn.click();
+    await expect(btn).toHaveAttribute('aria-expanded', 'true');
+    await page.mouse.move(5, 5);
+    await expect(pop).toBeVisible();
+    await page.click('#resultsHeading');
+    await expect(btn).toHaveAttribute('aria-expanded', 'false');
+    await expect(pop).toBeHidden();
+  });
+
+  test('tax and paid-weeks popovers appear once per job, with their own ids and sources', async ({ page }) => {
+    await openTool(page);
+    await page.check('#compareToggle');
+    for (const key of ['marginalRate', 'paidWeeks']) {
+      const ids = await page.locator(`.info-tip[data-info="${key}"] .info-pop`).evaluateAll((els) => els.map((e) => e.id));
+      expect(ids).toHaveLength(2);
+      expect(new Set(ids).size).toBe(2);
+    }
+    const tax = page.locator('.info-tip[data-info="marginalRate"]').first();
+    await tax.locator('.info-btn').hover();
+    for (const s of ['2026', '$12,400', '$50,400', '$100,800', '$640,600', '$768,700', '$16,100', '$184,500']) {
+      await expect(tax.locator('.info-pop')).toContainText(s);
+    }
+    const hrefs = await page.locator('.info-pop a').evaluateAll((as) => as.map((a) => a.href));
+    expect(hrefs.length).toBeGreaterThan(0);
+    for (const h of hrefs) expect(h).toMatch(/^https:\/\//);
+  });
+
+  test('popovers stay on screen at phone width', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 800 });
+    await openTool(page);
+    for (const key of ['daysOff', 'marginalRate', 'paidWeeks']) {
+      const tip = page.locator(`.info-tip[data-info="${key}"]`).first();
+      await tip.locator('.info-btn').click();
+      const box = await tip.locator('.info-card').boundingBox();
+      expect(box.x).toBeGreaterThanOrEqual(0);
+      expect(box.x + box.width).toBeLessThanOrEqual(375);
+      const clipped = await tip.locator('.info-table-wrap').evaluateAll((ws) => ws.some((w) => w.scrollWidth > w.clientWidth));
+      expect(clipped).toBe(false);
+      await page.click('#inputsHeading');
+    }
+  });
+
+  for (const width of [1400, 375]) {
+    test(`example titles fit their picker at ${width}px`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 800 });
+      await openTool(page);
+      await page.evaluate(() => document.fonts.ready);
+      const worst = await page.evaluate(() => {
+        const sel = document.getElementById('exampleSelect');
+        const cs = getComputedStyle(sel);
+        const ctx = document.createElement('canvas').getContext('2d');
+        ctx.font = `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+        const room = sel.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+        return Math.max(...[...sel.options].map((o) => ctx.measureText(o.text).width)) - room;
+      });
+      expect(worst).toBeLessThanOrEqual(0);
+    });
+  }
 });

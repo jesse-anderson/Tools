@@ -5,6 +5,7 @@ import * as Engine from './wfh-engine.js';
 import { SOURCES, CONTEXT, EXAMPLES, blankScenario, blankLeg } from './wfh-data.js';
 import { renderResults, money } from './wfh-results.js';
 import { svgString, svgToPngBlob } from './wfh-chart.js';
+import { renderInfoTip, wireInfoTips } from './wfh-info.js';
 
 const STORE_KEY = 'wfhCalculator.v1';
 const MAX_SAVED = 10;
@@ -85,6 +86,7 @@ function buildJobs() {
         node.querySelectorAll('label[data-for]').forEach((label) => {
             label.htmlFor = `job${i}-${label.dataset.for}`;
         });
+        node.querySelectorAll('.info-tip[data-info]').forEach((t) => renderInfoTip(t, `job${i}`));
         node.querySelectorAll('[role="radiogroup"][data-label]').forEach((g) => g.setAttribute('aria-label', g.dataset.label));
         node.querySelectorAll('.hint').forEach((h, k) => {
             h.id = `job${i}-hint${k}`;
@@ -544,6 +546,8 @@ function currentTableJob() {
 
 function init() {
     wire();
+    document.querySelectorAll('.input-panel > .input-group .info-tip[data-info]').forEach((t) => renderInfoTip(t, 'page'));
+    wireInfoTips();
     refreshSaved();
     const store = loadStore();
     state = store.current ? Engine.sanitizeScenario(store.current, blankScenario()) : blankScenario();

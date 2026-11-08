@@ -6,12 +6,14 @@ and the SOW at `docs/SOW/WFH_DELTA_CALCULATOR_SOW.md`. Same convention as
 `data/fishbone_diagram/`: documents in `sources/` are local only, and
 `download_manifest.csv` keeps the SHA-256 of each file that was read.
 
-16 rows, two not obtained:
+21 rows, five not obtained:
 - IRS Announcement 2026-11 itself (404 at the guessed path). The 76 cent rate
   from July 1, 2026 is taken from KPMG and the Journal of Accountancy, which
   both cite it.
 - US DOT's 2016 travel time guidance (403). The 50% of wage convention for
   local personal travel is from search summaries of its versions.
+- Three BLS pages (bls.gov returns 403 to scripts). Their figures were read
+  through a page fetch on 2026-11-08 and are quoted in the manifest notes.
 
 ## What each figure rests on
 
@@ -29,10 +31,22 @@ and the SOW at `docs/SOW/WFH_DELTA_CALCULATOR_SOW.md`. Same convention as
   al. read first-hand. The archived NBER file is misnamed `w28731`; it is the
   2025 "Measuring Work from Home" paper.
 - **65 minutes saved a day**: Davis slides, 2022.
+- **2026 federal brackets and standard deduction** (tax popover): Rev. Proc.
+  2025-32 sections 4.01 and 4.14. Primary, archived.
+- **Payroll tax, $184,500 wage base, 0.9% over $200,000** (tax popover): IRS
+  Topic 751. Primary, archived.
+- **Paid leave averages** (days off and paid weeks popovers): BLS National
+  Compensation Survey. Vacation and sick days are March 2026; the 8 paid
+  holidays are 2025, the latest average found. Averages count only workers who
+  get the leave. Read, not archived.
+- **11 federal holidays**: 5 U.S.C. 6103. Primary, archived.
 - **Home energy range**: Borenstein (Berkeley Haas) and Energy Networks
   Australia. Context only; the tool uses no default.
 
 ## Still open
+
+- The March 2026 BLS tables ZIP probably carries a 2026 paid holiday
+  average; the popover uses the 2025 figure of 8 until someone reads it.
 
 - Read Announcement 2026-11 on irs.gov and the DOT 2016 guidance by hand.
 - The claim that some research finds 35% of saved commute time goes back to
