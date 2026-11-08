@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<!--
+============================================
+MILK FAT CALCULATOR v1.0.0
+============================================
+Description: Milk fat percent of milk, half-and-half and cream, and of
+any mix of them measured in cups, fluid ounces, gallons, milliliters or
+by weight. Works backward to the amount needed for a target fat percent.
+
+Dependencies: None (Vanilla JavaScript)
+Google Fonts (JetBrains Mono, Space Grotesk) loaded from CDN.
+
+Project: Tools Hub by Jesse Anderson
+Repository: https://github.com/jesse-anderson/Tools
+License: GPL-3.0 - https://github.com/jesse-anderson/Tools/blob/main/LICENSE
+
+Features:
+- Presets for whole, 2%, 1% and skim milk, half-and-half, light cream,
+  light whipping cream and heavy cream, from USDA FoodData Central
+- Fat entered as a percent or read from a Nutrition Facts panel, with
+  the range the label's rounding allows
+- Volumes turned into weight with USDA cup weights, since fat percent
+  is by weight
+- The 21 CFR 131 fat range a mix falls in
+- How much of one product to add to reach a target, or a batch of a
+  given size at a target
+
+Last Updated: November 2026
+============================================
+-->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Milk fat calculator: fat percent of whole milk, half-and-half and cream mixed by cups, ounces or grams, and how much cream to add for a target.">
+    <link rel="canonical" href="https://tools.jesse-anderson.net/tools/milk-fat-calculator.html">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Tools Hub">
+    <meta property="og:title" content="Milk Fat Calculator">
+    <meta property="og:description" content="Milk fat calculator: fat percent of whole milk, half-and-half and cream mixed by cups, ounces or grams, and how much cream to add for a target.">
+    <meta property="og:url" content="https://tools.jesse-anderson.net/tools/milk-fat-calculator.html">
+    <meta name="twitter:card" content="summary">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'none'">
+    <title>Milk Fat Calculator | Tools Hub</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/shared.css">
+    <link rel="stylesheet" href="../css/milk_fat_calculator/milk-fat-calculator.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <div class="header-left">
+                    <a href="../tools.html" class="back-link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <line x1="19" y1="12" x2="5" y2="12"/>
+                            <polyline points="12 19 5 12 12 5"/>
+                        </svg>
+                        Back to Tools
+                    </a>
+                </div>
+                <div class="header-right">
+                    <div class="theme-toggle">
+                        <button data-theme-toggle="light" aria-pressed="false" title="Light mode" aria-label="Light mode">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                <circle cx="12" cy="12" r="5"/>
+                                <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+                            </svg>
+                        </button>
+                        <button data-theme-toggle="dark" aria-pressed="false" title="Dark mode" aria-label="Dark mode">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="tool-title-row">
+                <div class="tool-icon-header biochemical" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M8 2h8"/>
+                        <path d="M9 2v3l-3 4v11a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V9l-3-4V2"/>
+                        <path d="M6 13h12"/>
+                    </svg>
+                </div>
+                <div>
+                    <h1>Milk Fat Calculator</h1>
+                    <p class="tagline">// MILK • HALF-AND-HALF • CREAM • MIXES • TARGETS</p>
+                </div>
+            </div>
+        </header>
+
+        <details class="disclaimer-card" id="scopeDisclaimer" aria-label="Scope and liability disclaimer">
+            <summary>
+                <span class="disclaimer-icon" aria-hidden="true">&#9888;</span>
+                <span class="disclaimer-summary-text">
+                    <span class="disclaimer-title">Kitchen arithmetic from typical values. Not a lab analysis, a label or a legal product name.</span>
+                    <span class="disclaimer-lead">Preset fat percents are USDA averages, and your carton may differ. The tool cannot measure what is in your milk, and the 21 CFR 131 range it shows is about fat only. Used at your own risk. Open for the full scope limits.</span>
+                </span>
+                <span class="disclaimer-chevron" aria-hidden="true">&#9662;</span>
+            </summary>
+
+            <div class="disclaimer-body">
+                <div class="disclaimer-section">
+                    <h3>What this tool actually does</h3>
+                    <ul>
+                        <li><strong>It adds up fat by weight.</strong> Each ingredient's weight times its fat percent gives its fat in grams; the mix's fat percent is total fat over total weight.</li>
+                        <li><strong>Volumes become weight through USDA cup weights.</strong> A cup of whole milk weighs 244 g and a cup of heavy cream 238 g. A fat percent between the presets gets a density in between; above heavy cream's 36.08% the heavy cream density is held.</li>
+                        <li><strong>A label gives a range, not a value.</strong> Nutrition Facts round fat to the nearest half gram or gram, so a small serving of cream can stand for a wide span of fat percents. The tool shows that span.</li>
+                        <li><strong>Total volume is the sum of the parts.</strong> Whether dairy volumes add exactly when mixed was not checked.</li>
+                    </ul>
+                </div>
+
+                <div class="disclaimer-section">
+                    <h3>Not checked, at all</h3>
+                    <ul>
+                        <li><strong>Your product.</strong> Brands, seasons and herds differ. Preset values describe USDA's samples, not your carton, and label values are rounded.</li>
+                        <li><strong>Temperature.</strong> USDA states none for its cup weights, and density changes with temperature.</li>
+                        <li><strong>Other standards.</strong> A legal name such as half-and-half or heavy cream also depends on ingredients, processing and other limits in 21 CFR 131. The tool checks only the fat range, and nothing outside the United States.</li>
+                        <li><strong>Food safety.</strong> Nothing here concerns pasteurization, storage or how long a mix keeps.</li>
+                    </ul>
+                    <p class="disclaimer-note">A result inside the half-and-half range means the arithmetic lands there. It does not make a product half-and-half.</p>
+                </div>
+
+                <div class="disclaimer-section">
+                    <h3>Never use this for</h3>
+                    <ul>
+                        <li>A Nutrition Facts panel, a fat claim or any product label.</li>
+                        <li>Deciding whether a product meets a standard of identity, a contract or a regulator's test.</li>
+                        <li>Infant feeding, medical diets or anything where a fat error could harm someone.</li>
+                        <li>Commercial formulation without a lab analysis of the actual ingredients.</li>
+                    </ul>
+                </div>
+
+                <div class="disclaimer-section">
+                    <h3>Before you rely on a result</h3>
+                    <p>Use the fat figure from your own carton, weigh rather than measure by volume when it matters, and for anything sold or labeled, have the product tested by a qualified laboratory.</p>
+                </div>
+
+                <div class="disclaimer-footer">
+                    <p><strong>No warranty. No liability. You assume all risk.</strong> This page and everything it computes are provided as-is and as-available, without warranty of any kind, express or implied, including accuracy, completeness, timeliness, reliability, fitness for a particular purpose, merchantability, regulatory or professional suitability, or non-infringement. To the maximum extent permitted by law, the author accepts no liability for any loss, damage, cost or claim arising from use of or reliance on this page.</p>
+                    <p><strong>Independent verification required.</strong> Verify every figure against your product's own label, a laboratory analysis and the current regulations before acting on it. Where this page disagrees with them, this page is wrong.</p>
+                    <p><strong>Consequential damages excluded.</strong> To the maximum extent permitted by law, in no event will the author or maintainers be liable for any direct, indirect, incidental, special, exemplary, punitive or consequential damages, including spoiled or mislabeled product, regulatory action, recalls, or loss of use, data, profits or business interruption, however caused and on any theory of liability, whether in contract, strict liability or tort including negligence, arising out of or in connection with this page, even if advised of the possibility of such damage.</p>
+                    <p><strong>Indemnity.</strong> By using this page you agree to indemnify and hold harmless the author and maintainers against any claim, demand, loss or expense arising out of your use of it or of anything derived from it.</p>
+                    <p><strong>Severability.</strong> If any part of this notice is held unenforceable, the remainder continues to apply, and the unenforceable part is limited to the least extent necessary rather than struck out.</p>
+                </div>
+            </div>
+        </details>
+
+        <details class="usage-note" id="howTo">
+            <summary>How to use</summary>
+            <div class="usage-body">
+                <ol>
+                    <li><strong>Mix.</strong> Pick a product for each ingredient, then its amount and unit. The fat percent fills in from USDA; change it to your carton's figure if you know it.</li>
+                    <li><strong>From a label.</strong> Choose "Nutrition label" and copy the panel: total fat in grams and the serving size. Use the serving's mL or g when the label prints one, since a label cup is 240 mL and a kitchen cup is 236.6 mL.</li>
+                    <li><strong>Reach a target.</strong> In the second section, say what you have, what you will add, and the fat percent you want. Or ask for a batch of a set size and get the amount of each product.</li>
+                </ol>
+                <p>Fat percent on dairy is by weight. Mixing equal volumes of two products does not give the plain average of their percents, because cream weighs less than milk; the difference is small in most kitchen mixes.</p>
+            </div>
+        </details>
+
+        <section class="panel" aria-labelledby="mixHeading">
+            <div class="panel-header">
+                <h2 id="mixHeading">Mix</h2>
+                <p>Add milk, half-and-half or cream in any units and see the fat percent of the result.</p>
+            </div>
+            <div class="mix-layout">
+                <div>
+                    <div class="button-row">
+                        <button type="button" class="tool-btn small" id="exampleHalf">Example: half-and-half into whole milk</button>
+                        <button type="button" class="tool-btn small" id="exampleLabel">Example: cream from a label</button>
+                    </div>
+                    <div id="mixList" class="ingredient-list"></div>
+                    <button type="button" class="tool-btn" id="addIngredient">Add ingredient</button>
+                </div>
+                <div class="results" aria-labelledby="mixResultHeading">
+                    <h3 id="mixResultHeading">Result</h3>
+                    <div id="mixResult" aria-live="polite"></div>
+                    <p class="disclaimer">A mix of typical values, not a measurement of your milk. Provided as-is, without warranty, and used at your own risk; see the <a href="#scopeDisclaimer" class="disclaimer-link">full disclaimer</a> above.</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="panel" aria-labelledby="targetHeading">
+            <div class="panel-header">
+                <h2 id="targetHeading">Reach a target</h2>
+                <p>How much of one product to add to another to hit a fat percent.</p>
+            </div>
+            <div class="mix-layout">
+                <div>
+                    <div class="input-group">
+                        <label for="targetMode">I want to</label>
+                        <select id="targetMode">
+                            <option value="add">add to what I have</option>
+                            <option value="batch">make a batch of a set size</option>
+                        </select>
+                    </div>
+                    <div id="targetList" class="ingredient-list"></div>
+                    <div class="field-grid">
+                        <div class="input-group">
+                            <label for="targetPercent">Target fat %</label>
+                            <input type="number" id="targetPercent" min="0" max="100" step="any" inputmode="decimal" value="10.5">
+                        </div>
+                        <div class="input-group">
+                            <label for="targetOutUnit">Answer in</label>
+                            <select id="targetOutUnit"></select>
+                        </div>
+                    </div>
+                    <div class="field-grid" id="batchFields" hidden>
+                        <div class="input-group">
+                            <label for="batchAmount">Batch size</label>
+                            <input type="number" id="batchAmount" min="0" step="any" inputmode="decimal" value="1">
+                        </div>
+                        <div class="input-group">
+                            <label for="batchUnit">Batch unit</label>
+                            <select id="batchUnit"></select>
+                        </div>
+                    </div>
+                </div>
+                <div class="results" aria-labelledby="targetResultHeading">
+                    <h3 id="targetResultHeading">Answer</h3>
+                    <div id="targetResult" aria-live="polite"></div>
+                    <p class="disclaimer">Weigh rather than measure when the result matters, and check the finished fat against your own labels. Provided as-is, without warranty, and used at your own risk; see the <a href="#scopeDisclaimer" class="disclaimer-link">full disclaimer</a> above.</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="panel sources" aria-labelledby="sourcesHeading">
+            <h2 id="sourcesHeading">Sources</h2>
+            <ul id="sourceList"></ul>
+        </section>
+
+        <footer data-footer></footer>
+    </div>
+
+    <script src="../js/shared.js"></script>
+    <script type="module" src="../js/footer.js"></script>
+    <script type="module" src="../js/milk_fat_calculator/milk-fat-calculator.js"></script>
+</body>
+</html>

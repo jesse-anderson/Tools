@@ -61,6 +61,7 @@ const TOOLS_WITH_DISCLAIMER_HEADINGS = [
   'ocr-text-extractor',
   'wfh-calculator',
   'dataset-diff',
+  'milk-fat-calculator',
   'oral-multidose',
   'pid-playground',
   'psychrometric-calculator',

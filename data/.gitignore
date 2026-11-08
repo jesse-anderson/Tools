@@ -44,3 +44,6 @@
 !dataset_diff/excel/*/*.xlsb
 !dataset_diff/excel/*/*.xls
 !dataset_diff/excel/*/*.ods
+!milk_fat_calculator/
+!milk_fat_calculator/README.md
+!milk_fat_calculator/*.csv

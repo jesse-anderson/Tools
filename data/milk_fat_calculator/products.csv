@@ -1,0 +1,9 @@
+id,name,fdc_id,usda_description,fat_g_per_100g,cup_grams,cfr_section,cfr_min_percent,cfr_below_percent
+whole,Whole milk,171265,"Milk, whole, 3.25% milkfat, with added vitamin D",3.25,244,131.110,3.25,
+reduced2,2% milk,171267,"Milk, reduced fat, fluid, 2% milkfat, with added vitamin A and vitamin D",1.98,244,,,
+lowfat1,1% milk,170872,"Milk, lowfat, fluid, 1% milkfat, with added vitamin A and vitamin D",0.97,244,,,
+skim,Skim (nonfat) milk,171269,"Milk, nonfat, fluid, with added vitamin A and vitamin D (fat free or skim)",0.08,245,,,
+halfhalf,Half-and-half,171255,"Cream, fluid, half and half",11.5,242,131.180,10.5,18
+light,Light cream,170857,"Cream, fluid, light (coffee cream or table cream)",19.1,240,131.155,18,30
+lightwhip,Light whipping cream,170858,"Cream, fluid, light whipping",30.91,239,131.157,30,36
+heavy,Heavy cream,170859,"Cream, fluid, heavy whipping",36.08,238,131.150,36,

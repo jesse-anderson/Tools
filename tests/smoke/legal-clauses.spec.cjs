@@ -50,6 +50,7 @@ const CLAUSE_PAGES = [
   '/tools/ocr-text-extractor.html',
   '/tools/wfh-calculator.html',
   '/tools/dataset-diff.html',
+  '/tools/milk-fat-calculator.html',
 ];
 
 const REQUIRED = [

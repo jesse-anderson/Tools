@@ -1,0 +1,4 @@
+file,url,retrieved,sha256,notes
+usda-fdc-sr-legacy-dairy.json,"https://api.nal.usda.gov/fdc/v1/foods?api_key=DEMO_KEY&fdcIds=171265,171267,171268,170872,171269,171255,170857,170858,170859",2026-11-08,b169bb9898d376b7d9f856aa91e2f03f7dc15f930fa88cadfea886dd00346441,"USDA FoodData Central, SR Legacy: total fat (nutrient 1004) and portion weights"
+cfr-2024-21-part131.xml,https://www.govinfo.gov/content/pkg/CFR-2024-title21-vol2/xml/CFR-2024-title21-vol2-part131.xml,2026-11-08,a62e03c7fb91cac785d93bbbb82f6e4ca928320cb00c9ce54007f291760507aa,"21 CFR 131, milk and cream standards of identity, 2024 edition"
+cfr-2024-21-sec101-9.xml,https://www.govinfo.gov/content/pkg/CFR-2024-title21-vol2/xml/CFR-2024-title21-vol2-sec101-9.xml,2026-11-08,c60fe7c526ae1e08aa2baf134f45e82493352573a47c847ec75d20fc1275e0d5,"21 CFR 101.9, nutrition labeling: fat rounding (c)(2) and household measures (b)(5)(viii)"
