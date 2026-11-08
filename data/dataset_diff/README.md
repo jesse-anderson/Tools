@@ -30,6 +30,21 @@ so that cell is checked in the raw XML.
 `dates-1900.xlsx` as CSV: the displayed text, not the stored serials. It is
 written by hand, not produced by Excel.
 
+## Excel-saved copies
+
+`excel/<format>/` holds every workbook above saved by Microsoft Excel as
+XLSX, XLSM, XLSB, XLS and ODS, written by
+`scripts/build-dataset-diff-formats.ps1` (Excel on Windows):
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-dataset-diff-formats.ps1
+
+Excel stamps save times into files, so a rerun is not byte-identical. What
+each format must contain is the cell listing in `fixtures.json` plus the
+changes under `excelFormats`, each written by hand with its cause. The same
+script saves `excel/encrypted/` (password "fixture", to test refusal) and
+types `dates-typed.csv` and `dates-typed-1904.csv` into Excel cell by cell
+(en-US locale) to make `excel/typed/`, Excel's own serials for those dates.
+
 ## Files
 
 | Files | What they test |
@@ -42,3 +57,4 @@ written by hand, not produced by Excel.
 | `blanks-*.xlsx` | Blank against stored empty string, text `TRUE` against boolean, error against text, whitespace, negative zero, an all-blank row, a styled empty cell outside the values |
 | `layout.xlsx` | Hidden rows and columns, a merged header, a header-only sheet, inline strings |
 | `quoted-newlines.csv`, `header-only.csv`, `ragged.csv`, `bom-utf8.csv`, `literals.csv` | CSV parsing: multiline quoted fields, no data rows, ragged rows, a BOM, `NULL`/`N/A`/`NaN` as text |
+| `dates-typed.csv`, `dates-typed-1904.csv`, `dates-mdy-simulated.csv` | Declared CSV dates: strings Excel typed itself, and a single-format export |

@@ -1,14 +1,14 @@
 <!DOCTYPE html>
 <!--
 ============================================
-DATASET DIFF AND RECONCILIATION v0.1.0
+DATASET DIFF AND RECONCILIATION v0.2.0
 ============================================
 Description: Compares two spreadsheet-like tables by their exact stored
 values, first in their existing row order and then with every column
 sorted, and lists every difference with its source cell.
 
 Dependencies (pinned versions, served from this site):
-- SheetJS Community Edition: 0.20.3 (reads XLSX workbooks)
+- SheetJS Community Edition: 0.20.3 (reads XLSX, XLSM, XLSB, XLS and ODS)
     https://sheetjs.com/
     Apache License 2.0: https://git.sheetjs.com/sheetjs/sheetjs/src/branch/master/LICENSE
     Local copy and license text: js/vendor/dataset_diff/
@@ -19,12 +19,17 @@ Repository: https://github.com/jesse-anderson/Tools
 License: GPL-3.0 - https://github.com/jesse-anderson/Tools/blob/main/LICENSE
 
 Features:
-- CSV, TSV, TXT, pasted text and XLSX, the two sides in any mix
+- CSV, TSV, TXT and pasted text; XLSX, XLSM, XLSB, XLS and ODS workbooks;
+  the two sides in any mix
 - One sheet pair or several, paired by name or by hand, with ranges
 - Same-row-order check and sorted-all-columns check, duplicates counted
 - Exact stored values: no rounding, display formats or recalculation
-- Workbooks read in background workers, with Stop
-- Plaintext differences with a 50,000 character preview and full export
+- UTF-8, UTF-16 by byte order mark, and Windows-1252 on request
+- CSV date columns declared in a format become Excel serial numbers
+- Workbooks read in background workers, with Stop; works offline once loaded
+- Plaintext differences with a 50,000 character preview and full export,
+  plus CSV and JSON exports and a print layout
+- Settings (pairs, ranges, import choices) saved to and loaded from JSON
 
 Last Updated: November 2026
 ============================================
@@ -179,14 +184,20 @@ Last Updated: November 2026
                     <div class="dd-source" data-side="left">
                         <h3>Left</h3>
                         <label class="dd-drop">
-                            <input type="file" id="leftFile" class="dd-file" accept=".csv,.tsv,.txt,.xlsx">
-                            <span>Choose a CSV, TSV, TXT or XLSX file, or drop it here</span>
+                            <input type="file" id="leftFile" class="dd-file" accept=".csv,.tsv,.txt,.xlsx,.xlsm,.xlsb,.xls,.ods">
+                            <span>Choose a CSV, TSV or TXT file or an Excel or ODS workbook, or drop it here</span>
                         </label>
                         <details class="dd-paste">
                             <summary>Or paste a table</summary>
                             <textarea id="leftPaste" rows="5" spellcheck="false" aria-label="Paste the left table"></textarea>
                             <button type="button" class="tool-btn small" id="leftPasteUse">Use pasted text</button>
                         </details>
+                        <label class="dd-field dd-encoding" for="leftEncoding">Text encoding
+                            <select id="leftEncoding">
+                                <option value="auto">Auto: UTF-8, or UTF-16 with a byte order mark</option>
+                                <option value="windows-1252">Windows-1252 (older Windows exports)</option>
+                            </select>
+                        </label>
                         <p class="dd-status" id="leftStatus" role="status">No source yet.</p>
                         <div class="dd-errors" id="leftErrors" role="alert" hidden></div>
                         <div class="dd-text-options" id="leftTextOptions" hidden></div>
@@ -194,14 +205,20 @@ Last Updated: November 2026
                     <div class="dd-source" data-side="right">
                         <h3>Right</h3>
                         <label class="dd-drop">
-                            <input type="file" id="rightFile" class="dd-file" accept=".csv,.tsv,.txt,.xlsx">
-                            <span>Choose a CSV, TSV, TXT or XLSX file, or drop it here</span>
+                            <input type="file" id="rightFile" class="dd-file" accept=".csv,.tsv,.txt,.xlsx,.xlsm,.xlsb,.xls,.ods">
+                            <span>Choose a CSV, TSV or TXT file or an Excel or ODS workbook, or drop it here</span>
                         </label>
                         <details class="dd-paste">
                             <summary>Or paste a table</summary>
                             <textarea id="rightPaste" rows="5" spellcheck="false" aria-label="Paste the right table"></textarea>
                             <button type="button" class="tool-btn small" id="rightPasteUse">Use pasted text</button>
                         </details>
+                        <label class="dd-field dd-encoding" for="rightEncoding">Text encoding
+                            <select id="rightEncoding">
+                                <option value="auto">Auto: UTF-8, or UTF-16 with a byte order mark</option>
+                                <option value="windows-1252">Windows-1252 (older Windows exports)</option>
+                            </select>
+                        </label>
                         <p class="dd-status" id="rightStatus" role="status">No source yet.</p>
                         <div class="dd-errors" id="rightErrors" role="alert" hidden></div>
                         <div class="dd-text-options" id="rightTextOptions" hidden></div>
@@ -223,7 +240,11 @@ Last Updated: November 2026
                 <div class="dd-actions">
                     <button type="button" class="tool-btn small" id="addPair">Add pair</button>
                     <button type="button" class="tool-btn small" id="suggestPairs">Pair sheets with the same name</button>
+                    <button type="button" class="tool-btn small" id="saveRecipe">Save settings (.json)</button>
+                    <button type="button" class="tool-btn small" id="loadRecipe">Load settings</button>
+                    <input type="file" id="recipeFile" accept=".json,application/json" hidden>
                 </div>
+                <p class="dd-note" id="recipeStatus" role="status"></p>
                 <p class="dd-note" id="excludedSheets"></p>
                 <div class="dd-errors" id="planErrors" role="alert" hidden></div>
             </section>
@@ -260,6 +281,14 @@ Last Updated: November 2026
                 </div>
                 <p class="dd-prompt" id="truncationPrompt" role="status" hidden></p>
                 <textarea id="reportBox" class="dd-report" readonly rows="20" spellcheck="false" aria-labelledby="reportTitle"></textarea>
+                <pre class="dd-print-only" id="printText"></pre>
+                <div class="dd-actions dd-more-exports">
+                    <span class="dd-note">Also save:</span>
+                    <button type="button" class="tool-btn small" id="exportPositional">Positional differences (.csv)</button>
+                    <button type="button" class="tool-btn small" id="exportSorted">Rows on one side only (.csv)</button>
+                    <button type="button" class="tool-btn small" id="exportJson">Full results (.json)</button>
+                    <button type="button" class="tool-btn small" id="printReport">Print</button>
+                </div>
                 <p class="dd-note" id="exportStatus" role="status"></p>
             </section>
 
@@ -274,8 +303,16 @@ Last Updated: November 2026
                     <p>If a row appears three times on the left and twice on the right, one copy is unmatched. The report lists every source row holding that pattern, because which copy is the extra one cannot be known.</p>
                     <h3>Excel stores, it does not display</h3>
                     <p>Values are compared as Excel stored them. Two cells both showing 1.23 can differ (1.234 and 1.233), and two cells showing a date differently can match. A date is a serial number; workbooks using the 1904 date system store different serials for the same calendar date, and the report says so. Hidden rows and columns inside a range are compared.</p>
+                    <h3>Dates in CSV files</h3>
+                    <p>A CSV date is text until you say otherwise. Set a column to Date, pick the format its values use, and pick the date system of the workbook you compare it with; each date then becomes the serial number Excel stores for it, time of day included. If any value in the column does not fit the format exactly, the whole column stays text and the results name the values that did not fit. Nothing is guessed, and dates are never read automatically.</p>
+                    <h3>File formats</h3>
+                    <p>XLSX, XLSM, XLSB and XLS read the same stored values; macros in an XLSM file are never run, and password-protected workbooks are refused because this page never asks for a password. ODS loses some detail on the way in: hidden sheets, rows and columns are not detected, a stored empty string reads as blank, dates before 1 March 1900 read one day later than Excel's serials, and a file holding error cells such as <code>#N/A</code> cannot be read. A pair that uses ODS carries those notes in its results.</p>
                     <h3>Row numbers</h3>
                     <p>References in the report are to the source: a worksheet cell such as <code>C8</code>, or a CSV record and field. A record that spans several lines because of a quoted line break is still one record. The order rows appear in the sorted section is only a display order.</p>
+                    <h3>Exports</h3>
+                    <p>The .txt export is the full report. The two CSV files list the same differences one per row for a spreadsheet: every changed cell with both values and references, and every row found on one side only with its copies and source rows. Text that a spreadsheet would run as a formula (starting with = + - or @) is written with a leading apostrophe, and that row is marked. The .json file keeps every value exactly, with its type. Print shows the summary and the preview, with the shown and total character counts; it is not the complete report.</p>
+                    <h3>Saving settings</h3>
+                    <p>Save settings writes the pairs, ranges, text encodings and import settings to a small JSON file. It holds no file names and no values from your tables. Load settings applies the file to the sources already loaded, and to the next file you load on each side; then choose the files again.</p>
                     <h3>Example files</h3>
                     <p>The examples above load small files that each show one thing. To open a pair in Excel, download <a href="../data/dataset_diff/display-left.xlsx" download>display-left.xlsx</a> and <a href="../data/dataset_diff/display-right.xlsx" download>display-right.xlsx</a>: both show 1.23 in cell B2, and the comparison says why they still differ.</p>
                 </div>
@@ -297,7 +334,7 @@ Last Updated: November 2026
                 <p class="dd-help">The library below is served from this site, at the version shown, with its license text in <code>js/vendor/dataset_diff/</code>.</p>
                 <div class="library-entry">
                     <h3>SheetJS Community Edition 0.20.3</h3>
-                    <p>Reads XLSX workbooks in a browser worker.</p>
+                    <p>Reads XLSX, XLSM, XLSB, XLS and ODS workbooks in a browser worker.</p>
                     <p class="library-license">License: <a href="https://git.sheetjs.com/sheetjs/sheetjs/src/branch/master/LICENSE" target="_blank" rel="noopener">Apache-2.0</a></p>
                 </div>
                 <div class="library-entry">

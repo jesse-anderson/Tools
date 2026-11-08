@@ -469,3 +469,33 @@
     .dd-sources { grid-template-columns: minmax(0, 1fr); }
     .dd-panel { padding: 14px; }
 }
+
+/* Print: the results only. The preview prints from a plain copy because a
+   text box prints one screenful; the prompt above it gives shown and total
+   counts, so the printout says it is not the complete report. */
+.dd-print-only { display: none; }
+
+@media print {
+    header,
+    #scopeDisclaimer,
+    .dd-panel:not(#resultsPanel),
+    .dd-actions,
+    .dd-report,
+    footer,
+    .theme-toggle { display: none !important; }
+
+    #resultsPanel { border: 0; padding: 0; }
+
+    .dd-print-only {
+        display: block;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 8pt;
+        line-height: 1.35;
+    }
+
+    .table-scroll { overflow: visible; }
+    #pairsTable,
+    #summaryTable { min-width: 0; }
+}

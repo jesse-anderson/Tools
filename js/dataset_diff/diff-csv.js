@@ -6,26 +6,33 @@
 // a problem is reported with its location and the import is refused.
 
 import { LIMITS } from './diff-limits.js';
-import { canonicalDecimal, textCell, boolCell, isLongInteger } from './diff-values.js';
+import { canonicalDecimal, textCell, boolCell, isLongInteger, numberFromDouble } from './diff-values.js';
 
 const QUOTE = 34;
 const LF = 10;
 const CR = 13;
 
-// UTF-8 with or without a BOM. UTF-16 and Windows-1252 come in Phase 5, so
-// they are refused by name rather than decoded into replacement characters.
-export function decodeBytes(bytes) {
+// Auto reads UTF-8 (with or without a BOM) and UTF-16 marked by its BOM;
+// UTF-16 without a BOM is not guessed. Windows-1252 is used only when chosen,
+// because every byte sequence is valid Windows-1252 and nothing could ever be
+// refused. Invalid text is refused by name, never replaced with U+FFFD.
+export function decodeBytes(bytes, { encoding = 'auto' } = {}) {
     const b = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
-    if ((b[0] === 0xFF && b[1] === 0xFE) || (b[0] === 0xFE && b[1] === 0xFF)) {
-        return { ok: false, error: { kind: 'unsupported-encoding', encoding: 'UTF-16' } };
+    const decode = (label, view, name) => {
+        try {
+            return { ok: true, text: new TextDecoder(label, { fatal: true }).decode(view), encoding: name };
+        } catch (e) {
+            return { ok: false, error: { kind: label === 'utf-8' ? 'invalid-utf8' : 'invalid-utf16', encoding: name } };
+        }
+    };
+    if (encoding === 'windows-1252') {
+        return { ok: true, text: new TextDecoder('windows-1252').decode(b), encoding: 'Windows-1252' };
     }
-    const bom = b[0] === 0xEF && b[1] === 0xBB && b[2] === 0xBF;
-    try {
-        const text = new TextDecoder('utf-8', { fatal: true }).decode(bom ? b.subarray(3) : b);
-        return { ok: true, text, encoding: bom ? 'UTF-8 BOM' : 'UTF-8' };
-    } catch (e) {
-        return { ok: false, error: { kind: 'invalid-utf8' } };
-    }
+    if (encoding !== 'auto') throw new Error(`unknown encoding ${encoding}`);
+    if (b[0] === 0xFF && b[1] === 0xFE) return decode('utf-16le', b.subarray(2), 'UTF-16 LE BOM');
+    if (b[0] === 0xFE && b[1] === 0xFF) return decode('utf-16be', b.subarray(2), 'UTF-16 BE BOM');
+    if (b[0] === 0xEF && b[1] === 0xBB && b[2] === 0xBF) return decode('utf-8', b.subarray(3), 'UTF-8 BOM');
+    return decode('utf-8', b, 'UTF-8');
 }
 
 function newlinesIn(s) {
@@ -164,6 +171,58 @@ function readBoolean(field) {
     return { ok: false, reason: 'not-a-boolean' };
 }
 
+// ---------------------------------------------------------------- dates
+
+const TIME = '(?:[ T](\\d{1,2}):(\\d{2})(?::(\\d{2}))?)?';
+// Each format: its pattern and the positions of year, month and day in it.
+export const DATE_FORMATS = Object.freeze({
+    'M/D/YYYY': { re: new RegExp(`^(\\d{1,2})/(\\d{1,2})/(\\d{4})${TIME}$`), y: 3, m: 1, d: 2 },
+    'D/M/YYYY': { re: new RegExp(`^(\\d{1,2})/(\\d{1,2})/(\\d{4})${TIME}$`), y: 3, m: 2, d: 1 },
+    'D.M.YYYY': { re: new RegExp(`^(\\d{1,2})\\.(\\d{1,2})\\.(\\d{4})${TIME}$`), y: 3, m: 2, d: 1 },
+    'YYYY-MM-DD': { re: new RegExp(`^(\\d{4})-(\\d{2})-(\\d{2})${TIME}$`), y: 1, m: 2, d: 3 },
+});
+
+const DAY_MS = 86400000;
+const EPOCH_1900 = Date.UTC(1899, 11, 30);
+const EPOCH_1904 = Date.UTC(1904, 0, 1);
+const MARCH_1900 = Date.UTC(1900, 2, 1);
+
+// A date (and optional 24-hour time) in a declared format to the serial
+// number Excel stores for it, in the 1900 or 1904 date system. Excel's 1900
+// system counts a 29 February 1900 that never existed, so it is serial 60 and
+// earlier dates sit one lower than a plain day count. Nothing is guessed: a
+// value that does not fit the format exactly, or that Excel cannot hold as a
+// date, is not a date.
+export function readDate(field, format = 'M/D/YYYY', system = '1900') {
+    const spec = DATE_FORMATS[format];
+    if (!spec) throw new Error(`unknown date format ${format}`);
+    const m = spec.re.exec(field);
+    if (!m) return { ok: false, reason: 'not-this-date-format' };
+    const y = Number(m[spec.y]);
+    const mo = Number(m[spec.m]);
+    const d = Number(m[spec.d]);
+    const [h, mi, s] = [m[4], m[5], m[6]].map((x) => (x === undefined ? 0 : Number(x)));
+    if (h > 23 || mi > 59 || s > 59) return { ok: false, reason: 'not-a-time' };
+    if (mo < 1 || mo > 12 || d < 1) return { ok: false, reason: 'not-a-date' };
+    let days;
+    if (system === '1900' && y === 1900 && mo === 2 && d === 29) {
+        days = 60;
+    } else {
+        const t = Date.UTC(y, mo - 1, d);
+        const back = new Date(t);
+        if (back.getUTCFullYear() !== y || back.getUTCMonth() !== mo - 1 || back.getUTCDate() !== d) return { ok: false, reason: 'not-a-date' };
+        if (system === '1904') {
+            if (t < EPOCH_1904) return { ok: false, reason: 'before-1904' };
+            days = (t - EPOCH_1904) / DAY_MS;
+        } else {
+            if (y < 1900) return { ok: false, reason: 'before-1900' };
+            days = (t - EPOCH_1900) / DAY_MS - (t < MARCH_1900 ? 1 : 0);
+        }
+    }
+    if (y > 9999) return { ok: false, reason: 'after-9999' };
+    return { ok: true, value: numberFromDouble(days + (h * 3600 + mi * 60 + s) / 86400) };
+}
+
 // Records to { headers, rows } for the engine, plus what the preview shows.
 // options: headerRecord (1-based; 0 for no header row, which needs
 // generatedHeaders), emptyFields 'blank' | 'empty-string', types per column
@@ -171,7 +230,7 @@ function readBoolean(field) {
 export function buildTable(records, options = {}) {
     const {
         headerRecord = 1, generatedHeaders = false, emptyFields = 'blank',
-        types = [], decimal = '.', thousands = '',
+        types = [], decimal = '.', thousands = '', dateFormat = 'M/D/YYYY', dateSystem = '1900',
     } = options;
     const errors = [];
     let omitted = 0;
@@ -229,8 +288,22 @@ export function buildTable(records, options = {}) {
                 if (!read.ok) { type = 'text'; reason = { kind: read.reason, record: r.record, value: f.slice(0, 40) }; break; }
             }
             if (seen === 0) { type = 'text'; reason = { kind: 'no-values' }; }
+        } else if (chosen === 'date') {
+            // A declared format that misses any value leaves the column as text
+            // and names the values that missed; it never half-converts a column.
+            const misses = [];
+            let count = 0;
+            for (const r of data) {
+                const f = fieldAt(r, c);
+                if (f === '') continue;
+                const read = readDate(f, dateFormat, dateSystem);
+                if (read.ok) continue;
+                count++;
+                if (misses.length < 5) misses.push({ record: r.record, value: f.slice(0, 40), reason: read.reason });
+            }
+            if (count) { type = 'text'; reason = { kind: 'date-format', format: dateFormat, system: dateSystem, misses, count }; }
         }
-        columns.push({ header: headers[c], chosen, type, reason });
+        columns.push({ header: headers[c], chosen, type, reason, ...(chosen === 'date' ? { dateFormat, dateSystem } : {}) });
     }
 
     const rows = [];
@@ -244,7 +317,8 @@ export function buildTable(records, options = {}) {
             const type = columns[c].type;
             if (type === 'text') { row[c] = textCell(f); continue; }
             const read = type === 'boolean' ? readBoolean(f)
-                : readNumber(f, columns[c].chosen === 'number' ? chosenSep : sep);
+                : type === 'date' ? readDate(f, dateFormat, dateSystem)
+                    : readNumber(f, columns[c].chosen === 'number' ? chosenSep : sep);
             if (!read.ok) {
                 report({ kind: 'type', type, record: r.record, column: c + 1, header: headers[c], value: f.slice(0, 40), reason: read.reason });
                 row[c] = null;

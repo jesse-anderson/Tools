@@ -37,3 +37,10 @@
 !dataset_diff/*.csv
 !dataset_diff/*.json
 !dataset_diff/*.xlsx
+!dataset_diff/excel/
+!dataset_diff/excel/*/
+!dataset_diff/excel/*/*.xlsx
+!dataset_diff/excel/*/*.xlsm
+!dataset_diff/excel/*/*.xlsb
+!dataset_diff/excel/*/*.xls
+!dataset_diff/excel/*/*.ods

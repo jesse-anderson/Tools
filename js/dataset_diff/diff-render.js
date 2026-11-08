@@ -73,22 +73,27 @@ export function describeError(e) {
     switch (e.kind) {
         case 'limit':
             return `Over the ${LIMIT_NAMES[e.limit] || e.limit} limit${where(e)}${e.value !== undefined ? `: ${n(e.value)}, limit ${n(e.max)}` : `, limit ${n(e.max)}`}. Refused, not compared in part.`;
-        case 'unsupported-encoding': return 'This file is UTF-16 text, which is not read yet. Save it as UTF-8 and load it again.';
-        case 'invalid-utf8': return 'This file is not valid UTF-8 text, so it was not read. If older Windows software wrote it, save it again as UTF-8.';
-        case 'ole-container': return 'This is a legacy .xls file or a password-protected workbook. Save it from Excel as .xlsx with no password.';
-        case 'not-a-workbook': return 'This file is not an XLSX workbook.';
-        case 'not-xlsx': return 'This ZIP file is not an XLSX workbook.';
-        case 'xlsb-not-yet': return 'XLSB workbooks are not read yet. Save it as .xlsx.';
+        case 'invalid-utf8': return 'This file is not valid UTF-8 text, so it was not read. If older Windows software wrote it, choose Windows-1252 under Text encoding.';
+        case 'invalid-utf16': return `This file starts with a ${e.encoding.replace(' BOM', '')} byte order mark but is not valid ${e.encoding.replace(' BOM', '')} text, so it was not read.`;
+        case 'encrypted': return 'This workbook is password-protected. This page never asks for passwords: remove the password in Excel (File, Info, Protect Workbook) and save the file again.';
+        case 'not-a-workbook': return 'This file is not an XLSX, XLSM, XLSB, XLS or ODS workbook.';
+        case 'unreadable': return `SheetJS could not read this ${String(e.format || 'workbook').toUpperCase()} file (it reported: ${e.message}).${/Unsupported value type/.test(e.message) ? ' ODS files holding error cells such as #N/A cannot be read; save the file as .xlsx.' : ''}`;
         case 'zip64': return 'This workbook is stored as ZIP64, which is refused. Save it again from Excel as .xlsx.';
         case 'damaged-zip': return 'The workbook is damaged: its list of contents could not be read.';
-        case 'unsupported-file': return `${e.ext} files are not read yet. Save it as .xlsx or .csv.`;
+        case 'sheet-not-read': return `The workbook lists ${e.sheets.map((x) => `"${x}"`).join(', ')} but ${e.sheets.length === 1 ? 'that sheet' : 'those sheets'} could not be read, so the whole file was refused rather than shown without ${e.sheets.length === 1 ? 'it' : 'them'}.`;
+        case 'unsupported-file': return `${e.ext} files are not read. Use CSV, TSV, TXT, XLSX, XLSM, XLSB, XLS or ODS.`;
         case 'syntax': return listed(e.errors, syntaxError);
         case 'table': return listed(e.errors, tableError, e.omittedErrors || 0);
         case 'time-limit': return `Reading took longer than ${e.seconds} seconds and was stopped.`;
         case 'cancelled': return 'Stopped.';
         case 'replaced': return 'Replaced by a newer input.';
-        case 'worker-failed': return `The background reader failed: ${e.message}`;
-        case 'exception': return `Unexpected error: ${e.message}`;
+        case 'worker-failed':
+        case 'exception':
+            // A worker started after Stop needs its scripts again; offline they can fail to load.
+            if (/Failed to fetch|dynamically imported module|importScripts|NetworkError/i.test(e.message || '')) {
+                return 'Part of this page could not be loaded, probably because the network is off. A Stop or time limit restarts the readers, which needs the network once; reconnect and try again.';
+            }
+            return e.kind === 'worker-failed' ? `The background reader failed: ${e.message}` : `Unexpected error: ${e.message}`;
         default: return e.kind || 'Unknown problem.';
     }
 }

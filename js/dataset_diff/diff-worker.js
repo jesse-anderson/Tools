@@ -4,7 +4,12 @@
 // because SheetJS is a plain script; the ES modules come in through import().
 // Tables travel as one JSON string per row.
 
-importScripts('../vendor/dataset_diff/xlsx.full.min.js');
+// SheetJS loads on first need, so the compare worker never pays for it. The
+// page warms the side workers at load, which also lets them run offline.
+let sheetjs = false;
+function needSheetJS() {
+    if (!sheetjs) { importScripts('../vendor/dataset_diff/xlsx.full.min.js'); sheetjs = true; }
+}
 
 const modules = Promise.all([
     import('./diff-workbook.js'),
@@ -22,20 +27,57 @@ class Refusal extends Error {
 
 async function handle(m) {
     const [W, C, V, S] = await modules;
+    if (m.type === 'warm') {
+        if (m.sheetjs) needSheetJS();
+        return true;
+    }
     if (m.type === 'open-workbook') {
+        needSheetJS();
         source = null;
         const audit = W.auditContainer(m.bytes);
         if (!audit.ok) throw new Refusal(audit.error);
-        const wb = XLSX.read(m.bytes, W.READ_OPTIONS);
+        // An ArrayBuffer, never a view: see unreadSheets.
+        const bytes = m.bytes instanceof ArrayBuffer ? m.bytes
+            : m.bytes.buffer.slice(m.bytes.byteOffset, m.bytes.byteOffset + m.bytes.byteLength);
+        let format = audit.format;
+        if (audit.container === 'ole') {
+            // Encrypted XLSX keeps an EncryptedPackage stream; an XLS keeps Workbook or Book.
+            let streams;
+            try {
+                streams = XLSX.CFB.read(new Uint8Array(bytes), { type: 'array' }).FullPaths
+                    .map((p) => p.split('/').filter(Boolean).pop());
+            } catch (e) {
+                throw new Refusal({ kind: 'not-a-workbook' });
+            }
+            if (streams.includes('EncryptedPackage') || streams.includes('EncryptionInfo')) throw new Refusal({ kind: 'encrypted' });
+            if (!streams.includes('Workbook') && !streams.includes('Book')) throw new Refusal({ kind: 'not-a-workbook' });
+            format = 'xls';
+        }
+        if (format === 'xlsx' && /\.xlsm$/i.test(m.name || '')) format = 'xlsm';
+        let wb;
+        try {
+            wb = XLSX.read(bytes, W.READ_OPTIONS);
+        } catch (e) {
+            const message = String((e && e.message) || e);
+            // A password-protected XLS fails inside its encryption header.
+            if (/password|encrypt/i.test(message)) throw new Refusal({ kind: 'encrypted' });
+            throw new Refusal({ kind: 'unreadable', format, message });
+        }
+        const unread = W.unreadSheets(wb);
+        if (unread.length) throw new Refusal({ kind: 'sheet-not-read', sheets: unread });
         source = { kind: 'workbook', wb };
-        return { kind: 'workbook', audit, ...W.inventory(wb) };
+        return {
+            kind: 'workbook', audit, format,
+            limitations: W.FORMAT_LIMITATIONS[format] || [],
+            ...W.inventory(wb),
+        };
     }
     if (m.type === 'open-text') {
         source = null;
         let text = m.text;
         let encoding = 'pasted text';
         if (text === undefined) {
-            const decoded = C.decodeBytes(m.bytes);
+            const decoded = C.decodeBytes(m.bytes, { encoding: m.encoding || 'auto' });
             if (!decoded.ok) throw new Refusal(decoded.error);
             text = decoded.text;
             encoding = decoded.encoding;
@@ -72,8 +114,14 @@ async function handle(m) {
     if (m.type === 'run-pair') return session.addPair(m.pair);
     if (m.type === 'run-finish') return session.finish(m.meta, m.cap);
     if (m.type === 'run-export') {
-        const { chunks, totalCodePoints } = session.exportChunks();
-        return { blob: new Blob(chunks, { type: 'text/plain;charset=utf-8' }), totalCodePoints };
+        if (!m.kind || m.kind === 'txt') {
+            const { chunks, totalCodePoints } = session.exportChunks();
+            return { blob: new Blob(chunks, { type: 'text/plain;charset=utf-8' }), totalCodePoints };
+        }
+        const { chunks } = session.exportOther(m.kind);
+        const type = m.kind === 'json' ? 'application/json' : 'text/csv;charset=utf-8';
+        // A byte order mark so spreadsheet software reads the CSV as UTF-8.
+        return { blob: new Blob(m.kind === 'json' ? chunks : [String.fromCharCode(0xFEFF), ...chunks], { type }) };
     }
     throw new Refusal({ kind: 'unknown-request', type: m.type });
 }

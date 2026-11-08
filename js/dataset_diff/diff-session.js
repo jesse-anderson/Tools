@@ -6,6 +6,7 @@ import { compareTables } from './diff-engine.js';
 import { aggregate, incompletePair } from './diff-plan.js';
 import { reportLines, preview, headline, codePointLength } from './diff-report.js';
 import { decodeRows } from './diff-values.js';
+import { positionalCsv, sortedCsv, jsonReport } from './diff-exports.js';
 
 function decodeTable(t) {
     const { keys, ...rest } = t;
@@ -92,6 +93,14 @@ export function createSession() {
             }
             if (buf.length) chunks.push(buf.join(''));
             return { chunks, totalCodePoints: total };
+        },
+
+        exportOther(kind) {
+            if (!run) throw new Error('nothing to export');
+            if (kind === 'positional-csv') return { chunks: positionalCsv(run) };
+            if (kind === 'sorted-csv') return { chunks: sortedCsv(run) };
+            if (kind === 'json') return { chunks: jsonReport(run) };
+            throw new Error(`unknown export ${kind}`);
         },
     };
 }

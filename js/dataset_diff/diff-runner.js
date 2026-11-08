@@ -14,6 +14,18 @@ export class Runner {
         this.pending = new Map();
         this.nextId = 1;
         this.dropped = 0;
+        this.keepWarm = false;
+    }
+
+    // Starts the workers and their scripts now, so a file chosen later (even
+    // offline) needs no download. Side workers also load SheetJS.
+    warm() {
+        this.keepWarm = true;
+        for (const side of ['left', 'right', 'compare']) this.warmSide(side);
+    }
+
+    warmSide(side) {
+        this.request(side, { type: 'warm', sheetjs: side !== 'compare' }).catch(() => {});
     }
 
     worker(side) {
@@ -58,15 +70,20 @@ export class Runner {
             this.pending.delete(id);
             p.reject(reason);
         }
+        // A replaced input opens a new worker at once; after Stop or the time
+        // limit, a fresh one is started so the next run does not wait.
+        if (this.keepWarm && reason.kind !== 'replaced') this.warmSide(side);
     }
 
-    // A new input replaces the old one on that side, whatever it was doing.
+    // A new input replaces the old one on that side. A busy worker is ended so
+    // its work cannot land late; an idle one is reused, since opening drops
+    // its old source, and reuse keeps the page working offline.
     // bytes is an ArrayBuffer and is transferred; text is for a paste.
-    open(side, { kind, bytes, text, name, delimiter }) {
-        this.reset(side, { kind: 'replaced' });
-        if (kind === 'workbook') return this.request(side, { type: 'open-workbook', bytes }, [bytes]);
+    open(side, { kind, bytes, text, name, delimiter, encoding }) {
+        if ([...this.pending.values()].some((p) => p.side === side)) this.reset(side, { kind: 'replaced' });
+        if (kind === 'workbook') return this.request(side, { type: 'open-workbook', bytes, name }, [bytes]);
         const transfer = bytes ? [bytes] : [];
-        return this.request(side, { type: 'open-text', bytes, text, name, delimiter }, transfer);
+        return this.request(side, { type: 'open-text', bytes, text, name, delimiter, encoding }, transfer);
     }
 
     // raw keeps the rows as JSON strings, to pass on to the compare worker.

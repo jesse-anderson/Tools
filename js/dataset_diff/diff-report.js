@@ -28,14 +28,14 @@ export function codePointLength(s) {
 const clean = (s) => quoteText(String(s)).slice(1, -1);
 const word = (v) => String(v).toUpperCase();
 
-function rowRef(table, r) { return table.rowRefs ? table.rowRefs[r] : r + 1; }
-function colRef(table, c) { return table.colRefs ? table.colRefs[c] : c + 1; }
-function cellRef(table, r, c) {
+export function rowRef(table, r) { return table.rowRefs ? table.rowRefs[r] : r + 1; }
+export function colRef(table, c) { return table.colRefs ? table.colRefs[c] : c + 1; }
+export function cellRef(table, r, c) {
     return table.refStyle === 'a1'
         ? `${colRef(table, c)}${rowRef(table, r)}`
         : `record ${rowRef(table, r)} field ${colRef(table, c)}`;
 }
-const rowCells = (cells) => `[${cells.map(describeCell).join(', ')}]`;
+export const rowCells = (cells) => `[${cells.map(describeCell).join(', ')}]`;
 
 const REASONS = {
     'unresolved-formula': 'formulas without stored results',

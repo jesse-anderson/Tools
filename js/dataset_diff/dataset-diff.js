@@ -8,8 +8,9 @@ import { LIMITS } from './diff-limits.js';
 import { suggestPairs, validatePlan } from './diff-plan.js';
 import { PREVIEW_CAP } from './diff-report.js';
 import { el, describeError, verdictBadge, fmt } from './diff-render.js';
+import { buildRecipe, parseRecipe } from './diff-recipe.js';
 
-const VERSION = '0.1.0';
+const VERSION = '0.2.0';
 const SIDES = ['left', 'right'];
 const NAMES = { left: 'Left', right: 'Right' };
 const DATA = '../data/dataset_diff/';
@@ -32,6 +33,7 @@ const runner = new Runner(new URL('./diff-worker.js', import.meta.url).href);
 const defaultText = () => ({
     delimiter: null, headerRecord: 1, generatedHeaders: false,
     emptyFields: 'blank', decimal: '.', thousands: '', types: [],
+    dateFormat: 'M/D/YYYY', dateSystem: '1900',
 });
 
 const state = {
@@ -39,6 +41,9 @@ const state = {
     inventory: { left: null, right: null },
     loaded: { left: false, right: false },
     text: { left: defaultText(), right: defaultText() },
+    encoding: { left: 'auto', right: 'auto' },
+    // Set by Load settings: the next file on that side keeps those settings.
+    keepSettings: { left: false, right: false },
     pairs: [],
     nextPair: 1,
     running: false,
@@ -50,7 +55,7 @@ const state = {
 
 function kindOf(name) {
     const ext = (name.split('.').pop() || '').toLowerCase();
-    if (ext === 'xlsx') return { kind: 'workbook', ext };
+    if (['xlsx', 'xlsm', 'xlsb', 'xls', 'ods'].includes(ext)) return { kind: 'workbook', ext };
     if (ext === 'csv' || ext === 'tsv' || ext === 'txt') return { kind: 'text', ext };
     return { kind: null, ext };
 }
@@ -77,7 +82,13 @@ async function loadSource(side, src) {
     state.sources[side] = { ...src, kind };
     state.inventory[side] = null;
     state.loaded[side] = false;
-    state.text[side] = defaultText();
+    if (state.keepSettings[side]) {
+        state.keepSettings[side] = false;
+    } else {
+        state.text[side] = defaultText();
+        state.encoding[side] = 'auto';
+        $(`${side}Encoding`).value = 'auto';
+    }
     markStale();
     return (await openSource(side)).ok;
 }
@@ -90,6 +101,7 @@ async function openSource(side) {
         if (src.text !== undefined) request.text = src.text;
         else request.bytes = await src.file.arrayBuffer();
         if (src.kind === 'text' && state.text[side].delimiter) request.delimiter = state.text[side].delimiter;
+        if (src.kind === 'text') request.encoding = state.encoding[side];
         const inv = await runner.open(side, request);
         state.inventory[side] = inv;
         state.loaded[side] = true;
@@ -126,7 +138,7 @@ function renderSource(side) {
     const inv = state.inventory[side];
     if (src.kind === 'workbook') {
         const hidden = inv.sheets.filter((s) => s.hidden).length;
-        setStatus(side, `${src.name}: XLSX, ${inv.sheets.length} sheet${inv.sheets.length === 1 ? '' : 's'}`
+        setStatus(side, `${src.name}: ${inv.format.toUpperCase()}, ${inv.sheets.length} sheet${inv.sheets.length === 1 ? '' : 's'}`
             + `${hidden ? ` (${hidden} hidden)` : ''}, ${inv.dateSystem} date system`
             + `${inv.audit && inv.audit.macros ? ', contains macros, which are never run' : ''}.`);
         $(`${side}TextOptions`).hidden = true;
@@ -156,7 +168,8 @@ function renderTextOptions(side) {
     const o = state.text[side];
     const inv = state.inventory[side];
     const changed = (rerender = false) => { markStale(); if (rerender) renderTextOptions(side); };
-    box.replaceChildren(
+    // replaceChildren writes null as the text "null", so absent parts are filtered.
+    box.replaceChildren(...[
         el('div', { className: 'dd-option-row' },
             select(`${side}Delimiter`, DELIMITERS, o.delimiter, (v) => {
                 o.delimiter = v; o.types = []; markStale(); openSource(side);
@@ -172,16 +185,18 @@ function renderTextOptions(side) {
             select(`${side}Empty`, [['blank', 'blank'], ['empty-string', 'empty text']], o.emptyFields, (v) => { o.emptyFields = v; changed(); }, 'Empty fields read as'),
             select(`${side}Decimal`, [['.', 'point (1.5)'], [',', 'comma (1,5)']], o.decimal, (v) => { o.decimal = v; changed(true); }, 'Decimal mark'),
             select(`${side}Thousands`, [['', 'none'], [',', 'comma'], ['.', 'point'], [' ', 'space'], ["'", 'apostrophe']], o.thousands, (v) => { o.thousands = v; changed(true); }, 'Thousands separator'),
+            select(`${side}DateFormat`, [['M/D/YYYY', 'M/D/YYYY'], ['D/M/YYYY', 'D/M/YYYY'], ['D.M.YYYY', 'D.M.YYYY'], ['YYYY-MM-DD', 'YYYY-MM-DD']], o.dateFormat, (v) => { o.dateFormat = v; changed(); }, 'Date columns use'),
+            select(`${side}DateSystem`, [['1900', '1900 date system'], ['1904', '1904 date system']], o.dateSystem, (v) => { o.dateSystem = v; changed(); }, 'Dates become serials in'),
         ),
         o.thousands && o.thousands === o.decimal
             ? el('p', { className: 'dd-warn', text: 'The decimal mark and thousands separator are the same character. Change one of them.' }) : null,
         el('div', { className: 'dd-columns' },
             el('p', { className: 'dd-note', text: o.headerRecord > (inv.preview || []).length ? 'The header record is past the first 20 records; types apply by column position.' : 'Column types (Auto reads a column as numbers only if every value is a plain number with no leading zero):' }),
             columnNames(side).map((name, i) => select(`${side}Type${i}`,
-                [['auto', 'Auto'], ['text', 'Text'], ['number', 'Number'], ['boolean', 'TRUE / FALSE']],
+                [['auto', 'Auto'], ['text', 'Text'], ['number', 'Number'], ['boolean', 'TRUE / FALSE'], ['date', 'Date']],
                 o.types[i] || 'auto', (v) => { o.types[i] = v; changed(); }, name === '' ? `Column ${i + 1}` : name))),
         previewTable(inv.preview || []),
-    );
+    ].filter(Boolean));
     box.hidden = false;
 }
 
@@ -208,19 +223,21 @@ function defaultPairs(L, R) {
     const named = suggestPairs(L, R).map((p) => newPair(p.left.sheet, p.right.sheet));
     if (named.length) return named;
     if (L.sheets.length === 1 && R.sheets.length === 1) return [newPair(L.sheets[0].name, R.sheets[0].name)];
+    // A side with one table (a text file, or a one-sheet workbook) fills itself in.
+    const only = (inv) => (inv.sheets.length === 1 ? inv.sheets[0].name : '');
     const first = L.sheets.find((s) => !s.hidden) || L.sheets[0];
-    return [newPair(first ? first.name : '', '')];
+    return [newPair(only(L) || (first ? first.name : ''), only(R))];
 }
 
 // A text source is one table named after its file, so pairs follow it.
 function syncPairs() {
+    const L = state.inventory.left;
+    const R = state.inventory.right;
+    if (L && R && state.pairs.length === 0) state.pairs = defaultPairs(L, R);
     for (const side of SIDES) {
         const inv = state.inventory[side];
         if (inv && inv.kind === 'text') for (const p of state.pairs) p[side].sheet = inv.sheets[0].name;
     }
-    const L = state.inventory.left;
-    const R = state.inventory.right;
-    if (L && R && state.pairs.length === 0) state.pairs = defaultPairs(L, R);
 }
 
 function planNow() {
@@ -330,6 +347,7 @@ function tableRequest(side, pair) {
         options: {
             headerRecord: o.headerRecord, generatedHeaders: o.generatedHeaders, emptyFields: o.emptyFields,
             types: o.types.slice(), decimal: o.decimal, thousands: o.thousands,
+            dateFormat: o.dateFormat, dateSystem: o.dateSystem,
         },
     };
 }
@@ -339,6 +357,10 @@ function reasonText(r) {
     if (r.kind === 'leading-zero') return `: "${r.value}" in record ${r.record} has a leading zero`;
     if (r.kind === 'not-a-number') return `: "${r.value}" in record ${r.record} is not a plain number`;
     if (r.kind === 'no-values') return ': no values';
+    if (r.kind === 'date-format') {
+        const first = r.misses[0];
+        return `: ${fmt(r.count)} value${r.count === 1 ? '' : 's'} cannot be read as ${r.format} in the ${r.system} date system, such as "${first.value}" in record ${first.record}`;
+    }
     return '';
 }
 
@@ -355,7 +377,9 @@ function sideNotes(side, res) {
             + `empty fields read as ${o.emptyFields === 'blank' ? 'blank' : 'empty text'}`
             + `${o.decimal === ',' ? ', decimal comma' : ''}${o.thousands ? `, thousands separator "${o.thousands}"` : ''}.`);
         out.push(`${S} column types: ${res.columns.map((c) => `${c.header || '(no header)'} ${c.type}`
-            + (c.chosen === 'auto' ? ` (inferred${reasonText(c.reason)})` : ' (chosen)')).join('; ')}.`);
+            + (c.chosen === 'auto' ? ` (inferred${reasonText(c.reason)})`
+                : c.chosen === 'date' && c.type === 'date' ? ` (${c.dateFormat}, ${c.dateSystem} date system)`
+                    : c.chosen === 'date' ? ` (chosen as dates${reasonText(c.reason)})` : ' (chosen)')).join('; ')}.`);
     } else {
         const i = res.info;
         out.push(`${S} range ${i.sheet}!${i.range}${i.detected ? ' (the cells holding values'
@@ -376,6 +400,20 @@ function pairNotes(results) {
     if (L.kind !== R.kind) {
         notes.push('Mixed formats: one side is a workbook and the other is text. Excel writes displayed text when it saves a CSV or copies cells, so dates, rounded numbers and long decimals will differ from the stored workbook values.');
     }
+    for (const side of SIDES) {
+        const inv = state.inventory[side];
+        if (inv.limitations && inv.limitations.length) {
+            notes.push(`${NAMES[side]} is ${inv.format.toUpperCase()}: ${inv.limitations.join('; ')}.`);
+        }
+    }
+    SIDES.forEach((side, k) => {
+        const other = SIDES[1 - k];
+        const dates = (results[k].columns || []).filter((c) => c.type === 'date');
+        const system = state.inventory[other].dateSystem;
+        if (dates.length && system && dates[0].dateSystem !== system) {
+            notes.push(`${NAMES[side]} dates were converted to the ${dates[0].dateSystem} date system, but the ${other} workbook uses ${system}, so equal dates will differ. Change Dates become serials in.`);
+        }
+    });
     const [dl, dr] = SIDES.map((s) => state.inventory[s].dateSystem);
     if (dl && dr && dl !== dr) {
         notes.push(`Date systems differ: left ${dl}, right ${dr}. Date serials are compared as stored, so one calendar date has two different serials.`);
@@ -525,6 +563,7 @@ function renderResults(summaries, fin, plan, unfinished) {
     )));
     const p = fin.preview;
     $('reportBox').value = p.text;
+    $('printText').textContent = p.text;
     const prompt = $('truncationPrompt');
     prompt.hidden = !p.truncated;
     prompt.textContent = p.truncated
@@ -533,18 +572,41 @@ function renderResults(summaries, fin, plan, unfinished) {
     $('exportStatus').textContent = '';
 }
 
+function download(blob, name) {
+    const url = URL.createObjectURL(blob);
+    const a = el('a', { href: url, download: name });
+    document.body.append(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 30000);
+}
+
 async function exportFull() {
     const status = $('exportStatus');
     status.textContent = 'Preparing the full report...';
     try {
         const { blob, totalCodePoints } = await runner.request('compare', { type: 'run-export' });
-        const url = URL.createObjectURL(blob);
-        const a = el('a', { href: url, download: 'dataset-diff-report.txt' });
-        document.body.append(a);
-        a.click();
-        a.remove();
-        setTimeout(() => URL.revokeObjectURL(url), 30000);
+        download(blob, 'dataset-diff-report.txt');
         status.textContent = `Saved the full report: ${fmt(totalCodePoints)} characters.`;
+    } catch (e) {
+        status.textContent = `Export failed and nothing was saved: ${describeError(e)}`;
+    }
+}
+
+const OTHER_EXPORTS = {
+    'positional-csv': ['dataset-diff-positional.csv', 'positional differences'],
+    'sorted-csv': ['dataset-diff-one-side-only.csv', 'rows on one side only'],
+    json: ['dataset-diff-results.json', 'full results'],
+};
+
+async function exportOther(kind) {
+    const [name, what] = OTHER_EXPORTS[kind];
+    const status = $('exportStatus');
+    status.textContent = `Preparing the ${what}...`;
+    try {
+        const { blob } = await runner.request('compare', { type: 'run-export', kind });
+        download(blob, name);
+        status.textContent = `Saved the ${what} as ${name}.`;
     } catch (e) {
         status.textContent = `Export failed and nothing was saved: ${describeError(e)}`;
     }
@@ -558,6 +620,53 @@ async function copyShown() {
     } catch (e) {
         $('exportStatus').textContent = 'Copy failed. Select the text in the box and copy it by hand.';
     }
+}
+
+// ---------------------------------------------------------------- settings files
+
+function recipeStatus(text) { $('recipeStatus').textContent = text; }
+
+function saveRecipe() {
+    const kinds = { left: state.sources.left && state.sources.left.kind, right: state.sources.right && state.sources.right.kind };
+    const recipe = buildRecipe({ toolVersion: VERSION, pairs: state.pairs, kinds, text: state.text, encoding: state.encoding });
+    const blob = new Blob([`${JSON.stringify(recipe, null, 2)}\n`], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = el('a', { href: url, download: 'dataset-diff-settings.json' });
+    document.body.append(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 30000);
+    recipeStatus(`Saved settings for ${state.pairs.length} pair${state.pairs.length === 1 ? '' : 's'}. The file holds no file names or table values.`);
+}
+
+async function loadRecipe(file) {
+    const parsed = parseRecipe(await file.text());
+    if (!parsed.ok) {
+        recipeStatus(`Settings not loaded: ${parsed.errors.slice(0, 5).join(' ')}`);
+        return;
+    }
+    const r = parsed.recipe;
+    state.pairs = r.pairs.map((p) => ({
+        id: `p${state.nextPair++}`, include: p.include,
+        left: { sheet: p.left.sheet || '', range: p.left.range },
+        right: { sheet: p.right.sheet || '', range: p.right.range },
+    }));
+    for (const side of SIDES) {
+        state.text[side] = { ...defaultText(), ...r.text[side] };
+        state.encoding[side] = r.encoding[side];
+        $(`${side}Encoding`).value = r.encoding[side];
+        state.keepSettings[side] = true;
+    }
+    syncPairs();
+    renderPairs();
+    markStale();
+    const reopen = SIDES.filter((s) => state.sources[s] && state.sources[s].kind === 'text');
+    for (const side of reopen) {
+        state.keepSettings[side] = false;
+        await openSource(side);
+    }
+    recipeStatus(`Loaded settings for ${state.pairs.length} pair${state.pairs.length === 1 ? '' : 's'}.`
+        + (state.sources.left && state.sources.right ? ' Check the pairs, then Compare.' : ' Choose the files; the settings apply to them.'));
 }
 
 // ---------------------------------------------------------------- examples
@@ -624,10 +733,28 @@ function init() {
         markStale();
         renderPairs();
     });
+    for (const side of SIDES) {
+        $(`${side}Encoding`).addEventListener('change', (e) => {
+            state.encoding[side] = e.target.value;
+            markStale();
+            if (state.sources[side] && state.sources[side].kind === 'text') openSource(side);
+        });
+    }
+    $('saveRecipe').addEventListener('click', saveRecipe);
+    $('loadRecipe').addEventListener('click', () => $('recipeFile').click());
+    $('recipeFile').addEventListener('change', (e) => {
+        const f = e.target.files[0];
+        e.target.value = '';
+        if (f) loadRecipe(f);
+    });
     $('compareBtn').addEventListener('click', compare);
     $('stopBtn').addEventListener('click', stop);
     $('exportFull').addEventListener('click', exportFull);
     $('copyShown').addEventListener('click', copyShown);
+    $('exportPositional').addEventListener('click', () => exportOther('positional-csv'));
+    $('exportSorted').addEventListener('click', () => exportOther('sorted-csv'));
+    $('exportJson').addEventListener('click', () => exportOther('json'));
+    $('printReport').addEventListener('click', () => window.print());
     $('wrapToggle').addEventListener('change', (e) => {
         $('reportBox').wrap = e.target.checked ? 'soft' : 'off';
         $('reportBox').classList.toggle('is-nowrap', !e.target.checked);
@@ -638,6 +765,7 @@ function init() {
     $('closeAttributions').addEventListener('click', () => dialog.close());
     dialog.addEventListener('click', (e) => { if (e.target === dialog) dialog.close(); });
     renderPairs();
+    runner.warm();
 }
 
 init();

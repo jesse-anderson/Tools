@@ -305,7 +305,7 @@ def csv_text(rows, bom=False):
             s = '"' + s.replace('"', '""') + '"'
         return s
     body = ''.join(','.join(field(v) for v in row) + '\r\n' for row in rows)
-    return ('﻿' if bom else '') + body
+    return (chr(0xFEFF) if bom else '') + body
 
 
 CSV_FILES = {'parts-left.csv': csv_text(PARTS)}
@@ -314,6 +314,16 @@ for _name, _rows in PARTS_VARIANTS.items():
 # Written by hand as Excel would display these cells in a CSV save; simulated.
 CSV_FILES['dates-excel-export-simulated.csv'] = (
     'Event,When\r\nKickoff,12/9/2025\r\nReview,2025-12-09\r\nLeap,2/29/1900\r\nNoon,3/15/2023 12:00\r\n')
+# Typed into Excel, cell by cell, by scripts/build-dataset-diff-formats.ps1
+# (en-US locale), so Excel's own serials can be compared with readDate's.
+TYPED_DATES = ['1/1/1900', '2/28/1900', '2/29/1900', '3/1/1900', '12/9/2025', '12/9/2025 13:37:42',
+               '3/15/2023 0:00:01', '3/15/2023 23:59:59', '6/15/2024 6:05', '1/1/1904', '12/31/9999 23:59:59',
+               '7/4/2026 0:00', '10/31/2026 11:11:11']
+CSV_FILES['dates-typed.csv'] = csv_text([['Event', 'When']] + [[f'r{i + 1}', v] for i, v in enumerate(TYPED_DATES)])
+CSV_FILES['dates-typed-1904.csv'] = csv_text([['Event', 'When']] + [[f'r{i + 1}', v] for i, v in enumerate(TYPED_DATES) if int(v.split('/')[2][:4]) >= 1904])
+# The dates of dates-1900.xlsx!Dates in one declared format, as an export
+# would write them with a single date format; simulated by hand.
+CSV_FILES['dates-mdy-simulated.csv'] = 'Event,When\r\nKickoff,12/9/2025\r\nReview,12/9/2025\r\nLeap,2/29/1900\r\nNoon,3/15/2023 12:00\r\n'
 CSV_FILES['quoted-newlines.csv'] = (
     'Part,Note\r\nP1,"line one\r\nline two"\r\nP2,"has ""quotes"", and a comma"\r\nP3,plain\r\n')
 CSV_FILES['header-only.csv'] = 'Part,Qty\r\n'
@@ -374,6 +384,17 @@ CASES += [
      'left': {'file': 'dates-1900.xlsx', 'sheet': 'Dates'},
      'right': {'file': 'dates-excel-export-simulated.csv'},
      'expect': counts('different', 'different', 4, 4, 0, 4, 4, 4, mixedFormatWarning=True)},
+    {'id': 'dates-declared-format-match',
+     'note': 'The When column declared as dates in M/D/YYYY becomes the serials Excel stores.',
+     'left': {'file': 'dates-1900.xlsx', 'sheet': 'Dates'},
+     'right': {'file': 'dates-mdy-simulated.csv', 'options': {'types': ['auto', 'date'], 'dateFormat': 'M/D/YYYY', 'dateSystem': '1900'}},
+     'expect': counts('match', 'match', 4, 4, 4, 0, 0, 0, mixedFormatWarning=True)},
+    {'id': 'dates-declared-format-misses',
+     'note': 'One value is written YYYY-MM-DD, so the declared M/D/YYYY column stays text and names it.',
+     'left': {'file': 'dates-1900.xlsx', 'sheet': 'Dates'},
+     'right': {'file': 'dates-excel-export-simulated.csv', 'options': {'types': ['auto', 'date'], 'dateFormat': 'M/D/YYYY', 'dateSystem': '1900'}},
+     'expect': counts('different', 'different', 4, 4, 0, 4, 4, 4, mixedFormatWarning=True,
+                      dateMisses={'count': 1, 'misses': [{'record': 3, 'value': '2025-12-09'}]})},
     {'id': 'formula-caches-match-values',
      'left': {'file': 'formulas-left.xlsx', 'sheet': 'Totals'},
      'right': {'file': 'formulas-right.xlsx', 'sheet': 'Totals'},
@@ -429,6 +450,50 @@ IMPORTS = [
     {'file': 'literals.csv', 'columnTypes': {'Key': 'text', 'Value': 'text'},
      'values': ['NULL', 'N/A', 'NaN', None], 'note': 'Last Value is blank under the default Empty fields setting.'},
 ]
+
+
+# Excel-saved copies of every workbook above, written by
+# scripts/build-dataset-diff-formats.ps1 into data/dataset_diff/excel/<format>/.
+# Each copy must read to the cell listing except where noted here, by hand,
+# with the reason. Found by reading every copy, then explained; nothing here
+# was accepted without a cause.
+EXCEL_FORMATS = {
+    'formats': ['xlsx', 'xlsm', 'xlsb', 'xls', 'ods'],
+    'cells': {
+        'all': [
+            {'file': 'formulas-left', 'cell': 'Unresolved!B2', 'value': ['n', 2],
+             'why': 'openpyxl marks its files fullCalcOnLoad, so Excel calculated =1+1 when it opened the file'},
+        ],
+        'ods': [
+            {'file': 'dates-1900', 'cell': 'Dates!B4', 'value': ['n', 61],
+             'why': 'ODS stores calendar dates; serial 60 is the 29 February 1900 that never existed, and reads back as 61'},
+            {'file': 'blanks-right', 'cell': 'Cells!B2', 'value': None,
+             'why': 'a stored empty string reads back as a blank cell'},
+        ],
+    },
+    'refused': {
+        'ods': [{'file': 'blanks-left', 'kind': 'unreadable',
+                 'why': 'the #N/A error cell: SheetJS reports Unsupported value type error'}],
+    },
+    'notDetected': {
+        'ods': {'hiddenSheets': True, 'hiddenRowsAndColumns': True},
+    },
+    # Case results that change, by format, and why.
+    'cases': {
+        'all': {'formula-unresolved': {
+            'expect': {'sameOrder': 'match', 'sorted': 'match'},
+            'why': 'Excel calculated the unresolved formula to 2, which the right side holds as a value'}},
+        'ods': {
+            'blanks-and-types': {'expect': {'refused': 'unreadable'}, 'why': 'the left file holds #N/A'},
+            'dates-same-serials-different-systems': {
+                'expect': {'sameOrder': 'different', 'sorted': 'different', 'changedCells': 1,
+                           'matchedRows': 3, 'leftOnlyRows': 1, 'rightOnlyRows': 1},
+                'why': 'serial 60 reads as 61 from the 1900 file and as 60 from the 1904 one'},
+        },
+    },
+    'encrypted': ['encrypted/parts-left-password.xlsx', 'encrypted/parts-left-password.xls'],
+    'macros': 'The XLSM copies hold no macro project: Excel was not allowed to write VBA. Macros are never run either way.',
+}
 
 
 # ---------------------------------------------------------------- cell listing
@@ -531,6 +596,7 @@ def main():
                 'generator': 'scripts/build-dataset-diff-fixtures.py',
                 'openpyxl': openpyxl.__version__,
                 'cases': CASES, 'plans': PLANS, 'imports': IMPORTS,
+                'excelFormats': EXCEL_FORMATS,
                 'workbooks': cell_listing()}
     (OUT / 'fixtures.json').write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + '\n',
                                        encoding='utf-8', newline='\n')

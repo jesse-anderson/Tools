@@ -17,14 +17,15 @@ export const READ_OPTIONS = Object.freeze({
 const u32 = (b, i) => (b[i] | (b[i + 1] << 8) | (b[i + 2] << 16) | (b[i + 3] << 24)) >>> 0;
 const u16 = (b, i) => b[i] | (b[i + 1] << 8);
 
-// Reads the ZIP central directory before any parser expands it. Declared
-// sizes can lie, so the worker's time limit still applies afterward.
+// Identifies the container and reads a ZIP's central directory before any
+// parser expands it. Declared sizes can lie, so the worker's time limit still
+// applies afterward. An OLE container is a legacy .xls or a password-encrypted
+// workbook; the worker tells them apart from the streams inside.
 export function auditContainer(bytes) {
     const b = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
     if (b.length > LIMITS.fileBytes) return { ok: false, error: { kind: 'limit', limit: 'fileBytes', value: b.length, max: LIMITS.fileBytes } };
     if (b[0] === 0xD0 && b[1] === 0xCF && b[2] === 0x11 && b[3] === 0xE0) {
-        // An OLE container: a legacy .xls or a password-encrypted workbook.
-        return { ok: false, error: { kind: 'ole-container' } };
+        return { ok: true, container: 'ole', format: null, macros: false };
     }
     if (!(b[0] === 0x50 && b[1] === 0x4B && b[2] === 0x03 && b[3] === 0x04)) {
         return { ok: false, error: { kind: 'not-a-workbook' } };
@@ -51,11 +52,15 @@ export function auditContainer(bytes) {
     if (total > LIMITS.zipUncompressedBytes) {
         return { ok: false, error: { kind: 'limit', limit: 'zipUncompressedBytes', value: total, max: LIMITS.zipUncompressedBytes } };
     }
-    if (!names.includes('xl/workbook.xml')) {
-        // XLSB keeps xl/workbook.bin; ODS has no xl/ folder. Both are Phase 6.
-        return { ok: false, error: { kind: names.includes('xl/workbook.bin') ? 'xlsb-not-yet' : 'not-xlsx' } };
-    }
-    return { ok: true, entries: count, uncompressedBytes: total, macros: names.includes('xl/vbaProject.bin') };
+    let format = null;
+    if (names.includes('xl/workbook.xml')) format = 'xlsx';
+    else if (names.includes('xl/workbook.bin')) format = 'xlsb';
+    else if (names.includes('content.xml') && names.includes('mimetype')) format = 'ods';
+    if (!format) return { ok: false, error: { kind: 'not-a-workbook' } };
+    return {
+        ok: true, container: 'zip', format, entries: count, uncompressedBytes: total,
+        macros: names.includes('xl/vbaProject.bin') || names.includes('xl/vbaProject.bin.rels'),
+    };
 }
 
 // ---------------------------------------------------------------- A1 helpers
@@ -108,6 +113,23 @@ export function valueRange(ws) {
     }
     return bottom < 0 ? null : { s: { r: top, c: left }, e: { r: bottom, c: right } };
 }
+
+// Sheets the workbook lists but SheetJS did not load. SheetJS can drop a
+// sheet without an error (seen with an XLSB read from a Uint8Array), so a
+// workbook with any such sheet is refused rather than shown without it.
+export function unreadSheets(wb) {
+    return wb.SheetNames.filter((name) => !wb.Sheets[name]);
+}
+
+// What a format loses, measured on Excel-saved fixtures (see
+// js/dataset_diff/CLAUDE.md). Shown with every pair that uses the format.
+export const FORMAT_LIMITATIONS = Object.freeze({
+    ods: [
+        'hidden sheets, rows and columns are not detected, so they are not flagged',
+        'a stored empty string reads as a blank cell',
+        "dates before 1 March 1900 read one day later than Excel's serial numbers",
+    ],
+});
 
 export function inventory(wb) {
     const meta = (wb.Workbook && wb.Workbook.Sheets) || [];

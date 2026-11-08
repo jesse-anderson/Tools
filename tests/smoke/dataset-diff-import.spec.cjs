@@ -61,9 +61,9 @@ test.describe('fixtures.json cases with a delimited side', () => {
     test('CSV against CSV and against workbook listings give the hand-written results', async ({ page }) => {
         await openEngine(page);
         const cases = FIXTURES.cases.filter((c) => c.left.file.endsWith('.csv') || c.right.file.endsWith('.csv'));
-        expect(cases.length).toBe(10);
+        expect(cases.length).toBe(12);
         const sources = cases.map((c) => [c.left, c.right].map((s) => (s.file.endsWith('.csv')
-            ? { csv: s.file }
+            ? { csv: s.file, options: s.options || {} }
             : { rows: FIXTURES.workbooks[s.file].sheets[s.sheet].rows })));
         const got = await page.evaluate(async (sources) => {
             const out = [];
@@ -71,7 +71,7 @@ test.describe('fixtures.json cases with a delimited side', () => {
                 const tables = [];
                 for (const s of pair) {
                     if (s.csv) {
-                        const r = await window.H.csv(s.csv);
+                        const r = await window.H.csv(s.csv, s.options);
                         if (!r.ok) { tables.push(null); continue; }
                         tables.push(r.table);
                     } else tables.push(window.H.listing(s.rows));
@@ -275,19 +275,83 @@ test.describe('headers, encodings and limits', () => {
         expect(out.titleRagged).toEqual([['ragged', 2], ['ragged', 3]]);
     });
 
-    test('BOM, invalid UTF-8 and UTF-16 are named, never replaced', async ({ page }) => {
+    test('encodings: BOMs, UTF-16 both ways, Windows-1252 on request, invalid text refused by name', async ({ page }) => {
         await openEngine(page);
         const out = await page.evaluate(() => {
             const D = window.DatasetDiff;
+            const bytes = (...b) => new Uint8Array(b);
+            // "Café" in each encoding: é is U+00E9.
+            const le = bytes(0xFF, 0xFE, 0x43, 0, 0x61, 0, 0x66, 0, 0xE9, 0);
+            const be = bytes(0xFE, 0xFF, 0, 0x43, 0, 0x61, 0, 0x66, 0, 0xE9);
+            const cp1252 = bytes(0x43, 0x61, 0x66, 0xE9, 0x20, 0x80, 0x93, 0x94);
             return {
-                bom: D.decodeBytes(new Uint8Array([0xEF, 0xBB, 0xBF, 0x61])),
-                invalid: D.decodeBytes(new Uint8Array([0x50, 0xC3, 0x28])),
-                utf16: D.decodeBytes(new Uint8Array([0xFF, 0xFE, 0x61, 0x00])),
+                bom: D.decodeBytes(bytes(0xEF, 0xBB, 0xBF, 0x61)),
+                plain: D.decodeBytes(bytes(0x43, 0x61, 0x66, 0xC3, 0xA9)),
+                invalid: D.decodeBytes(bytes(0x50, 0xC3, 0x28)),
+                cp1252AsAuto: D.decodeBytes(cp1252),
+                cp1252: D.decodeBytes(cp1252, { encoding: 'windows-1252' }),
+                le: D.decodeBytes(le),
+                be: D.decodeBytes(be),
+                badLe: D.decodeBytes(bytes(0xFF, 0xFE, 0x00, 0xD8, 0x41, 0x00)),
+                oddLe: D.decodeBytes(bytes(0xFF, 0xFE, 0x41)),
             };
         });
         expect(out.bom).toEqual({ ok: true, text: 'a', encoding: 'UTF-8 BOM' });
-        expect(out.invalid).toEqual({ ok: false, error: { kind: 'invalid-utf8' } });
-        expect(out.utf16).toEqual({ ok: false, error: { kind: 'unsupported-encoding', encoding: 'UTF-16' } });
+        expect(out.plain).toEqual({ ok: true, text: 'Café', encoding: 'UTF-8' });
+        expect(out.invalid).toEqual({ ok: false, error: { kind: 'invalid-utf8', encoding: 'UTF-8' } });
+        expect(out.cp1252AsAuto.ok).toBe(false);
+        expect(out.cp1252).toEqual({ ok: true, text: 'Café €“”', encoding: 'Windows-1252' });
+        expect(out.le).toEqual({ ok: true, text: 'Café', encoding: 'UTF-16 LE BOM' });
+        expect(out.be).toEqual({ ok: true, text: 'Café', encoding: 'UTF-16 BE BOM' });
+        expect(out.badLe).toEqual({ ok: false, error: { kind: 'invalid-utf16', encoding: 'UTF-16 LE BOM' } });
+        expect(out.oddLe).toEqual({ ok: false, error: { kind: 'invalid-utf16', encoding: 'UTF-16 LE BOM' } });
+    });
+
+    test('settings files: a saved recipe reads back, and bad ones are refused', async ({ page }) => {
+        await openEngine(page);
+        const out = await page.evaluate(async () => {
+            const R = await import('/js/dataset_diff/diff-recipe.js');
+            const text = { delimiter: ';', headerRecord: 2, generatedHeaders: false, emptyFields: 'empty-string', decimal: ',', thousands: '.', types: ['text', 'auto', 'number'] };
+            const built = R.buildRecipe({
+                toolVersion: '0.1.0',
+                pairs: [
+                    { include: true, left: { sheet: 'Orders', range: 'A1:C9' }, right: { sheet: 'parts.csv', range: null } },
+                    { include: false, left: { sheet: 'Stock', range: null }, right: { sheet: 'parts.csv', range: null } },
+                ],
+                kinds: { left: 'workbook', right: 'text' },
+                text: { left: text, right: text },
+                encoding: { left: 'auto', right: 'windows-1252' },
+            });
+            const json = JSON.stringify(built);
+            const back = R.parseRecipe(json);
+            const bad = (mutate) => { const r = JSON.parse(json); mutate(r); return R.parseRecipe(JSON.stringify(r)); };
+            return {
+                built, back,
+                hasFileName: json.includes('parts.csv'),
+                notJson: R.parseRecipe('{').errors,
+                wrongFormat: R.parseRecipe('{"format":"x"}').errors,
+                newer: bad((r) => { r.version = 2; }).errors,
+                badRange: bad((r) => { r.pairs[0].left.range = 'A1-C9'; }).errors,
+                badType: bad((r) => { r.text.left.types = ['currency']; }).errors,
+                unknownKey: bad((r) => { r.text.right.script = 'x'; }).errors,
+                badEncoding: bad((r) => { r.encoding.left = 'utf-7'; }).errors,
+                noPairs: bad((r) => { r.pairs = []; }).errors,
+            };
+        });
+        expect(out.hasFileName).toBe(false);
+        expect(out.built.pairs[0]).toEqual({ include: true, left: { sheet: 'Orders', range: 'A1:C9' }, right: { sheet: null, range: null } });
+        expect(out.back.ok).toBe(true);
+        expect(out.back.recipe.pairs).toEqual(out.built.pairs);
+        expect(out.back.recipe.text.left).toEqual(out.built.text.left);
+        expect(out.back.recipe.encoding).toEqual({ left: 'auto', right: 'windows-1252' });
+        expect(out.notJson).toEqual(['The file is not JSON.']);
+        expect(out.wrongFormat).toEqual(['This is not a Dataset Diff settings file.']);
+        expect(out.newer[0]).toContain('version 2 is not supported');
+        expect(out.badRange).toEqual(['pair 1: left range "A1-C9" is not like A1:D20.']);
+        expect(out.badType).toEqual(['left text setting "types" has an invalid value.']);
+        expect(out.unknownKey).toEqual(['right text setting "script" is not known.']);
+        expect(out.badEncoding).toEqual(['left encoding "utf-7" is not known.']);
+        expect(out.noPairs).toEqual(['pairs must list between 1 and 100 pairs.']);
     });
 
     test('column, row and text cell limits refuse the source', async ({ page }) => {
@@ -461,7 +525,7 @@ test.describe('workbooks through the parse worker', () => {
                 b.set(new TextEncoder().encode(to), at);
                 return b;
             };
-            const kind = (b) => { const r = D.auditContainer(b); return r.ok ? 'ok' : r.error.kind + (r.error.limit ? `:${r.error.limit}` : ''); };
+            const kind = (b) => { const r = D.auditContainer(b); return r.ok ? `ok:${r.container}:${r.format}` : r.error.kind + (r.error.limit ? `:${r.error.limit}` : ''); };
             const runner = H.runner();
             const viaWorker = await runner.open('left', { kind: 'workbook', bytes: new Uint8Array([0xD0, 0xCF, 0x11, 0xE0, 0, 0, 0, 0]).buffer }).catch((e) => e);
             runner.stop();
@@ -477,15 +541,16 @@ test.describe('workbooks through the parse worker', () => {
                 viaWorker,
             };
         });
-        expect(out.real).toMatchObject({ ok: true, macros: false });
-        expect(out.ole).toBe('ole-container');
+        expect(out.real).toMatchObject({ ok: true, container: 'zip', format: 'xlsx', macros: false });
+        // OLE is a legacy XLS or an encrypted file; the worker reads its streams to decide.
+        expect(out.ole).toBe('ok:ole:null');
         expect(out.random).toBe('not-a-workbook');
         expect(out.huge).toBe('limit:zipUncompressedBytes');
         expect(out.zip64).toBe('zip64');
-        expect(out.notXlsx).toBe('not-xlsx');
-        expect(out.xlsb).toBe('xlsb-not-yet');
+        expect(out.notXlsx).toBe('not-a-workbook');
+        expect(out.xlsb).toBe('ok:zip:xlsb');
         expect(out.bigFile).toBe('limit:fileBytes');
-        expect(out.viaWorker).toEqual({ kind: 'ole-container' });
+        expect(out.viaWorker).toEqual({ kind: 'not-a-workbook' });
     });
 });
 
@@ -553,5 +618,196 @@ test.describe('stopping and replacing work', () => {
         expect(out.timed).toEqual({ kind: 'time-limit', seconds: 0.3 });
         expect(out.afterLimit).toBe(1);
         expect(out.pending).toBe(0);
+    });
+});
+
+// ---------------------------------------------------------------- formats
+
+const EXCEL = FIXTURES.excelFormats;
+
+test.describe('Excel-saved XLSX, XLSM, XLSB, XLS and ODS', () => {
+    for (const format of EXCEL.formats) {
+        test(`${format}: every workbook reads to the listing, except the noted changes`, async ({ page }) => {
+            test.setTimeout(120_000);
+            await openEngine(page);
+            const exceptions = [...EXCEL.cells.all, ...(EXCEL.cells[format] || [])];
+            const refused = EXCEL.refused[format] || [];
+            const hiddenUnseen = !!(EXCEL.notDetected[format] && EXCEL.notDetected[format].hiddenSheets);
+            const out = await page.evaluate(async ({ books, format, exceptions, refused, hiddenUnseen }) => {
+                const H = window.H;
+                const runner = H.runner();
+                const problems = [];
+                const seen = { refused: [], formats: new Set(), limitations: null };
+                for (const [file, spec] of Object.entries(books)) {
+                    const stem = file.replace('.xlsx', '');
+                    const name = `${stem}.${format}`;
+                    const bytes = await (await fetch(`/data/dataset_diff/excel/${format}/${name}`)).arrayBuffer();
+                    let inv;
+                    try {
+                        inv = await runner.open('left', { kind: 'workbook', bytes, name });
+                    } catch (e) {
+                        seen.refused.push([stem, e.kind]);
+                        continue;
+                    }
+                    seen.formats.add(inv.format);
+                    seen.limitations = inv.limitations;
+                    if (inv.dateSystem !== spec.dateSystem) problems.push(`${name}: date system ${inv.dateSystem}`);
+                    const want = Object.entries(spec.sheets).map(([n, s]) => [n, hiddenUnseen ? false : s.hidden]);
+                    const got = inv.sheets.map((s) => [s.name, s.hidden]);
+                    if (JSON.stringify(got) !== JSON.stringify(want)) problems.push(`${name}: sheets ${JSON.stringify(got)}`);
+                    for (const [sheet, s] of Object.entries(spec.sheets)) {
+                        if (sheet === 'MergedHeader') {
+                            const r = await runner.table('left', { sheet }).catch((e) => e);
+                            if (!r.errors || r.errors[0].kind !== 'merged-cells') problems.push(`${name}!${sheet}: merge not refused`);
+                            continue;
+                        }
+                        const t = await runner.table('left', { sheet });
+                        const listed = H.listing(s.rows);
+                        for (const ex of exceptions) {
+                            if (ex.file !== stem) continue;
+                            const [exSheet, ref] = ex.cell.split('!');
+                            if (exSheet !== sheet) continue;
+                            const col = ref.charCodeAt(0) - 65;
+                            const row = Number(ref.slice(1)) - 2;
+                            listed.rows[row][col] = ex.value === null ? null : ex.value[0] === 'n' ? window.DatasetDiff.numberFromDouble(ex.value[1]) : ex.value;
+                        }
+                        if (JSON.stringify(t.table.headers) !== JSON.stringify(listed.headers)) problems.push(`${name}!${sheet}: headers ${JSON.stringify(t.table.headers)}`);
+                        if (JSON.stringify(t.table.rows) !== JSON.stringify(listed.rows)) problems.push(`${name}!${sheet}: rows ${JSON.stringify(t.table.rows)}`);
+                    }
+                }
+                runner.stop();
+                return { problems, refused: seen.refused, formats: [...seen.formats], limitations: seen.limitations };
+            }, { books: FIXTURES.workbooks, format, exceptions, refused, hiddenUnseen });
+            expect(out.problems).toEqual([]);
+            expect(out.refused).toEqual(refused.map((r) => [r.file, r.kind]));
+            expect(out.formats).toEqual([format]);
+            expect(out.limitations.length > 0).toBe(format === 'ods');
+        });
+    }
+
+    test('every workbook case in every format, with the noted changes', async ({ page }) => {
+        test.setTimeout(180_000);
+        await openEngine(page);
+        const got = await page.evaluate(async ({ cases, formats }) => {
+            const D = window.DatasetDiff;
+            const H = window.H;
+            const runner = H.runner();
+            const out = {};
+            const open = async (side, file, format) => {
+                const name = file.replace('.xlsx', `.${format}`);
+                const bytes = await (await fetch(`/data/dataset_diff/excel/${format}/${name}`)).arrayBuffer();
+                return runner.open(side, { kind: 'workbook', bytes, name });
+            };
+            for (const format of formats) {
+                for (const c of cases) {
+                    const key = `${format} ${c.id}`;
+                    try {
+                        await Promise.all([open('left', c.left.file, format), open('right', c.right.file, format)]);
+                    } catch (e) {
+                        out[key] = { refused: e.kind };
+                        continue;
+                    }
+                    const [l, r] = await Promise.all([runner.table('left', { sheet: c.left.sheet }), runner.table('right', { sheet: c.right.sheet })]);
+                    out[key] = H.summary({ schema: { status: 'same' }, ...D.compareTables(l.table, r.table) });
+                }
+            }
+            runner.stop();
+            return out;
+        }, { cases: XLSX_CASES, formats: EXCEL.formats });
+        for (const format of EXCEL.formats) {
+            for (const c of XLSX_CASES) {
+                const override = (EXCEL.cases[format] || {})[c.id] || EXCEL.cases.all[c.id];
+                const want = override ? override.expect : c.expect;
+                const g = got[`${format} ${c.id}`];
+                for (const k of [...ENGINE_KEYS, 'refused']) if (k in want) expect.soft(g[k], `${format} ${c.id}: ${k}`).toEqual(want[k]);
+                expect.soft(g.refused, `${format} ${c.id}: refused`).toEqual(want.refused);
+            }
+        }
+    });
+
+    test('password-protected XLSX and XLS are refused before any password is asked for', async ({ page }) => {
+        await openEngine(page);
+        const kinds = await page.evaluate(async (files) => {
+            const H = window.H;
+            const runner = H.runner();
+            const out = [];
+            for (const f of files) {
+                const bytes = await (await fetch(`/data/dataset_diff/excel/${f}`)).arrayBuffer();
+                out.push(await runner.open('left', { kind: 'workbook', bytes, name: f.split('/').pop() }).then(() => 'opened', (e) => e.kind));
+            }
+            runner.stop();
+            return out;
+        }, EXCEL.encrypted);
+        expect(kinds).toEqual(['encrypted', 'encrypted']);
+    });
+});
+
+test('a workbook whose sheet list names a sheet that did not load is caught', async ({ page }) => {
+    await openEngine(page);
+    const unread = await page.evaluate(() => window.DatasetDiff.unreadSheets({ SheetNames: ['Totals', 'Unresolved'], Sheets: { Unresolved: {} } }));
+    expect(unread).toEqual(['Totals']);
+});
+
+// ---------------------------------------------------------------- dates
+
+test.describe('declared CSV dates', () => {
+    test('readDate: formats, the 1900 leap-year rule, both systems, and refusals', async ({ page }) => {
+        await openEngine(page);
+        const out = await page.evaluate(() => {
+            const D = window.DatasetDiff;
+            const r = (v, f = 'M/D/YYYY', s = '1900') => { const x = D.readDate(v, f, s); return x.ok ? x.value[1] : x.reason; };
+            return {
+                firstDay: r('1/1/1900'), feb28: r('2/28/1900'), fictional: r('2/29/1900'), march1: r('3/1/1900'),
+                dmy: r('9/12/2025', 'D/M/YYYY'), dotted: r('9.12.2025', 'D.M.YYYY'), iso: r('2025-12-09', 'YYYY-MM-DD'),
+                isoT: r('2025-12-09T12:00', 'YYYY-MM-DD'), noon: r('12/9/2025 12:00'), seconds: r('12/9/2025 13:37:42'),
+                in1904: r('12/9/2025', 'M/D/YYYY', '1904'), epoch1904: r('1/1/1904', 'M/D/YYYY', '1904'),
+                fictional1904: r('2/29/1900', 'M/D/YYYY', '1904'), before1904: r('12/31/1903', 'M/D/YYYY', '1904'),
+                before1900: r('12/31/1899'), feb30: r('2/30/2024'), month13: r('13/1/2024'), hour24: r('1/1/2024 24:00'),
+                twelveHour: r('1/1/2024 1:00 PM'), padded: r(' 1/1/2024'), wrongOrder: r('2025-12-09'),
+            };
+        });
+        expect(out).toEqual({
+            firstDay: '1e0', feb28: '59e0', fictional: '6e1', march1: '61e0',
+            dmy: '46e3', dotted: '46e3', iso: '46e3', isoT: '460005e-1', noon: '460005e-1', seconds: '4600056784722222e-11',
+            in1904: '44538e0', epoch1904: '0', fictional1904: 'not-a-date', before1904: 'before-1904',
+            before1900: 'before-1900', feb30: 'not-a-date', month13: 'not-a-date', hour24: 'not-a-time',
+            twelveHour: 'not-this-date-format', padded: 'not-this-date-format', wrongOrder: 'not-this-date-format',
+        });
+    });
+
+    test('dates Excel typed itself equal the declared CSV dates, in both systems', async ({ page }) => {
+        await openEngine(page);
+        const out = await page.evaluate(async () => {
+            const D = window.DatasetDiff;
+            const H = window.H;
+            const runner = H.runner();
+            const book = async (name) => {
+                const bytes = await (await fetch(`/data/dataset_diff/excel/typed/${name}.xlsx`)).arrayBuffer();
+                const inv = await runner.open('left', { kind: 'workbook', bytes, name: `${name}.xlsx` });
+                return { inv, t: (await runner.table('left', { sheet: 'Typed' })).table };
+            };
+            const csv = async (name, system) => (await H.csv(`${name}.csv`, { types: ['auto', 'date'], dateFormat: 'M/D/YYYY', dateSystem: system })).table;
+            const b1900 = await book('dates-typed');
+            const b1904 = await book('dates-typed-1904');
+            runner.stop();
+            const sum = (a, b) => H.summary(D.compareTables(a, b));
+            return {
+                systems: [b1900.inv.dateSystem, b1904.inv.dateSystem],
+                same1900: sum(b1900.t, await csv('dates-typed', '1900')),
+                same1904: sum(b1904.t, await csv('dates-typed-1904', '1904')),
+                wrongSystem: sum(b1904.t, await csv('dates-typed-1904', '1900')),
+            };
+        });
+        expect(out.systems).toEqual(['1900', '1904']);
+        expect(out.same1900).toMatchObject({ sameOrder: 'match', sorted: 'match', leftRows: 13 });
+        expect(out.same1904).toMatchObject({ sameOrder: 'match', sorted: 'match', leftRows: 9 });
+        expect(out.wrongSystem).toMatchObject({ sameOrder: 'different', changedCells: 9 });
+    });
+
+    test('a value that misses the declared format leaves the column as text and is named', async ({ page }) => {
+        await openEngine(page);
+        const c = FIXTURES.cases.find((x) => x.id === 'dates-declared-format-misses');
+        const col = await page.evaluate(async (options) => (await window.H.csv('dates-excel-export-simulated.csv', options)).columns[1], c.right.options);
+        expect(col).toMatchObject({ chosen: 'date', type: 'text', reason: { kind: 'date-format', format: 'M/D/YYYY', ...c.expect.dateMisses } });
     });
 });

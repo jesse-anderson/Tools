@@ -410,6 +410,75 @@
       }
     },
     {
+      "id": "dates-declared-format-match",
+      "note": "The When column declared as dates in M/D/YYYY becomes the serials Excel stores.",
+      "left": {
+        "file": "dates-1900.xlsx",
+        "sheet": "Dates"
+      },
+      "right": {
+        "file": "dates-mdy-simulated.csv",
+        "options": {
+          "types": [
+            "auto",
+            "date"
+          ],
+          "dateFormat": "M/D/YYYY",
+          "dateSystem": "1900"
+        }
+      },
+      "expect": {
+        "sameOrder": "match",
+        "sorted": "match",
+        "leftRows": 4,
+        "rightRows": 4,
+        "matchedRows": 4,
+        "leftOnlyRows": 0,
+        "rightOnlyRows": 0,
+        "changedCells": 0,
+        "mixedFormatWarning": true
+      }
+    },
+    {
+      "id": "dates-declared-format-misses",
+      "note": "One value is written YYYY-MM-DD, so the declared M/D/YYYY column stays text and names it.",
+      "left": {
+        "file": "dates-1900.xlsx",
+        "sheet": "Dates"
+      },
+      "right": {
+        "file": "dates-excel-export-simulated.csv",
+        "options": {
+          "types": [
+            "auto",
+            "date"
+          ],
+          "dateFormat": "M/D/YYYY",
+          "dateSystem": "1900"
+        }
+      },
+      "expect": {
+        "sameOrder": "different",
+        "sorted": "different",
+        "leftRows": 4,
+        "rightRows": 4,
+        "matchedRows": 0,
+        "leftOnlyRows": 4,
+        "rightOnlyRows": 4,
+        "changedCells": 4,
+        "mixedFormatWarning": true,
+        "dateMisses": {
+          "count": 1,
+          "misses": [
+            {
+              "record": 3,
+              "value": "2025-12-09"
+            }
+          ]
+        }
+      }
+    },
+    {
       "id": "formula-caches-match-values",
       "left": {
         "file": "formulas-left.xlsx",
@@ -693,6 +762,95 @@
       "note": "Last Value is blank under the default Empty fields setting."
     }
   ],
+  "excelFormats": {
+    "formats": [
+      "xlsx",
+      "xlsm",
+      "xlsb",
+      "xls",
+      "ods"
+    ],
+    "cells": {
+      "all": [
+        {
+          "file": "formulas-left",
+          "cell": "Unresolved!B2",
+          "value": [
+            "n",
+            2
+          ],
+          "why": "openpyxl marks its files fullCalcOnLoad, so Excel calculated =1+1 when it opened the file"
+        }
+      ],
+      "ods": [
+        {
+          "file": "dates-1900",
+          "cell": "Dates!B4",
+          "value": [
+            "n",
+            61
+          ],
+          "why": "ODS stores calendar dates; serial 60 is the 29 February 1900 that never existed, and reads back as 61"
+        },
+        {
+          "file": "blanks-right",
+          "cell": "Cells!B2",
+          "value": null,
+          "why": "a stored empty string reads back as a blank cell"
+        }
+      ]
+    },
+    "refused": {
+      "ods": [
+        {
+          "file": "blanks-left",
+          "kind": "unreadable",
+          "why": "the #N/A error cell: SheetJS reports Unsupported value type error"
+        }
+      ]
+    },
+    "notDetected": {
+      "ods": {
+        "hiddenSheets": true,
+        "hiddenRowsAndColumns": true
+      }
+    },
+    "cases": {
+      "all": {
+        "formula-unresolved": {
+          "expect": {
+            "sameOrder": "match",
+            "sorted": "match"
+          },
+          "why": "Excel calculated the unresolved formula to 2, which the right side holds as a value"
+        }
+      },
+      "ods": {
+        "blanks-and-types": {
+          "expect": {
+            "refused": "unreadable"
+          },
+          "why": "the left file holds #N/A"
+        },
+        "dates-same-serials-different-systems": {
+          "expect": {
+            "sameOrder": "different",
+            "sorted": "different",
+            "changedCells": 1,
+            "matchedRows": 3,
+            "leftOnlyRows": 1,
+            "rightOnlyRows": 1
+          },
+          "why": "serial 60 reads as 61 from the 1900 file and as 60 from the 1904 one"
+        }
+      }
+    },
+    "encrypted": [
+      "encrypted/parts-left-password.xlsx",
+      "encrypted/parts-left-password.xls"
+    ],
+    "macros": "The XLSM copies hold no macro project: Excel was not allowed to write VBA. Macros are never run either way."
+  },
   "workbooks": {
     "parts-left.xlsx": {
       "dateSystem": "1900",
