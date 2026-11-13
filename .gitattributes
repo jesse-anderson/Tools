@@ -1,0 +1,2 @@
+# Test fixtures whose bytes are the test: never convert line endings.
+data/dataset_diff/*.csv -text
