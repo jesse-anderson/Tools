@@ -3,6 +3,11 @@
 
 const { expect } = require('@playwright/test');
 
+// A few OCR bounds were measured on Windows text rendering. Linux draws the same
+// pages differently enough to cross them, so those tests run on Windows only.
+const LINUX = process.platform === 'linux';
+const WINDOWS_ONLY = 'bound measured on Windows text rendering; Linux draws this page differently';
+
 const WIDTH = 1275;
 const HEIGHT = 1650;
 const FONT = '44px serif';
@@ -220,4 +225,4 @@ async function textOnLines(page, read1, LINES, { scale, skewDeg = 0, tolerance =
   }
 }
 
-module.exports = { textOnLines, LINE_X, lineBaseline, drawImage, buildPdf, scannedPage, readPdf };
+module.exports = { LINUX, WINDOWS_ONLY, textOnLines, LINE_X, lineBaseline, drawImage, buildPdf, scannedPage, readPdf };

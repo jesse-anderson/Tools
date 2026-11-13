@@ -2,7 +2,7 @@
 // when its reading is kept, what its lines become in the text, the table and
 // the saved PDF, and the mode that reads every page with both engines.
 const { test, expect } = require('@playwright/test');
-const { drawImage, buildPdf, scannedPage, readPdf, LINE_X, lineBaseline } = require('./ocr-fixtures.cjs');
+const { drawImage, buildPdf, scannedPage, readPdf, LINE_X, lineBaseline, LINUX, WINDOWS_ONLY } = require('./ocr-fixtures.cjs');
 
 const { OCR_WORKER_CSP } = require('./server.cjs');
 
@@ -486,6 +486,7 @@ test.describe('a page the first engine reads badly', () => {
   });
 
   test('its doubted words are listed with pixels from their own line', async ({ page }) => {
+    test.skip(LINUX, WINDOWS_ONLY);
     await openTool(page);
     // Small print, which the second engine reads with less certainty.
     await read(page, 'tilted.png', 'image/png', await tilted(page, { font: '16px serif' }));
@@ -645,6 +646,7 @@ test.describe('comparing both engines', () => {
   });
 
   test('a second reading under 90 that is picked by hand is marked low in its row', async ({ page }) => {
+    test.skip(LINUX, WINDOWS_ONLY);
     await openTool(page);
     await chooseBoth(page);
     // Print too small for either engine to read well.

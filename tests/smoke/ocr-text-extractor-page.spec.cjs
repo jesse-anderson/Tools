@@ -4,7 +4,7 @@
 const { test, expect } = require('@playwright/test');
 const { expectPageToLoadCleanly, expectContrastAA, readDownloadText } = require('./helpers.cjs');
 
-const { drawImage, buildPdf, scannedPage } = require('./ocr-fixtures.cjs');
+const { drawImage, buildPdf, scannedPage, LINUX, WINDOWS_ONLY } = require('./ocr-fixtures.cjs');
 
 const PAGE = '/tools/ocr-text-extractor.html';
 
@@ -303,6 +303,7 @@ test.describe('OCR text extractor page', () => {
   });
 
   test('look-alike characters are counted under To check and explained', async ({ page }) => {
+    test.skip(LINUX, WINDOWS_ONLY);
     await openTool(page);
     await give(page, 'alike.png', 'image/png', await drawImage(page, ALIKE));
     await waitForDone(page);

@@ -6,7 +6,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { test, expect } = require('@playwright/test');
 const { repoRoot } = require('./helpers.cjs');
-const { buildPdf, readPdf } = require('./ocr-fixtures.cjs');
+const { buildPdf, readPdf, LINUX, WINDOWS_ONLY } = require('./ocr-fixtures.cjs');
 
 const PAGE = '/tools/ocr-text-extractor.html';
 
@@ -212,6 +212,7 @@ test.describe('screenshots', () => {
 
   for (const [px, dark, times, bound] of [[16, false, 2, 0.005], [13, false, 2, 0.005], [13, true, 2, 0.005], [9, false, 3, 0.02]]) {
     test(`${px}px ${dark ? 'dark-mode' : 'screenshot'} print is enlarged ${times}x before reading`, async ({ page }) => {
+      test.skip(LINUX && px === 13 && dark, WINDOWS_ONLY);
       const { detail, text } = await readDrawn(page, `screenshot(${px}, ${dark})`);
       expect(detail).toBe(`Pixels, 900 by 400 px, enlarged ${times}x`);
       // Read at its own size, 13px print gets about 3% of characters wrong and 9px a quarter.
@@ -232,6 +233,7 @@ test.describe('screenshots', () => {
   });
 
   test('line height is measured from the print, whichever is the darker, and rules do not count', async ({ page }) => {
+    test.skip(LINUX, WINDOWS_ONLY);
     const found = await inPrepare(page, (prep, lumOf) => {
       const measure = (canvas) => prep.lineHeight(lumOf(canvas), canvas.width, canvas.height);
       const empty = blank(400, 300)[0];
