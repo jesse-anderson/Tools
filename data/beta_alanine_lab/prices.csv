@@ -1,0 +1,21 @@
+tier,product,grams,price_usd,usd_per_gram,vendor,observed,role,date,note
+budget powder,Nutricost Beta Alanine 300 g,300,14.95,0.0498,Amazon,"user, checked by hand",baseline,2026-11-14,
+budget powder,Nutricost Beta Alanine 500 g x2,1000,41.95,0.0420,Amazon,"user, checked by hand",baseline,2026-11-14,"listed as 1.1 lb, pack of 2"
+carnosyn powder,NOW Sports Beta-Alanine 500 g,500,29.40,0.0588,Amazon,"user, checked by hand",baseline,2026-11-14,sale price
+carnosyn powder,NOW Sports Beta-Alanine 500 g,500,49.99,0.1000,Amazon,"user, checked by hand",baseline,2026-11-14,usual (list) price
+carnosyn powder,NOW Sports Beta-Alanine 500 g,500,29.40,0.0588,iHerb,"user, checked by hand",baseline,2026-11-14,
+carnosyn powder,NOW Sports Beta-Alanine 500 g,500,38.89,0.0778,Swanson,"user, checked by hand",baseline,2026-11-14,
+carnosyn powder,NOW Sports Beta-Alanine 500 g,500,30.58,0.0612,(user's last purchase),"user, checked by hand",baseline,2026-11-14,earlier purchase
+budget powder,Nutricost Beta Alanine 500 g,500,19.95,0.0399,Walmart,"web search result, date often unknown",context,2026-11-14,
+budget powder,Nutricost Beta Alanine 500 g,500,19.95,0.0399,Vitacost,"web search result, date often unknown",context,2026-11-14,
+budget powder,Nutricost Beta Alanine 500 g,500,21.97,0.0439,nutricost.com,"web search result, date often unknown",context,2026-11-14,size not stated; probably 500 g
+budget powder,Nutricost Beta Alanine 500 g,500,26.00,0.0520,reach.dog,"web search result, date often unknown",context,2026-11-14,
+budget powder,Nutricost Beta Alanine 500 g,500,29.99,0.0600,Target,"web search result, date often unknown",context,2026-11-14,top of a sponsored range
+budget powder,Nutricost Beta Alanine 500 g x2,1000,55.00,0.0550,reach.dog,"web search result, date often unknown",context,2026-11-14,
+carnosyn powder,NOW Sports Beta-Alanine 500 g,500,21.27,0.0425,Amazon,"web search result, date often unknown",context,2026-11-14,Subscribe & Save
+carnosyn powder,NOW Sports Beta-Alanine 500 g,500,23.63,0.0473,Amazon,"web search result, date often unknown",context,2026-11-14,"camelcamelcamel, Jul 20 2026"
+carnosyn powder,NOW Sports Beta-Alanine 500 g,500,29.99,0.0600,Muscle & Strength,"web search result, date often unknown",context,2026-11-14,limited-time offer
+carnosyn powder,NOW Sports Beta-Alanine 500 g,500,31.32,0.0626,Walmart,"web search result, date often unknown",context,2026-11-14,"2-pack $62.64, per bottle"
+carnosyn powder,NOW Sports Beta-Alanine 500 g,500,36.75,0.0735,Vitacost,"web search result, date often unknown",context,2026-11-14,
+carnosyn powder,NOW Sports Beta-Alanine 500 g,500,38.59,0.0772,eBay (iHerb seller),"web search result, date often unknown",context,2026-11-14,
+carnosyn powder,NOW Sports Beta-Alanine 500 g,500,39.63,0.0793,Target,"web search result, date often unknown",context,2026-11-14,sale
