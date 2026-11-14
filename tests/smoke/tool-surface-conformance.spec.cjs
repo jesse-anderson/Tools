@@ -54,14 +54,8 @@ test('.disclaimer-card is always the shared component, never a div wearing its n
   ).toEqual([]);
 });
 
-// Both files re-declare the accents with shared.css's own dark values, so those pages
-// ship dark accents in light theme. Deleting the duplicates fixes it and changes
-// nothing in dark theme; held pending the maintainer's call on two Active tools.
 // Add a file here only with a comment saying why and what removes it.
-const KNOWN_UNCORRECTED_ROOT_OVERRIDES = new Map([
-  ['css/duckdb_playground/duckdb-base.css', ['--accent-error', '--accent-error-dim', '--accent-success', '--accent-success-dim', '--accent-warning', '--accent-warning-dim']],
-  ['css/psychrometric/base-chart.css', ['--accent-error', '--accent-success', '--accent-warning']],
-]);
+const KNOWN_UNCORRECTED_ROOT_OVERRIDES = new Map([]);
 
 function sharedRootVars() {
   const shared = read('css/shared.css');

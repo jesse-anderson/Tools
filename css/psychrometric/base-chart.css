@@ -13,12 +13,6 @@
     --border-color: #2d3748;
     --accent-primary: #06b6d4;
     --accent-primary-dim: rgba(6, 182, 212, 0.15);
-    --accent-success: #22c55e;
-    --accent-success-dim: rgba(34, 197, 94, 0.15);
-    --accent-warning: #eab308;
-    --accent-warning-dim: rgba(234, 179, 8, 0.15);
-    --accent-error: #ef4444;
-    --accent-error-dim: rgba(239, 68, 68, 0.15);
     --accent-info: #8b5cf6;
     --accent-info-dim: rgba(139, 92, 246, 0.15);
     --accent-secondary: #6366f1;
@@ -48,10 +42,6 @@
     --accent-error-dim: rgba(239, 68, 68, 0.1);
     --accent-info-dim: rgba(139, 92, 246, 0.1);
     --shadow-lg: 0 10px 40px rgba(0, 0, 0, 0.1);
-
-    /* This file's lighter --accent-warning leaves the title at 4.47:1 under
-       shared.css's 60% darkening, 0.03 short of AA. 45% clears it. */
-    --disclaimer-accent: color-mix(in srgb, var(--accent-warning) 45%, #000);
 }
 
 /* This file's --text-secondary clears AA on white cards and measures 4.3:1 on
