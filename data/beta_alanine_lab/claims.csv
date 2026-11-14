@@ -1,0 +1,34 @@
+claim_id,topic,claim,value,source_id,location,use
+model_form,model,"Carnosine rise follows dR/dt = kf - kd R, kf first order in daily dose, decay first order in carnosine",,spelnikov2019,"Eqs. 1-7",engine
+kf_reference,model,"kf 0.1942, 0.3411, 0.6161 mmol/kg dm/day at 1.6, 3.2, 6.4 g/day (slope 0.1008), with an assumed t1/2 of 52 d",0.1008,spelnikov2019,Table 1; Fig. 4,audit trail
+kf_high_dose_sublinear,model,"At 12 g/day kf was 0.9473 against 0.7657 at 6 g/day, less than double; possible transport or synthase limit",,spelnikov2019,Discussion (Church 2017 data),studied-range flag above 6.4 g/day
+wet_to_dry,units,"MRS mmol/kg wet weight converted to mmol/kg dry muscle by x4.3 (Bergstrom 1962)",4.3,spelnikov2019,MCarn synthesis,engine; grams view
+form_equivalent,form,"Chronic sustained-release and plain beta-alanine seem equally effective for muscle carnosine",,stegen2013,Abstract,no form factor in the model
+meal_effect,form,"Soleus carnosine rose +64% with meals against +41% between meals (plain beta-alanine)",,stegen2013,Abstract,sentence only; one MRS study and one muscle
+incorporation,mass balance,"About 3% of ingested beta-alanine is incorporated into muscle carnosine",0.03,stegen2013,Abstract,grams view sanity check
+incorporation_yamaguchi,mass balance,"Beta-alanine to carnosine conversion 4.4% +/- 2.0%, assuming 40% of body mass is muscle and 70% of muscle is water",0.044,yamaguchi2021,Results,grams view sanity check
+retention,mass balance,"Whole-body retention 98.9% sustained release vs 96.3% plain (1.6 g single dose)",,decombaz2012,Abstract,audit trail
+tingle_40,tingling,"40 mg/kg plain beta-alanine in solution: quick, unpleasant flushing symptoms",40,harris2006,Results; Table 1,tingling band
+tingle_20,tingling,"20 mg/kg: symptoms evident, less intense",20,harris2006,Results; Table 1,tingling band
+tingle_10,tingling,"10 mg/kg: mild symptoms in 2 of 4 subjects",10,harris2006,Results; Table 1,tingling band
+tingle_800mg,tingling,"Fixed 800 mg (about 10 mg/kg) in over 50 subjects: about 25% incidence, mild to very mild",0.8,harris2006,Results,tingling band
+tingle_broth,tingling,"Chicken broth with 40 mg/kg equivalent beta-alanine: no symptoms",,harris2006,Results,audit trail
+plasma_peak,tingling,"Plasma peak 30-40 min after 10-40 mg/kg; back to baseline by about 2 h (40 mg/kg)",,harris2006,Abstract; Results,audit trail
+tingle_sr,tingling,"1.6 g as sustained-release tablets: symptoms not different from placebo; peak 82 vs 248 umol/L, time to peak 1.0 vs 0.5 h",1.6,decombaz2012,Abstract,tingling band for sustained release
+tingle_800_common,tingling,"Oral doses larger than 800 mg commonly result in unpleasant paresthesia",0.8,decombaz2012,Abstract,tingling band
+tingle_12g_sr,tingling,"12 g/day as four 1 g sustained-release tablets three times daily: no difference in paresthesia between groups",,church2017,Abstract,tingling band for sustained release
+issn_dose,dosing,"A chronic loading dose of 4 to 6 g daily in divided doses of 2 g or less, for a minimum of two weeks",,trexler2015,Position statements; Dosing,audit trail
+issn_split,dosing,"Paresthesia can be attenuated by divided lower doses (1.6 g) or a sustained-release formula",1.6,trexler2015,Position statements,tingling band
+issn_safety,safety,"Supplementation currently appears to be safe in healthy populations at recommended doses; the only reported side effect is paresthesia",,trexler2015,Position statements,disclaimer sentence
+maintenance,dosing,"About 1.2 g/day kept carnosine elevated 30-50% above baseline for six weeks after a 46 d loading phase at 3.2 g/day; 0.4 and 0.8 g/day were less effective",1.2,stegen2014,Abstract,low-dose preset
+sex_absolute,baseline,"Sex and body mass had only minimal effect on the absolute rise; women's lower baseline gives a larger relative rise",,stegen2014,Abstract,preset note
+baseline_default,baseline,"Baseline 22.9 +/- 8.7 mmol/kg dm (individual data, mostly men, 6.4 g/day studies)",22.9,rezende2020,Results,default baseline
+baseline_no_effect,baseline,"Baseline carnosine not associated with the change (-0.1, 95% CrI -0.3 to 0.1); no substantive sex effect",,rezende2020,Results,preset note
+response_sd,variation,"Intervention response SD 6.6 mmol/kg dm (95% CrI 3.4-9.4) around a 4-week mean rise of 14.0 (10.1-18.1)",6.6,rezende2020,Results,individual spread in the band
+placebo_variation,variation,"Typical variation without supplementation about 4.1 mmol/kg dm (95% CrI 3.4-5.1)",4.1,rezende2020,Results,normal-variation strip
+women_vl,baseline,"Vastus lateralis 17.5 +/- 4.8 mmol/kg dm in women, 21.3 +/- 4.2 in men (Mannion 1992, as cited)",17.5,harris2006,Introduction,women preset
+women_calf,baseline,"Men 36%, 28% and 82% higher than women in soleus, gastrocnemius and tibialis anterior (1H-MRS)",,everaert2011,Abstract,women preset cross-check
+vegetarian,baseline,"Vegetarians 26% lower carnosine in gastrocnemius than omnivores",0.26,everaert2011,Abstract,vegetarian preset
+age,baseline,"Soleus carnosine negatively related to age; no percent given for healthy adults",,everaert2011,Abstract,no age preset (no sourced figure)
+saunders_max,loading,"Maximal rise +25.66 +/- 7.63 mmol/kg dm (range +17.13 to +41.32) over 24 wk; time to maximum 18 +/- 6 wk",25.66,saunders2017,Results,audit trail
+washout_baguet_split,washout,"High responders back to baseline in about 15 wk, low responders in about 6.5 wk",,baguet2009,Abstract; Results,audit trail

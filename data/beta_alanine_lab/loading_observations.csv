@@ -1,0 +1,21 @@
+source_id,arm,muscle,method,form,schedule,day,rise_mmol_kg_dm,sd_mmol_kg_dm,role,location,note
+saunders2017,6.4 g/d 24 wk,VL,HPLC biopsy,sustained release,0-168:6.4,28,11.37,7.03,fit,"Results, Muscle carnosine","Two 800 mg tablets 4x/day at 3-4 h"
+saunders2017,6.4 g/d 24 wk,VL,HPLC biopsy,sustained release,0-168:6.4,56,13.88,7.84,fit,"Results, Muscle carnosine",
+saunders2017,6.4 g/d 24 wk,VL,HPLC biopsy,sustained release,0-168:6.4,84,16.95,8.54,fit,"Results, Muscle carnosine",
+saunders2017,6.4 g/d 24 wk,VL,HPLC biopsy,sustained release,0-168:6.4,112,17.63,8.42,fit,"Results, Muscle carnosine",
+saunders2017,6.4 g/d 24 wk,VL,HPLC biopsy,sustained release,0-168:6.4,140,21.20,7.86,fit,"Results, Muscle carnosine",
+saunders2017,6.4 g/d 24 wk,VL,HPLC biopsy,sustained release,0-168:6.4,168,20.15,7.63,fit,"Results, Muscle carnosine",
+hill2007,ramp to 6.4 g/d,VL,HPLC biopsy,plain,0-7:4.0;7-14:4.8;14-21:5.6;21-70:6.4,28,10.2,,fit,"Results; Table 2 dosing","19.9 to 30.1. Table 2 read as weeks 1, 2, 3 at 4.0, 4.8, 5.6 g/d and 6.4 g/d from week 4; Rezende Table 1 lists one more week at 6.4"
+hill2007,ramp to 6.4 g/d,VL,HPLC biopsy,plain,0-7:4.0;7-14:4.8;14-21:5.6;21-70:6.4,70,14.8,3.7,fit,"Results","19.9 to 34.7; 8 divided doses per day"
+harris2006,3.2 g/d,VL,HPLC biopsy,plain,0-28:3.2,28,7.80,,fit,"Rezende Table 1 (19.58 to 27.38); also cited by Stellingwerff 2012","800 mg 4x/day at about 9, 12, 15 and 18 h"
+harris2006,ramp avg 5.2 g/d,VL,HPLC biopsy,plain,0-28:5.2,28,11.14,,fit,"Rezende Table 1 (24.23 to 35.37); also cited by Stellingwerff 2012","145.6 g in 28 d as a 4.0 to 6.4 g/d weekly ramp of 400 and 800 mg doses; modeled at its 5.2 g/d average"
+stellingwerff2012,low-low 1.6 g/d,GA+TA mean,1H-MRS x4.3,sustained release,0-56:1.6,14,2.67,,fit,"Spelnikov 2019 Table 1 (wet x 4.3, Bergstrom 1962)","2 x 800 mg tablets twice daily with meals for 3.2 g/d; one tablet twice daily for 1.6 g/d"
+stellingwerff2012,low-low 1.6 g/d,GA+TA mean,1H-MRS x4.3,sustained release,0-56:1.6,28,4.28,,fit,"Spelnikov 2019 Table 1",
+stellingwerff2012,low-low 1.6 g/d,GA+TA mean,1H-MRS x4.3,sustained release,0-56:1.6,56,7.525,,fit,"Spelnikov 2019 Table 1",
+stellingwerff2012,high-low 3.2 g/d,GA+TA mean,1H-MRS x4.3,sustained release,0-28:3.2,14,4.19,,fit,"Spelnikov 2019 Table 1",
+stellingwerff2012,high-low 3.2 g/d,GA+TA mean,1H-MRS x4.3,sustained release,0-28:3.2,28,8.28,,fit,"Spelnikov 2019 Table 1",
+church2017,6 g/d 28 d,VL,HPLC biopsy,sustained release,0-28:6,28,17.9,19.3,fit,"Spelnikov 2019 Discussion (recalculated to dm)","Two 1 g tablets 3x/day"
+church2017,12 g/d 14 d,VL,HPLC biopsy,sustained release,0-14:12,14,12.1,12.9,check,"Spelnikov 2019 Discussion (recalculated to dm)","Four 1 g tablets 3x/day; above the dose range the linear kf holds for (Spelnikov), so a check, not a fit point"
+harris2009,6.4 g/d 28 d,VL,HPLC biopsy,sustained release,0-28:6.4,28,15.40,,fit,"Spelnikov 2019 Table 1","Conference abstract, not archived; value as tabulated by Spelnikov"
+rezende2020,individual data 6.4 g/d,VL,HPLC biopsy,mixed,0-28:6.4,28,14.0,6.6,check,"Results, Individual Data","95% CrI 10.1-18.1; SD is the intervention response SD"
+yamaguchi2021,6.4 g/d 8 wk,VL,HPLC biopsy,sustained release,0-56:6.4,56,16.5,,check,"Abstract (+91.1%) and Methods (POST 34.66)","Derived: 34.66 - 34.66/1.911; a ratio of means, so a check only"

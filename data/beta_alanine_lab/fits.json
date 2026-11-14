@@ -1,0 +1,1031 @@
+{
+  "model": "dR/dt = slope * dose - kd * R, R in mmol/kg dry muscle, dose in g/day",
+  "wet_to_dry": 4.3,
+  "fits": {
+    "saunders2017": {
+      "yamaguchi2021": {
+        "low": {
+          "half_life_days": 22.4,
+          "kd_per_day": 0.030944,
+          "slope": 0.09296,
+          "rms_mmol_kg_dm": 1.389
+        },
+        "central": {
+          "half_life_days": 32.2,
+          "kd_per_day": 0.021526,
+          "slope": 0.07005,
+          "rms_mmol_kg_dm": 1.17
+        },
+        "high": {
+          "half_life_days": 49.0,
+          "kd_per_day": 0.014146,
+          "slope": 0.05274,
+          "rms_mmol_kg_dm": 1.73
+        }
+      },
+      "baguet2009": {
+        "low": {
+          "half_life_days": 35.0,
+          "kd_per_day": 0.019804,
+          "slope": 0.06594,
+          "rms_mmol_kg_dm": 1.228
+        },
+        "central": {
+          "half_life_days": 40.5,
+          "kd_per_day": 0.017115,
+          "slope": 0.0596,
+          "rms_mmol_kg_dm": 1.409
+        },
+        "high": {
+          "half_life_days": 46.0,
+          "kd_per_day": 0.015068,
+          "slope": 0.05485,
+          "rms_mmol_kg_dm": 1.617
+        }
+      },
+      "stellingwerff2012": {
+        "low": {
+          "half_life_days": 42.0,
+          "kd_per_day": 0.016504,
+          "slope": 0.05817,
+          "rms_mmol_kg_dm": 1.465
+        },
+        "central": {
+          "half_life_days": 46.0,
+          "kd_per_day": 0.015068,
+          "slope": 0.05485,
+          "rms_mmol_kg_dm": 1.617
+        },
+        "high": {
+          "half_life_days": 50.0,
+          "kd_per_day": 0.013863,
+          "slope": 0.05209,
+          "rms_mmol_kg_dm": 1.766
+        }
+      },
+      "harris2009": {
+        "low": {
+          "half_life_days": 60.0,
+          "kd_per_day": 0.011552,
+          "slope": 0.04689,
+          "rms_mmol_kg_dm": 2.103
+        },
+        "central": {
+          "half_life_days": 60.0,
+          "kd_per_day": 0.011552,
+          "slope": 0.04689,
+          "rms_mmol_kg_dm": 2.103
+        },
+        "high": {
+          "half_life_days": 60.0,
+          "kd_per_day": 0.011552,
+          "slope": 0.04689,
+          "rms_mmol_kg_dm": 2.103
+        }
+      }
+    },
+    "hill2007": {
+      "yamaguchi2021": {
+        "low": {
+          "half_life_days": 22.4,
+          "kd_per_day": 0.030944,
+          "slope": 0.08739,
+          "rms_mmol_kg_dm": 1.09
+        },
+        "central": {
+          "half_life_days": 32.2,
+          "kd_per_day": 0.021526,
+          "slope": 0.07144,
+          "rms_mmol_kg_dm": 1.714
+        },
+        "high": {
+          "half_life_days": 49.0,
+          "kd_per_day": 0.014146,
+          "slope": 0.05961,
+          "rms_mmol_kg_dm": 2.249
+        }
+      },
+      "baguet2009": {
+        "low": {
+          "half_life_days": 35.0,
+          "kd_per_day": 0.019804,
+          "slope": 0.06862,
+          "rms_mmol_kg_dm": 1.836
+        },
+        "central": {
+          "half_life_days": 40.5,
+          "kd_per_day": 0.017115,
+          "slope": 0.06428,
+          "rms_mmol_kg_dm": 2.03
+        },
+        "high": {
+          "half_life_days": 46.0,
+          "kd_per_day": 0.015068,
+          "slope": 0.06105,
+          "rms_mmol_kg_dm": 2.18
+        }
+      },
+      "stellingwerff2012": {
+        "low": {
+          "half_life_days": 42.0,
+          "kd_per_day": 0.016504,
+          "slope": 0.06331,
+          "rms_mmol_kg_dm": 2.075
+        },
+        "central": {
+          "half_life_days": 46.0,
+          "kd_per_day": 0.015068,
+          "slope": 0.06105,
+          "rms_mmol_kg_dm": 2.18
+        },
+        "high": {
+          "half_life_days": 50.0,
+          "kd_per_day": 0.013863,
+          "slope": 0.05917,
+          "rms_mmol_kg_dm": 2.27
+        }
+      },
+      "harris2009": {
+        "low": {
+          "half_life_days": 60.0,
+          "kd_per_day": 0.011552,
+          "slope": 0.05564,
+          "rms_mmol_kg_dm": 2.444
+        },
+        "central": {
+          "half_life_days": 60.0,
+          "kd_per_day": 0.011552,
+          "slope": 0.05564,
+          "rms_mmol_kg_dm": 2.444
+        },
+        "high": {
+          "half_life_days": 60.0,
+          "kd_per_day": 0.011552,
+          "slope": 0.05564,
+          "rms_mmol_kg_dm": 2.444
+        }
+      }
+    },
+    "harris2006": {
+      "yamaguchi2021": {
+        "low": {
+          "half_life_days": 22.4,
+          "kd_per_day": 0.030944,
+          "slope": 0.11871,
+          "rms_mmol_kg_dm": 0.569
+        },
+        "central": {
+          "half_life_days": 32.2,
+          "kd_per_day": 0.021526,
+          "slope": 0.10573,
+          "rms_mmol_kg_dm": 0.569
+        },
+        "high": {
+          "half_life_days": 49.0,
+          "kd_per_day": 0.014146,
+          "slope": 0.09617,
+          "rms_mmol_kg_dm": 0.569
+        }
+      },
+      "baguet2009": {
+        "low": {
+          "half_life_days": 35.0,
+          "kd_per_day": 0.019804,
+          "slope": 0.10345,
+          "rms_mmol_kg_dm": 0.569
+        },
+        "central": {
+          "half_life_days": 40.5,
+          "kd_per_day": 0.017115,
+          "slope": 0.09995,
+          "rms_mmol_kg_dm": 0.569
+        },
+        "high": {
+          "half_life_days": 46.0,
+          "kd_per_day": 0.015068,
+          "slope": 0.09733,
+          "rms_mmol_kg_dm": 0.569
+        }
+      },
+      "stellingwerff2012": {
+        "low": {
+          "half_life_days": 42.0,
+          "kd_per_day": 0.016504,
+          "slope": 0.09916,
+          "rms_mmol_kg_dm": 0.569
+        },
+        "central": {
+          "half_life_days": 46.0,
+          "kd_per_day": 0.015068,
+          "slope": 0.09733,
+          "rms_mmol_kg_dm": 0.569
+        },
+        "high": {
+          "half_life_days": 50.0,
+          "kd_per_day": 0.013863,
+          "slope": 0.09581,
+          "rms_mmol_kg_dm": 0.569
+        }
+      },
+      "harris2009": {
+        "low": {
+          "half_life_days": 60.0,
+          "kd_per_day": 0.011552,
+          "slope": 0.09294,
+          "rms_mmol_kg_dm": 0.569
+        },
+        "central": {
+          "half_life_days": 60.0,
+          "kd_per_day": 0.011552,
+          "slope": 0.09294,
+          "rms_mmol_kg_dm": 0.569
+        },
+        "high": {
+          "half_life_days": 60.0,
+          "kd_per_day": 0.011552,
+          "slope": 0.09294,
+          "rms_mmol_kg_dm": 0.569
+        }
+      }
+    },
+    "stellingwerff2012": {
+      "yamaguchi2021": {
+        "low": {
+          "half_life_days": 22.4,
+          "kd_per_day": 0.030944,
+          "slope": 0.14404,
+          "rms_mmol_kg_dm": 0.796
+        },
+        "central": {
+          "half_life_days": 32.2,
+          "kd_per_day": 0.021526,
+          "slope": 0.12759,
+          "rms_mmol_kg_dm": 0.542
+        },
+        "high": {
+          "half_life_days": 49.0,
+          "kd_per_day": 0.014146,
+          "slope": 0.11472,
+          "rms_mmol_kg_dm": 0.336
+        }
+      },
+      "baguet2009": {
+        "low": {
+          "half_life_days": 35.0,
+          "kd_per_day": 0.019804,
+          "slope": 0.12459,
+          "rms_mmol_kg_dm": 0.493
+        },
+        "central": {
+          "half_life_days": 40.5,
+          "kd_per_day": 0.017115,
+          "slope": 0.1199,
+          "rms_mmol_kg_dm": 0.416
+        },
+        "high": {
+          "half_life_days": 46.0,
+          "kd_per_day": 0.015068,
+          "slope": 0.11633,
+          "rms_mmol_kg_dm": 0.36
+        }
+      },
+      "stellingwerff2012": {
+        "low": {
+          "half_life_days": 42.0,
+          "kd_per_day": 0.016504,
+          "slope": 0.11883,
+          "rms_mmol_kg_dm": 0.399
+        },
+        "central": {
+          "half_life_days": 46.0,
+          "kd_per_day": 0.015068,
+          "slope": 0.11633,
+          "rms_mmol_kg_dm": 0.36
+        },
+        "high": {
+          "half_life_days": 50.0,
+          "kd_per_day": 0.013863,
+          "slope": 0.11423,
+          "rms_mmol_kg_dm": 0.329
+        }
+      },
+      "harris2009": {
+        "low": {
+          "half_life_days": 60.0,
+          "kd_per_day": 0.011552,
+          "slope": 0.1102,
+          "rms_mmol_kg_dm": 0.276
+        },
+        "central": {
+          "half_life_days": 60.0,
+          "kd_per_day": 0.011552,
+          "slope": 0.1102,
+          "rms_mmol_kg_dm": 0.276
+        },
+        "high": {
+          "half_life_days": 60.0,
+          "kd_per_day": 0.011552,
+          "slope": 0.1102,
+          "rms_mmol_kg_dm": 0.276
+        }
+      }
+    },
+    "church2017": {
+      "yamaguchi2021": {
+        "low": {
+          "half_life_days": 22.4,
+          "kd_per_day": 0.030944,
+          "slope": 0.15929,
+          "rms_mmol_kg_dm": 0.0
+        },
+        "central": {
+          "half_life_days": 32.2,
+          "kd_per_day": 0.021526,
+          "slope": 0.14186,
+          "rms_mmol_kg_dm": 0.0
+        },
+        "high": {
+          "half_life_days": 49.0,
+          "kd_per_day": 0.014146,
+          "slope": 0.12904,
+          "rms_mmol_kg_dm": 0.0
+        }
+      },
+      "baguet2009": {
+        "low": {
+          "half_life_days": 35.0,
+          "kd_per_day": 0.019804,
+          "slope": 0.13881,
+          "rms_mmol_kg_dm": 0.0
+        },
+        "central": {
+          "half_life_days": 40.5,
+          "kd_per_day": 0.017115,
+          "slope": 0.13411,
+          "rms_mmol_kg_dm": 0.0
+        },
+        "high": {
+          "half_life_days": 46.0,
+          "kd_per_day": 0.015068,
+          "slope": 0.1306,
+          "rms_mmol_kg_dm": 0.0
+        }
+      },
+      "stellingwerff2012": {
+        "low": {
+          "half_life_days": 42.0,
+          "kd_per_day": 0.016504,
+          "slope": 0.13305,
+          "rms_mmol_kg_dm": 0.0
+        },
+        "central": {
+          "half_life_days": 46.0,
+          "kd_per_day": 0.015068,
+          "slope": 0.1306,
+          "rms_mmol_kg_dm": 0.0
+        },
+        "high": {
+          "half_life_days": 50.0,
+          "kd_per_day": 0.013863,
+          "slope": 0.12856,
+          "rms_mmol_kg_dm": 0.0
+        }
+      },
+      "harris2009": {
+        "low": {
+          "half_life_days": 60.0,
+          "kd_per_day": 0.011552,
+          "slope": 0.12471,
+          "rms_mmol_kg_dm": 0.0
+        },
+        "central": {
+          "half_life_days": 60.0,
+          "kd_per_day": 0.011552,
+          "slope": 0.12471,
+          "rms_mmol_kg_dm": 0.0
+        },
+        "high": {
+          "half_life_days": 60.0,
+          "kd_per_day": 0.011552,
+          "slope": 0.12471,
+          "rms_mmol_kg_dm": 0.0
+        }
+      }
+    },
+    "harris2009": {
+      "yamaguchi2021": {
+        "low": {
+          "half_life_days": 22.4,
+          "kd_per_day": 0.030944,
+          "slope": 0.12848,
+          "rms_mmol_kg_dm": 0.0
+        },
+        "central": {
+          "half_life_days": 32.2,
+          "kd_per_day": 0.021526,
+          "slope": 0.11442,
+          "rms_mmol_kg_dm": 0.0
+        },
+        "high": {
+          "half_life_days": 49.0,
+          "kd_per_day": 0.014146,
+          "slope": 0.10408,
+          "rms_mmol_kg_dm": 0.0
+        }
+      },
+      "baguet2009": {
+        "low": {
+          "half_life_days": 35.0,
+          "kd_per_day": 0.019804,
+          "slope": 0.11196,
+          "rms_mmol_kg_dm": 0.0
+        },
+        "central": {
+          "half_life_days": 40.5,
+          "kd_per_day": 0.017115,
+          "slope": 0.10817,
+          "rms_mmol_kg_dm": 0.0
+        },
+        "high": {
+          "half_life_days": 46.0,
+          "kd_per_day": 0.015068,
+          "slope": 0.10534,
+          "rms_mmol_kg_dm": 0.0
+        }
+      },
+      "stellingwerff2012": {
+        "low": {
+          "half_life_days": 42.0,
+          "kd_per_day": 0.016504,
+          "slope": 0.10732,
+          "rms_mmol_kg_dm": 0.0
+        },
+        "central": {
+          "half_life_days": 46.0,
+          "kd_per_day": 0.015068,
+          "slope": 0.10534,
+          "rms_mmol_kg_dm": 0.0
+        },
+        "high": {
+          "half_life_days": 50.0,
+          "kd_per_day": 0.013863,
+          "slope": 0.10369,
+          "rms_mmol_kg_dm": 0.0
+        }
+      },
+      "harris2009": {
+        "low": {
+          "half_life_days": 60.0,
+          "kd_per_day": 0.011552,
+          "slope": 0.10058,
+          "rms_mmol_kg_dm": 0.0
+        },
+        "central": {
+          "half_life_days": 60.0,
+          "kd_per_day": 0.011552,
+          "slope": 0.10058,
+          "rms_mmol_kg_dm": 0.0
+        },
+        "high": {
+          "half_life_days": 60.0,
+          "kd_per_day": 0.011552,
+          "slope": 0.10058,
+          "rms_mmol_kg_dm": 0.0
+        }
+      }
+    }
+  },
+  "checks": {
+    "linear_stellingwerff": [
+      {
+        "loading": "saunders2017",
+        "washout": "yamaguchi2021",
+        "rise_per_100g": 4.892,
+        "target_low_central_high": [
+          7.869,
+          8.643,
+          9.417
+        ],
+        "must_pass": false,
+        "passes": false
+      },
+      {
+        "loading": "saunders2017",
+        "washout": "baguet2009",
+        "rise_per_100g": 4.452,
+        "target_low_central_high": [
+          7.869,
+          8.643,
+          9.417
+        ],
+        "must_pass": false,
+        "passes": false
+      },
+      {
+        "loading": "saunders2017",
+        "washout": "stellingwerff2012",
+        "rise_per_100g": 4.232,
+        "target_low_central_high": [
+          7.869,
+          8.643,
+          9.417
+        ],
+        "must_pass": false,
+        "passes": false
+      },
+      {
+        "loading": "saunders2017",
+        "washout": "harris2009",
+        "rise_per_100g": 3.83,
+        "target_low_central_high": [
+          7.869,
+          8.643,
+          9.417
+        ],
+        "must_pass": false,
+        "passes": false
+      },
+      {
+        "loading": "hill2007",
+        "washout": "yamaguchi2021",
+        "rise_per_100g": 4.989,
+        "target_low_central_high": [
+          7.869,
+          8.643,
+          9.417
+        ],
+        "must_pass": false,
+        "passes": false
+      },
+      {
+        "loading": "hill2007",
+        "washout": "baguet2009",
+        "rise_per_100g": 4.802,
+        "target_low_central_high": [
+          7.869,
+          8.643,
+          9.417
+        ],
+        "must_pass": false,
+        "passes": false
+      },
+      {
+        "loading": "hill2007",
+        "washout": "stellingwerff2012",
+        "rise_per_100g": 4.71,
+        "target_low_central_high": [
+          7.869,
+          8.643,
+          9.417
+        ],
+        "must_pass": false,
+        "passes": false
+      },
+      {
+        "loading": "hill2007",
+        "washout": "harris2009",
+        "rise_per_100g": 4.544,
+        "target_low_central_high": [
+          7.869,
+          8.643,
+          9.417
+        ],
+        "must_pass": false,
+        "passes": false
+      },
+      {
+        "loading": "harris2006",
+        "washout": "yamaguchi2021",
+        "rise_per_100g": 7.384,
+        "target_low_central_high": [
+          7.869,
+          8.643,
+          9.417
+        ],
+        "must_pass": false,
+        "passes": false
+      },
+      {
+        "loading": "harris2006",
+        "washout": "baguet2009",
+        "rise_per_100g": 7.466,
+        "target_low_central_high": [
+          7.869,
+          8.643,
+          9.417
+        ],
+        "must_pass": false,
+        "passes": false
+      },
+      {
+        "loading": "harris2006",
+        "washout": "stellingwerff2012",
+        "rise_per_100g": 7.509,
+        "target_low_central_high": [
+          7.869,
+          8.643,
+          9.417
+        ],
+        "must_pass": false,
+        "passes": false
+      },
+      {
+        "loading": "harris2006",
+        "washout": "harris2009",
+        "rise_per_100g": 7.591,
+        "target_low_central_high": [
+          7.869,
+          8.643,
+          9.417
+        ],
+        "must_pass": false,
+        "passes": false
+      },
+      {
+        "loading": "stellingwerff2012",
+        "washout": "yamaguchi2021",
+        "rise_per_100g": 8.911,
+        "target_low_central_high": [
+          7.869,
+          8.643,
+          9.417
+        ],
+        "must_pass": true,
+        "passes": true
+      },
+      {
+        "loading": "stellingwerff2012",
+        "washout": "baguet2009",
+        "rise_per_100g": 8.957,
+        "target_low_central_high": [
+          7.869,
+          8.643,
+          9.417
+        ],
+        "must_pass": true,
+        "passes": true
+      },
+      {
+        "loading": "stellingwerff2012",
+        "washout": "stellingwerff2012",
+        "rise_per_100g": 8.975,
+        "target_low_central_high": [
+          7.869,
+          8.643,
+          9.417
+        ],
+        "must_pass": true,
+        "passes": true
+      },
+      {
+        "loading": "stellingwerff2012",
+        "washout": "harris2009",
+        "rise_per_100g": 9.0,
+        "target_low_central_high": [
+          7.869,
+          8.643,
+          9.417
+        ],
+        "must_pass": true,
+        "passes": true
+      },
+      {
+        "loading": "church2017",
+        "washout": "yamaguchi2021",
+        "rise_per_100g": 9.908,
+        "target_low_central_high": [
+          7.869,
+          8.643,
+          9.417
+        ],
+        "must_pass": false,
+        "passes": false
+      },
+      {
+        "loading": "church2017",
+        "washout": "baguet2009",
+        "rise_per_100g": 10.018,
+        "target_low_central_high": [
+          7.869,
+          8.643,
+          9.417
+        ],
+        "must_pass": false,
+        "passes": false
+      },
+      {
+        "loading": "church2017",
+        "washout": "stellingwerff2012",
+        "rise_per_100g": 10.076,
+        "target_low_central_high": [
+          7.869,
+          8.643,
+          9.417
+        ],
+        "must_pass": false,
+        "passes": false
+      },
+      {
+        "loading": "church2017",
+        "washout": "harris2009",
+        "rise_per_100g": 10.185,
+        "target_low_central_high": [
+          7.869,
+          8.643,
+          9.417
+        ],
+        "must_pass": false,
+        "passes": false
+      },
+      {
+        "loading": "harris2009",
+        "washout": "yamaguchi2021",
+        "rise_per_100g": 7.991,
+        "target_low_central_high": [
+          7.869,
+          8.643,
+          9.417
+        ],
+        "must_pass": false,
+        "passes": true
+      },
+      {
+        "loading": "harris2009",
+        "washout": "baguet2009",
+        "rise_per_100g": 8.08,
+        "target_low_central_high": [
+          7.869,
+          8.643,
+          9.417
+        ],
+        "must_pass": false,
+        "passes": true
+      },
+      {
+        "loading": "harris2009",
+        "washout": "stellingwerff2012",
+        "rise_per_100g": 8.127,
+        "target_low_central_high": [
+          7.869,
+          8.643,
+          9.417
+        ],
+        "must_pass": false,
+        "passes": true
+      },
+      {
+        "loading": "harris2009",
+        "washout": "harris2009",
+        "rise_per_100g": 8.215,
+        "target_low_central_high": [
+          7.869,
+          8.643,
+          9.417
+        ],
+        "must_pass": false,
+        "passes": true
+      }
+    ],
+    "emax_half_dose_6_4": [
+      {
+        "loading": "saunders2017",
+        "washout": "yamaguchi2021",
+        "grams": 206.1,
+        "rezende_50pct_cri": [
+          210,
+          494
+        ]
+      },
+      {
+        "loading": "saunders2017",
+        "washout": "baguet2009",
+        "grams": 259.2,
+        "rezende_50pct_cri": [
+          210,
+          494
+        ]
+      },
+      {
+        "loading": "saunders2017",
+        "washout": "stellingwerff2012",
+        "grams": 294.4,
+        "rezende_50pct_cri": [
+          210,
+          494
+        ]
+      },
+      {
+        "loading": "saunders2017",
+        "washout": "harris2009",
+        "grams": 384.0,
+        "rezende_50pct_cri": [
+          210,
+          494
+        ]
+      },
+      {
+        "loading": "hill2007",
+        "washout": "yamaguchi2021",
+        "grams": 206.1,
+        "rezende_50pct_cri": [
+          210,
+          494
+        ]
+      },
+      {
+        "loading": "hill2007",
+        "washout": "baguet2009",
+        "grams": 259.2,
+        "rezende_50pct_cri": [
+          210,
+          494
+        ]
+      },
+      {
+        "loading": "hill2007",
+        "washout": "stellingwerff2012",
+        "grams": 294.4,
+        "rezende_50pct_cri": [
+          210,
+          494
+        ]
+      },
+      {
+        "loading": "hill2007",
+        "washout": "harris2009",
+        "grams": 384.0,
+        "rezende_50pct_cri": [
+          210,
+          494
+        ]
+      },
+      {
+        "loading": "harris2006",
+        "washout": "yamaguchi2021",
+        "grams": 206.1,
+        "rezende_50pct_cri": [
+          210,
+          494
+        ]
+      },
+      {
+        "loading": "harris2006",
+        "washout": "baguet2009",
+        "grams": 259.2,
+        "rezende_50pct_cri": [
+          210,
+          494
+        ]
+      },
+      {
+        "loading": "harris2006",
+        "washout": "stellingwerff2012",
+        "grams": 294.4,
+        "rezende_50pct_cri": [
+          210,
+          494
+        ]
+      },
+      {
+        "loading": "harris2006",
+        "washout": "harris2009",
+        "grams": 384.0,
+        "rezende_50pct_cri": [
+          210,
+          494
+        ]
+      },
+      {
+        "loading": "stellingwerff2012",
+        "washout": "yamaguchi2021",
+        "grams": 206.1,
+        "rezende_50pct_cri": [
+          210,
+          494
+        ]
+      },
+      {
+        "loading": "stellingwerff2012",
+        "washout": "baguet2009",
+        "grams": 259.2,
+        "rezende_50pct_cri": [
+          210,
+          494
+        ]
+      },
+      {
+        "loading": "stellingwerff2012",
+        "washout": "stellingwerff2012",
+        "grams": 294.4,
+        "rezende_50pct_cri": [
+          210,
+          494
+        ]
+      },
+      {
+        "loading": "stellingwerff2012",
+        "washout": "harris2009",
+        "grams": 384.0,
+        "rezende_50pct_cri": [
+          210,
+          494
+        ]
+      },
+      {
+        "loading": "church2017",
+        "washout": "yamaguchi2021",
+        "grams": 206.1,
+        "rezende_50pct_cri": [
+          210,
+          494
+        ]
+      },
+      {
+        "loading": "church2017",
+        "washout": "baguet2009",
+        "grams": 259.2,
+        "rezende_50pct_cri": [
+          210,
+          494
+        ]
+      },
+      {
+        "loading": "church2017",
+        "washout": "stellingwerff2012",
+        "grams": 294.4,
+        "rezende_50pct_cri": [
+          210,
+          494
+        ]
+      },
+      {
+        "loading": "church2017",
+        "washout": "harris2009",
+        "grams": 384.0,
+        "rezende_50pct_cri": [
+          210,
+          494
+        ]
+      },
+      {
+        "loading": "harris2009",
+        "washout": "yamaguchi2021",
+        "grams": 206.1,
+        "rezende_50pct_cri": [
+          210,
+          494
+        ]
+      },
+      {
+        "loading": "harris2009",
+        "washout": "baguet2009",
+        "grams": 259.2,
+        "rezende_50pct_cri": [
+          210,
+          494
+        ]
+      },
+      {
+        "loading": "harris2009",
+        "washout": "stellingwerff2012",
+        "grams": 294.4,
+        "rezende_50pct_cri": [
+          210,
+          494
+        ]
+      },
+      {
+        "loading": "harris2009",
+        "washout": "harris2009",
+        "grams": 384.0,
+        "rezende_50pct_cri": [
+          210,
+          494
+        ]
+      }
+    ],
+    "observations": [
+      {
+        "source_id": "church2017",
+        "arm": "12 g/d 14 d",
+        "observed": 12.1,
+        "model_min": 7.27,
+        "model_max": 20.58
+      },
+      {
+        "source_id": "rezende2020",
+        "arm": "individual data 6.4 g/d",
+        "observed": 14.0,
+        "model_min": 7.18,
+        "model_max": 19.09
+      },
+      {
+        "source_id": "yamaguchi2021",
+        "arm": "6.4 g/d 8 wk",
+        "observed": 16.5,
+        "model_min": 12.37,
+        "model_max": 32.91
+      }
+    ]
+  }
+}

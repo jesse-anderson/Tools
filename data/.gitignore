@@ -47,3 +47,7 @@
 !milk_fat_calculator/
 !milk_fat_calculator/README.md
 !milk_fat_calculator/*.csv
+!beta_alanine_lab/
+!beta_alanine_lab/README.md
+!beta_alanine_lab/*.csv
+!beta_alanine_lab/*.json
