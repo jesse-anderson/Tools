@@ -454,12 +454,35 @@ function loadProjects() {
 function applyPreset(id) {
     const preset = PRESETS_BY_ID[id];
     if (!preset) { showLesson(''); return; }
-    el('flowText').value = preset.text;
-    el('titleInput').value = preset.title;
-    picked = null;
-    rovingStep = null;
+    // An example only replaces what is on screen when that is itself an
+    // untouched example or the starter. Anything typed is kept: the example
+    // opens as a project of its own, since Revert only goes back to a save.
+    const text = el('flowText').value;
+    const untouched = text.trim() === '' || text === STARTER_TEXT || PRESETS.some((p) => p.text === text);
+    const status = el('projectFileStatus');
+    if (untouched) {
+        el('flowText').value = preset.text;
+        el('titleInput').value = preset.title;
+        picked = null;
+        rovingStep = null;
+        status.textContent = '';
+        showLesson(id);
+        render();
+        return;
+    }
+    if (projects.isFull(store)) {
+        showLesson('');
+        status.textContent = `The example was not loaded: it would replace "${projects.activeProject(store).name}", and ${projects.MAX_PROJECTS} projects are already stored. Delete one, and the example opens as a project of its own.`;
+        return;
+    }
+    flushDraft();
+    const kept = projects.activeProject(store).name;
+    const state = { text: preset.text, fields: { ...captureFields(), titleInput: preset.title } };
+    const name = projects.uniqueName(store, projects.cleanName(preset.label.split(' (')[0]));
+    const project = projects.addProject(store, name, state, Date.now());
+    openProject(project.id);
     showLesson(id);
-    render();
+    status.textContent = `The example opened as a new project, "${project.name}". "${kept}" is as you left it.`;
 }
 
 function init() {

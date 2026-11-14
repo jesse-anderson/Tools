@@ -890,3 +890,63 @@ test.describe('projects', () => {
     await expect(page.locator('#projectNew')).toBeEnabled();
   });
 });
+
+test.describe('loading an example never takes work away', () => {
+  const names = (page) => page.locator('#projectSelect option').allTextContents();
+
+  test('with typed work on screen, an example opens as a project of its own and the work is still there', async ({ page }) => {
+    await openTool(page);
+    await type(page, LOOP);
+    const before = await names(page);
+    await page.selectOption('#presetSelect', 'lab');
+    const lab = await page.evaluate(() => window.ProcessFlowMapper.PRESETS.find((p) => p.id === 'lab').text);
+    await expect(page.locator('#flowText')).toHaveValue(lab);
+    expect(await names(page)).toEqual([...before, 'Lab sample with a retest loop']);
+    await expect(page.locator('#projectFileStatus')).toHaveText(`The example opened as a new project, "Lab sample with a retest loop". "${before[0]}" is as you left it.`);
+    await expect(page.locator('#presetSelect')).toHaveValue('lab');
+    await expect(page.locator('#presetLesson')).toBeVisible();
+
+    // Never saved, and still exactly as typed, through a reload too.
+    await page.selectOption('#projectSelect', { label: before[0] });
+    await expect(page.locator('#flowText')).toHaveValue(LOOP);
+    await page.reload();
+    await expect.poll(() => page.evaluate(() => Boolean(window.ProcessFlowMapper && window.ProcessFlowMapper.getModel()))).toBe(true);
+    await expect(page.locator('#flowText')).toHaveValue(LOOP);
+    expect(await names(page)).toEqual([...before, 'Lab sample with a retest loop']);
+  });
+
+  test('browsing from one untouched example to the next stays in one project', async ({ page }) => {
+    await openTool(page);
+    const before = await names(page);
+    for (const id of ['lab', 'change', 'hiring', 'claim']) await page.selectOption('#presetSelect', id);
+    const claim = await page.evaluate(() => window.ProcessFlowMapper.PRESETS.find((p) => p.id === 'claim').text);
+    await expect(page.locator('#flowText')).toHaveValue(claim);
+    expect(await names(page)).toEqual(before);
+    await expect(page.locator('#projectFileStatus')).toHaveText('');
+  });
+
+  test('an example that has been edited counts as work', async ({ page }) => {
+    await openTool(page);
+    await page.selectOption('#presetSelect', 'lab');
+    const edited = (await page.locator('#flowText').inputValue()) + '\nZed: Extra step {1 h} -> (Gone)\nZed: (Gone)';
+    await type(page, edited);
+    const before = await names(page);
+    await page.selectOption('#presetSelect', 'change');
+    expect(await names(page)).toEqual([...before, 'Engineering change order']);
+    await page.selectOption('#projectSelect', { label: before[0] });
+    await expect(page.locator('#flowText')).toHaveValue(edited);
+  });
+
+  test('with ten projects stored, the example is refused and nothing is replaced', async ({ page }) => {
+    await openTool(page);
+    for (let i = 0; i < 9; i++) await page.locator('#projectNew').click();
+    expect(await names(page)).toHaveLength(10);
+    await type(page, LOOP);
+    await page.selectOption('#presetSelect', 'lab');
+    await expect(page.locator('#flowText')).toHaveValue(LOOP);
+    await expect(page.locator('#presetSelect')).toHaveValue('');
+    await expect(page.locator('#presetLesson')).toBeHidden();
+    await expect(page.locator('#projectFileStatus')).toContainText('The example was not loaded');
+    expect(await names(page)).toHaveLength(10);
+  });
+});
