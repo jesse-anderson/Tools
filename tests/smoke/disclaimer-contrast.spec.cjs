@@ -38,6 +38,7 @@ const TOOLS_WITH_DISCLAIMER_HEADINGS = [
   'beam-deflection',
   'color-picker',
   'control-valve-sizing',
+  'beta-alanine-lab',
   'creatine-lab',
   'dbscan-visualizer',
   'duckdb-playground',

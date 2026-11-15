@@ -43,6 +43,7 @@ const CLAUSE_PAGES = [
   '/tools/dbscan-visualizer.html',
   '/tools/local-llm-opex.html',
   '/tools/creatine-lab.html',
+  '/tools/beta-alanine-lab.html',
   '/tools/seed-storage-lab.html',
   '/tools/species-doubling-reference.html',
   '/tools/sankey-diagram.html',

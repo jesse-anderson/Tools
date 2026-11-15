@@ -76,6 +76,7 @@ module.exports = defineConfig({
     'dataset-diff-import.spec.cjs',
     'dataset-diff-page.spec.cjs',
     'milk-fat-calculator.spec.cjs',
+    'beta-alanine-lab.spec.cjs',
     'fishbone-diagram.spec.cjs',
     'fishbone-diagram-page.spec.cjs',
     'legal-clauses.spec.cjs',
