@@ -133,6 +133,61 @@ export const SOURCES = Object.freeze({
     "label": "Dolan et al. 2019, Adv Nutr, systematic risk assessment of beta-alanine",
     "url": "https://doi.org/10.1093/advances/nmy115",
     "archived": true
+  },
+  "bex2015": {
+    "label": "Bex et al. 2015, Front Nutr 2:13, exercise training and carnosine loading",
+    "url": "https://doi.org/10.3389/fnut.2015.00013",
+    "archived": true
+  },
+  "bex2014": {
+    "label": "Bex et al. 2014, J Appl Physiol 116:204, trained vs untrained muscles",
+    "url": "https://doi.org/10.1152/japplphysiol.01033.2013",
+    "archived": true
+  },
+  "blancquaert2018": {
+    "label": "Blancquaert et al. 2018, Br J Nutr 119:759, vegetarian diet and carnosine",
+    "url": "https://doi.org/10.1017/S000711451800017X",
+    "archived": true
+  },
+  "everaert2013": {
+    "label": "Everaert et al. 2013, Eur J Appl Physiol 113:1169, carnosine gene expression",
+    "url": "https://doi.org/10.1007/s00421-012-2540-4",
+    "archived": true
+  },
+  "solis2015": {
+    "label": "Solis et al. 2015, PLoS One 10:e0123857, brain homocarnosine and carnosine",
+    "url": "https://doi.org/10.1371/journal.pone.0123857",
+    "archived": true
+  },
+  "mahootchi2020": {
+    "label": "Mahootchi et al. 2020, Sci Adv 6:eabb3713, GADL1 and beta-alanine production",
+    "url": "https://doi.org/10.1126/sciadv.abb3713",
+    "archived": true
+  },
+  "tiedje2010": {
+    "label": "Tiedje et al. 2010, Neurochem Int 57:177, beta-alanine as a neurotransmitter",
+    "url": "https://doi.org/10.1016/j.neuint.2010.06.001",
+    "archived": true
+  },
+  "shinohara2004": {
+    "label": "Shinohara et al. 2004, J Biol Chem 279:23559, MrgD responds to beta-alanine",
+    "url": "https://doi.org/10.1074/jbc.M314240200",
+    "archived": true
+  },
+  "liu2012": {
+    "label": "Liu et al. 2012, J Neurosci 32:14532, itch evoked by beta-alanine",
+    "url": "https://doi.org/10.1523/JNEUROSCI.3509-12.2012",
+    "archived": true
+  },
+  "romero2013": {
+    "label": "Romero and Oviedo 2013, J Solution Chem 42:1355, amino acid solubility and temperature",
+    "url": "https://doi.org/10.1007/s10953-013-0031-9",
+    "archived": true
+  },
+  "hayashi1986": {
+    "label": "Hayashi and Namiki 1986, Agric Biol Chem 50:1965, sugar fragmentation in early browning",
+    "url": "https://doi.org/10.1271/bbb1961.50.1965",
+    "archived": true
   }
 });
 
@@ -863,7 +918,7 @@ export const CLAIMS = Object.freeze({
     "value": null,
     "sourceId": "everaert2011",
     "location": "Abstract",
-    "use": "no age preset (no sourced figure)"
+    "use": "audit trail (the older-adult preset uses Baguet 2012)"
   },
   "saunders_max": {
     "topic": "loading",
