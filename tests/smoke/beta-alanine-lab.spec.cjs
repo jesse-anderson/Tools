@@ -547,6 +547,65 @@ test.describe('checks on a protocol', () => {
   });
 });
 
+// Read the chart back through its own axis ticks: every median point and band
+// corner is mapped to a day and a value and compared with the band in the view
+// on screen. Returns the worst error as a share of the axis top.
+const chartAgreement = () => {
+  const svg = document.getElementById('chart');
+  const band = window.BetaAlanine.lastBand;
+  const view = document.getElementById('chartView').value;
+  const base = Number(document.getElementById('baselineValue').value);
+  const to = { rise: (v) => v, total: (v) => base + v, percent: (v) => (100 * v) / base }[view];
+  const fit = (pairs) => {
+    const [a, b] = [pairs[0], pairs[pairs.length - 1]];
+    const m = (b[1] - a[1]) / (b[0] - a[0]);
+    return { from: (px) => a[0] + (px - a[1]) / m, top: Math.max(a[0], b[0]) };
+  };
+  const Y = fit([...svg.querySelectorAll('g.axis text[text-anchor="end"]')].map((t) => [Number(t.textContent), Number(t.getAttribute('y')) - 4]));
+  const X = fit([...svg.querySelectorAll('g.axis text[text-anchor="middle"]')].map((t) => [Number(t.textContent) * 7, Number(t.getAttribute('x'))]));
+  const pts = (node) => node.getAttribute('points').trim().split(/\s+/).map((p) => p.split(',').map(Number));
+  let worst = 0;
+  const days = new Set();
+  for (const line of svg.querySelectorAll('polyline.median')) {
+    for (const [px, py] of pts(line)) {
+      const day = Math.round(X.from(px));
+      days.add(day);
+      worst = Math.max(worst, Math.abs(Y.from(py) - to(band.p50[day])) / Y.top);
+    }
+  }
+  const edges = new Map();
+  for (const poly of svg.querySelectorAll('polygon.band')) {
+    for (const [px, py] of pts(poly)) {
+      const day = Math.round(X.from(px));
+      const e = edges.get(day) || [];
+      e.push(Y.from(py));
+      edges.set(day, e);
+    }
+  }
+  for (const [day, vals] of edges) {
+    worst = Math.max(worst, Math.abs(Math.max(...vals) - to(band.p90[day])) / Y.top, Math.abs(Math.min(...vals) - to(band.p10[day])) / Y.top);
+  }
+  // Against the plot frame, not the ticks: day 0 and the last day sit on the
+  // grid's ends, and nothing is drawn above the top line or below the bottom.
+  const grid = [...svg.querySelectorAll('g.grid line')];
+  const left = Number(grid[0].getAttribute('x1'));
+  const right = Number(grid[0].getAttribute('x2'));
+  const ys = grid.map((g) => Number(g.getAttribute('y1')));
+  const [top, bottom] = [Math.min(...ys), Math.max(...ys)];
+  const all = [...svg.querySelectorAll('polygon.band, polyline.median')].flatMap(pts);
+  const xs = all.map(([px]) => px);
+  const frame = Math.max(Math.abs(Math.min(...xs) - left), Math.abs(Math.max(...xs) - right));
+  const outside = all.filter(([, py]) => py < top - 0.5 || py > bottom + 0.5).length;
+  return { worst, days: days.size, lastDay: band.lastDay, frame, outside };
+};
+
+// Value at an SVG y coordinate, read from the y-axis ticks.
+const Y_FROM = `(() => {
+  const ticks = [...document.querySelectorAll('#chart g.axis text[text-anchor="end"]')].map((t) => [Number(t.textContent), Number(t.getAttribute('y')) - 4]);
+  const [a, b] = [ticks[0], ticks[ticks.length - 1]];
+  return (py) => a[0] + ((py - a[1]) * (b[0] - a[0])) / (b[1] - a[1]);
+})()`;
+
 test.describe('page', () => {
   test('loads cleanly with the first-visit default', async ({ page, baseURL }) => {
     await expectPageToLoadCleanly(page, baseURL, PAGE);
@@ -748,6 +807,250 @@ test.describe('page', () => {
     await page.fill('#phase0Dose', '0');
     await page.fill('#phase1Dose', '0');
     await expect(page.locator('#cards')).not.toContainText('Daily dose to hold that level');
+  });
+
+  test('the chart draws the median and band where the numbers are, in every view', async ({ page }) => {
+    await openTool(page);
+    for (const view of ['rise', 'total', 'percent']) {
+      await page.selectOption('#chartView', view);
+      const r = await page.evaluate(`(${chartAgreement.toString()})()`);
+      expect(r.days, view).toBe(r.lastDay + 1);
+      expect(r.worst, view).toBeLessThan(0.003);
+      expect(r.frame, view).toBeLessThan(0.11);
+      expect(r.outside, view).toBe(0);
+    }
+    // A shaded stretch is drawn in its own runs; together they still cover every day.
+    await page.selectOption('#chartView', 'rise');
+    await page.fill('#washoutWeeks', '30');
+    await expect(page.locator('#chart polygon.band-shaded')).toHaveCount(1);
+    const r = await page.evaluate(`(${chartAgreement.toString()})()`);
+    expect(r.days).toBe(r.lastDay + 1);
+    expect(r.worst).toBeLessThan(0.003);
+  });
+
+  test('a washout past the longest follow-up is hatched from that day and the hover names it', async ({ page }) => {
+    await openTool(page);
+    await page.fill('#washoutWeeks', '30');
+    const hatch = page.locator('#chart rect.beyond');
+    await expect(hatch).toHaveCount(1);
+    // Hatching starts at day 28 + 112, the end of Yamaguchi's 16-week follow-up.
+    const at = await page.evaluate(() => {
+      const ticks = [...document.querySelectorAll('#chart g.axis text[text-anchor="middle"]')].map((t) => [Number(t.textContent) * 7, Number(t.getAttribute('x'))]);
+      const [a, b] = [ticks[0], ticks[ticks.length - 1]];
+      return a[1] + ((b[1] - a[1]) / (b[0] - a[0])) * (140 - a[0]);
+    });
+    expect(Number(await hatch.getAttribute('x'))).toBeCloseTo(at, 0);
+    // The lighter band starts on that same day, not a day either side.
+    const shadedFrom = await page.evaluate(() => Math.min(...document.querySelector('#chart polygon.band-shaded')
+      .getAttribute('points').trim().split(/\s+/).map((p) => Number(p.split(',')[0]))));
+    expect(shadedFrom).toBeCloseTo(at, 0);
+    await page.locator('#chart').focus();
+    await page.keyboard.press('End');
+    await expect(page.locator('#chartTip')).toContainText('No washout study followed people this long');
+    await expect(page.locator('#chartTip')).toContainText('Yamaguchi');
+    await page.keyboard.press('Home');
+    await expect(page.locator('#chartTip')).toContainText('(day 0)');
+  });
+
+  test('pointer position maps to the day under it', async ({ page }) => {
+    await openTool(page);
+    const chart = page.locator('#chart');
+    await chart.scrollIntoViewIfNeeded();
+    const pos = await page.evaluate(() => {
+      const svg = document.getElementById('chart');
+      const t = [...svg.querySelectorAll('g.axis text[text-anchor="middle"]')].find((n) => n.textContent === '4');
+      const box = svg.getBoundingClientRect();
+      return { x: (Number(t.getAttribute('x')) / svg.viewBox.baseVal.width) * box.width, y: box.height / 2 };
+    });
+    await chart.hover({ position: pos });
+    await expect(page.locator('#chartTip')).toContainText('(day 28)');
+  });
+
+  test('measured points leave in the percent view and come back at baseline plus rise', async ({ page }) => {
+    await openTool(page);
+    await page.selectOption('#protocolPreset', 'hill2007');
+    await expect(page.locator('#chart circle.obs-point')).toHaveCount(2);
+    await page.selectOption('#chartView', 'percent');
+    await expect(page.locator('#chart circle.obs-point')).toHaveCount(0);
+    await page.selectOption('#chartView', 'total');
+    await expect(page.locator('#chart circle.obs-point')).toHaveCount(2);
+    const r = await page.evaluate(`(() => {
+      const from = ${Y_FROM};
+      const base = Number(document.getElementById('baselineValue').value);
+      const obs = window.BetaAlanine.data.LOADING_OBSERVATIONS.filter((o) => o.sourceId === 'hill2007').sort((a, b) => a.day - b.day);
+      const circles = [...document.querySelectorAll('#chart circle.obs-point')]
+        .map((c) => ({ cx: Number(c.getAttribute('cx')), v: from(Number(c.getAttribute('cy'))) })).sort((a, b) => a.cx - b.cx);
+      return circles.map((c, i) => [c.v, base + obs[i].rise]);
+    })()`);
+    for (const [drawn, want] of r) expect(drawn).toBeCloseTo(want, 1);
+  });
+
+  test('paper lines draw that paper\'s own median, dashed for washout, and stay on after a reload', async ({ page }) => {
+    await openTool(page);
+    await page.locator('#line-loading-saunders2017').check();
+    await page.locator('#line-washout-baguet2009').check();
+    const lines = page.locator('#chart polyline.paper-line');
+    await expect(lines).toHaveCount(2);
+    await expect(lines.nth(0)).toHaveAttribute('stroke-dasharray', 'none');
+    await expect(lines.nth(1)).toHaveAttribute('stroke-dasharray', '5 3');
+    const r = await page.evaluate(`(() => {
+      const from = ${Y_FROM};
+      const B = window.BetaAlanine;
+      const want = B.paperMedian(B.lastBand, 'loading', 'saunders2017');
+      const ys = document.querySelector('#chart polyline.paper-line').getAttribute('points').trim().split(/\\s+/).map((p) => Number(p.split(',')[1]));
+      return { count: ys.length, last: B.lastBand.lastDay, worst: Math.max(...ys.map((py, d) => Math.abs(from(py) - want[d]))) };
+    })()`);
+    expect(r.count).toBe(r.last + 1);
+    expect(r.worst).toBeLessThan(0.1);
+    await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('toolsHub.betaAlanine.last') || '{}').paperLines))
+      .toBe('loading:saunders2017,washout:baguet2009');
+    await page.reload();
+    await expect.poll(() => page.evaluate(() => Boolean(window.BetaAlanine && window.BetaAlanine.ready))).toBe(true);
+    await expect(page.locator('#line-loading-saunders2017')).toBeChecked();
+    await expect(lines).toHaveCount(2);
+    await page.locator('#line-loading-saunders2017').uncheck();
+    await expect(lines).toHaveCount(1);
+  });
+
+  test('your own price gives cost per gram, per week, in total and per unit of rise', async ({ page }) => {
+    await openTool(page);
+    await expect(page.locator('#costCards .card')).toHaveCount(3);
+    await page.fill('#ownPrice', '30');
+    await page.fill('#ownGrams', '500');
+    const own = page.locator('#costCards .card').first();
+    await expect(own).toContainText('Your price');
+    // $0.06 a gram: 179.2 g is $10.75, 6.4 g/day is $2.69 a week, and over a 14.81 rise $0.73.
+    await expect(own).toContainText('$0.060 per gram');
+    await expect(own).toContainText('phase 1 $2.69 a week');
+    await expect(own).toContainText('$11 total');
+    await expect(own).toContainText('$0.73 per mmol/kg dm');
+    await page.fill('#ownGrams', '');
+    await expect(page.locator('#costCards')).not.toContainText('Your price');
+    await expect(page.locator('#costCards .card')).toHaveCount(3);
+  });
+
+  test('no sideways scroll on a phone, and the chart redraws at its container\'s width', async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 800 });
+    await openTool(page);
+    await page.evaluate(() => { for (const d of document.querySelectorAll('details')) d.open = true; });
+    await page.locator('.legend input').first().check();
+    const narrow = await page.evaluate(() => ({
+      scroll: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      vb: document.getElementById('chart').viewBox.baseVal.width,
+      vh: document.getElementById('chart').viewBox.baseVal.height
+    }));
+    expect(narrow.scroll).toBe(0);
+    expect(narrow.vb).toBeLessThan(600);
+    expect(narrow.vh).toBe(300);
+    await page.setViewportSize({ width: 1200, height: 900 });
+    await expect.poll(() => page.evaluate(() => document.getElementById('chart').viewBox.baseVal.height)).toBe(380);
+    const wide = await page.evaluate(() => ({ vb: document.getElementById('chart').viewBox.baseVal.width, box: document.getElementById('chartWrap').clientWidth }));
+    expect(Math.abs(wide.vb - Math.min(1100, wide.box))).toBeLessThanOrEqual(1);
+  });
+
+  test('the cards and the edge table print the band summary they were given', async ({ page }) => {
+    await openTool(page);
+    // The default protocol is covered by studies, so no flag at all.
+    await expect(page.locator('#flags .flag')).toHaveCount(0);
+    const want = await page.evaluate(() => {
+      const b = window.BetaAlanine.lastBand;
+      const s = b.summary;
+      return {
+        target: `${s.daysToTarget.p50.toFixed(0)} days`,
+        normal: `${(s.daysToNormal.p50 / 7).toFixed(1)} weeks`,
+        stop: [b.p10[b.stopDay], b.p50[b.stopDay], b.p90[b.stopDay]].map((v) => v.toFixed(1))
+      };
+    });
+    await expect(page.locator('#cards')).toContainText(`Days to a rise of 10.0${want.target}`);
+    await expect(page.locator('#cards')).toContainText(`Back within normal variation after stopping${want.normal}`);
+    // Baseline grams: 22.9 mmol/kg dm over the muscle mass the card names, wet to dry 4.3.
+    const grams = page.locator('#cards .card', { hasText: 'Carnosine in muscle' });
+    const kg = Number((await grams.innerText()).match(/in ([\d.]+) kg of skeletal muscle/)[1]);
+    await expect(grams).toContainText(`on about ${((22.9 * (kg / 4.3) * 226.23) / 1000).toFixed(0)} g at baseline`);
+    await page.locator('#edgeFold > summary').click();
+    const row = page.locator('#edgeTable tbody tr', { hasText: 'End of dosing' });
+    const cells = await row.locator('td.num').allInnerTexts();
+    expect(cells).toEqual(want.stop);
+  });
+
+  test('the tooltip prints the day\'s band and edge shares, and arrows step a day or a week', async ({ page }) => {
+    await openTool(page);
+    await page.locator('#chart').focus();
+    const tip = page.locator('#chartTip');
+    // Focus opens on the end of dosing.
+    await expect(tip).toContainText('(day 28)');
+    const want = await page.evaluate(() => {
+      const B = window.BetaAlanine;
+      const b = B.lastBand;
+      const named = (e) => e.named.washout.concat(e.named.loading).map((n) => `${Math.round(n.share * 100)}%`);
+      return {
+        band: `middle ${b.p50[28].toFixed(1)} mmol/kg dm, 10th to 90th percentile ${b.p10[28].toFixed(1)} to ${b.p90[28].toFixed(1)}.`,
+        low: named(B.attributeEdge(b, 28, 0.1)),
+        high: named(B.attributeEdge(b, 28, 0.9))
+      };
+    });
+    await expect(tip).toContainText(want.band);
+    const [low, high] = await tip.locator('p').nth(1).innerText().then(async (l) => [l, await tip.locator('p').nth(2).innerText()]);
+    for (const pct of want.low) expect(low).toContain(pct);
+    for (const pct of want.high) expect(high).toContain(pct);
+    await page.keyboard.press('ArrowRight');
+    await expect(tip).toContainText('(day 29)');
+    await page.keyboard.press('Shift+ArrowRight');
+    await expect(tip).toContainText('(day 36)');
+    await page.keyboard.press('Shift+ArrowLeft');
+    await page.keyboard.press('ArrowLeft');
+    await expect(tip).toContainText('(day 28)');
+  });
+
+  test('the normal-variation strip sits on zero in the rise view and around baseline in the total view', async ({ page }) => {
+    await openTool(page);
+    const strip = async () => page.evaluate(`(() => {
+      const from = ${Y_FROM};
+      const r = document.querySelector('#chart rect.normal-strip');
+      const y = Number(r.getAttribute('y'));
+      return [from(y + Number(r.getAttribute('height'))), from(y)];
+    })()`);
+    const [lo, hi] = await strip();
+    expect(lo).toBeCloseTo(0, 1);
+    expect(hi).toBeCloseTo(4.1, 1);
+    await page.selectOption('#chartView', 'total');
+    await expect(page.locator('#chartCaption')).toContainText('Baseline plus the rise');
+    const [tlo, thi] = await strip();
+    expect(tlo).toBeCloseTo(22.9 - 4.1, 1);
+    expect(thi).toBeCloseTo(22.9 + 4.1, 1);
+  });
+
+  test('crowded phase boundaries keep their lines but not overlapping labels', async ({ page }) => {
+    await openTool(page);
+    await page.selectOption('#protocolPreset', 'hill2007');
+    for (const i of [0, 1, 2]) {
+      await page.selectOption(`#phase${i}Unit`, 'days');
+      await page.fill(`#phase${i}Length`, '2');
+    }
+    await expect(page.locator('#chart line.phase-line')).toHaveCount(4);
+    const xs = await page.locator('#chart text.phase-label').evaluateAll((ts) => ts.map((t) => Number(t.getAttribute('x'))));
+    expect(xs.length).toBeLessThan(4);
+    for (let i = 1; i < xs.length; i++) expect(xs[i] - xs[i - 1]).toBeGreaterThanOrEqual(64);
+    // A zero-length phase puts two boundaries on one day; only one gets a label.
+    await page.selectOption('#protocolPreset', 'hill2007');
+    await page.fill('#phase1Length', '0');
+    await page.fill('#phase2Length', '8');
+    await expect(page.locator('#chart line.phase-line')).toHaveCount(4);
+    await expect(page.locator('#chart text.phase-label').first()).toHaveText('Phase 2');
+    const same = await page.locator('#chart text.phase-label').evaluateAll((ts) => ts.map((t) => Number(t.getAttribute('x'))));
+    for (let i = 1; i < same.length; i++) expect(same[i] - same[i - 1]).toBeGreaterThanOrEqual(64);
+  });
+
+  test('a phase entered in days comes back in days after a reload', async ({ page }) => {
+    await openTool(page);
+    await page.selectOption('#phase0Unit', 'days');
+    await page.fill('#phase0Length', '10');
+    await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('toolsHub.betaAlanine.last') || '{}').phases)).toBe('6.4|4|p|10|d');
+    await page.reload();
+    await expect.poll(() => page.evaluate(() => Boolean(window.BetaAlanine && window.BetaAlanine.ready))).toBe(true);
+    await expect(page.locator('#phase0Unit')).toHaveValue('days');
+    await expect(page.locator('#phase0Length')).toHaveValue('10');
+    await expect(page.locator('#cards')).toContainText('Beta-alanine taken64.0 g');
   });
 
   test('the audit trail and sources link every source', async ({ page }) => {
