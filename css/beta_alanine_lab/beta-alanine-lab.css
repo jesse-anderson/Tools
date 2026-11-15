@@ -493,6 +493,10 @@
     min-width: 0;
 }
 
+.card-refused {
+    border-left: 3px solid var(--accent-warning);
+}
+
 .card h3 {
     margin: 0 0 6px;
     font-size: 0.875rem;

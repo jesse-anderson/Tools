@@ -184,3 +184,18 @@ export function paperMedian(band, key, sourceId) {
     }
     return out;
 }
+
+/**
+ * Daily dose, taken every day from day 0, that gives a rise of `goal` by day
+ * `days`. The rise is proportional to dose, so each draw's dose is the goal over
+ * its rise at 1 g/day. The 10th percentile of dose matches the 90th of rise.
+ */
+export function doseForGoal({ goal, days, observations, loadingPapers: loading, washouts, seed, individual }) {
+    const d = Math.max(1, Math.round(days));
+    if (!(goal > 0)) return null;
+    const band = runBand({ phases: [{ doseGPerDay: 1, days: d }], washoutDays: 0, observations, loadingPapers: loading, washouts, seed, individual });
+    const doses = new Float64Array(band.draws);
+    for (let i = 0; i < band.draws; i++) doses[i] = goal / drawValue(band, i, d);
+    doses.sort();
+    return { days: d, p10: percentileSorted(doses, 0.1), p50: percentileSorted(doses, 0.5), p90: percentileSorted(doses, 0.9) };
+}

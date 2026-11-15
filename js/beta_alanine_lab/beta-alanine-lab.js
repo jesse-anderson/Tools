@@ -1,13 +1,13 @@
 // Beta-Alanine Lab controller: state, inputs, storage and wiring.
 
 import * as Engine from './beta-alanine-engine.js';
-import { runBand, attributeEdge, paperMedian, loadingPapers, DEFAULT_SEED } from './beta-alanine-monte-carlo.js';
+import { runBand, attributeEdge, paperMedian, loadingPapers, doseForGoal, DEFAULT_SEED } from './beta-alanine-monte-carlo.js';
 import { SOURCES, CLAIMS, LOADING_OBSERVATIONS, WASHOUT_RATES, PRICE_TIERS, WET_TO_DRY } from './beta-alanine-data.js';
 import { PROTOCOL_PRESETS, BASELINE_PRESETS } from './beta-alanine-presets.js';
 import { drawChart } from './beta-alanine-chart.js';
 import {
     h, clear, fmt, sourceLink, linkList, renderTip, renderFlags, renderCards, renderEdgeTable,
-    renderServings, renderSafety, renderCosts, renderAudit, renderSources, computeChecks
+    renderServings, renderSafety, renderCosts, renderAudit, renderSources, renderGoal, computeChecks
 } from './beta-alanine-view.js';
 import { estimateSkeletalMuscleMass } from '../supplement_common/body-composition.js';
 import { createProjectStore, cleanTextState } from '../diagram_common/projects.js';
@@ -32,11 +32,12 @@ let band = null;
 let chartScale = null;
 let tipDay = null;
 let pending = 0;
+let goal = null;
 
 function defaultState() {
     return fromPreset('reference', {
         massValue: 70, massUnit: 'kg', bodyFat: 20, muscleMass: '', baselinePreset: 'pooled', baselineValue: 22.9,
-        targetRise: 10, individual: false, view: 'rise', ownPrice: '', ownGrams: '', paperLines: []
+        targetRise: 10, individual: false, view: 'rise', ownPrice: '', ownGrams: '', paperLines: [], goalRise: 10, goalWeeks: 4
     });
 }
 
@@ -64,7 +65,7 @@ const num = (v, fallback) => {
 // at the limit and named in the flags, never changed in silence.
 const LIMITS = {
     dose: [0, 40], servings: [1, Engine.MAX_SERVINGS], length: [0, 520], washout: [0, 52], target: [0, 60],
-    massKg: [20, 300], bodyFat: [3, 60], muscle: [0, 80], baseline: [1, 60]
+    massKg: [20, 300], bodyFat: [3, 60], muscle: [0, 80], baseline: [1, 60], goalRise: [0, 60], goalWeeks: [1, 24]
 };
 let rangeNotes = new Map();
 
@@ -207,6 +208,8 @@ function syncInputs() {
     $('chartView').value = VIEWS[state.view] ? state.view : 'rise';
     $('ownPrice').value = state.ownPrice;
     $('ownGrams').value = state.ownGrams;
+    $('goalRise').value = state.goalRise;
+    $('goalWeeks').value = state.goalWeeks;
     renderPresetReport();
     renderPhases();
     renderBaselineNote();
@@ -251,6 +254,9 @@ function wireInputs() {
     bindValue('muscleMass', 'muscleMass');
     bindValue('ownPrice', 'ownPrice');
     bindValue('ownGrams', 'ownGrams');
+    bindValue('goalRise', 'goalRise');
+    bindValue('goalWeeks', 'goalWeeks');
+    $('useGoalDose').addEventListener('click', useGoalDose);
     $('bodyMass').addEventListener('input', (e) => { state.massValue = e.target.value; schedule(); });
     $('massUnit').addEventListener('change', (e) => {
         const kg = bodyMassKg();
@@ -302,6 +308,12 @@ function compute() {
         wetToDry: WET_TO_DRY
     });
     band.phases = phases;
+    const goalRise = bounded('goalRise', state.goalRise, 0, LIMITS.goalRise, 'Goal rise', 'mmol/kg dm');
+    const goalWeeks = Math.round(bounded('goalWeeks', state.goalWeeks, 4, LIMITS.goalWeeks, 'Goal week', 'weeks'));
+    const result = doseForGoal({ goal: goalRise, days: goalWeeks * 7, loadingPapers: LOADING, washouts: WASHOUT_RATES,
+        seed: DEFAULT_SEED, individual: Boolean(state.individual) });
+    goal = { rise: goalRise, weeks: goalWeeks, result,
+        horizon: result ? Engine.evidenceHorizon([{ doseGPerDay: result.p50, days: goalWeeks * 7 }], LOADING_OBSERVATIONS, WASHOUT_RATES) : null };
     band.horizon = Engine.evidenceHorizon(phases, LOADING_OBSERVATIONS, WASHOUT_RATES);
     window.BetaAlanine.lastBand = band;
 }
@@ -344,11 +356,13 @@ function render() {
         .concat(Engine.studiedRangeFlags(phases), horizonFlags()));
     renderCards($('cards'), {
         summary: band.summary, baseline: base, totalGrams: Engine.totalGrams(phases), target: targetRise(),
-        washoutDays: band.lastDay - band.stopDay, muscle: muscle(), stopWeeks: band.supplementDays / 7
+        washoutDays: band.lastDay - band.stopDay, muscle: muscle(), stopWeeks: band.supplementDays / 7, bodyMassKg: bodyMassKg()
     });
     renderEdgeTable($('edgeTable'), edgeRows(view), view.unit);
     renderServings($('servingTable'), phases, bodyMassKg());
     renderCostCards();
+    renderGoal($('goalResult'), { ...goal, observations: LOADING_OBSERVATIONS });
+    $('useGoalDose').disabled = !Engine.goalDoseUsable(goal.result);
     if (tipDay !== null) showTip(tipDay);
 }
 
@@ -379,6 +393,21 @@ function horizonFlags() {
             : 'No study used a comparable daily dose, so the whole dosing period is shaded.', sourceIds: longest ? [longest.sourceId] : [] });
     }
     return flags;
+}
+
+// Replace the protocol with the goal dose for the goal's length, in plain
+// servings each under the likely tingling band.
+function useGoalDose() {
+    // Settle a recompute still waiting on the debounce, so a quick click uses what was typed.
+    clearTimeout(pending);
+    compute();
+    render();
+    if (!goal || !Engine.goalDoseUsable(goal.result)) return;
+    const dose = Math.round(goal.result.p50 * 10) / 10;
+    state.phases = [{ doseGPerDay: dose, servings: Engine.servingsUnderLikely(dose, bodyMassKg()), form: 'plain', value: goal.weeks, unit: 'weeks' }];
+    markCustom();
+    renderPhases();
+    schedule();
 }
 
 function edgeRows(view) {
@@ -502,7 +531,7 @@ function wireChart() {
 // ---- Storage ----------------------------------------------------------------
 
 const STATE_KEYS = ['presetId', 'washoutWeeks', 'targetRise', 'massValue', 'massUnit', 'bodyFat', 'muscleMass', 'baselinePreset',
-    'baselineValue', 'individual', 'view', 'ownPrice', 'ownGrams'];
+    'baselineValue', 'individual', 'view', 'ownPrice', 'ownGrams', 'goalRise', 'goalWeeks'];
 
 function toFields() {
     const fields = {};
@@ -608,7 +637,7 @@ function wireSaved() {
 // ---- Start ------------------------------------------------------------------
 
 window.BetaAlanine = {
-    ...Engine, runBand, attributeEdge, paperMedian, loadingPapers, computeChecks,
+    ...Engine, runBand, attributeEdge, paperMedian, loadingPapers, doseForGoal, computeChecks,
     data: { SOURCES, CLAIMS, LOADING_OBSERVATIONS, WASHOUT_RATES, PRICE_TIERS, WET_TO_DRY },
     presets: { PROTOCOL_PRESETS, BASELINE_PRESETS },
     getState: () => JSON.parse(JSON.stringify(state)),

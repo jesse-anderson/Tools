@@ -835,6 +835,46 @@ export const CLAIMS = Object.freeze({
     "sourceId": "baguet2009",
     "location": "Abstract; Results",
     "use": "audit trail"
+  },
+  "maintenance_keep_04": {
+    "topic": "dosing",
+    "claim": "After 46 d at 3.2 g/day, 6 wk at 0.4 g/day kept 59% of the loading gain (soleus and gastrocnemius mean, 1H-MRS; 4.14 to 6.02 to 5.25 mM)",
+    "value": 0.59,
+    "sourceId": "stegen2014",
+    "location": "Table 1",
+    "use": "maintenance card (measured)"
+  },
+  "maintenance_keep_08": {
+    "topic": "dosing",
+    "claim": "After 46 d at 3.2 g/day, 6 wk at 0.8 g/day kept 77% of the loading gain (4.33 to 5.79 to 5.45 mM)",
+    "value": 0.77,
+    "sourceId": "stegen2014",
+    "location": "Table 1",
+    "use": "maintenance card (measured)"
+  },
+  "maintenance_keep_12": {
+    "topic": "dosing",
+    "claim": "After 46 d at 3.2 g/day, 6 wk at 1.2 g/day kept all of the loading gain, 103% (4.47 to 6.22 to 6.27 mM)",
+    "value": 1.03,
+    "sourceId": "stegen2014",
+    "location": "Table 1",
+    "use": "maintenance card (measured); spec"
+  },
+  "maintenance_mg_per_kg": {
+    "topic": "dosing",
+    "claim": "About 18 mg/kg body mass per day suggested to keep carnosine elevated",
+    "value": 18.0,
+    "sourceId": "stegen2014",
+    "location": "Results; Discussion",
+    "use": "maintenance card"
+  },
+  "stegen_baseline_12": {
+    "topic": "baseline",
+    "claim": "1.2 g/day group before loading: soleus 3.79 and gastrocnemius 5.14 mM (1H-MRS); mean 4.47 mM, 19.2 mmol/kg dm at wet to dry 4.3",
+    "value": 19.2,
+    "sourceId": "stegen2014",
+    "location": "Table 1",
+    "use": "spec (Stegen check baseline)"
   }
 });
 

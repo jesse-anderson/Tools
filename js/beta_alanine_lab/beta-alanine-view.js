@@ -4,7 +4,7 @@
 import { SOURCES, CLAIMS, WASHOUT_RATES, LOADING_OBSERVATIONS, WET_TO_DRY } from './beta-alanine-data.js';
 import {
     fitSlope, kdFromHalfLife, unitRise, tinglingBand, lowerTinglingSplit, BETA_ALANINE_G_PER_MOL,
-    FITTED_DOSE_MIN, TINGLING_LIKELY_MG_PER_KG, MAX_SERVINGS
+    FITTED_DOSE_MIN, FITTED_DOSE_MAX, TINGLING_LIKELY_MG_PER_KG, MAX_SERVINGS
 } from './beta-alanine-engine.js';
 import { loadingPapers, NAME_SHARE_MIN, EDGE_WINDOW, DEFAULT_DRAWS } from './beta-alanine-monte-carlo.js';
 
@@ -99,7 +99,30 @@ function card(title, value, range, sub) {
         range ? h('p', { class: 'range', text: range }) : null, sub ? h('p', { class: 'sub' }, [].concat(sub)) : null]);
 }
 
-export function renderCards(node, { summary, baseline, totalGrams, target, washoutDays, muscle, stopWeeks }) {
+// What the one maintenance study measured, shown beside or instead of the model.
+function measuredMaintenance(bodyMassKg) {
+    const pct = (id) => `${Math.round(CLAIMS[id].value * 100)}%`;
+    const perKg = CLAIMS.maintenance_mg_per_kg.value;
+    const atYou = bodyMassKg > 0 ? ` (${fmt((perKg * bodyMassKg) / 1000, 2)} g/day at your body mass)` : '';
+    return `Measured after 46 days at 3.2 g/day: six weeks at 1.2 g/day kept ${pct('maintenance_keep_12')} of the gain, 0.8 g/day ${pct('maintenance_keep_08')} and 0.4 g/day ${pct('maintenance_keep_04')}; the authors suggest about ${perKg} mg/kg a day${atYou}.`;
+}
+
+// The model figure only inside the fitted doses; outside them it says it has none.
+function maintenanceCard(m, bodyMassKg) {
+    const title = 'Daily dose to hold that level';
+    const cite = [' (', sourceLink('stegen2014'), ')'];
+    if (m.p50 < FITTED_DOSE_MIN || m.p50 > FITTED_DOSE_MAX) {
+        const side = m.p50 < FITTED_DOSE_MIN ? `below ${FITTED_DOSE_MIN}` : `above ${FITTED_DOSE_MAX}`;
+        return h('div', { class: 'card card-refused' }, [h('h3', { text: title }), h('p', { class: 'value', text: 'No estimate' }),
+            h('p', { class: 'range', text: `The model's figure is ${side} g/day, outside the doses it was fitted to (${FITTED_DOSE_MIN} to ${FITTED_DOSE_MAX}), so it is not shown.` }),
+            h('p', { class: 'sub' }, [measuredMaintenance(bodyMassKg), ...cite])]);
+    }
+    const edge = m.p10 < FITTED_DOSE_MIN ? ` Its lower edge is below the lowest dose fitted, ${FITTED_DOSE_MIN} g/day.` : '';
+    return card(title, `${fmt(m.p50, 1)} g/day`, `10th to 90th: ${fmt(m.p10, 1)} to ${fmt(m.p90, 1)} g/day`,
+        [`On the model this depends on the washout rate alone, not on how strongly you respond, so the band comes from the washout studies.${edge} The model holds low doses less well than the one study of them found. ${measuredMaintenance(bodyMassKg)}`, ...cite]);
+}
+
+export function renderCards(node, { summary, baseline, totalGrams, target, washoutDays, muscle, stopWeeks, bodyMassKg }) {
     clear(node);
     const r = summary.riseAtStop;
     node.appendChild(card(`Rise at the end of dosing (week ${fmt(stopWeeks, 1)})`, `${fmt(r.p50)} mmol/kg dm`,
@@ -107,12 +130,7 @@ export function renderCards(node, { summary, baseline, totalGrams, target, washo
     node.appendChild(card('Beta-alanine taken', `${fmt(totalGrams, 1)} g`, null,
         'The common reference protocol is 179.2 g (6.4 g/day for 4 weeks).'));
     const m = summary.maintenanceAtStop;
-    if (m && r.p50 > 0) {
-        const low = m.p50 < FITTED_DOSE_MIN ? ` That is below the lowest dose fitted, ${FITTED_DOSE_MIN} g/day.` : '';
-        node.appendChild(card('Daily dose to hold that level', `${fmt(m.p50, 1)} g/day`,
-            `10th to 90th: ${fmt(m.p10, 1)} to ${fmt(m.p90, 1)} g/day`,
-            [`On the model this depends on the washout rate alone, not on how strongly you respond, so the band comes from the washout studies.${low} 1.2 g/day kept carnosine 30 to 50% above baseline for six weeks (`, sourceLink('stegen2014'), ').']));
-    }
+    if (m && r.p50 > 0) node.appendChild(maintenanceCard(m, bodyMassKg));
     if (target > 0) {
         const t = summary.daysToTarget;
         const share = summary.targetReachedShare;
@@ -131,6 +149,39 @@ export function renderCards(node, { summary, baseline, totalGrams, target, washo
             `10th to 90th: ${fmt(g.p10, 1)} to ${fmt(g.p90, 1)} g, on about ${fmt(base, 0)} g at baseline in ${fmt(muscle.centerKg, 1)} kg of skeletal muscle`,
             [`About ${fmt(incorporated, 1)}% of the beta-alanine taken ends up in carnosine on the middle line; studies report about 3% (`, sourceLink('stegen2013'), ') and 4.4% (', sourceLink('yamaguchi2021'), ').']));
     }
+}
+
+/** The dose-for-a-goal card: a figure only when its middle is inside the fitted doses. */
+export function renderGoal(node, { rise, weeks, result, horizon, observations }) {
+    clear(node);
+    if (!result) {
+        node.appendChild(card('Daily dose for a goal', 'No goal set', 'Enter a rise above 0.', null));
+        return;
+    }
+    const title = `Daily dose for a rise of ${fmt(rise, 1)} by week ${weeks}`;
+    if (result.p50 < FITTED_DOSE_MIN || result.p50 > FITTED_DOSE_MAX) {
+        const above = result.p50 > FITTED_DOSE_MAX;
+        node.appendChild(h('div', { class: 'card card-refused' }, [h('h3', { text: title }), h('p', { class: 'value', text: 'No estimate' }),
+            h('p', { class: 'range', text: `It would take ${above ? 'more' : 'less'} than ${above ? FITTED_DOSE_MAX : FITTED_DOSE_MIN} g/day, outside the doses the model was fitted to (${FITTED_DOSE_MIN} to ${FITTED_DOSE_MAX}), so no figure is given.` }),
+            h('p', { class: 'sub', text: above ? 'A later week or a smaller rise brings the dose into range.' : 'An earlier week or a larger rise brings the dose into range.' })]));
+        return;
+    }
+    const notes = ['The rise is proportional to the dose on the model, so at the higher figure 9 in 10 draws reach the goal and at the lower 1 in 10.'];
+    if (result.p90 > FITTED_DOSE_MAX) notes.push(` The higher figure is above the doses fitted, ${FITTED_DOSE_MAX} g/day.`);
+    if (result.p10 < FITTED_DOSE_MIN) notes.push(` The lower figure is below the doses fitted, ${FITTED_DOSE_MIN} g/day.`);
+    if (horizon && horizon.loadingCoveredUntil < horizon.supplementDays) {
+        const longest = horizon.loadingStudies[0];
+        notes.push(...(longest
+            ? [` No study at a comparable dose ran ${weeks} weeks; the longest ran ${fmt(longest.days / 7, 0)} weeks (`, sourceLink(longest.sourceId), ').']
+            : [' No study used a comparable dose.']));
+    }
+    // The one long study measured less than the model's middle line from week 8 on.
+    const long = observations.filter((o) => o.sourceId === 'saunders2017' && o.day <= weeks * 7).sort((x, y) => y.day - x.day)[0];
+    if (weeks >= 8 && long) {
+        notes.push(` Over long runs the model rises faster than the one 24-week study measured: at 6.4 g/day its middle line gives +${fmt((FITTED_DOSE_MAX * rise) / result.p50, 1)} by week ${weeks}, where Saunders measured +${fmt(long.rise, 1)} by week ${fmt(long.day / 7, 0)} (`,
+            sourceLink('saunders2017'), '). A long goal may need more than this.');
+    }
+    node.appendChild(card(title, `${fmt(result.p50, 1)} g/day`, `10th to 90th: ${fmt(result.p10, 1)} to ${fmt(result.p90, 1)} g/day`, notes));
 }
 
 export function renderEdgeTable(table, rows, unit) {

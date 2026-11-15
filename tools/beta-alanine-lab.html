@@ -260,6 +260,27 @@ Last Updated: November 2026
             </details>
         </section>
 
+        <section class="panel" aria-labelledby="goalHeading">
+            <div class="panel-header">
+                <h2 id="goalHeading">Dose for a goal</h2>
+                <p>The daily dose, taken every day from the first day, that gives a chosen rise above baseline by a chosen week.</p>
+            </div>
+            <div class="field-grid">
+                <div class="input-group">
+                    <label for="goalRise">Rise of (mmol/kg dm)</label>
+                    <input type="number" id="goalRise" min="0" max="60" step="any" inputmode="decimal" value="10">
+                </div>
+                <div class="input-group">
+                    <label for="goalWeeks">By week</label>
+                    <input type="number" id="goalWeeks" min="1" max="24" step="1" inputmode="numeric" value="4">
+                </div>
+            </div>
+            <div id="goalResult" class="cards" aria-live="polite"></div>
+            <div class="button-row">
+                <button type="button" class="tool-btn small" id="useGoalDose">Use this dose as the protocol</button>
+            </div>
+        </section>
+
         <section class="panel" aria-labelledby="servingHeading">
             <div class="panel-header">
                 <h2 id="servingHeading">Servings and tingling</h2>

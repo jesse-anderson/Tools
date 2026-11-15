@@ -32,3 +32,8 @@ vegetarian,baseline,"Vegetarians 26% lower carnosine in gastrocnemius than omniv
 age,baseline,"Soleus carnosine negatively related to age; no percent given for healthy adults",,everaert2011,Abstract,no age preset (no sourced figure)
 saunders_max,loading,"Maximal rise +25.66 +/- 7.63 mmol/kg dm (range +17.13 to +41.32) over 24 wk; time to maximum 18 +/- 6 wk",25.66,saunders2017,Results,audit trail
 washout_baguet_split,washout,"High responders back to baseline in about 15 wk, low responders in about 6.5 wk",,baguet2009,Abstract; Results,audit trail
+maintenance_keep_04,dosing,"After 46 d at 3.2 g/day, 6 wk at 0.4 g/day kept 59% of the loading gain (soleus and gastrocnemius mean, 1H-MRS; 4.14 to 6.02 to 5.25 mM)",0.59,stegen2014,Table 1,maintenance card (measured)
+maintenance_keep_08,dosing,"After 46 d at 3.2 g/day, 6 wk at 0.8 g/day kept 77% of the loading gain (4.33 to 5.79 to 5.45 mM)",0.77,stegen2014,Table 1,maintenance card (measured)
+maintenance_keep_12,dosing,"After 46 d at 3.2 g/day, 6 wk at 1.2 g/day kept all of the loading gain, 103% (4.47 to 6.22 to 6.27 mM)",1.03,stegen2014,Table 1,maintenance card (measured); spec
+maintenance_mg_per_kg,dosing,"About 18 mg/kg body mass per day suggested to keep carnosine elevated",18,stegen2014,Results; Discussion,maintenance card
+stegen_baseline_12,baseline,"1.2 g/day group before loading: soleus 3.79 and gastrocnemius 5.14 mM (1H-MRS); mean 4.47 mM, 19.2 mmol/kg dm at wet to dry 4.3",19.2,stegen2014,Table 1,spec (Stegen check baseline)

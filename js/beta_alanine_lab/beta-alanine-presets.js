@@ -5,11 +5,11 @@ export const PROTOCOL_PRESETS = Object.freeze([
     {
         id: 'reference',
         label: '6.4 g/day for 4 weeks, then 16 weeks off',
-        phases: [{ doseGPerDay: 6.4, servings: 4, form: 'plain', days: 28 }],
+        phases: [{ doseGPerDay: 6.4, servings: 5, form: 'plain', days: 28 }],
         washoutDays: 112,
         sourceIds: ['rezende2020'],
         reported: null,
-        note: 'The 179.2 g protocol most of the 26 studies in Rezende 2020 used. Four servings is an example, not a study schedule.'
+        note: 'The 179.2 g protocol most of the 26 studies in Rezende 2020 used. Five servings of 1.28 g is an example, not a study schedule: it keeps each serving under 20 mg/kg at 70 kg.'
     },
     {
         id: 'harris2006',

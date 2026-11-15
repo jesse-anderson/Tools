@@ -204,6 +204,11 @@ export const SR_PLACEBO_GRAMS = 1.6;
 // The servings field's limit.
 export const MAX_SERVINGS = 24;
 
+// Fewest servings putting each strictly under 20 mg/kg (exactly 20 is in the likely band).
+function fewestServingsUnderLikely(dose, bodyMassKg) {
+    return Math.floor((dose * 1000) / (TINGLING_LIKELY_MG_PER_KG * bodyMassKg)) + 1;
+}
+
 /**
  * For a plain phase in the likely or strong band: the fewest servings that put
  * each under 20 mg/kg, and the sustained-release servings of 1.6 g or less
@@ -214,13 +219,25 @@ export function lowerTinglingSplit({ doseGPerDay, servings, form, bodyMassKg }) 
     if (form === 'sustained' || dose <= 0 || !(bodyMassKg > 0)) return null;
     const perKg = (dose * 1000) / Math.max(1, servings) / bodyMassKg;
     if (perKg < TINGLING_LIKELY_MG_PER_KG) return null;
-    const n = Math.floor((dose * 1000) / (TINGLING_LIKELY_MG_PER_KG * bodyMassKg)) + 1;
+    const n = fewestServingsUnderLikely(dose, bodyMassKg);
     return {
         servings: n,
         gramsPerServing: dose / n,
         mgPerKg: (dose * 1000) / n / bodyMassKg,
         srServings: Math.ceil(dose / SR_PLACEBO_GRAMS - 1e-9)
     };
+}
+
+/** Plain servings a day that keep each one under the likely band, within the field's limit. */
+export function servingsUnderLikely(doseGPerDay, bodyMassKg) {
+    const dose = Number(doseGPerDay) || 0;
+    if (dose <= 0 || !(bodyMassKg > 0)) return 1;
+    return Math.min(MAX_SERVINGS, fewestServingsUnderLikely(dose, bodyMassKg));
+}
+
+/** A goal dose is given only when its middle figure is inside the fitted doses. */
+export function goalDoseUsable(result) {
+    return Boolean(result) && result.p50 >= FITTED_DOSE_MIN && result.p50 <= FITTED_DOSE_MAX;
 }
 
 /** Flags for a protocol that leaves what the fitted studies covered. */

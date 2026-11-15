@@ -387,17 +387,52 @@ test.describe('band', () => {
     expect(r.off.p90).toBeLessThan(3.2);
   });
 
-  test('Stegen 2014: 1.2 g/day after loading ends 30 to 50% above baseline, as reported', async ({ page }) => {
-    const pct = await page.evaluate(() => {
+  test('Stegen 2014: 1.2 g/day after loading ends 30 to 50% above Stegen\'s own baseline, as reported', async ({ page }) => {
+    const r = await page.evaluate(() => {
       const B = window.BetaAlanine;
       const preset = B.presets.PROTOCOL_PRESETS.find((p) => p.id === 'stegen2014');
       const b = B.runBand({ phases: preset.phases.map((p) => ({ doseGPerDay: p.doseGPerDay, days: p.days })), washoutDays: 0,
         observations: B.data.LOADING_OBSERVATIONS, washouts: B.data.WASHOUT_RATES });
-      return (100 * b.p50[b.stopDay]) / B.data.CLAIMS.baseline_default.value;
+      const c = B.data.CLAIMS;
+      return { pct: (100 * b.p50[b.stopDay]) / c.stegen_baseline_12.value, kept: b.p50[88] / b.p50[46],
+        keep08: c.maintenance_keep_08.value, keep12: c.maintenance_keep_12.value };
     });
-    // Stegen's own baseline is not in the archive; the pooled 22.9 stands in for it.
-    expect(pct).toBeGreaterThanOrEqual(30);
-    expect(pct).toBeLessThanOrEqual(50);
+    // Baseline of Stegen's 1.2 g/day group, Table 1: 4.47 mM by MRS, 19.2 mmol/kg dm.
+    expect(r.pct).toBeGreaterThanOrEqual(30);
+    expect(r.pct).toBeLessThanOrEqual(50);
+    // The model keeps less of the gain on 1.2 g/day than Stegen measured (103%), though
+    // more than their 0.8 g/day group (77%): it holds low doses less well than measured.
+    expect(r.kept).toBeGreaterThan(r.keep08);
+    expect(r.kept).toBeLessThan(r.keep12);
+  });
+
+  test('a goal dose is the goal over each draw\'s rise at 1 g/day, and taking it lands on the goal', async ({ page }) => {
+    const r = await page.evaluate(() => {
+      const B = window.BetaAlanine;
+      const common = { observations: B.data.LOADING_OBSERVATIONS, washouts: B.data.WASHOUT_RATES };
+      const g = B.doseForGoal({ ...common, goal: 10, days: 28 });
+      const at = (dose) => B.runBand({ ...common, phases: [{ doseGPerDay: dose, days: 28 }], washoutDays: 0 });
+      return { g, mid: at(g.p50).p50[28], high: at(g.p10).p90[28], low: at(g.p90).p10[28],
+        none: B.doseForGoal({ ...common, goal: 0, days: 28 }) };
+    });
+    // The median of goal/v is goal over the median of v, up to the two middle draws.
+    expect(r.mid).toBeCloseTo(10, 1);
+    expect(r.high).toBeCloseTo(10, 1);
+    expect(r.low).toBeCloseTo(10, 1);
+    expect(r.g.p10).toBeLessThan(r.g.p50);
+    expect(r.g.p50).toBeLessThan(r.g.p90);
+    expect(r.g.p50).toBeCloseTo(6.4 * 10 / 14.81, 1);
+    expect(r.none).toBeNull();
+  });
+
+  test('a goal dose is given only inside the fitted doses, and servings stay under 20 mg/kg', async ({ page }) => {
+    const r = await page.evaluate(() => {
+      const B = window.BetaAlanine;
+      return { inside: B.goalDoseUsable({ p50: 4 }), low: B.goalDoseUsable({ p50: 1.59 }), high: B.goalDoseUsable({ p50: 6.41 }),
+        edges: [B.goalDoseUsable({ p50: 1.6 }), B.goalDoseUsable({ p50: 6.4 })], none: B.goalDoseUsable(null),
+        s64: B.servingsUnderLikely(6.4, 70), s43: B.servingsUnderLikely(4.3, 70), cap: B.servingsUnderLikely(40, 20), zero: B.servingsUnderLikely(0, 70) };
+    });
+    expect(r).toEqual({ inside: true, low: false, high: false, edges: [true, true], none: false, s64: 5, s43: 4, cap: 24, zero: 1 });
   });
 
   test('a washout paper made artificially fast owns the low washout edge', async ({ page }) => {
@@ -617,6 +652,10 @@ test.describe('page', () => {
     await expect(page.locator('details.disclaimer-card')).toHaveCount(1);
     await expect(page.locator('p.disclaimer')).toHaveCount(1);
     await expect(page.locator('#individualSwitch')).not.toBeChecked();
+    // Five plain servings of 1.28 g: under 20 mg/kg at 70 kg, so no split is suggested.
+    await expect(page.locator('#phase0Servings')).toHaveValue('5');
+    await expect(page.locator('#servingTable')).toContainText('Possible, usually mild');
+    await expect(page.locator('#servingTable .split-hint')).toHaveCount(0);
   });
 
   test('a study preset shows its reported schedule and its measured points', async ({ page }) => {
@@ -686,8 +725,8 @@ test.describe('page', () => {
     await expect(page.locator('#baselineValue')).toHaveValue('17.5');
     await page.selectOption('#chartView', 'percent');
     await expect(page.locator('#chartCaption')).toContainText('percent of the baseline');
-    // Tingling uses kg however mass is entered: 1.6 g at 154.3 lb is 22.9 mg/kg.
-    await expect(page.locator('#servingTable')).toContainText('22.9');
+    // Tingling uses kg however mass is entered: 1.28 g at 154.3 lb is 18.3 mg/kg.
+    await expect(page.locator('#servingTable')).toContainText('18.3');
   });
 
   test('last state survives a reload; saved protocols open and delete', async ({ page }) => {
@@ -770,8 +809,8 @@ test.describe('page', () => {
     await openTool(page);
     await page.fill('#bodyMass', '0');
     await expect(page.locator('#flags')).toContainText('Body mass of 0 kg is outside the 20 to 300 kg this page accepts, so 20 kg is used.');
-    // 1.6 g per serving on the 20 kg limit, not on 1 kg.
-    await expect(page.locator('#servingTable')).toContainText('80.0');
+    // 1.28 g per serving on the 20 kg limit, not on 1 kg.
+    await expect(page.locator('#servingTable')).toContainText('64.0');
     await page.selectOption('#massUnit', 'lb');
     await expect(page.locator('#bodyMass')).toHaveAttribute('min', '44.1');
     await expect(page.locator('#bodyMass')).toHaveAttribute('max', '661.4');
@@ -798,12 +837,23 @@ test.describe('page', () => {
     await openTool(page);
     await expect(page.locator('#cards')).toContainText('Daily dose to hold that level');
     await expect(page.locator('#cards')).toContainText('2.3 g/day');
+    await page.fill('#phase0Servings', '4');
     await expect(page.locator('#servingTable .split-hint')).toContainText('5 plain servings of 1.28 g (18.3 mg/kg each, under 20)');
     await expect(page.locator('#servingTable .split-hint')).toContainText('4 sustained-release servings of 1.60 g');
     await page.selectOption('#phase0Form', 'sustained');
     await expect(page.locator('#servingTable .split-hint')).toHaveCount(0);
     await page.selectOption('#protocolPreset', 'stegen2014');
-    await expect(page.locator('#cards')).toContainText('below the lowest dose fitted');
+    // The model's figure is about 1.4 g/day, under the fitted 1.6: no number, the measured results instead.
+    const hold = page.locator('#cards .card', { hasText: 'Daily dose to hold that level' });
+    await expect(hold).toHaveClass(/card-refused/);
+    await expect(hold).toContainText('No estimate');
+    await expect(hold).toContainText('below 1.6 g/day');
+    await expect(hold).not.toContainText('1.4 g/day');
+    await expect(hold).toContainText('1.2 g/day kept 103% of the gain, 0.8 g/day 77% and 0.4 g/day 59%');
+    await expect(hold).toContainText('about 18 mg/kg a day (1.26 g/day at your body mass)');
+    await page.fill('#bodyMass', '60');
+    await expect(hold).toContainText('(1.08 g/day at your body mass)');
+    await page.fill('#bodyMass', '70');
     await page.fill('#phase0Dose', '0');
     await page.fill('#phase1Dose', '0');
     await expect(page.locator('#cards')).not.toContainText('Daily dose to hold that level');
@@ -1045,12 +1095,54 @@ test.describe('page', () => {
     await openTool(page);
     await page.selectOption('#phase0Unit', 'days');
     await page.fill('#phase0Length', '10');
-    await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('toolsHub.betaAlanine.last') || '{}').phases)).toBe('6.4|4|p|10|d');
+    await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('toolsHub.betaAlanine.last') || '{}').phases)).toBe('6.4|5|p|10|d');
     await page.reload();
     await expect.poll(() => page.evaluate(() => Boolean(window.BetaAlanine && window.BetaAlanine.ready))).toBe(true);
     await expect(page.locator('#phase0Unit')).toHaveValue('days');
     await expect(page.locator('#phase0Length')).toHaveValue('10');
     await expect(page.locator('#cards')).toContainText('Beta-alanine taken64.0 g');
+  });
+
+  test('dose for a goal: a figure in range, none outside it, the long-study note, and use as protocol', async ({ page }) => {
+    await openTool(page);
+    const card = page.locator('#goalResult .card');
+    const button = page.locator('#useGoalDose');
+    await expect(card).toContainText('Daily dose for a rise of 10.0 by week 4');
+    await expect(card).toContainText('4.3 g/day');
+    await expect(button).toBeEnabled();
+    await page.fill('#goalRise', '40');
+    await expect(card).toContainText('No estimate');
+    await expect(card).toContainText('more than 6.4 g/day');
+    await expect(card).toHaveClass(/card-refused/);
+    await expect(button).toBeDisabled();
+    await page.fill('#goalRise', '2');
+    await page.fill('#goalWeeks', '12');
+    await expect(card).toContainText('less than 1.6 g/day');
+    await page.fill('#goalRise', '20');
+    await expect(card).toContainText('where Saunders measured +16.9 by week 12');
+    await page.fill('#goalWeeks', '30');
+    await expect(page.locator('#flags')).toContainText('Goal week of 30 weeks is outside the 1 to 24 weeks');
+    await page.fill('#goalWeeks', '4');
+    await page.fill('#goalRise', '10');
+    await expect(button).toBeEnabled();
+    await button.click();
+    await expect(page.locator('#protocolPreset')).toHaveValue('custom');
+    await expect(page.locator('#phaseList fieldset')).toHaveCount(1);
+    await expect(page.locator('#phase0Dose')).toHaveValue('4.3');
+    await expect(page.locator('#phase0Servings')).toHaveValue('4');
+    await expect(page.locator('#phase0Length')).toHaveValue('4');
+    // Servings follow body mass: 4.3 g at 100 kg is under 20 mg/kg in 3 servings.
+    await page.fill('#bodyMass', '100');
+    await button.click();
+    await expect(page.locator('#phase0Servings')).toHaveValue('3');
+    await page.fill('#bodyMass', '70');
+    await expect(page.locator('#cards .card').first()).toContainText('10.0 mmol/kg dm');
+    // The goal survives a reload.
+    await page.fill('#goalRise', '12');
+    await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('toolsHub.betaAlanine.last') || '{}').goalRise)).toBe('12');
+    await page.reload();
+    await expect.poll(() => page.evaluate(() => Boolean(window.BetaAlanine && window.BetaAlanine.ready))).toBe(true);
+    await expect(page.locator('#goalRise')).toHaveValue('12');
   });
 
   test('the audit trail and sources link every source', async ({ page }) => {
