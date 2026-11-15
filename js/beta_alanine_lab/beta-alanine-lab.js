@@ -63,7 +63,7 @@ const num = (v, fallback) => {
 // Field limits, the same as the inputs' min and max. A value outside them is used
 // at the limit and named in the flags, never changed in silence.
 const LIMITS = {
-    dose: [0, 40], servings: [1, 24], length: [0, 520], washout: [0, 52], target: [0, 60],
+    dose: [0, 40], servings: [1, Engine.MAX_SERVINGS], length: [0, 520], washout: [0, 52], target: [0, 60],
     massKg: [20, 300], bodyFat: [3, 60], muscle: [0, 80], baseline: [1, 60]
 };
 let rangeNotes = new Map();
@@ -166,7 +166,7 @@ function renderPhases() {
         const id = (name) => `phase${i}${name}`;
         const field = (label, input) => h('div', { class: 'input-group' }, [h('label', { for: input.id, text: label }), input]);
         const dose = h('input', { id: id('Dose'), type: 'number', min: 0, max: 40, step: 'any', inputmode: 'decimal', value: p.doseGPerDay });
-        const servings = h('input', { id: id('Servings'), type: 'number', min: 1, max: 24, step: 1, inputmode: 'numeric', value: p.servings });
+        const servings = h('input', { id: id('Servings'), type: 'number', min: 1, max: Engine.MAX_SERVINGS, step: 1, inputmode: 'numeric', value: p.servings });
         const form = h('select', { id: id('Form') }, [h('option', { value: 'plain', text: 'Plain' }), h('option', { value: 'sustained', text: 'Sustained release' })]);
         form.value = p.form;
         const value = h('input', { id: id('Length'), type: 'number', min: 0, max: 520, step: 'any', inputmode: 'decimal', value: p.value });

@@ -547,6 +547,14 @@
     white-space: nowrap;
 }
 
+.data-table td p {
+    margin: 0;
+}
+
+.data-table td p + p {
+    margin-top: 6px;
+}
+
 .band-tag {
     display: inline-block;
     padding: 1px 8px;

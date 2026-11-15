@@ -6,7 +6,7 @@
 import { createSeededRandom } from '../supplement_common/seeded-random.js';
 import {
     buildSchedule, unitCurve, fitSlope, kdFromHalfLife, sampleHalfLife, responseFactor,
-    responseCv, percentileSorted, carnosineGrams, triangular
+    responseCv, percentileSorted, carnosineGrams, triangular, maintenanceDose
 } from './beta-alanine-engine.js';
 
 // Rounded up to a whole number of draws per pairing.
@@ -98,11 +98,14 @@ function summarize(band, options) {
     const toTarget = [];
     const toNormal = [];
     const grams = [];
+    const maintain = [];
     let neverTarget = 0;
     let neverNormal = 0;
     for (let i = 0; i < draws; i++) {
         const stopValue = drawValue(band, i, stopDay);
         atStop.push(stopValue);
+        const tag = band.tags[i];
+        maintain.push(maintenanceDose(stopValue, tag.slope * tag.factor, kdFromHalfLife(tag.halfLife)));
         if (target !== null) {
             let hit = -1;
             for (let d = 0; d <= stopDay; d++) if (drawValue(band, i, d) >= target) { hit = d; break; }
@@ -124,7 +127,8 @@ function summarize(band, options) {
         targetReachedShare: target !== null ? (draws - neverTarget) / draws : null,
         daysToNormal: range(toNormal),
         normalReachedShare: (draws - neverNormal) / draws,
-        gramsGainAtStop: range(grams)
+        gramsGainAtStop: range(grams),
+        maintenanceAtStop: range(maintain)
     };
 }
 

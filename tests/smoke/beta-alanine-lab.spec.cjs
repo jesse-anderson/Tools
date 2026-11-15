@@ -345,6 +345,61 @@ test.describe('band', () => {
     expect(r.named).toEqual({ washout: [{ sourceId: 'harris2009', share: 1 }], loading: [{ sourceId: 'saunders2017', share: 1 }] });
   });
 
+  test('the maintenance dose, taken after loading, holds the rise flat', async ({ page }) => {
+    const r = await page.evaluate(() => {
+      const B = window.BetaAlanine;
+      const loading = B.loadingPapers(B.data.LOADING_OBSERVATIONS).filter((p) => p.sourceId === 'saunders2017');
+      const washouts = B.data.WASHOUT_RATES.filter((w) => w.sourceId === 'harris2009');
+      const opts = { washoutDays: 0, loadingPapers: loading, washouts };
+      const load = B.runBand({ ...opts, phases: [{ doseGPerDay: 6.4, days: 28 }] });
+      const m = load.summary.maintenanceAtStop.p50;
+      const held = B.runBand({ ...opts, phases: [{ doseGPerDay: 6.4, days: 28 }, { doseGPerDay: m, days: 84 }] });
+      const level = held.p50[28];
+      let worst = 0;
+      for (let d = 28; d <= 112; d++) worst = Math.max(worst, Math.abs(held.p50[d] - level) / level);
+      return { m, level, stop: load.p50[28], worst };
+    });
+    expect(r.level).toBeCloseTo(r.stop, 9);
+    expect(r.worst).toBeLessThan(1e-9);
+    expect(r.m).toBeGreaterThan(0);
+  });
+
+  test('the maintenance dose depends on the washout rate only, not the loading paper or the person', async ({ page }) => {
+    const r = await page.evaluate(() => {
+      const B = window.BetaAlanine;
+      const base = { phases: [{ doseGPerDay: 6.4, days: 28 }], washoutDays: 0, observations: B.data.LOADING_OBSERVATIONS, washouts: B.data.WASHOUT_RATES };
+      const off = B.runBand(base);
+      const on = B.runBand({ ...base, individual: true });
+      // Each draw's dose is kd times the unit curve, whatever its slope or factor.
+      let worst = 0;
+      on.tags.forEach((t, i) => {
+        const kd = B.kdFromHalfLife(t.halfLife);
+        const got = B.maintenanceDose(on.values[i * (on.lastDay + 1) + 28], t.slope * t.factor, kd);
+        worst = Math.max(worst, Math.abs(got - kd * B.unitRise([[0, 28, 6.4]], 28, kd)));
+      });
+      return { off: off.summary.maintenanceAtStop, on: on.summary.maintenanceAtStop, worst };
+    });
+    expect(r.on).toEqual(r.off);
+    expect(r.worst).toBeLessThan(1e-9);
+    // Golden from this build: 2.3 g/day holds the reference load, 1.8 to 3.0.
+    expect(r.off.p50).toBeCloseTo(2.28, 1);
+    expect(r.off.p10).toBeGreaterThan(1.6);
+    expect(r.off.p90).toBeLessThan(3.2);
+  });
+
+  test('Stegen 2014: 1.2 g/day after loading ends 30 to 50% above baseline, as reported', async ({ page }) => {
+    const pct = await page.evaluate(() => {
+      const B = window.BetaAlanine;
+      const preset = B.presets.PROTOCOL_PRESETS.find((p) => p.id === 'stegen2014');
+      const b = B.runBand({ phases: preset.phases.map((p) => ({ doseGPerDay: p.doseGPerDay, days: p.days })), washoutDays: 0,
+        observations: B.data.LOADING_OBSERVATIONS, washouts: B.data.WASHOUT_RATES });
+      return (100 * b.p50[b.stopDay]) / B.data.CLAIMS.baseline_default.value;
+    });
+    // Stegen's own baseline is not in the archive; the pooled 22.9 stands in for it.
+    expect(pct).toBeGreaterThanOrEqual(30);
+    expect(pct).toBeLessThanOrEqual(50);
+  });
+
   test('a washout paper made artificially fast owns the low washout edge', async ({ page }) => {
     const e = await page.evaluate(() => {
       const B = window.BetaAlanine;
@@ -406,6 +461,28 @@ test.describe('checks on a protocol', () => {
       just_under_10: 'below-tested', at_10: 'possible', at_20: 'likely', under_40: 'likely', at_40: 'strong',
       sr_16: 'sr-placebo', sr_4: 'sr-tested', sr_41: 'untested', none: 'none', heavy: 'below-tested'
     });
+  });
+
+  test('a plain phase in the likely band gets a split that brings each serving under 20 mg/kg', async ({ page }) => {
+    const r = await page.evaluate(() => {
+      const B = window.BetaAlanine;
+      const s = (doseGPerDay, servings, form = 'plain', bodyMassKg = 70) => B.lowerTinglingSplit({ doseGPerDay, servings, form, bodyMassKg });
+      return { reference: s(6.4, 4), possible: s(3.2, 4), sustained: s(6.4, 4, 'sustained'), none: s(0, 4),
+        edge: s(2.8, 2), big: s(40, 1, 'plain', 20), five: s(5, 2) };
+    });
+    // 6.4 g at 70 kg: 4 servings are 22.9 mg/kg, 5 are 18.3.
+    expect(r.reference.servings).toBe(5);
+    expect(r.reference.gramsPerServing).toBeCloseTo(1.28, 9);
+    expect(r.reference.mgPerKg).toBeLessThan(20);
+    expect(r.reference.srServings).toBe(4);
+    expect(r.possible).toBeNull();
+    expect(r.sustained).toBeNull();
+    expect(r.none).toBeNull();
+    // Exactly 20 mg/kg is in the likely band, so it needs one more serving.
+    expect(r.edge.servings).toBe(3);
+    expect(r.big.servings).toBe(101);
+    // 5 g in sustained-release servings of 1.6 g or less takes 4, not the 3 rounding would give.
+    expect(r.five.srServings).toBe(4);
   });
 
   test('studied-range flags', async ({ page }) => {
@@ -656,6 +733,21 @@ test.describe('page', () => {
     await expect(page.locator('#flags')).toContainText('No beta-alanine is taken in this protocol');
     await expect(page.locator('#flags')).not.toContainText('comparable daily dose');
     await expect(page.locator('#flags')).not.toContainText('()');
+  });
+
+  test('the maintenance card and the split suggestion', async ({ page }) => {
+    await openTool(page);
+    await expect(page.locator('#cards')).toContainText('Daily dose to hold that level');
+    await expect(page.locator('#cards')).toContainText('2.3 g/day');
+    await expect(page.locator('#servingTable .split-hint')).toContainText('5 plain servings of 1.28 g (18.3 mg/kg each, under 20)');
+    await expect(page.locator('#servingTable .split-hint')).toContainText('4 sustained-release servings of 1.60 g');
+    await page.selectOption('#phase0Form', 'sustained');
+    await expect(page.locator('#servingTable .split-hint')).toHaveCount(0);
+    await page.selectOption('#protocolPreset', 'stegen2014');
+    await expect(page.locator('#cards')).toContainText('below the lowest dose fitted');
+    await page.fill('#phase0Dose', '0');
+    await page.fill('#phase1Dose', '0');
+    await expect(page.locator('#cards')).not.toContainText('Daily dose to hold that level');
   });
 
   test('the audit trail and sources link every source', async ({ page }) => {

@@ -3,7 +3,8 @@
 
 import { SOURCES, CLAIMS, WASHOUT_RATES, LOADING_OBSERVATIONS, WET_TO_DRY } from './beta-alanine-data.js';
 import {
-    fitSlope, kdFromHalfLife, unitRise, tinglingBand, BETA_ALANINE_G_PER_MOL
+    fitSlope, kdFromHalfLife, unitRise, tinglingBand, lowerTinglingSplit, BETA_ALANINE_G_PER_MOL,
+    FITTED_DOSE_MIN, TINGLING_LIKELY_MG_PER_KG, MAX_SERVINGS
 } from './beta-alanine-engine.js';
 import { loadingPapers, NAME_SHARE_MIN, EDGE_WINDOW, DEFAULT_DRAWS } from './beta-alanine-monte-carlo.js';
 
@@ -105,6 +106,13 @@ export function renderCards(node, { summary, baseline, totalGrams, target, washo
         `10th to 90th: ${fmt(r.p10)} to ${fmt(r.p90)}; ${fmt((r.p50 / baseline) * 100, 0)}% of baseline (${fmt((r.p10 / baseline) * 100, 0)} to ${fmt((r.p90 / baseline) * 100, 0)}%)`));
     node.appendChild(card('Beta-alanine taken', `${fmt(totalGrams, 1)} g`, null,
         'The common reference protocol is 179.2 g (6.4 g/day for 4 weeks).'));
+    const m = summary.maintenanceAtStop;
+    if (m && r.p50 > 0) {
+        const low = m.p50 < FITTED_DOSE_MIN ? ` That is below the lowest dose fitted, ${FITTED_DOSE_MIN} g/day.` : '';
+        node.appendChild(card('Daily dose to hold that level', `${fmt(m.p50, 1)} g/day`,
+            `10th to 90th: ${fmt(m.p10, 1)} to ${fmt(m.p90, 1)} g/day`,
+            [`On the model this depends on the washout rate alone, not on how strongly you respond, so the band comes from the washout studies.${low} 1.2 g/day kept carnosine 30 to 50% above baseline for six weeks (`, sourceLink('stegen2014'), ').']));
+    }
     if (target > 0) {
         const t = summary.daysToTarget;
         const share = summary.targetReachedShare;
@@ -166,10 +174,22 @@ export function renderServings(table, phases, bodyMassKg) {
             h('td', { class: 'num', text: fmt(band.mgPerKg, 1) }),
             h('td', { text: p.form === 'sustained' ? 'Sustained release' : 'Plain' }),
             h('td', {}, h('span', { class: `band-tag ${band.level}`, text: band.label })),
-            h('td', {}, band.reason ? [band.reason, ' (', ...linkList(band.sourceIds), ')'] : [])
+            h('td', {}, [band.reason ? h('p', {}, [band.reason, ' (', ...linkList(band.sourceIds), ')']) : null, splitHint(p, bodyMassKg)])
         ]));
     });
     table.appendChild(body);
+}
+
+// What would bring a plain phase under the likely band, within the servings field's limit.
+function splitHint(phase, bodyMassKg) {
+    const s = lowerTinglingSplit({ ...phase, bodyMassKg });
+    if (!s) return null;
+    const parts = [];
+    if (s.servings <= MAX_SERVINGS) parts.push(`${s.servings} plain servings of ${fmt(s.gramsPerServing, 2)} g (${fmt(s.mgPerKg, 1)} mg/kg each, under ${TINGLING_LIKELY_MG_PER_KG})`);
+    if (s.srServings <= MAX_SERVINGS) parts.push(`${s.srServings} sustained-release servings of ${fmt(phase.doseGPerDay / s.srServings, 2)} g, the size that matched placebo`);
+    if (!parts.length) return null;
+    return h('p', { class: 'split-hint' }, [`For less tingling at the same daily dose: ${parts.join(', or ')} (`,
+        ...linkList(s.srServings <= MAX_SERVINGS ? ['harris2006', 'decombaz2012'] : ['harris2006']), ').']);
 }
 
 export function renderSafety(node) {

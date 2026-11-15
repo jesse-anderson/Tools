@@ -189,6 +189,40 @@ export function tinglingBand({ gramsPerServing, bodyMassKg, form }) {
         reason: 'At 40 mg/kg, flushing symptoms came on quickly and were unpleasant.', sourceIds: ['harris2006'] };
 }
 
+/**
+ * Daily dose that holds a rise steady: intake slope * D equals loss kd * R.
+ * Since R is slope times the unit curve, this is kd times the unit curve, so
+ * it depends on the washout rate and the schedule, not on the loading paper.
+ */
+export function maintenanceDose(rise, slope, kd) {
+    return slope > 0 && rise > 0 ? (kd * rise) / slope : 0;
+}
+
+// Plain servings at or above this many mg/kg are where Harris 2006 called symptoms evident.
+export const TINGLING_LIKELY_MG_PER_KG = 20;
+export const SR_PLACEBO_GRAMS = 1.6;
+// The servings field's limit.
+export const MAX_SERVINGS = 24;
+
+/**
+ * For a plain phase in the likely or strong band: the fewest servings that put
+ * each under 20 mg/kg, and the sustained-release servings of 1.6 g or less
+ * (Decombaz 2012) for the same daily dose. Null when no change is needed.
+ */
+export function lowerTinglingSplit({ doseGPerDay, servings, form, bodyMassKg }) {
+    const dose = Number(doseGPerDay) || 0;
+    if (form === 'sustained' || dose <= 0 || !(bodyMassKg > 0)) return null;
+    const perKg = (dose * 1000) / Math.max(1, servings) / bodyMassKg;
+    if (perKg < TINGLING_LIKELY_MG_PER_KG) return null;
+    const n = Math.floor((dose * 1000) / (TINGLING_LIKELY_MG_PER_KG * bodyMassKg)) + 1;
+    return {
+        servings: n,
+        gramsPerServing: dose / n,
+        mgPerKg: (dose * 1000) / n / bodyMassKg,
+        srServings: Math.ceil(dose / SR_PLACEBO_GRAMS - 1e-9)
+    };
+}
+
 /** Flags for a protocol that leaves what the fitted studies covered. */
 export function studiedRangeFlags(phases) {
     const flags = [];
