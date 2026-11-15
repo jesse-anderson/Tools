@@ -1,5 +1,5 @@
-source_id,half_life_days_low,half_life_days_central,half_life_days_high,sampling,basis,location,note
-yamaguchi2021,22.4,32.2,49.0,lognormal 95% CI,"Exponential fit to 4 washout points over 16 wk, HPLC VL",Results; Discussion,"t1/2 4.6 wk (95% CI 3.2-7.0); linear fit was slightly better (LOOIC 395.27 vs 398.22)"
-baguet2009,35,40.5,46,uniform,"Spelnikov's exponential reading of Baguet's linear 2-4%/wk MRS data",Spelnikov 2019 Mcarn decay,"35 d low responders, 46 d high responders; central is the midpoint"
-stellingwerff2012,42,46,50,uniform,"About 40% of the rise left after 8 wk (own text, implies 42 d) to Spelnikov's estimate of about 50 d",Stellingwerff 2012 Results; Spelnikov 2019,"MRS GA and TA; central is the midpoint"
-harris2009,60,60,60,fixed,"Exponential, VL biopsy; conference abstract",Spelnikov 2019 (about 60 d); Yamaguchi 2021 Introduction (8.6 wk),"Not archived; quoted by two archived papers"
+source_id,half_life_days_low,half_life_days_central,half_life_days_high,washout_days_observed,sampling,basis,location,note
+yamaguchi2021,22.4,32.2,49.0,112,lognormal 95% CI,"Exponential fit to 4 washout points over 16 wk, HPLC VL",Results; Discussion,t1/2 4.6 wk (95% CI 3.2-7.0); linear fit was slightly better (LOOIC 395.27 vs 398.22)
+baguet2009,35,40.5,46,63,uniform,Spelnikov's exponential reading of Baguet's linear 2-4%/wk MRS data,Spelnikov 2019 Mcarn decay,"35 d low responders, 46 d high responders; central is the midpoint"
+stellingwerff2012,42,46,50,56,uniform,"About 40% of the rise left after 8 wk (own text, implies 42 d) to Spelnikov's estimate of about 50 d",Stellingwerff 2012 Results; Spelnikov 2019,MRS GA and TA; central is the midpoint
+harris2009,60,60,60,,fixed,"Exponential, VL biopsy; conference abstract",Spelnikov 2019 (about 60 d); Yamaguchi 2021 Introduction (8.6 wk),Not archived; quoted by two archived papers

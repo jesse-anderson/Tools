@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<!--
+============================================
+BETA-ALANINE LAB v1.0.0
+============================================
+Description: Muscle carnosine over a beta-alanine protocol and after it
+stops, from a kinetic model fitted to each published study separately,
+with a band that names the papers behind each edge.
+
+Dependencies: None (Vanilla JavaScript)
+Google Fonts (JetBrains Mono, Space Grotesk) loaded from CDN.
+
+Project: Tools Hub by Jesse Anderson
+Repository: https://github.com/jesse-anderson/Tools
+License: GPL-3.0 - https://github.com/jesse-anderson/Tools/blob/main/LICENSE
+
+Features:
+- Spelnikov and Harris one-compartment model, solved exactly between dose changes
+- Per-paper fits (six loading studies, four washout studies), never pooled
+- Seeded Monte Carlo band whose edges name their papers, with an
+  optional layer for person-to-person variation
+- Evidence horizon: the part of a curve no study at a comparable dose reached
+- Per-serving tingling check, grams of carnosine in muscle, cost per week
+- Study presets with each paper's reported schedule
+- Saved protocols kept in this browser
+
+Last Updated: November 2026
+============================================
+-->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Beta-alanine calculator: muscle carnosine rise and washout for any dose and schedule, with study-based uncertainty, tingling check and cost per week.">
+    <link rel="canonical" href="https://tools.jesse-anderson.net/tools/beta-alanine-lab.html">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Tools Hub">
+    <meta property="og:title" content="Beta-Alanine Lab">
+    <meta property="og:description" content="Beta-alanine calculator: muscle carnosine rise and washout for any dose and schedule, with study-based uncertainty, tingling check and cost per week.">
+    <meta property="og:url" content="https://tools.jesse-anderson.net/tools/beta-alanine-lab.html">
+    <meta name="twitter:card" content="summary">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'none'">
+    <title>Beta-Alanine Lab | Tools Hub</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/shared.css">
+    <link rel="stylesheet" href="../css/beta_alanine_lab/beta-alanine-lab.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <div class="header-left">
+                    <a href="../tools.html" class="back-link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <line x1="19" y1="12" x2="5" y2="12"/>
+                            <polyline points="12 19 5 12 12 5"/>
+                        </svg>
+                        Back to Tools
+                    </a>
+                </div>
+                <div class="header-right">
+                    <div class="theme-toggle">
+                        <button data-theme-toggle="light" aria-pressed="false" title="Light mode" aria-label="Light mode">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                <circle cx="12" cy="12" r="5"/>
+                                <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+                            </svg>
+                        </button>
+                        <button data-theme-toggle="dark" aria-pressed="false" title="Dark mode" aria-label="Dark mode">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="tool-title-row">
+                <div class="tool-icon-header biochemical" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 20h18"/>
+                        <path d="M4 18c3-9 6-12 9-12 2 0 4 2 7 3"/>
+                        <path d="M4 18c3-5 6-7 9-7 2 0 4 1 7 1.5"/>
+                    </svg>
+                </div>
+                <div>
+                    <h1>Beta-Alanine Lab</h1>
+                    <p class="tagline">// MUSCLE CARNOSINE • LOADING • WASHOUT • TINGLING • COST</p>
+                </div>
+            </div>
+        </header>
+
+        <details class="disclaimer-card" id="scopeDisclaimer" aria-label="Scope and liability disclaimer">
+            <summary>
+                <span class="disclaimer-icon" aria-hidden="true">&#9888;</span>
+                <span class="disclaimer-summary-text">
+                    <span class="disclaimer-title">A model of published averages. Not dosing advice, and not a measurement of your muscle.</span>
+                    <span class="disclaimer-lead">Carnosine here is estimated from small studies of mostly young men, never measured in you. Tingling bands are comfort information, not safety limits. Not for use in pregnancy, with a medical condition or alongside medicines without a clinician. Open for the full scope limits.</span>
+                </span>
+                <span class="disclaimer-chevron" aria-hidden="true">&#9662;</span>
+            </summary>
+
+            <div class="disclaimer-body">
+                <div class="disclaimer-section">
+                    <h3>What this tool actually does</h3>
+                    <ul>
+                        <li><strong>It runs one published model.</strong> Carnosine rises in proportion to the daily dose and falls in proportion to how far it is above baseline (Spelnikov and Harris 2019). The model is the authors' proposal and they say it needs validation.</li>
+                        <li><strong>Each study is fitted on its own.</strong> Six loading studies and four washout studies give different constants. The band shows how far they disagree; it is not a pooled estimate and not a confidence interval for you.</li>
+                        <li><strong>Grams of carnosine are a rough estimate.</strong> Studies measured one or two leg muscles. The tool spreads that figure over an estimated skeletal muscle mass, and carnosine differs between muscles and fiber types.</li>
+                        <li><strong>Costs are a snapshot.</strong> Prices were checked by hand in November 2026 and vary widely between vendors and from day to day.</li>
+                    </ul>
+                </div>
+
+                <div class="disclaimer-section">
+                    <h3>Not checked, at all</h3>
+                    <ul>
+                        <li><strong>You.</strong> Baseline carnosine and the response to the same dose vary widely from person to person, and the studies were mostly of young, healthy, active men.</li>
+                        <li><strong>Your product.</strong> Supplement labels are not verified here. Products differ in purity and in what else they contain.</li>
+                        <li><strong>Performance.</strong> Nothing here predicts an effect on exercise.</li>
+                        <li><strong>Safety.</strong> The position stand cited calls tingling the only reported side effect at recommended doses in healthy people. The tool repeats that sentence and makes no other safety claim.</li>
+                    </ul>
+                    <p class="disclaimer-note">A tingling band of "below the smallest dose tested" means untested, not shown to be free of tingling.</p>
+                </div>
+
+                <div class="disclaimer-section">
+                    <h3>Never use this for</h3>
+                    <ul>
+                        <li>Choosing a dose for yourself or anyone else without a qualified clinician, especially in pregnancy, while breastfeeding, for a child, or with any medical condition or medicine.</li>
+                        <li>Interpreting a laboratory or imaging result.</li>
+                        <li>Any claim about a product, a label or a sports-testing rule.</li>
+                    </ul>
+                </div>
+
+                <div class="disclaimer-section">
+                    <h3>Before you rely on a result</h3>
+                    <p>Read the cited papers, check the label of the product you have, and talk to a clinician who knows your history before taking any supplement.</p>
+                </div>
+
+                <div class="disclaimer-footer">
+                    <p><strong>No warranty. No liability. No suitability claim. You assume all risk.</strong> This page and everything it computes are provided as-is and as-available, without warranty of any kind, express or implied, including accuracy, completeness, merchantability, fitness for a particular purpose, medical suitability or non-infringement. To the maximum extent permitted by law, the author accepts no liability for any loss, injury, illness, death, damage, cost or claim arising from use of or reliance on this page, including dosing and supplement decisions.</p>
+                    <p><strong>No professional relationship.</strong> Using this page does not create any medical, clinical, nutritional or professional relationship, and nothing on it is medical, clinical, nutritional or professional advice. It is not a substitute for consultation with a qualified clinician who knows your history.</p>
+                    <p><strong>Independent verification required.</strong> Check every figure against the cited sources and a qualified clinician before acting on it. Where this page disagrees with them, this page is wrong.</p>
+                    <p><strong>Consequential damages excluded.</strong> To the maximum extent permitted by law, in no event will the author or maintainers be liable for any direct, indirect, incidental, special, exemplary, punitive or consequential damages, including injury, illness, adverse events, or loss of use, data, profits or business interruption, however caused and on any theory of liability, whether in contract, strict liability or tort including negligence, arising out of or in connection with this page, even if advised of the possibility of such damage.</p>
+                    <p><strong>Indemnity.</strong> By using this page you agree to indemnify and hold harmless the author and maintainers against any claim, demand, loss or expense arising out of your use of it or of anything derived from it.</p>
+                    <p><strong>Severability.</strong> If any part of this notice is held unenforceable, the remainder continues to apply, and the unenforceable part is limited to the least extent necessary rather than struck out.</p>
+                </div>
+            </div>
+        </details>
+
+        <details class="usage-note" id="howTo">
+            <summary>How to use</summary>
+            <div class="usage-body">
+                <ol>
+                    <li><strong>Pick a protocol.</strong> Start from a study preset, or set up to four phases of daily dose, servings, form and length, then how long to follow the washout.</li>
+                    <li><strong>Read the chart.</strong> The line is the middle of the band; the band runs from the 10th to the 90th percentile of the draws. Hover, tap or focus the chart to see which papers make each edge on that day.</li>
+                    <li><strong>Check the shaded part.</strong> Where no study at a comparable dose ran that long, the band is shaded and the hover names the study it rests on.</li>
+                    <li><strong>Add person-to-person variation</strong> to see the spread between individuals as well as between papers. It is off by default because it stretches one study's 4-week spread across the whole timeline.</li>
+                </ol>
+                <p>Beta-alanine and creatine are separate supplements; the <a href="creatine-lab.html">Creatine Lab</a> covers creatine. Neither tool models taking the two together.</p>
+            </div>
+        </details>
+
+        <section class="panel" aria-labelledby="protocolHeading">
+            <div class="panel-header">
+                <h2 id="protocolHeading">Protocol</h2>
+                <p>Daily dose in phases, then a washout with nothing taken.</p>
+            </div>
+            <div class="protocol-layout">
+                <div>
+                    <div class="input-group">
+                        <label for="protocolPreset">Preset</label>
+                        <select id="protocolPreset"></select>
+                    </div>
+                    <div id="presetReport" class="preset-report" aria-live="polite"></div>
+                    <div id="phaseList" class="phase-list"></div>
+                    <div class="button-row">
+                        <button type="button" class="tool-btn small" id="addPhase">Add phase</button>
+                    </div>
+                    <div class="field-grid">
+                        <div class="input-group">
+                            <label for="washoutWeeks">Washout to show (weeks)</label>
+                            <input type="number" id="washoutWeeks" min="0" max="52" step="1" inputmode="numeric" value="16">
+                        </div>
+                        <div class="input-group">
+                            <label for="targetRise">Days to reach a rise of (mmol/kg dm)</label>
+                            <input type="number" id="targetRise" min="0" max="60" step="any" inputmode="decimal" value="10">
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <h3 class="subhead">Person</h3>
+                    <div class="field-grid">
+                        <div class="input-group">
+                            <label for="bodyMass">Body mass</label>
+                            <input type="number" id="bodyMass" min="20" max="300" step="any" inputmode="decimal" value="70">
+                        </div>
+                        <div class="input-group">
+                            <label for="massUnit">Unit</label>
+                            <select id="massUnit">
+                                <option value="kg">kg</option>
+                                <option value="lb">lb</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label for="bodyFat">Body fat %</label>
+                            <input type="number" id="bodyFat" min="3" max="60" step="any" inputmode="decimal" value="20">
+                        </div>
+                        <div class="input-group">
+                            <label for="muscleMass">Skeletal muscle, kg (optional)</label>
+                            <input type="number" id="muscleMass" min="0" max="80" step="any" inputmode="decimal" placeholder="estimated">
+                        </div>
+                    </div>
+                    <div class="field-grid">
+                        <div class="input-group">
+                            <label for="baselinePreset">Baseline carnosine</label>
+                            <select id="baselinePreset"></select>
+                        </div>
+                        <div class="input-group">
+                            <label for="baselineValue">Baseline (mmol/kg dm)</label>
+                            <input type="number" id="baselineValue" min="1" max="60" step="any" inputmode="decimal" value="22.9">
+                        </div>
+                    </div>
+                    <p class="field-note" id="baselineNote"></p>
+                    <p class="field-note">Baseline changes the percent view and the grams, not the rise: Rezende 2020 found baseline and sex did not change the absolute response.</p>
+                    <label class="switch-row">
+                        <input type="checkbox" id="individualSwitch">
+                        <span>Add person-to-person variation (Rezende 2020)</span>
+                    </label>
+                </div>
+            </div>
+        </section>
+
+        <section class="panel" aria-labelledby="chartHeading">
+            <div class="panel-header chart-header">
+                <div>
+                    <h2 id="chartHeading">Muscle carnosine</h2>
+                    <p id="chartCaption">Rise above baseline, mmol/kg dry muscle.</p>
+                </div>
+                <div class="input-group compact">
+                    <label for="chartView">Show</label>
+                    <select id="chartView">
+                        <option value="rise">Rise, mmol/kg dry muscle</option>
+                        <option value="percent">Rise, % of baseline</option>
+                        <option value="total">Total, mmol/kg dry muscle</option>
+                    </select>
+                </div>
+            </div>
+            <div id="flags" class="flags" aria-live="polite"></div>
+            <div class="chart-wrap" id="chartWrap">
+                <svg id="chart" role="img" aria-labelledby="chartHeading chartCaption" tabindex="0"></svg>
+                <div id="chartTip" class="chart-tip" hidden></div>
+            </div>
+            <div id="legend" class="legend"></div>
+            <div id="cards" class="cards" aria-live="polite"></div>
+            <p class="disclaimer">A model of published study averages, not a measurement or a prediction for you, and not dosing advice. Provided as-is, without warranty, and used at your own risk; see the <a href="#scopeDisclaimer" class="disclaimer-link">full disclaimer</a> above.</p>
+            <details class="fold" id="edgeFold">
+                <summary>What makes each edge, as a table</summary>
+                <div class="table-scroll"><table id="edgeTable" class="data-table"></table></div>
+            </details>
+        </section>
+
+        <section class="panel" aria-labelledby="servingHeading">
+            <div class="panel-header">
+                <h2 id="servingHeading">Servings and tingling</h2>
+                <p>Comfort information for each serving, from the doses studied. Not a safety limit.</p>
+            </div>
+            <div class="table-scroll"><table id="servingTable" class="data-table"></table></div>
+            <p class="field-note" id="safetySentence"></p>
+        </section>
+
+        <section class="panel" aria-labelledby="costHeading">
+            <div class="panel-header">
+                <h2 id="costHeading">Cost</h2>
+                <p>Price ranges checked by hand on 2026-11-14 in USD. They vary widely between vendors and from day to day, and the gap between tiers depends more on where you buy than on the brand.</p>
+            </div>
+            <div class="field-grid">
+                <div class="input-group">
+                    <label for="ownPrice">Your price, USD (optional)</label>
+                    <input type="number" id="ownPrice" min="0" step="any" inputmode="decimal" placeholder="price per container">
+                </div>
+                <div class="input-group">
+                    <label for="ownGrams">Beta-alanine per container, g</label>
+                    <input type="number" id="ownGrams" min="0" step="any" inputmode="decimal" placeholder="grams">
+                </div>
+            </div>
+            <div id="costCards" class="cards"></div>
+            <p class="field-note">Stegen 2013 found sustained release and plain beta-alanine equally effective for carnosine, so the tablet premium buys less tingling, not more carnosine.</p>
+        </section>
+
+        <section class="panel" aria-labelledby="savedHeading">
+            <div class="panel-header">
+                <h2 id="savedHeading">Saved protocols</h2>
+                <p>Kept in this browser only. The page also reopens with what you had last time.</p>
+            </div>
+            <div class="field-grid">
+                <div class="input-group">
+                    <label for="saveName">Name</label>
+                    <input type="text" id="saveName" maxlength="60" placeholder="My protocol">
+                </div>
+                <div class="input-group">
+                    <label for="savedList">Saved</label>
+                    <select id="savedList"></select>
+                </div>
+            </div>
+            <div class="button-row">
+                <button type="button" class="tool-btn small primary" id="saveProtocol">Save</button>
+                <button type="button" class="tool-btn small" id="openProtocol">Open</button>
+                <button type="button" class="tool-btn small" id="deleteProtocol">Delete</button>
+                <button type="button" class="tool-btn small" id="resetAll">Reset to first-visit default</button>
+            </div>
+            <p id="saveStatus" class="field-note" aria-live="polite"></p>
+        </section>
+
+        <section class="panel" aria-labelledby="auditHeading">
+            <details class="fold" id="auditFold">
+                <summary><h2 id="auditHeading">Claim audit trail</h2></summary>
+                <div id="audit" class="audit"></div>
+            </details>
+        </section>
+
+        <section class="panel sources" aria-labelledby="sourcesHeading">
+            <h2 id="sourcesHeading">Sources</h2>
+            <ul id="sourceList"></ul>
+        </section>
+
+        <footer data-footer></footer>
+    </div>
+
+    <script src="../js/shared.js"></script>
+    <script type="module" src="../js/footer.js"></script>
+    <script type="module" src="../js/beta_alanine_lab/beta-alanine-lab.js"></script>
+</body>
+</html>
