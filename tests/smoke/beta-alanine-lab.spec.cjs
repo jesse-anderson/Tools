@@ -648,10 +648,12 @@ test.describe('literature anchors', () => {
 
   test('every anchor gives the verdict this model version states', async ({ page }) => {
     const anchors = await page.evaluate(() => window.BetaAlanine.anchors.map((a) => ({ id: a.id, verdict: a.verdict, expected: a.expected })));
-    expect(anchors.map((a) => a.id)).toEqual(['rezende_4wk', 'saunders_wk4', 'saunders_wk12', 'saunders_wk24', 'delfavero_older', 'stegen_12', 'incorporation']);
+    expect(anchors.map((a) => a.id)).toEqual(['rezende_4wk', 'saunders_wk4', 'saunders_wk12', 'saunders_wk24', 'delfavero_older', 'stegen_12', 'incorporation',
+      'bex_inactive', 'bex_trained', 'blancquaert_08', 'turnover_baseline', 'baguet_excess_loss', 'spelnikov_supply']);
     for (const a of anchors) expect(a.verdict, a.id).toBe(a.expected);
-    // The one known miss: past week 12 the model runs above the only 24-week study.
-    expect(anchors.filter((a) => a.verdict !== 'inside').map((a) => a.id)).toEqual(['saunders_wk24']);
+    // The two known misses: past week 12 the model runs above the only 24-week study,
+    // and below the fitted doses it runs under the low-dose study.
+    expect(anchors.filter((a) => a.verdict !== 'inside').map((a) => [a.id, a.verdict])).toEqual([['saunders_wk24', 'model-above'], ['blancquaert_08', 'model-below']]);
   });
 
   test('anchor measurements are the archived figures, not numbers typed into the module', async ({ page }) => {
@@ -695,13 +697,94 @@ test.describe('literature anchors', () => {
   test('the audit trail prints each anchor with its verdict', async ({ page }) => {
     await page.locator('#auditFold > summary').click();
     const rows = page.locator('#anchorTable tbody tr');
-    await expect(rows).toHaveCount(7);
+    await expect(rows).toHaveCount(13);
+    // Small figures print with enough digits to read: 0.03 mM/day, not 0.0.
+    await expect(page.locator('#anchorTable tr[data-anchor="baguet_excess_loss"]')).toContainText('0.03 mM/day');
     const verdicts = await rows.evaluateAll((tr) => tr.map((r) => [r.dataset.anchor, r.dataset.verdict]));
     const want = await page.evaluate(() => window.BetaAlanine.anchors.map((a) => [a.id, a.expected]));
     expect(verdicts).toEqual(want);
     await expect(page.locator('#anchorTable tr[data-anchor="saunders_wk24"]')).toContainText('Model above');
     await expect(page.locator('#anchorTable tr[data-anchor="saunders_wk24"]')).toContainText('+20.15 mmol/kg dm');
     await expect(page.locator('#anchorTable tr[data-anchor="delfavero_older"]')).toContainText('+85.4% (gastrocnemius)');
+  });
+
+  test('turnover, supply, training and low-dose anchors match the arithmetic worked out here', async ({ page }) => {
+    const a = await page.evaluate(() => Object.fromEntries(window.BetaAlanine.anchors.map((x) => [x.id, { measured: x.measured, model: x.model, unit: x.unit }])));
+    const claims = Object.fromEntries(csv('claims.csv').map((c) => [c.claim_id, c]));
+    const fits = JSON.parse(fs.readFileSync(path.join(DATA, 'fits.json'), 'utf8')).fits;
+    const wash = csv('washout_rates.csv');
+    const dry = (70 * 0.4) / WET_TO_DRY;
+    const kds = wash.map((w) => Math.LN2 / Number(w.half_life_days_central));
+    // Steady state: carnosine made = carnosine lost = kd x 22.9 x dry muscle, in g/day.
+    const turnover = kds.map((kd) => (kd * 22.9 * dry * 226.23) / 1000).sort((x, y) => x - y);
+    expect(a.turnover_baseline.model.p10).toBeCloseTo(turnover[0], 6);
+    expect(a.turnover_baseline.model.p90).toBeCloseTo(turnover[3], 6);
+    expect(a.turnover_baseline.measured).toBe(0.5);
+    expect(claims.turnover_blancquaert.claim).toContain('about 0.5 g/d');
+    // Baguet 2009's loss of a 2 mM loaded excess: kd x 2.
+    expect(claims.washout_rate_baguet.claim).toContain('about 2 mM');
+    const loss = kds.map((kd) => kd * 2).sort((x, y) => x - y);
+    expect(a.baguet_excess_loss.model.p10).toBeCloseTo(loss[0], 6);
+    expect(a.baguet_excess_loss.model.p90).toBeCloseTo(loss[3], 6);
+    // Supply that holds 14 mmol/kg dm, kd x 14 / slope over all 24 pairings, from fits.json.
+    const supply = [];
+    for (const paper of Object.values(fits)) for (const w of Object.values(paper)) supply.push((w.central.kd_per_day * 14) / w.central.slope);
+    supply.sort((x, y) => x - y);
+    const pct = (v, q) => { const i = (v.length - 1) * q; const lo = Math.floor(i); return v[lo] + (v[Math.ceil(i)] - v[lo]) * (i - lo); };
+    expect(supply).toHaveLength(24);
+    expect(a.spelnikov_supply.model.p50).toBeCloseTo(pct(supply, 0.5), 2);
+    expect(a.spelnikov_supply.model.p10).toBeLessThan(1.85);
+    expect(a.spelnikov_supply.model.p90).toBeGreaterThan(1.85);
+    expect(claims.endogenous_spelnikov.claim).toContain('1850 mg');
+    // Blancquaert 2018: the group's MRS baseline, wet to dry.
+    expect(claims.low_dose_08.claim).toContain('soleus 3.7 and gastrocnemius 5.1 mM');
+    expect(a.blancquaert_08.unit).toContain(((3.7 + 5.1) / 2 * WET_TO_DRY).toFixed(1));
+    expect(a.blancquaert_08.measured).toBeCloseTo(28, 9);
+    const r = await page.evaluate(() => {
+      const B = window.BetaAlanine;
+      const run = (dose, days) => B.runBand({ phases: [{ doseGPerDay: dose, days }], washoutDays: 0, observations: B.data.LOADING_OBSERVATIONS, washouts: B.data.WASHOUT_RATES });
+      return { low: run(0.8, 91).p50[91], bex: run(6.4, 23).p50[23] };
+    });
+    expect(a.blancquaert_08.model.p50).toBeCloseTo((100 * r.low) / ((3.7 + 5.1) / 2 * WET_TO_DRY), 6);
+    // Bex 2015: stored share at 23 days, worked out here.
+    expect(a.bex_inactive.model.p50).toBeCloseTo((r.bex * dry) / ((6.4 * 23 / 89.09) * 1000) * 100, 6);
+    expect(a.bex_inactive.measured).toBeCloseTo(3.49, 9);
+    expect(a.bex_trained.measured).toBeCloseTo(5.67, 9);
+  });
+
+  test('solubility is Romero 2013 Table 2, in g per 100 g water, and the engine reads it', async ({ page }) => {
+    const rows = csv('solubility.csv');
+    expect(rows.map((r) => Number(r.temp_c))).toEqual([20, 25, 30, 35, 40, 45, 50]);
+    expect(rows.map((r) => Number(r.beta_alanine_g_per_100g_water))).toEqual([65.631, 70.103, 81.22, 86.031, 88.912, 94.334, 97.568]);
+    // The table says mass fraction; only g per 100 g water gives the paper's glycine enthalpy, 4.6 kJ/mol.
+    const vantHoff = (col, molarMass) => {
+      const pts = rows.map((r) => {
+        const g = Number(r[col]);
+        const x = (g / molarMass) / (g / molarMass + 100 / 18.015);
+        return [1 / (Number(r.temp_c) + 273.15), Math.log(x)];
+      });
+      const mx = pts.reduce((t, q) => t + q[0], 0) / pts.length;
+      const my = pts.reduce((t, q) => t + q[1], 0) / pts.length;
+      const slope = pts.reduce((t, q) => t + (q[0] - mx) * (q[1] - my), 0) / pts.reduce((t, q) => t + (q[0] - mx) ** 2, 0);
+      return (-slope * 8.314) / 1000;
+    };
+    expect(vantHoff('glycine_g_per_100g_water', 75.07)).toBeCloseTo(4.6, 0);
+    expect(Math.abs(vantHoff('glycine_g_per_100g_water', 75.07) - 4.6)).toBeLessThan(0.1);
+    // Recorded discrepancy: the beta-alanine column gives about 9.1 kJ/mol, not the 6.3 in Table 3.
+    const claims = Object.fromEntries(csv('claims.csv').map((c) => [c.claim_id, c]));
+    expect(Number(claims.solubility_enthalpy.value)).toBe(6.3);
+    expect(vantHoff('beta_alanine_g_per_100g_water', 89.09)).toBeCloseTo(9.1, 1);
+    const e = await page.evaluate(() => {
+      const B = window.BetaAlanine;
+      const t = B.data.SOLUBILITY;
+      return { mid: B.solubilityAt(22.5, t), at25: B.solubilityAt(25, t), cold: B.solubilityAt(19.9, t), hot: B.solubilityAt(50.1, t),
+        water: B.waterForGrams(6.4, 25, t), none: B.waterForGrams(6.4, 10, t), n: t.length };
+    });
+    expect(e.n).toBe(7);
+    expect(e.mid).toBeCloseTo((65.631 + 70.103) / 2, 9);
+    expect(e.at25).toBe(70.103);
+    expect([e.cold, e.hot, e.none]).toEqual([null, null, null]);
+    expect(e.water).toBeCloseTo(640 / 70.103, 9);
   });
 
   test('new claims carry the figures in the papers', async () => {
@@ -1254,8 +1337,9 @@ test.describe('page', () => {
     await expect(fate).toContainText('not a proven ceiling');
     await expect(fate).toContainText('33.7 at the start, 35.4 at week 24');
     await page.fill('#phase0Dose', '0');
-    await expect(page.locator('#fate .card')).toHaveCount(1);
+    await expect(page.locator('#fate .card')).toHaveCount(2);
     await expect(fate).toContainText('No beta-alanine taken');
+    await expect(page.locator('#fate .card', { hasText: 'Normal daily turnover' })).not.toContainText('the model adds');
   });
 
   test('the food note, safety sentence and sustained-release bands cite the new studies', async ({ page }) => {
@@ -1285,6 +1369,59 @@ test.describe('page', () => {
     await expect(page.locator('#baselineValue')).toHaveValue('19.5');
     await expect(page.locator('#baselineNote')).toContainText('lowered by 15%');
     await expect(page.locator('#baselineNote a', { hasText: 'Baguet' })).toHaveAttribute('href', /10\.1007\/s00726-011-1197-3/);
+  });
+
+  test('normal turnover, the supply behind a baseline and the mixing note follow the inputs', async ({ page }) => {
+    await openTool(page);
+    const fits = JSON.parse(fs.readFileSync(path.join(DATA, 'fits.json'), 'utf8')).fits;
+    const kg = Number((await page.locator('#cards .card', { hasText: 'Carnosine in muscle' }).innerText()).match(/in ([\d.]+) kg of skeletal muscle/)[1]);
+    const work = (base, dose) => {
+      const dry = kg / WET_TO_DRY;
+      const pairs = [];
+      for (const paper of Object.values(fits)) for (const w of Object.values(paper)) pairs.push(w.central);
+      const kds = Object.values(Object.values(fits)[0]).map((w) => w.central.kd_per_day);
+      const lossG = kds.map((kd) => (kd * base * dry * 226.23) / 1000).sort((x, y) => x - y);
+      const sorted = (v) => [...v].sort((x, y) => x - y);
+      const pct = (v, q) => { const i = (v.length - 1) * q; const lo = Math.floor(i); return v[lo] + (v[Math.ceil(i)] - v[lo]) * (i - lo); };
+      return {
+        low: lossG[0], high: lossG[3],
+        extra: pct(sorted(pairs.map((c) => (c.slope * dose * dry * 89.09) / 1000)), 0.5),
+        multiple: pct(sorted(pairs.map((c) => 1 + (c.slope * dose) / (c.kd_per_day * base))), 0.5),
+        supply: pct(sorted(pairs.map((c) => (c.kd_per_day * base) / c.slope)), 0.5)
+      };
+    };
+    const w = work(22.9, 6.4);
+    const card = page.locator('#fate .card', { hasText: 'Normal daily turnover' });
+    await expect(card).toContainText(`${w.low.toFixed(2)} to ${w.high.toFixed(2)} g/day`);
+    await expect(card).toContainText(`adds about ${w.extra.toFixed(2)} g/day of beta-alanine into carnosine, about ${w.multiple.toFixed(1)} times the normal rate`);
+    await expect(card.locator('a', { hasText: 'Blancquaert' })).toHaveCount(1);
+    const fate = page.locator('#fate');
+    await expect(fate).toContainText(`holding a baseline of 22.9 mmol/kg dm takes the equivalent of ${w.supply.toFixed(1)} g/day`);
+    await expect(fate).toContainText('the body makes about 1.85 g/day');
+    await expect(fate).toContainText('Both are model figures, not measurements');
+    await expect(fate).toContainText('no wheal or flare');
+    await expect(fate.locator('a', { hasText: 'Everaert et al. 2013' }).first()).toHaveAttribute('href', /10\.1007\/s00421-012-2540-4/);
+    // A lower baseline follows through.
+    await page.selectOption('#baselinePreset', 'older');
+    const w2 = work(19.5, 6.4);
+    await expect(card).toContainText(`${w2.low.toFixed(2)} to ${w2.high.toFixed(2)} g/day`);
+    await expect(fate).toContainText(`holding a baseline of 19.5 mmol/kg dm takes the equivalent of ${w2.supply.toFixed(1)} g/day`);
+    // Mixing: 1.28 g servings need 1.28 x 100 / 65.631 g of water at 20 C and / 70.103 at 25 C.
+    const mix = page.locator('#mixNote');
+    await expect(mix).toContainText(`the largest serving here, 1.28 g, dissolves in at least ${(128 / 65.631).toFixed(1)} g of water at 20 C and ${(128 / 70.103).toFixed(1)} g at 25 C`);
+    await expect(mix.locator('a', { hasText: 'Romero' })).toHaveCount(1);
+    await expect(mix).toContainText('No study gives a rate at room temperature');
+    await page.fill('#phase0Servings', '1');
+    await expect(mix).toContainText(`the largest serving here, 6.40 g, dissolves in at least ${(640 / 65.631).toFixed(1)} g`);
+    // The second low-dose study on the maintenance card.
+    await page.selectOption('#protocolPreset', 'stegen2014');
+    // Wait for the refused card, or the check would pass on the default protocol's card.
+    const hold = page.locator('#cards .card', { hasText: 'Daily dose to hold that level' });
+    await expect(hold).toContainText('No estimate');
+    await expect(hold).toContainText('0.8 g/day raised carnosine 28% in 3 months');
+    await page.selectOption('#protocolPreset', 'reference');
+    await expect(hold).not.toContainText('No estimate');
+    await expect(hold).toContainText('0.8 g/day raised carnosine 28% in 3 months');
   });
 
   test('the audit trail and sources link every source', async ({ page }) => {

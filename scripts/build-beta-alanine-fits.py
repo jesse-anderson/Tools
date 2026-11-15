@@ -133,6 +133,10 @@ def write_js_module(obs, wash):
     manifest = list(csv.DictReader(open(DATA / "download_manifest.csv", encoding="utf-8")))
     claims = list(csv.DictReader(open(DATA / "claims.csv", encoding="utf-8")))
     prices = list(csv.DictReader(open(DATA / "prices.csv", encoding="utf-8")))
+    solubility = [{"tempC": float(r["temp_c"]), "gPer100gWater": float(r["beta_alanine_g_per_100g_water"]),
+                   "glycineGPer100gWater": float(r["glycine_g_per_100g_water"]), "sourceId": r["source_id"],
+                   "location": r["location"]}
+                  for r in csv.DictReader(open(DATA / "solubility.csv", encoding="utf-8"))]
     sources = {m["source_id"]: {"label": m["label"], "url": m["registry_url"] or None,
                                 "archived": m["download_status"] == "ok"} for m in manifest}
     observations = [{
@@ -156,7 +160,7 @@ def write_js_module(obs, wash):
             "product": p["product"], "grams": float(p["grams"]), "priceUsd": float(p["price_usd"]),
             "vendor": p["vendor"], "date": p["date"], "note": p["note"]})
     for s in [o["sourceId"] for o in observations] + [w["sourceId"] for w in washout] + \
-             [c["sourceId"] for c in claim_map.values()]:
+             [c["sourceId"] for c in claim_map.values()] + [r["sourceId"] for r in solubility]:
         if s not in sources:
             raise SystemExit(f"source {s} is not in download_manifest.csv")
 
@@ -168,7 +172,7 @@ def write_js_module(obs, wash):
             f"export const WET_TO_DRY = {WET_TO_DRY};\n\n"
             + dump("SOURCES", sources) + "\n" + dump("LOADING_OBSERVATIONS", observations) + "\n"
             + dump("WASHOUT_RATES", washout) + "\n" + dump("CLAIMS", claim_map) + "\n"
-            + dump("PRICE_TIERS", tiers))
+            + dump("PRICE_TIERS", tiers) + "\n" + dump("SOLUBILITY", solubility))
     out = ROOT / "js" / "beta_alanine_lab" / "beta-alanine-data.js"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(text, encoding="utf-8")

@@ -1,0 +1,8 @@
+temp_c,beta_alanine_g_per_100g_water,glycine_g_per_100g_water,source_id,location,note
+20,65.631,22.553,romero2013,Table 2,"Labelled mass fraction w2, but the values are g per 100 g water: only then does the glycine column give the paper's own enthalpy of solution, 4.6 kJ/mol (the spec checks this)"
+25,70.103,23.435,romero2013,Table 2,
+30,81.22,24.097,romero2013,Table 2,
+35,86.031,25.094,romero2013,Table 2,
+40,88.912,25.345,romero2013,Table 2,
+45,94.334,26.897,romero2013,Table 2,
+50,97.568,26.94,romero2013,Table 2,

@@ -213,6 +213,35 @@ export function maintenanceDose(rise, slope, kd) {
     return slope > 0 && rise > 0 ? (kd * rise) / slope : 0;
 }
 
+/**
+ * Carnosine made and lost per day at a steady level, mmol/day: at steady state
+ * synthesis equals first-order loss, kd x level x dry muscle.
+ */
+export function steadyTurnover(levelMmolPerKgDry, dryMuscleKg, kd) {
+    return levelMmolPerKgDry > 0 && dryMuscleKg > 0 ? kd * levelMmolPerKgDry * dryMuscleKg : 0;
+}
+
+/** Solubility in g per 100 g water, linear between measured temperatures; null outside them. */
+export function solubilityAt(tempC, table) {
+    const t = Number(tempC);
+    if (!Number.isFinite(t) || !table.length) return null;
+    for (let i = 0; i < table.length; i++) {
+        const a = table[i];
+        if (t === a.tempC) return a.gPer100gWater;
+        const b = table[i + 1];
+        if (b && t > a.tempC && t < b.tempC) {
+            return a.gPer100gWater + ((t - a.tempC) / (b.tempC - a.tempC)) * (b.gPer100gWater - a.gPer100gWater);
+        }
+    }
+    return null;
+}
+
+/** Least water, in grams, that dissolves a serving at this temperature; null outside the measured range. */
+export function waterForGrams(grams, tempC, table) {
+    const s = solubilityAt(tempC, table);
+    return s && grams > 0 ? (grams * 100) / s : null;
+}
+
 // Plain servings at or above this many mg/kg are where Harris 2006 called symptoms evident.
 export const TINGLING_LIKELY_MG_PER_KG = 20;
 export const SR_PLACEBO_GRAMS = 1.6;

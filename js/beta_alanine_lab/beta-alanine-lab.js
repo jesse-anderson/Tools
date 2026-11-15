@@ -2,14 +2,14 @@
 
 import * as Engine from './beta-alanine-engine.js';
 import { runBand, attributeEdge, paperMedian, loadingPapers, doseForGoal, DEFAULT_SEED } from './beta-alanine-monte-carlo.js';
-import { SOURCES, CLAIMS, LOADING_OBSERVATIONS, WASHOUT_RATES, PRICE_TIERS, WET_TO_DRY } from './beta-alanine-data.js';
+import { SOURCES, CLAIMS, LOADING_OBSERVATIONS, WASHOUT_RATES, PRICE_TIERS, WET_TO_DRY, SOLUBILITY } from './beta-alanine-data.js';
 import { PROTOCOL_PRESETS, BASELINE_PRESETS } from './beta-alanine-presets.js';
 import { drawChart } from './beta-alanine-chart.js';
 import { literatureAnchors } from './beta-alanine-anchors.js';
 import {
     h, clear, fmt, sourceLink, linkList, renderTip, renderFlags, renderCards, renderEdgeTable,
     renderServings, renderSafety, renderCosts, renderAudit, renderSources, renderGoal, computeChecks,
-    renderFoodNote, renderFate
+    renderFoodNote, renderFate, renderMixNote, turnoverFigures
 } from './beta-alanine-view.js';
 import { estimateSkeletalMuscleMass } from '../supplement_common/body-composition.js';
 import { createProjectStore, cleanTextState } from '../diagram_common/projects.js';
@@ -362,7 +362,9 @@ function render() {
     });
     renderEdgeTable($('edgeTable'), edgeRows(view), view.unit);
     renderServings($('servingTable'), phases, bodyMassKg());
-    renderFate($('fate'), { summary: band.summary, muscle: muscle(), totalGrams: Engine.totalGrams(phases), anchors });
+    renderFate($('fate'), { summary: band.summary, muscle: muscle(), totalGrams: Engine.totalGrams(phases), anchors, baseline: base,
+        doseGPerDay: Math.max(0, ...phases.map((p) => p.doseGPerDay)) });
+    renderMixNote($('mixNote'), phases);
     renderCostCards();
     renderGoal($('goalResult'), { ...goal, observations: LOADING_OBSERVATIONS });
     $('useGoalDose').disabled = !Engine.goalDoseUsable(goal.result);
@@ -642,8 +644,8 @@ function wireSaved() {
 let anchors = [];
 
 window.BetaAlanine = {
-    ...Engine, runBand, attributeEdge, paperMedian, loadingPapers, doseForGoal, computeChecks,
-    data: { SOURCES, CLAIMS, LOADING_OBSERVATIONS, WASHOUT_RATES, PRICE_TIERS, WET_TO_DRY },
+    ...Engine, runBand, attributeEdge, paperMedian, loadingPapers, doseForGoal, computeChecks, turnoverFigures,
+    data: { SOURCES, CLAIMS, LOADING_OBSERVATIONS, WASHOUT_RATES, PRICE_TIERS, WET_TO_DRY, SOLUBILITY },
     presets: { PROTOCOL_PRESETS, BASELINE_PRESETS },
     getState: () => JSON.parse(JSON.stringify(state)),
     lastBand: null

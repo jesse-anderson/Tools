@@ -1151,6 +1151,166 @@ export const CLAIMS = Object.freeze({
     "sourceId": "delfavero2012",
     "location": "Abstract",
     "use": "anchor"
+  },
+  "turnover_blancquaert": {
+    "topic": "turnover",
+    "claim": "In absolute terms the elimination of carnosine is about 0.5 g/d (citing Baguet 2009)",
+    "value": 0.5,
+    "sourceId": "blancquaert2018",
+    "location": "Discussion",
+    "use": "anchor (baseline turnover)"
+  },
+  "washout_rate_baguet": {
+    "topic": "turnover",
+    "claim": "After loading, carnosine was eliminated at about 0.03 mM/day (0.21 mM/wk, MRS wet weight), with a loading gain of about 2 mM (23-39%)",
+    "value": 0.03,
+    "sourceId": "baguet2009",
+    "location": "Discussion",
+    "use": "anchor (loss of the loaded excess)"
+  },
+  "endogenous_spelnikov": {
+    "topic": "endogenous",
+    "claim": "To support muscle carnosine of 14 mmol/kg dm (vegetarian), a 70 kg person would need an endogenous synthesis of 1850 mg beta-alanine per day; 20 needs a further 790 mg/day from diet and 30 a further 1320 mg/day (model estimate, kd 0.0133)",
+    "value": 1.85,
+    "sourceId": "spelnikov2019",
+    "location": "Discussion",
+    "use": "anchor (supply that holds a baseline)"
+  },
+  "endogenous_route_uracil": {
+    "topic": "endogenous",
+    "claim": "Endogenous beta-alanine comes from the degradation of uracil in the liver",
+    "value": null,
+    "sourceId": "decombaz2012",
+    "location": "Introduction",
+    "use": "where it goes panel"
+  },
+  "endogenous_route_gadl1": {
+    "topic": "endogenous",
+    "claim": "Gadl1 knockout mice are deficient in beta-alanine, carnosine and anserine, particularly in olfactory bulb, cerebral cortex and skeletal muscle; GADL1 may decarboxylate aspartate; Upb1 (beta-ureidopropionase) transcripts doubled in the knockout olfactory bulb",
+    "value": 2.0,
+    "sourceId": "mahootchi2020",
+    "location": "Abstract; Results; Discussion",
+    "use": "where it goes panel"
+  },
+  "diet_baguet": {
+    "topic": "diet",
+    "claim": "Daily beta-alanine from meat and fish 0.32 +/- 0.11 g (placebo) and 0.30 +/- 0.10 g (beta-alanine group); not correlated with baseline carnosine",
+    "value": 0.31,
+    "sourceId": "baguet2009",
+    "location": "Results",
+    "use": "where it goes panel"
+  },
+  "diet_solis": {
+    "topic": "diet",
+    "claim": "Dietary beta-alanine 490.47 +/- 119.53 mg/day in omnivores and 0 in vegetarians",
+    "value": 0.49,
+    "sourceId": "solis2015",
+    "location": "Table 1",
+    "use": "where it goes panel"
+  },
+  "diet_removal": {
+    "topic": "diet",
+    "claim": "Muscle carnosine was unchanged over 6 months of a vegetarian diet in previously omnivorous women; endogenous synthesis can probably compensate for the absence of dietary beta-alanine",
+    "value": null,
+    "sourceId": "blancquaert2018",
+    "location": "Abstract; Discussion",
+    "use": "where it goes panel"
+  },
+  "low_dose_08": {
+    "topic": "low dose",
+    "claim": "Vegetarian women, 0.8 g/day sustained release for 3 months: soleus carnosine +28% and gastrocnemius +28% (1H-MRS; group baseline soleus 3.7 and gastrocnemius 5.1 mM)",
+    "value": 0.28,
+    "sourceId": "blancquaert2018",
+    "location": "Results; Table 1",
+    "use": "anchor (low dose)"
+  },
+  "low_dose_04": {
+    "topic": "low dose",
+    "claim": "Then 0.4 g/day for 3 more months: soleus +26% and gastrocnemius +41% against baseline; 0.4 g/day did not restore baseline",
+    "value": 0.41,
+    "sourceId": "blancquaert2018",
+    "location": "Results; Discussion",
+    "use": "maintenance card (measured)"
+  },
+  "genes_mice": {
+    "topic": "regulation",
+    "claim": "Mice on beta-alanine in drinking water for 8 weeks: muscle carnosine +168%, anserine +42%, taurine -18%; TauT +28%, ABAT +40%, CNDP2 +27% mRNA, CARNS +42% (P = 0.063). The dose is given as 1.8% in Methods and 1.2% in Results",
+    "value": 0.28,
+    "sourceId": "everaert2013",
+    "location": "Results",
+    "use": "where it goes panel"
+  },
+  "training_inactive": {
+    "topic": "training",
+    "claim": "6.4 g/day sustained release for 23 days: 3.49% of the beta-alanine taken stored as carnosine in men who stayed inactive",
+    "value": 0.0349,
+    "sourceId": "bex2015",
+    "location": "Results",
+    "use": "anchor (storage share)"
+  },
+  "training_trained": {
+    "topic": "training",
+    "claim": "With nine training sessions in 3 weeks: 5.17% (high volume) and 5.67% (high intensity) stored",
+    "value": 0.0567,
+    "sourceId": "bex2015",
+    "location": "Results",
+    "use": "anchor (storage share); person note"
+  },
+  "trained_muscle": {
+    "topic": "training",
+    "claim": "Swimmers loaded more than nonathletes in deltoid (0.107 vs 0.065) and gastrocnemius (0.082 vs 0.051); kayakers more in arm than leg (0.089 vs 0.049), cyclists the reverse (0.065 vs 0.084), MRS arbitrary units",
+    "value": 1.65,
+    "sourceId": "bex2014",
+    "location": "Abstract",
+    "use": "person note"
+  },
+  "mrgd_receptor": {
+    "topic": "other targets",
+    "claim": "Beta-alanine at micromolar doses specifically evoked Ca2+ influx in cells expressing human, rat or mouse TGR7 (MrgD), expressed in dorsal root ganglia",
+    "value": null,
+    "sourceId": "shinohara2004",
+    "location": "Abstract",
+    "use": "where it goes panel"
+  },
+  "itch_human": {
+    "topic": "other targets",
+    "claim": "In mice beta-alanine itch requires MrgprD; in humans intradermal beta-alanine induced itch but neither wheal nor flare, so not mediated by histamine",
+    "value": null,
+    "sourceId": "liu2012",
+    "location": "Abstract",
+    "use": "where it goes panel"
+  },
+  "cns_sites": {
+    "topic": "other targets",
+    "claim": "Beta-alanine has 5 recognized receptor sites in the CNS: NMDA glycine co-agonist site, glycine receptor, GABA-A, GABA-C, and block of glial GABA uptake (animal and in vitro work)",
+    "value": 5.0,
+    "sourceId": "tiedje2010",
+    "location": "Abstract",
+    "use": "where it goes panel"
+  },
+  "brain_carnosine": {
+    "topic": "other targets",
+    "claim": "6.4 g/day: no change in brain homocarnosine/carnosine signal in 7 vegetarians or 7 omnivores, and no effect on cognitive tests in 19 cyclists",
+    "value": null,
+    "sourceId": "solis2015",
+    "location": "Abstract",
+    "use": "where it goes panel"
+  },
+  "solubility_enthalpy": {
+    "topic": "solubility",
+    "claim": "Enthalpy of solution 6.3 kJ/mol for beta-alanine and 4.6 for glycine, from van't Hoff plots of the solubility from 293.15 to 323.15 K",
+    "value": 6.3,
+    "sourceId": "romero2013",
+    "location": "Table 3",
+    "use": "spec (units check)"
+  },
+  "browning_ph": {
+    "topic": "stability",
+    "claim": "In 2 M glucose with 2 M beta-alanine heated in boiling water, C2 and C3 sugar fragments were negligible at pH 3.5 and rose with pH in parallel with browning; glycolaldehyde and methylglyoxal browned with beta-alanine far faster than reducing sugars",
+    "value": null,
+    "sourceId": "hayashi1986",
+    "location": "Abstract; Methods",
+    "use": "mixing note"
   }
 });
 
@@ -1250,3 +1410,55 @@ export const PRICE_TIERS = Object.freeze({
     }
   ]
 });
+
+export const SOLUBILITY = Object.freeze([
+  {
+    "tempC": 20.0,
+    "gPer100gWater": 65.631,
+    "glycineGPer100gWater": 22.553,
+    "sourceId": "romero2013",
+    "location": "Table 2"
+  },
+  {
+    "tempC": 25.0,
+    "gPer100gWater": 70.103,
+    "glycineGPer100gWater": 23.435,
+    "sourceId": "romero2013",
+    "location": "Table 2"
+  },
+  {
+    "tempC": 30.0,
+    "gPer100gWater": 81.22,
+    "glycineGPer100gWater": 24.097,
+    "sourceId": "romero2013",
+    "location": "Table 2"
+  },
+  {
+    "tempC": 35.0,
+    "gPer100gWater": 86.031,
+    "glycineGPer100gWater": 25.094,
+    "sourceId": "romero2013",
+    "location": "Table 2"
+  },
+  {
+    "tempC": 40.0,
+    "gPer100gWater": 88.912,
+    "glycineGPer100gWater": 25.345,
+    "sourceId": "romero2013",
+    "location": "Table 2"
+  },
+  {
+    "tempC": 45.0,
+    "gPer100gWater": 94.334,
+    "glycineGPer100gWater": 26.897,
+    "sourceId": "romero2013",
+    "location": "Table 2"
+  },
+  {
+    "tempC": 50.0,
+    "gPer100gWater": 97.568,
+    "glycineGPer100gWater": 26.94,
+    "sourceId": "romero2013",
+    "location": "Table 2"
+  }
+]);

@@ -1,10 +1,11 @@
 // Rendering for everything but the chart. Text goes in through textContent and
 // links through the source table, never through innerHTML.
 
-import { SOURCES, CLAIMS, WASHOUT_RATES, LOADING_OBSERVATIONS, WET_TO_DRY } from './beta-alanine-data.js';
+import { SOURCES, CLAIMS, WASHOUT_RATES, LOADING_OBSERVATIONS, WET_TO_DRY, SOLUBILITY } from './beta-alanine-data.js';
 import {
     fitSlope, kdFromHalfLife, unitRise, tinglingBand, lowerTinglingSplit, BETA_ALANINE_G_PER_MOL,
-    FITTED_DOSE_MIN, FITTED_DOSE_MAX, TINGLING_LIKELY_MG_PER_KG, MAX_SERVINGS
+    FITTED_DOSE_MIN, FITTED_DOSE_MAX, TINGLING_LIKELY_MG_PER_KG, MAX_SERVINGS,
+    CARNOSINE_G_PER_MOL, steadyTurnover, maintenanceDose, waterForGrams, percentileSorted
 } from './beta-alanine-engine.js';
 import { loadingPapers, NAME_SHARE_MIN, EDGE_WINDOW, DEFAULT_DRAWS } from './beta-alanine-monte-carlo.js';
 
@@ -107,6 +108,12 @@ function measuredMaintenance(bodyMassKg) {
     return `Measured after 46 days at 3.2 g/day: six weeks at 1.2 g/day kept ${pct('maintenance_keep_12')} of the gain, 0.8 g/day ${pct('maintenance_keep_08')} and 0.4 g/day ${pct('maintenance_keep_04')}; the authors suggest about ${perKg} mg/kg a day${atYou}.`;
 }
 
+// Blancquaert 2018: low doses in vegetarian women, the second low-dose study.
+function vegetarianLowDose() {
+    return [` In vegetarian women, 0.8 g/day raised carnosine ${Math.round(CLAIMS.low_dose_08.value * 100)}% in 3 months, and 0.4 g/day then kept it above baseline (`,
+        sourceLink('blancquaert2018'), ').'];
+}
+
 // The model figure only inside the fitted doses; outside them it says it has none.
 function maintenanceCard(m, bodyMassKg) {
     const title = 'Daily dose to hold that level';
@@ -115,11 +122,11 @@ function maintenanceCard(m, bodyMassKg) {
         const side = m.p50 < FITTED_DOSE_MIN ? `below ${FITTED_DOSE_MIN}` : `above ${FITTED_DOSE_MAX}`;
         return h('div', { class: 'card card-refused' }, [h('h3', { text: title }), h('p', { class: 'value', text: 'No estimate' }),
             h('p', { class: 'range', text: `The model's figure is ${side} g/day, outside the doses it was fitted to (${FITTED_DOSE_MIN} to ${FITTED_DOSE_MAX}), so it is not shown.` }),
-            h('p', { class: 'sub' }, [measuredMaintenance(bodyMassKg), ...cite])]);
+            h('p', { class: 'sub' }, [measuredMaintenance(bodyMassKg), ...cite, ...vegetarianLowDose()])]);
     }
     const edge = m.p10 < FITTED_DOSE_MIN ? ` Its lower edge is below the lowest dose fitted, ${FITTED_DOSE_MIN} g/day.` : '';
     return card(title, `${fmt(m.p50, 1)} g/day`, `10th to 90th: ${fmt(m.p10, 1)} to ${fmt(m.p90, 1)} g/day`,
-        [`On the model this depends on the washout rate alone, not on how strongly you respond, so the band comes from the washout studies.${edge} The model holds low doses less well than the one study of them found. ${measuredMaintenance(bodyMassKg)}`, ...cite]);
+        [`On the model this depends on the washout rate alone, not on how strongly you respond, so the band comes from the washout studies.${edge} The model holds low doses less well than the two studies of them found. ${measuredMaintenance(bodyMassKg)}`, ...cite, ...vegetarianLowDose()]);
 }
 
 export function renderCards(node, { summary, baseline, totalGrams, target, washoutDays, muscle, stopWeeks, bodyMassKg }) {
@@ -265,8 +272,50 @@ export function renderFoodNote(node) {
         sourceLink('stegen2013'), ').');
 }
 
+/**
+ * Turnover at a steady level and what a dose adds, on the model's own arithmetic:
+ * loss kd x B x dry muscle per washout study; extra synthesis slope x D x dry muscle
+ * and the oral-equivalent supply kd x B / slope per washout and loading pairing.
+ */
+export function turnoverFigures({ baseline, muscleKg, doseGPerDay }) {
+    const dryKg = muscleKg / WET_TO_DRY;
+    const kds = WASHOUT_RATES.map((w) => kdFromHalfLife(w.central));
+    const loss = kds.map((kd) => steadyTurnover(baseline, dryKg, kd)).sort((a, b) => a - b);
+    const extra = [];
+    const multiple = [];
+    const supply = [];
+    for (const kd of kds) for (const p of loadingPapers(LOADING_OBSERVATIONS)) {
+        const slope = fitSlope(p.points, kd);
+        extra.push(slope * doseGPerDay * dryKg);
+        multiple.push(1 + (slope * doseGPerDay) / (kd * baseline));
+        supply.push(maintenanceDose(baseline, slope, kd));
+    }
+    const mid = (v) => percentileSorted([...v].sort((a, b) => a - b), 0.5);
+    const band = (v) => { const sorted = [...v].sort((a, b) => a - b); return { p10: percentileSorted(sorted, 0.1), p50: percentileSorted(sorted, 0.5), p90: percentileSorted(sorted, 0.9) }; };
+    const toG = (mmol, gPerMol) => (mmol * gPerMol) / 1000;
+    return {
+        carnosineGPerDay: { low: toG(loss[0], CARNOSINE_G_PER_MOL), high: toG(loss[loss.length - 1], CARNOSINE_G_PER_MOL) },
+        betaAlanineGPerDay: { low: toG(loss[0], BETA_ALANINE_G_PER_MOL), high: toG(loss[loss.length - 1], BETA_ALANINE_G_PER_MOL) },
+        extraBetaAlanineGPerDay: toG(mid(extra), BETA_ALANINE_G_PER_MOL),
+        multiple: mid(multiple),
+        supply: band(supply)
+    };
+}
+
+/** Least water per serving at 20 and 25 C, from the measured solubility. */
+export function renderMixNote(node, phases) {
+    clear(node);
+    const serving = Math.max(0, ...phases.map((p) => (p.servings > 0 ? p.doseGPerDay / p.servings : 0)));
+    const lead = serving > 0
+        ? `Mixing: the largest serving here, ${fmt(serving, 2)} g, dissolves in at least ${fmt(waterForGrams(serving, 20, SOLUBILITY), 1)} g of water at 20 C and ${fmt(waterForGrams(serving, 25, SOLUBILITY), 1)} g at 25 C. `
+        : 'Mixing: ';
+    node.append(lead, 'Solubility was measured from 20 to 50 C and rises with temperature (', sourceLink('romero2013'),
+        '). With sugar, beta-alanine browns; in boiling tests the first browning steps were negligible at pH 3.5 and rose with pH (', sourceLink('hayashi1986'),
+        '). No study gives a rate at room temperature, so the page gives none.');
+}
+
 /** Where the beta-alanine taken goes, with the slowdown and taurine findings. */
-export function renderFate(node, { summary, muscle, totalGrams, anchors }) {
+export function renderFate(node, { summary, muscle, totalGrams, anchors, baseline, doseGPerDay }) {
     clear(node);
     const cards = h('div', { class: 'cards' });
     const urineLo = CLAIMS.urine_cc.value * 100;
@@ -276,7 +325,9 @@ export function renderFate(node, { summary, muscle, totalGrams, anchors }) {
     if (totalGrams > 0 && Number.isFinite(inc)) {
         const grams = (pct) => fmt((totalGrams * pct) / 100, 1);
         cards.appendChild(card('Stored as muscle carnosine', `${fmt(inc, 1)}%`, `about ${grams(inc)} g of the ${fmt(totalGrams, 1)} g taken, at the end of dosing`,
-            ['On the middle line at your muscle mass. Studies report 3 to 6% (', sourceLink('blancquaert2016'), '), about 3% (', sourceLink('stegen2013'), ') and 4.4% (', sourceLink('yamaguchi2021'), ').']));
+            ['On the middle line at your muscle mass. Studies report 3 to 6% (', sourceLink('blancquaert2016'), '), about 3% (', sourceLink('stegen2013'), ') and 4.4% (', sourceLink('yamaguchi2021'), '). Training raises it: ',
+                `${fmt(CLAIMS.training_inactive.value * 100, 1)}% in men who stayed inactive against up to ${fmt(CLAIMS.training_trained.value * 100, 1)}% in men who trained (`, sourceLink('bex2015'),
+                '), and trained muscles loaded about 1.6 to 1.8 times as much as untrained ones (', sourceLink('bex2014'), ').']));
         cards.appendChild(card('Lost in urine', `${fmt(urineLo, 1)} to ${fmt(urineHi, 1)}%`, `about ${grams(urineLo)} to ${grams(urineHi)} g`,
             ['Within 4 hours of 1.4 g: 1.8% with the common AGXT2 gene variant, 3.6% with the low-activity one (', sourceLink('stautemas2020'), ').']));
         cards.appendChild(card('Broken down', `about ${fmt(100 - inc - urineHi, 0)} to ${fmt(100 - inc - urineLo, 0)}%`, 'neither stored nor excreted',
@@ -284,7 +335,25 @@ export function renderFate(node, { summary, muscle, totalGrams, anchors }) {
     } else {
         cards.appendChild(card('Where it goes', 'No beta-alanine taken', null, null));
     }
+    const t = baseline > 0 ? turnoverFigures({ baseline, muscleKg: muscle.centerKg, doseGPerDay: doseGPerDay || 0 }) : null;
+    if (t) {
+        const adds = doseGPerDay > 0
+            ? ` At ${fmt(doseGPerDay, 1)} g/day the model adds about ${fmt(t.extraBetaAlanineGPerDay, 2)} g/day of beta-alanine into carnosine, about ${fmt(t.multiple, 1)} times the normal rate (middle of the pairings).`
+            : '';
+        cards.appendChild(card('Normal daily turnover', `${fmt(t.carnosineGPerDay.low, 2)} to ${fmt(t.carnosineGPerDay.high, 2)} g/day`,
+            `of carnosine made and lost at your baseline; ${fmt(t.betaAlanineGPerDay.low, 2)} to ${fmt(t.betaAlanineGPerDay.high, 2)} g of beta-alanine built in`,
+            ['At a steady level synthesis equals loss: the loss rate from each washout study times your baseline and muscle. The authors of a vegetarian-diet trial put it at about ',
+                `${CLAIMS.turnover_blancquaert.value} g/day from the same washout data (`, sourceLink('blancquaert2018'), `).${adds}`]));
+    }
     node.appendChild(cards);
+
+    if (t) {
+        node.appendChild(h('h3', { text: 'Where your baseline comes from' }));
+        node.appendChild(h('p', {}, [`On the model's arithmetic, holding a baseline of ${fmt(baseline, 1)} mmol/kg dm takes the equivalent of ${fmt(t.supply.p50, 1)} g/day of beta-alanine taken by mouth (${fmt(t.supply.p10, 1)} to ${fmt(t.supply.p90, 1)}). Spelnikov and Harris estimated the body makes about ${CLAIMS.endogenous_spelnikov.value} g/day, the amount their model needs to hold a vegetarian level of 14 (`,
+            sourceLink('spelnikov2019'), '). Both are model figures, not measurements, and beta-alanine made in the liver is not broken down on the way in as a swallowed dose is. It is made from uracil in the liver (',
+            sourceLink('decombaz2012'), ') and, in mice at least, from aspartate by the enzyme GADL1 (', sourceLink('mahootchi2020'), '). Meat and fish add about 0.3 to 0.5 g/day (',
+            ...linkList(['baguet2009', 'solis2015']), ') and a vegetarian diet none, yet 6 months of a vegetarian diet did not lower muscle carnosine (', sourceLink('blancquaert2018'), ').']));
+    }
 
     node.appendChild(h('h3', { text: 'Breakdown is the bottleneck' }));
     node.appendChild(h('p', {}, ['In mice, blocking both enzymes tripled blood beta-alanine and raised carnosine in muscle and heart; blocking GABA-T alone did not (',
@@ -297,11 +366,18 @@ export function renderFate(node, { summary, muscle, totalGrams, anchors }) {
     node.appendChild(h('p', {}, ['In the only 24-week study the average rise was +11.37 mmol/kg dm at week 4 and +20.15 at week 24, and it grew most in the first 4 weeks. TauT, the transporter that carries beta-alanine into muscle, was turned down over the 24 weeks, which the authors suggest plays a part in how much builds up (',
         sourceLink('saunders2017'), '). That is a slowdown, not a proven ceiling: 5 of 15 people were at their highest at week 24, four of them still rising. This model has no slowdown',
         s24 ? `: at week 24 of 6.4 g/day its middle line is +${fmt(s24.model.p50, 1)} against the +${fmt(s24.measured, 2)} measured` : '',
-        ', so past about week 8 read the middle line as an upper estimate. The literature anchors in the audit trail show the gap.']));
+        ', so past about week 8 read the middle line as an upper estimate. The literature anchors in the audit trail show the gap. In mice on beta-alanine in their water the same transporter went up instead, as did the breakdown enzyme GABA-T and carnosine synthase (',
+        sourceLink('everaert2013'), '). No study has measured whether the body makes less of its own beta-alanine while supplementing.']));
+
+    node.appendChild(h('h3', { text: 'Other places it acts' }));
+    node.appendChild(h('p', {}, ['The tingling comes from MrgD, a receptor on nerve endings in the skin that responds to micromolar beta-alanine (', sourceLink('shinohara2004'),
+        '). Injected into the skin of volunteers it caused itch with no wheal or flare, so histamine is not the route (', sourceLink('liu2012'),
+        '). In the brain it acts at five receptor sites in animal and laboratory work (', sourceLink('tiedje2010'),
+        '), but 6.4 g/day did not change brain carnosine or cognitive test results in people (', sourceLink('solis2015'), ').']));
 
     node.appendChild(h('h3', { text: 'Taurine' }));
     node.appendChild(h('p', {}, ['Beta-alanine shares TauT with taurine. Rodents lose muscle taurine on 3% beta-alanine in their water, 38 to 56 times the human dose. In people, 24 weeks at 6.4 g/day left muscle taurine unchanged (33.7 at the start, 35.4 at week 24, mmol/kg dm; ',
-        sourceLink('saunders2020'), '), and a meta-analysis of 63 people found no effect (', sourceLink('dolan2019'), ').']));
+        sourceLink('saunders2020'), '), and a meta-analysis of 63 people found no effect (', sourceLink('dolan2019'), '). Mice on beta-alanine in their water lost 18% (', sourceLink('everaert2013'), ').']));
 }
 
 const VERDICT_TEXT = { inside: 'Inside the band', 'model-above': 'Model above', 'model-below': 'Model below' };
@@ -317,7 +393,7 @@ function anchorTable(anchors) {
             h('th', { scope: 'row' }, linkList(a.sourceIds)),
             h('td', { text: a.title }),
             h('td', { text: a.measuredText }),
-            h('td', { class: 'num', text: `${fmt(m.p10, 1)} / ${fmt(m.p50, 1)} / ${fmt(m.p90, 1)} ${a.unit}` }),
+            h('td', { class: 'num', text: `${fmt(m.p10, a.digits || 1)} / ${fmt(m.p50, a.digits || 1)} / ${fmt(m.p90, a.digits || 1)} ${a.unit}` }),
             h('td', {}, [h('p', { text: VERDICT_TEXT[a.verdict] }), a.note ? h('p', { text: a.note }) : null])
         ]));
     }
@@ -455,7 +531,9 @@ export function renderAudit(node, anchors = []) {
         'sex_absolute', 'kf_high_dose_sublinear', 'washout_baguet_split', 'age_drop', 'elderly_rise', 'fate_transaminases', 'fate_incorporation',
         'fate_breakdown_product', 'urine_cc', 'urine_tt', 'agxt2_no_carnosine', 'plasma_half_life', 'plasma_half_life_14', 'plasma_half_life_sr8',
         'tau_t_down', 'saunders_still_rising', 'saunders_slowdown', 'taurine_24wk', 'taurine_meta', 'taurine_rodent', 'side_effects_meta',
-        'breakfast_profile', 'body_mass_plasma', 'tingle_sr_5g', 'tingle_sr_8g'];
+        'breakfast_profile', 'body_mass_plasma', 'tingle_sr_5g', 'tingle_sr_8g', 'turnover_blancquaert', 'washout_rate_baguet', 'endogenous_spelnikov',
+        'endogenous_route_uracil', 'endogenous_route_gadl1', 'diet_baguet', 'diet_solis', 'diet_removal', 'low_dose_08', 'low_dose_04', 'genes_mice',
+        'training_inactive', 'training_trained', 'trained_muscle', 'mrgd_receptor', 'itch_human', 'cns_sites', 'brain_carnosine', 'solubility_enthalpy', 'browning_ph'];
     const cl = h('ul');
     for (const id of claimIds) {
         const c = claim(id);
