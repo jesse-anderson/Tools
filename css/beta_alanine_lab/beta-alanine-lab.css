@@ -390,6 +390,8 @@
 .audit a,
 .preset-report a,
 .flag a,
+.card a,
+.field-note a,
 .data-table a {
     color: var(--text-primary);
 }

@@ -87,7 +87,10 @@ export function renderTip(node, { day, value, low, high, evidence, unit, individ
 
 export function renderFlags(node, flags) {
     clear(node);
-    for (const f of flags) node.appendChild(h('p', { class: 'flag' }, [f.text, ' (', ...linkList(f.sourceIds), ')']));
+    for (const f of flags) {
+        const cite = f.sourceIds && f.sourceIds.length ? [' (', ...linkList(f.sourceIds), ')'] : [];
+        node.appendChild(h('p', { class: 'flag' }, [f.text, ...cite]));
+    }
 }
 
 function card(title, value, range, sub) {

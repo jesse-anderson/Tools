@@ -60,27 +60,62 @@ const num = (v, fallback) => {
     return Number.isFinite(n) && String(v).trim() !== '' ? n : fallback;
 };
 
+// Field limits, the same as the inputs' min and max. A value outside them is used
+// at the limit and named in the flags, never changed in silence.
+const LIMITS = {
+    dose: [0, 40], servings: [1, 24], length: [0, 520], washout: [0, 52], target: [0, 60],
+    massKg: [20, 300], bodyFat: [3, 60], muscle: [0, 80], baseline: [1, 60]
+};
+let rangeNotes = new Map();
+
+const trim = (v) => String(Number(v.toFixed(2)));
+
+function bounded(key, value, fallback, [lo, hi], label, unit) {
+    const n = num(value, fallback);
+    const c = Math.min(hi, Math.max(lo, n));
+    if (c !== n) rangeNotes.set(key, `${label} of ${trim(n)} ${unit} is outside the ${trim(lo)} to ${trim(hi)} ${unit} this page accepts, so ${trim(c)} ${unit} is used.`);
+    return c;
+}
+
+function massLimits() {
+    const f = state.massUnit === 'lb' ? LB_PER_KG : 1;
+    return LIMITS.massKg.map((v) => Number((v * f).toFixed(1)));
+}
+
 function enginePhases() {
-    return state.phases.map((p) => ({
-        doseGPerDay: Math.min(40, Math.max(0, num(p.doseGPerDay, 0))),
-        servings: Math.max(1, Math.round(num(p.servings, 1))),
-        form: p.form === 'sustained' ? 'sustained' : 'plain',
-        days: Math.max(0, Math.round(num(p.value, 0) * (p.unit === 'weeks' ? 7 : 1)))
-    }));
+    return state.phases.map((p, i) => {
+        const name = `Phase ${i + 1}`;
+        const unit = p.unit === 'weeks' ? 'weeks' : 'days';
+        return {
+            doseGPerDay: bounded(`dose${i}`, p.doseGPerDay, 0, LIMITS.dose, `${name} dose`, 'g/day'),
+            servings: Math.round(bounded(`servings${i}`, p.servings, 1, LIMITS.servings, `${name} servings`, 'a day')),
+            form: p.form === 'sustained' ? 'sustained' : 'plain',
+            days: Math.round(bounded(`length${i}`, p.value, 0, LIMITS.length, `${name} length`, unit) * (unit === 'weeks' ? 7 : 1))
+        };
+    });
+}
+
+function washoutWeeks() {
+    return bounded('washout', state.washoutWeeks, 16, LIMITS.washout, 'Washout', 'weeks');
+}
+
+function targetRise() {
+    return bounded('target', state.targetRise, 0, LIMITS.target, 'Target rise', 'mmol/kg dm');
 }
 
 function bodyMassKg() {
-    const v = Math.max(1, num(state.massValue, 70));
+    const v = bounded('mass', state.massValue, state.massUnit === 'lb' ? 70 * LB_PER_KG : 70, massLimits(), 'Body mass', state.massUnit);
     return state.massUnit === 'lb' ? v / LB_PER_KG : v;
 }
 
 function baseline() {
-    return Math.max(1, num(state.baselineValue, 22.9));
+    return bounded('baseline', state.baselineValue, 22.9, LIMITS.baseline, 'Baseline', 'mmol/kg dm');
 }
 
 function muscle() {
-    const direct = num(state.muscleMass, 0);
-    const est = estimateSkeletalMuscleMass({ bodyMassKg: bodyMassKg(), bodyFatPercent: num(state.bodyFat, 20), skeletalMuscleMassKg: direct > 0 ? direct : 0 });
+    const direct = num(state.muscleMass, 0) > 0 ? bounded('muscle', state.muscleMass, 0, LIMITS.muscle, 'Skeletal muscle', 'kg') : 0;
+    const bodyFat = bounded('bodyFat', state.bodyFat, 20, LIMITS.bodyFat, 'Body fat', '%');
+    const est = estimateSkeletalMuscleMass({ bodyMassKg: bodyMassKg(), bodyFatPercent: bodyFat, skeletalMuscleMassKg: direct });
     return { centerKg: est.skeletalMuscleMassKg, uncertainty: direct > 0 ? 0.05 : 0.12, source: est.skeletalMuscleMassSource };
 }
 
@@ -163,6 +198,7 @@ function syncInputs() {
     $('targetRise').value = state.targetRise;
     $('bodyMass').value = state.massValue;
     $('massUnit').value = state.massUnit;
+    setMassLimits();
     $('bodyFat').value = state.bodyFat;
     $('muscleMass').value = state.muscleMass;
     $('baselinePreset').value = BASELINE_PRESETS.some((p) => p.id === state.baselinePreset) ? state.baselinePreset : 'custom';
@@ -174,6 +210,12 @@ function syncInputs() {
     renderPresetReport();
     renderPhases();
     renderBaselineNote();
+}
+
+function setMassLimits() {
+    const [lo, hi] = massLimits();
+    $('bodyMass').min = lo;
+    $('bodyMass').max = hi;
 }
 
 function renderBaselineNote() {
@@ -215,6 +257,7 @@ function wireInputs() {
         state.massUnit = e.target.value;
         state.massValue = Number((state.massUnit === 'lb' ? kg * LB_PER_KG : kg).toFixed(1));
         $('bodyMass').value = state.massValue;
+        setMassLimits();
         schedule();
     });
     $('baselinePreset').addEventListener('change', (e) => {
@@ -243,16 +286,17 @@ function schedule() {
 }
 
 function compute() {
+    rangeNotes = new Map();
     const phases = enginePhases();
     band = runBand({
         phases,
-        washoutDays: Math.round(Math.max(0, Math.min(52, num(state.washoutWeeks, 16))) * 7),
+        washoutDays: Math.round(washoutWeeks() * 7),
         observations: LOADING_OBSERVATIONS,
         loadingPapers: LOADING,
         washouts: WASHOUT_RATES,
         seed: DEFAULT_SEED,
         individual: Boolean(state.individual),
-        target: Math.max(0, num(state.targetRise, 0)),
+        target: targetRise(),
         normalVariation: NORMAL_VARIATION,
         muscle: muscle(),
         wetToDry: WET_TO_DRY
@@ -279,6 +323,8 @@ function paperLineModels() {
 
 function render() {
     if (!band) return;
+    // Read before the flags are drawn, so a limit note on the baseline is among them.
+    const base = baseline();
     const view = VIEWS[state.view] || VIEWS.rise;
     const phases = band.phases;
     $('chartCaption').textContent = `${view.caption} Band: 10th to 90th percentile of ${band.draws} draws, ${band.individual ? 'papers and person-to-person variation' : 'disagreement between papers only'}.`;
@@ -294,9 +340,10 @@ function render() {
         phases: markers, paperLines: paperLineModels(), yTitle: view.title, points: studyPoints()
     });
     renderLegend();
-    renderFlags($('flags'), Engine.studiedRangeFlags(phases).concat(horizonFlags()));
+    renderFlags($('flags'), [...rangeNotes.values()].map((text) => ({ text, sourceIds: [] }))
+        .concat(Engine.studiedRangeFlags(phases), horizonFlags()));
     renderCards($('cards'), {
-        summary: band.summary, baseline: baseline(), totalGrams: Engine.totalGrams(phases), target: Math.max(0, num(state.targetRise, 0)),
+        summary: band.summary, baseline: base, totalGrams: Engine.totalGrams(phases), target: targetRise(),
         washoutDays: band.lastDay - band.stopDay, muscle: muscle(), stopWeeks: band.supplementDays / 7
     });
     renderEdgeTable($('edgeTable'), edgeRows(view), view.unit);
@@ -324,13 +371,14 @@ function studyPoints() {
 function horizonFlags() {
     const hz = band.horizon;
     const flags = [];
+    if (hz.dose === 0) return [{ text: 'No beta-alanine is taken in this protocol, so there is nothing to show.', sourceIds: [] }];
     if (hz.supplementDays > 0 && hz.loadingCoveredUntil < hz.supplementDays) {
         const longest = hz.loadingStudies[0];
         flags.push({ text: longest
             ? `Dosing runs past week ${fmt(hz.loadingCoveredUntil / 7, 1)}, the longest study at a comparable dose. The shaded part of the band rests on that one study.`
             : 'No study used a comparable daily dose, so the whole dosing period is shaded.', sourceIds: longest ? [longest.sourceId] : [] });
     }
-    return flags.filter((f) => f.sourceIds.length);
+    return flags;
 }
 
 function edgeRows(view) {

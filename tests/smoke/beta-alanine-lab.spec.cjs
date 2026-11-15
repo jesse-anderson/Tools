@@ -6,7 +6,7 @@
 const fs = require('fs');
 const path = require('path');
 const { test, expect } = require('@playwright/test');
-const { expectPageToLoadCleanly } = require('./helpers.cjs');
+const { expectPageToLoadCleanly, expectContrastAA } = require('./helpers.cjs');
 
 const PAGE = '/tools/beta-alanine-lab.html';
 const DATA = path.resolve(__dirname, '..', '..', 'data', 'beta_alanine_lab');
@@ -558,7 +558,9 @@ test.describe('page', () => {
     await openTool(page);
     await page.selectOption('#protocolPreset', 'church2017');
     await page.locator('#individualSwitch').check();
-    await expect.poll(() => page.evaluate(() => localStorage.getItem('toolsHub.betaAlanine.last') || '')).toContain('church2017');
+    // Wait for the switch's own save: the preset change alone already stores church2017.
+    await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('toolsHub.betaAlanine.last') || '{}')))
+      .toMatchObject({ presetId: 'church2017', individual: true });
     await page.reload();
     await expect.poll(() => page.evaluate(() => Boolean(window.BetaAlanine && window.BetaAlanine.ready))).toBe(true);
     await expect(page.locator('#protocolPreset')).toHaveValue('church2017');
@@ -596,6 +598,64 @@ test.describe('page', () => {
     await expect(page.locator('#cards')).toContainText('179.2 g');
     await page.locator('#saveProtocol').click();
     await expect(page.locator('#saveStatus')).toContainText('refused storage');
+  });
+
+  test('result text, links and chart labels clear AA contrast in both themes', async ({ page }) => {
+    await openTool(page);
+    // Paper lines and a study preset put links in the legend; the cards always carry some.
+    await page.selectOption('#protocolPreset', 'stellingwerff-high');
+    await page.locator('.legend input').first().check();
+    await expect(page.locator('#cards a').first()).toBeAttached();
+    await expectContrastAA(page, [
+      '.panel a', '.card h3', '.card .value', '.card .range', '.card .sub', '.flag', '.field-note',
+      '.legend-item', '.legend-title', '.legend label', '.preset-report', '.data-table th', '.data-table td'
+    ].join(', '));
+    // SVG text paints with fill, which the shared helper does not read.
+    for (const theme of ['dark', 'light']) {
+      await page.evaluate((t) => document.documentElement.setAttribute('data-theme', t), theme);
+      await page.waitForTimeout(800);
+      const worst = await page.evaluate(() => {
+        const rgb = (c) => c.match(/[\d.]+/g).slice(0, 3).map(Number);
+        const lum = ([r, g, b]) => [r, g, b].map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); })
+          .reduce((s, v, i) => s + v * [0.2126, 0.7152, 0.0722][i], 0);
+        const bg = lum(rgb(getComputedStyle(document.querySelector('#chartWrap').closest('.panel')).backgroundColor));
+        let min = Infinity;
+        for (const t of document.querySelectorAll('#chart text')) {
+          const l = lum(rgb(getComputedStyle(t).fill));
+          min = Math.min(min, (Math.max(l, bg) + 0.05) / (Math.min(l, bg) + 0.05));
+        }
+        return min;
+      });
+      expect(worst, `${theme} chart text`).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
+  test('a field outside its limits is used at the limit and named, never changed in silence', async ({ page }) => {
+    await openTool(page);
+    await page.fill('#bodyMass', '0');
+    await expect(page.locator('#flags')).toContainText('Body mass of 0 kg is outside the 20 to 300 kg this page accepts, so 20 kg is used.');
+    // 1.6 g per serving on the 20 kg limit, not on 1 kg.
+    await expect(page.locator('#servingTable')).toContainText('80.0');
+    await page.selectOption('#massUnit', 'lb');
+    await expect(page.locator('#bodyMass')).toHaveAttribute('min', '44.1');
+    await expect(page.locator('#bodyMass')).toHaveAttribute('max', '661.4');
+    await page.fill('#bodyMass', '154.3');
+    await expect(page.locator('#flags')).not.toContainText('Body mass');
+
+    await page.fill('#baselineValue', '0');
+    await expect(page.locator('#flags')).toContainText('so 1 mmol/kg dm is used');
+    await page.fill('#baselineValue', '22.9');
+
+    await page.fill('#phase0Dose', '100');
+    await expect(page.locator('#flags')).toContainText('Phase 1 dose of 100 g/day is outside the 0 to 40 g/day');
+    await expect(page.locator('#flags')).toContainText('above any dose studied');
+    // Nothing within a factor of 1.5 of 40 g/day: the flag with no source must still show.
+    await expect(page.locator('#flags')).toContainText('No study used a comparable daily dose');
+
+    await page.fill('#phase0Dose', '0');
+    await expect(page.locator('#flags')).toContainText('No beta-alanine is taken in this protocol');
+    await expect(page.locator('#flags')).not.toContainText('comparable daily dose');
+    await expect(page.locator('#flags')).not.toContainText('()');
   });
 
   test('the audit trail and sources link every source', async ({ page }) => {
