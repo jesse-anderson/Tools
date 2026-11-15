@@ -1126,15 +1126,15 @@ test('the oxygen chart falls, the settings persist, and a phone does not overflo
 });
 
 // ---------------------------------------------------------------------------
-// Monte Carlo. The RNG is checked against the Creatine Lab source it was copied
-// from, read in Node, and the Beta draws against Beta(95.5, 5.5) quantiles
+// Monte Carlo. The RNG is checked against the shared source it was copied from
+// (js/supplement_common, once the Creatine Lab's), read in Node, and the Beta draws against Beta(95.5, 5.5) quantiles
 // computed outside the tool.
 // ---------------------------------------------------------------------------
 
 test('the Monte Carlo RNG draws the same sequence as the Creatine Lab original', async ({ page, baseURL }) => {
   await openSeedLab(page, baseURL);
-  const source = fs.readFileSync(path.resolve(__dirname, '..', '..', 'js', 'creatine_lab', 'creatine-model.js'), 'utf8');
-  const body = source.slice(source.indexOf('function createSeededRandom'), source.indexOf('function clamp'));
+  const source = fs.readFileSync(path.resolve(__dirname, '..', '..', 'js', 'supplement_common', 'seeded-random.js'), 'utf8');
+  const body = source.slice(source.indexOf('function createSeededRandom'));
   // eslint-disable-next-line no-new-func
   const original = new Function(`${body}; return createSeededRandom;`)();
   for (const seed of [1, 42, 20261003, 0]) {

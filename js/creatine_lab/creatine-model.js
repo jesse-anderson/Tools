@@ -1,3 +1,6 @@
+import { createSeededRandom } from "../supplement_common/seeded-random.js";
+import { estimateSkeletalMuscleMass } from "../supplement_common/body-composition.js";
+
 export const ACTIVE_CREATINE_FRACTION = 0.879;
 export const CREATINE_MOLAR_MASS_G_PER_MOL = 131.13;
 export const CREATININE_FROM_CREATINE_FRACTION = 113.12 / 131.13;
@@ -381,11 +384,14 @@ export function calculateMixState({ doseG, volumeL, temperatureC }) {
 }
 
 export function calculateBodyCompositionEstimate(params = {}) {
-    const bodyMassKg = positiveNumber(params.bodyMassKg, DEFAULT_MODEL_INPUTS.bodyMassKg);
-    const bodyFatPercent = clamp(numberOrDefault(params.bodyFatPercent, DEFAULT_MODEL_INPUTS.bodyFatPercent), 3, 60);
-    const directFatFreeMassKg = nonNegativeNumber(params.fatFreeMassKg, BODY_COMPOSITION_DEFAULTS.fatFreeMassKg);
-    const directSkeletalMuscleMassKg = nonNegativeNumber(params.skeletalMuscleMassKg, BODY_COMPOSITION_DEFAULTS.skeletalMuscleMassKg);
-    const ffmToSmmFraction = clamp(normalizeFraction(params.ffmToSmmFraction, BODY_COMPOSITION_DEFAULTS.ffmToSmmFraction), 0.25, 0.65);
+    const muscle = estimateSkeletalMuscleMass({
+        bodyMassKg: positiveNumber(params.bodyMassKg, DEFAULT_MODEL_INPUTS.bodyMassKg),
+        bodyFatPercent: numberOrDefault(params.bodyFatPercent, DEFAULT_MODEL_INPUTS.bodyFatPercent),
+        fatFreeMassKg: nonNegativeNumber(params.fatFreeMassKg, BODY_COMPOSITION_DEFAULTS.fatFreeMassKg),
+        skeletalMuscleMassKg: nonNegativeNumber(params.skeletalMuscleMassKg, BODY_COMPOSITION_DEFAULTS.skeletalMuscleMassKg),
+        ffmToSmmFraction: numberOrDefault(params.ffmToSmmFraction, BODY_COMPOSITION_DEFAULTS.ffmToSmmFraction)
+    });
+    const { skeletalMuscleMassKg } = muscle;
     const muscleCreatineGPerKgRaw = clamp(numberOrDefault(params.muscleCreatineGPerKg, BODY_COMPOSITION_DEFAULTS.muscleCreatineGPerKg), 3, 7);
     const dietaryPattern = String(params.dietaryPattern || "omnivore");
     const dietaryMuscleFactor = DIETARY_MUSCLE_CREATINE_FACTOR[dietaryPattern] ?? 1.0;
@@ -393,10 +399,6 @@ export function calculateBodyCompositionEstimate(params = {}) {
     const skeletalMuscleCreatineShare = clamp(normalizeFraction(params.skeletalMuscleCreatineShare, BODY_COMPOSITION_DEFAULTS.skeletalMuscleCreatineShare), 0.75, 0.99);
     const baselineSaturationFraction = clamp(normalizeFraction(params.baselineSaturationFraction, DEFAULT_MODEL_INPUTS.baselineSaturationFraction), 0.50, 0.95);
 
-    const estimatedFatFreeMassKg = bodyMassKg * (1 - bodyFatPercent / 100);
-    const fatFreeMassKg = directFatFreeMassKg > 0 ? directFatFreeMassKg : estimatedFatFreeMassKg;
-    const estimatedSkeletalMuscleMassKg = fatFreeMassKg * ffmToSmmFraction;
-    const skeletalMuscleMassKg = directSkeletalMuscleMassKg > 0 ? directSkeletalMuscleMassKg : estimatedSkeletalMuscleMassKg;
     const muscleCreatinePoolG = skeletalMuscleMassKg * muscleCreatineGPerKg;
     const totalPoolG = muscleCreatinePoolG / skeletalMuscleCreatineShare;
     const nonMusclePoolG = Math.max(totalPoolG - muscleCreatinePoolG, 0);
@@ -410,19 +412,7 @@ export function calculateBodyCompositionEstimate(params = {}) {
     const capHighSaturation = Math.min(BASELINE_SATURATION_LOW, baselineSaturationFraction);
 
     return {
-        bodyMassKg,
-        bodyFatPercent,
-        estimatedFatFreeMassKg,
-        fatFreeMassKg,
-        fatFreeMassSource: directFatFreeMassKg > 0 ? "direct" : "body-fat estimate",
-        estimatedSkeletalMuscleMassKg,
-        skeletalMuscleMassKg,
-        skeletalMuscleMassSource: directSkeletalMuscleMassKg > 0
-            ? "direct"
-            : directFatFreeMassKg > 0
-                ? "direct FFM estimate"
-                : "body-fat/FFM estimate",
-        ffmToSmmFraction,
+        ...muscle,
         muscleCreatineGPerKgRaw,
         muscleCreatineGPerKg,
         dietaryPattern,
@@ -1186,22 +1176,6 @@ function triangular(rng, min, mode, max) {
         return min + Math.sqrt(u * (max - min) * (mode - min));
     }
     return max - Math.sqrt((1 - u) * (max - min) * (max - mode));
-}
-
-function createSeededRandom(seed) {
-    // xorshift32: better distribution than the previous LCG for visual envelopes
-    // while staying deterministic for the seeded smoke tests. Still not suitable
-    // for statistical inference; see source-map note.
-    let state = Math.abs(Math.floor(seed)) >>> 0;
-    if (state === 0) state = 2463534242;
-    return () => {
-        state ^= state << 13;
-        state >>>= 0;
-        state ^= state >>> 17;
-        state ^= state << 5;
-        state >>>= 0;
-        return state / 4294967296;
-    };
 }
 
 function clamp(value, min, max) {
