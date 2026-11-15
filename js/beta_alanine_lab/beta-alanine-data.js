@@ -88,6 +88,51 @@ export const SOURCES = Object.freeze({
     "label": "Harris et al. 2009, FASEB J 23(1) abstract, controlled-release washout",
     "url": null,
     "archived": false
+  },
+  "baguet2012": {
+    "label": "Baguet et al. 2012, Amino Acids 43:13-20, sex, age and heritability",
+    "url": "https://doi.org/10.1007/s00726-011-1197-3",
+    "archived": true
+  },
+  "delfavero2012": {
+    "label": "del Favero et al. 2012, Amino Acids 43:49-56, elderly 60-80 y",
+    "url": "https://doi.org/10.1007/s00726-011-1190-x",
+    "archived": true
+  },
+  "saunders2020": {
+    "label": "Saunders et al. 2020, Eur J Nutr 59:57-65, 24 wk muscle taurine",
+    "url": "https://doi.org/10.1007/s00394-018-1881-0",
+    "archived": true
+  },
+  "blancquaert2016": {
+    "label": "Blancquaert et al. 2016, J Physiol 594:4849, beta-alanine transamination",
+    "url": "https://doi.org/10.1113/JP272050",
+    "archived": true
+  },
+  "stautemas2019": {
+    "label": "Stautemas et al. 2019, Nutrients 11:2869, fragmented dosing",
+    "url": "https://doi.org/10.3390/nu11122869",
+    "archived": true
+  },
+  "stautemas2020": {
+    "label": "Stautemas et al. 2020, Eur J Appl Physiol, AGXT2 in beta-alanine metabolism",
+    "url": "https://doi.org/10.1007/s00421-020-04501-7",
+    "archived": true
+  },
+  "maestrehernandez2023": {
+    "label": "Maestre-Hernandez et al. 2023, Front Nutr 10:1213105, 15 g/day sustained release",
+    "url": "https://doi.org/10.3389/fnut.2023.1213105",
+    "archived": true
+  },
+  "desalazar2021": {
+    "label": "de Salazar et al. 2021, Pharmaceutics 13:1517, controlled-release powder",
+    "url": "https://doi.org/10.3390/pharmaceutics13091517",
+    "archived": true
+  },
+  "dolan2019": {
+    "label": "Dolan et al. 2019, Adv Nutr, systematic risk assessment of beta-alanine",
+    "url": "https://doi.org/10.1093/advances/nmy115",
+    "archived": true
   }
 });
 
