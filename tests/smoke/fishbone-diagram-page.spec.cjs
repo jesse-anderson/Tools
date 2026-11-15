@@ -426,7 +426,7 @@ test('projects persist across a reload; board settings travel in the file, viewe
   expect(await page.evaluate(() => document.querySelector('#diagramHost svg').outerHTML.includes('#c4b5fd'))).toBe(false);
 });
 
-test('the diagram is visible on load at 1440x900, fitted so the head shows, and widens when the outline is hidden', async ({ page }) => {
+test('the diagram has its own full-width row, visible on load at 1440x900 and fitted so the head shows', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await openTool(page);
   const frame = page.locator('#diagramFrame');
@@ -438,38 +438,89 @@ test('the diagram is visible on load at 1440x900, fitted so the head shows, and 
     return h.left >= f.left && h.right <= f.right && h.top >= f.top && h.bottom <= f.bottom;
   });
   await expect.poll(inside).toBe(true);
+
+  // Nothing shares the row: the frame spans the panel, and the outline starts below it.
+  const row = await page.evaluate(() => {
+    const ws = document.getElementById('workspace');
+    const style = getComputedStyle(ws);
+    const inner = ws.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+    const f = document.getElementById('diagramFrame').getBoundingClientRect();
+    return { inner, frame: f.width, frameBottom: f.bottom, outlineTop: document.getElementById('outlinePane').getBoundingClientRect().top };
+  });
+  expect(row.frame).toBeGreaterThanOrEqual(row.inner - 1);
+  expect(row.outlineTop).toBeGreaterThanOrEqual(row.frameBottom);
+  await expect(page.locator('#modeName')).toBeHidden();
+  await openMenu(page, 'project');
+  await expect(page.locator('#modeName')).toBeVisible();
+  await page.keyboard.press('Escape');
+
   await expect(page.locator('#zoomFit')).toHaveAttribute('aria-pressed', 'true');
   await page.click('#zoomIn');
   await expect(page.locator('#zoomFit')).toHaveAttribute('aria-pressed', 'false');
   await page.click('#zoomFit');
   await expect(page.locator('#zoomFit')).toHaveAttribute('aria-pressed', 'true');
+});
 
+test('Maximize fills the window with the diagram alone, fitted to it, and Escape or Exit returns', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await openTool(page);
   const zoom = async () => parseInt(await page.locator('#zoomLabel').textContent(), 10);
-  const before = { width: box.width, zoom: await zoom() };
-  await page.click('#outlineToggle');
-  await expect(page.locator('#outlinePane')).toBeHidden();
-  await expect(page.locator('#outlineToggle')).toHaveAttribute('aria-expanded', 'false');
-  await expect.poll(async () => (await frame.boundingBox()).width).toBeGreaterThan(before.width + 300);
-  await expect.poll(zoom).toBeGreaterThan(before.zoom);
-  await expect.poll(inside).toBe(true);
-  await page.reload();
-  await expect.poll(() => page.evaluate(() => Boolean(window.FishboneDiagram))).toBe(true);
-  await expect(page.locator('#outlinePane')).toBeHidden();
+  // The fit changes once the web font arrives and the page settles; read it after that.
+  await page.evaluate(() => document.fonts.ready);
+  let last = -1;
+  await expect.poll(async () => { const now = await zoom(); const same = now === last; last = now; return same; }, { intervals: [250] }).toBe(true);
+  const before = last;
+  await page.click('#maximizeBtn');
+  await expect(page.locator('#diagramWrap')).toHaveClass(/is-maximized/);
+  await expect(page.locator('#maximizeBtn')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('#maxTitle')).toHaveText('Short shots on a molded part');
+  await expect.poll(async () => (await page.locator('#diagramFrame').boundingBox()).width).toBeGreaterThan(1400);
+  expect((await page.locator('#diagramFrame').boundingBox()).height).toBeGreaterThan(780);
+  await expect.poll(zoom).toBeGreaterThan(before);
+  // Going full screen can refit once more as it settles, so compare the two labels together.
+  await expect.poll(() => page.evaluate(() => document.getElementById('maxZoomLabel').textContent === document.getElementById('zoomLabel').textContent)).toBe(true);
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#diagramWrap')).not.toHaveClass(/is-maximized/);
+  await expect(page.locator('#maximizeBtn')).toBeFocused();
+  await expect.poll(zoom).toBe(before);
 
-  // Editing from the diagram brings the outline back.
+  // The Exit button too, and the bar's own zoom controls.
+  await page.click('#maximizeBtn');
+  await page.click('#maxZoomIn');
+  await expect(page.locator('#maxFit')).toHaveAttribute('aria-pressed', 'false');
+  await page.click('#maxFit');
+  await expect(page.locator('#maxFit')).toHaveAttribute('aria-pressed', 'true');
+  await page.click('#maxExit');
+  await expect(page.locator('#diagramWrap')).not.toHaveClass(/is-maximized/);
+
+  // Enter on a cause leaves the maximized view and edits it in the outline.
+  await page.click('#maximizeBtn');
   await page.locator('#diagramHost [data-node-id][tabindex="0"]').focus();
   await page.keyboard.press('ArrowDown');
   await page.keyboard.press('Enter');
-  await expect(page.locator('#outlinePane')).toBeVisible();
+  await expect(page.locator('#diagramWrap')).not.toHaveClass(/is-maximized/);
   await expect(page.locator('#outliner .ol-row.is-selected input[type="text"]')).toBeFocused();
 
-  if (await page.evaluate(() => document.fullscreenEnabled)) {
-    await page.click('#fullscreenBtn');
-    await expect.poll(() => page.evaluate(() => document.fullscreenElement && document.fullscreenElement.id)).toBe('workspace');
-    await expect(page.locator('#fullscreenBtn')).toHaveAttribute('aria-pressed', 'true');
-    await page.click('#fullscreenBtn');
-    await expect.poll(() => page.evaluate(() => document.fullscreenElement)).toBe(null);
-  }
+  // A small board is enlarged past full size to fill the maximized view, never on the page.
+  await loadOutline(page, 'M\n  A\nN\n  B\n');
+  expect(await zoom()).toBeLessThanOrEqual(100);
+  await page.click('#maximizeBtn');
+  await expect.poll(zoom).toBeGreaterThan(100);
+});
+
+test('Maximize still fills the window where the browser has no full screen, as on an iPhone', async ({ page }) => {
+  await page.addInitScript(() => Object.defineProperty(Document.prototype, 'fullscreenEnabled', { get: () => false }));
+  await page.setViewportSize({ width: 1024, height: 700 });
+  await openTool(page);
+  await page.click('#maximizeBtn');
+  expect(await page.evaluate(() => document.fullscreenElement)).toBe(null);
+  const frame = await page.locator('#diagramFrame').boundingBox();
+  const bar = await page.locator('.fb-max-bar').boundingBox();
+  expect(frame.width).toBeGreaterThan(990);
+  expect(frame.y + frame.height).toBeGreaterThan(680);
+  expect(bar.y).toBeLessThan(20);
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#diagramWrap')).not.toHaveClass(/is-maximized/);
 });
 
 test('toolbar menus: one open at a time, Escape closes and returns focus, an action closes its menu and reports', async ({ page }) => {
@@ -504,6 +555,7 @@ test('toolbar menus: one open at a time, Escape closes and returns focus, an act
     }
   }
   // With the toolbar at the bottom of a short window, a menu opens upward whole rather than squashed below.
+  await page.setViewportSize({ width: 1024, height: 700 });
   for (const name of ['project', 'export']) {
     await page.locator(`#${name}MenuBtn`).evaluate((b) => b.scrollIntoView({ block: 'end' }));
     await openMenu(page, name);

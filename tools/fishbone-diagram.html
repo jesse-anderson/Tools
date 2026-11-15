@@ -252,7 +252,7 @@ Last Updated: November 2026
                         <span id="zoomLabel" class="fb-zoom-label" aria-live="polite">100%</span>
                         <button type="button" class="fb-btn" id="zoomIn" aria-label="Zoom in">+</button>
                         <button type="button" class="fb-btn" id="zoomFit" aria-pressed="true">Fit</button>
-                        <button type="button" class="fb-btn" id="fullscreenBtn" aria-pressed="false">Full screen</button>
+                        <button type="button" class="fb-btn" id="maximizeBtn" aria-controls="diagramWrap" aria-pressed="false">Maximize</button>
                     </div>
                     <div class="fb-tool-group">
                         <button type="button" class="fb-btn fb-menu-btn" id="viewMenuBtn" popovertarget="viewMenu" aria-haspopup="true">View</button>
@@ -262,12 +262,10 @@ Last Updated: November 2026
                         <button type="button" class="fb-btn fb-menu-btn" id="exportMenuBtn" popovertarget="exportMenu" aria-haspopup="true">Export</button>
                         <button type="button" class="fb-btn" id="shareLink">Share as link</button>
                     </div>
-                    <div class="fb-tool-group fb-tool-end">
-                        <button type="button" class="fb-btn" id="outlineToggle" aria-controls="outlinePane" aria-expanded="true">Outline</button>
-                    </div>
                 </div>
 
                 <div class="fb-menu" id="projectMenu" popover aria-label="Project">
+                    <p class="fb-mode" title="Online boards are coming. They are not built yet."><span class="fb-mode-dot" aria-hidden="true"></span><strong id="modeName">Solo</strong> <span id="modeDetail">in this browser, no server contacted</span></p>
                     <div class="fb-menu-section" role="group" aria-label="Projects">
                         <label class="fb-label" for="projectSelect">Open project</label>
                         <select id="projectSelect"></select>
@@ -352,18 +350,25 @@ Last Updated: November 2026
                 <div class="fb-statusbar">
                     <p class="fb-tally" id="tallyLine" aria-live="polite"></p>
                     <p class="fb-hint fb-status" id="editStatus" role="status"></p>
-                    <span class="fb-mode" title="Online boards are coming. They are not built yet."><span class="fb-mode-dot" aria-hidden="true"></span><strong id="modeName">Solo</strong> <span id="modeDetail">in this browser, no server contacted</span></span>
                 </div>
 
-                <div class="fb-split" id="split">
-                    <div class="fb-diagram-wrap">
-                        <div class="fb-frame" id="diagramFrame" tabindex="-1">
-                            <div id="diagramHost" role="tree" aria-label="Fishbone diagram"></div>
-                        </div>
-                        <p class="fb-hint fb-desktop-note">Double-click a cause on the diagram to edit it, or drag it onto another bone. On a phone, edit in the outline.</p>
+                <div class="fb-diagram-wrap" id="diagramWrap">
+                    <div class="fb-max-bar" role="toolbar" aria-label="Maximized diagram">
+                        <span class="fb-max-title" id="maxTitle"></span>
+                        <button type="button" class="fb-btn" id="maxZoomOut" aria-label="Zoom out">&minus;</button>
+                        <span id="maxZoomLabel" class="fb-zoom-label">100%</span>
+                        <button type="button" class="fb-btn" id="maxZoomIn" aria-label="Zoom in">+</button>
+                        <button type="button" class="fb-btn" id="maxFit">Fit</button>
+                        <button type="button" class="fb-btn primary" id="maxExit" aria-keyshortcuts="Escape">Exit (Esc)</button>
                     </div>
+                    <div class="fb-frame" id="diagramFrame" tabindex="-1">
+                        <div id="diagramHost" role="tree" aria-label="Fishbone diagram"></div>
+                    </div>
+                    <p class="fb-hint fb-desktop-note">Double-click a cause on the diagram to edit it, or drag it onto another bone. On a phone, edit in the outline.</p>
+                </div>
 
-                    <aside class="fb-outliner-wrap" id="outlinePane" aria-labelledby="outlinerHeading">
+                <div class="fb-outline-area" id="outlinePane">
+                    <div class="fb-outliner-wrap">
                         <h2 class="fb-h2" id="outlinerHeading">Outline</h2>
                         <p class="fb-hint" id="outlinerHelp">Enter adds a line, Tab indents, Ctrl+Enter asks "why?". Escape leaves the outline.</p>
                         <div id="outliner" class="fb-outliner" aria-labelledby="outlinerHeading" aria-describedby="outlinerHelp"></div>
@@ -371,8 +376,8 @@ Last Updated: November 2026
                             <button type="button" class="fb-btn" id="addCategory">Add category</button>
                             <button type="button" class="fb-btn" id="addUnsorted">Add to Unsorted</button>
                         </div>
-                        <div class="fb-item-panel" id="itemPanel" hidden></div>
-                    </aside>
+                    </div>
+                    <div class="fb-item-panel" id="itemPanel" hidden></div>
                 </div>
 
                 <p class="disclaimer"><strong>Statuses are your team's claims, not the tool's findings.</strong> Online boards will be stored on a hobby server and visible to everyone on them. The diagram draws and counts what was typed; it does not test, rank or determine a root cause. Used at your own risk. See the full disclaimer at the top of the page.</p>

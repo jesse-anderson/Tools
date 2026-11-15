@@ -68,7 +68,7 @@ const viewer = loadViewer();
 // ---------- Small helpers ----------
 
 function loadViewer() {
-    const defaults = { showEvidence: false, colors: true, checks: true, zoom: 1, fit: true, outline: true };
+    const defaults = { showEvidence: false, colors: true, checks: true, zoom: 1, fit: true };
     try {
         const raw = JSON.parse(local().getItem(VIEWER_KEY) || '{}');
         return {
@@ -76,8 +76,7 @@ function loadViewer() {
             colors: typeof raw.colors === 'boolean' ? raw.colors : defaults.colors,
             checks: typeof raw.checks === 'boolean' ? raw.checks : defaults.checks,
             zoom: Number.isFinite(raw.zoom) ? raw.zoom : defaults.zoom,
-            fit: typeof raw.fit === 'boolean' ? raw.fit : defaults.fit,
-            outline: typeof raw.outline === 'boolean' ? raw.outline : defaults.outline
+            fit: typeof raw.fit === 'boolean' ? raw.fit : defaults.fit
         };
     } catch (e) {
         return defaults;
@@ -315,7 +314,6 @@ function pick(id) {
     if (!live(board, id)) return;
     select(id, { from: 'pick' });
     view.revealItem(id);
-    setOutline(true);
     outliner.focusNode(id);
 }
 
@@ -933,17 +931,32 @@ function wireControls() {
     new MutationObserver(() => renderAll({ keepOutlineFocus: true })).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 }
 
-// ---------- Workspace: menus, outline pane, full screen, tabs ----------
+// ---------- Workspace: menus, maximize, tabs ----------
 
-/** Show or hide the outline pane. The choice is kept in this browser. */
-function setOutline(open) {
-    el('outlinePane').hidden = !open;
-    el('split').classList.toggle('is-outline-hidden', !open);
-    el('outlineToggle').setAttribute('aria-expanded', String(open));
-    if (viewer.outline !== open) {
-        viewer.outline = open;
-        saveViewer();
+const isMaximized = () => el('diagramWrap').classList.contains('is-maximized');
+
+/**
+ * Maximize: the diagram alone fills the window, and the screen too where the
+ * browser allows it, fitted to it. Escape or Exit returns to the page.
+ * Resolves once back on the page; focusTo is what gets focus then.
+ */
+function setMaximized(on, focusTo = el('maximizeBtn')) {
+    const wrap = el('diagramWrap');
+    if (on === isMaximized()) return Promise.resolve();
+    wrap.classList.toggle('is-maximized', on);
+    el('maximizeBtn').setAttribute('aria-pressed', String(on));
+    el('maxTitle').textContent = board.title || board.effect || 'Fishbone diagram';
+    let done = Promise.resolve();
+    if (on) {
+        if (document.fullscreenEnabled && !document.fullscreenElement) wrap.requestFullscreen().catch(() => { /* the window is filled anyway */ });
+        el('diagramFrame').focus({ preventScroll: true });
+    } else if (document.fullscreenElement === wrap) {
+        // Leaving full screen is asynchronous and drops focus, so focus moves once it is done.
+        done = document.exitFullscreen().catch(() => { /* already out */ });
     }
+    view.fit();
+    if (on) return done;
+    return done.then(() => { if (typeof focusTo === 'function') focusTo(); else focusTo.focus({ preventScroll: true }); });
 }
 
 /**
@@ -1034,20 +1047,20 @@ function createTabs(buttons) {
 
 function wireWorkspace() {
     wireMenus();
-    setOutline(viewer.outline);
-    el('outlineToggle').addEventListener('click', () => setOutline(el('outlinePane').hidden));
-
-    const workspace = el('workspace');
-    const full = el('fullscreenBtn');
-    full.hidden = !document.fullscreenEnabled;
-    full.addEventListener('click', () => {
-        if (document.fullscreenElement) document.exitFullscreen();
-        else workspace.requestFullscreen().catch(() => say('The browser would not go full screen.'));
-    });
+    el('maximizeBtn').addEventListener('click', () => setMaximized(!isMaximized()));
+    el('maxExit').addEventListener('click', () => setMaximized(false));
+    el('maxZoomIn').addEventListener('click', () => view.zoomIn());
+    el('maxZoomOut').addEventListener('click', () => view.zoomOut());
+    el('maxFit').addEventListener('click', () => view.fit());
+    // The browser takes Escape to leave full screen itself; leave the maximized view with it.
     document.addEventListener('fullscreenchange', () => {
-        const on = document.fullscreenElement === workspace;
-        full.setAttribute('aria-pressed', String(on));
-        full.textContent = on ? 'Exit full screen' : 'Full screen';
+        if (!document.fullscreenElement && isMaximized()) setMaximized(false);
+    });
+    document.addEventListener('keydown', (event) => {
+        if (event.key !== 'Escape' || event.defaultPrevented || !isMaximized()) return;
+        if (event.target.closest && event.target.closest('dialog, [popover]')) return;
+        event.preventDefault();
+        setMaximized(false);
     });
 }
 
@@ -1071,13 +1084,17 @@ const view = createView({
     host: el('diagramHost'),
     getBoard: () => board,
     select: (id, how) => select(id, how),
-    edit: (id) => { setOutline(true); outliner.focusNode(id); },
+    edit: (id) => {
+        if (isMaximized()) setMaximized(false, () => outliner.focusNode(id));
+        else outliner.focusNode(id);
+    },
     apply,
     message: (text) => say(text),
     readOnly: () => readOnly,
+    fitMax: () => (isMaximized() ? 2 : 1),
     onZoom: (zoom, fitting) => {
-        el('zoomLabel').textContent = `${Math.round(zoom * 100)}%`;
-        el('zoomFit').setAttribute('aria-pressed', String(fitting));
+        for (const id of ['zoomLabel', 'maxZoomLabel']) el(id).textContent = `${Math.round(zoom * 100)}%`;
+        for (const id of ['zoomFit', 'maxFit']) el(id).setAttribute('aria-pressed', String(fitting));
         viewer.zoom = zoom;
         viewer.fit = fitting;
         saveViewer();

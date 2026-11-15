@@ -14,7 +14,8 @@ const DRAG_PX = 6;
 
 /**
  * opts: { frame, host, getBoard, select(id, how), edit(id), apply(op), message(text),
- * readOnly(), onZoom(zoom, fitting) }. Fitting holds until the reader zooms by hand.
+ * readOnly(), onZoom(zoom, fitting), fitMax() }. Fitting holds until the reader zooms by hand;
+ * fitMax is the most it may enlarge, 1 unless the diagram is maximized.
  */
 export function createView(opts) {
     const { frame, host } = opts;
@@ -59,7 +60,8 @@ export function createView(opts) {
         const height = (Number.isFinite(cap) ? cap : frame.clientHeight) - 4;
         const tall = Number(svg.getAttribute('viewBox').split(' ')[3]);
         if (width <= 0 || height <= 0) return;
-        setZoom(Math.max(FIT_MIN, Math.min(1, width / layout.width, height / tall)), true);
+        const most = opts.fitMax ? opts.fitMax() : 1;
+        setZoom(Math.max(FIT_MIN, Math.min(most, width / layout.width, height / tall)), true);
     }
 
     if (typeof ResizeObserver === 'function') new ResizeObserver(() => { if (fitting) fit(); }).observe(frame);
