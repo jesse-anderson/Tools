@@ -68,14 +68,16 @@ const viewer = loadViewer();
 // ---------- Small helpers ----------
 
 function loadViewer() {
-    const defaults = { showEvidence: false, colors: true, checks: true, zoom: 1 };
+    const defaults = { showEvidence: false, colors: true, checks: true, zoom: 1, fit: true, outline: true };
     try {
         const raw = JSON.parse(local().getItem(VIEWER_KEY) || '{}');
         return {
             showEvidence: typeof raw.showEvidence === 'boolean' ? raw.showEvidence : defaults.showEvidence,
             colors: typeof raw.colors === 'boolean' ? raw.colors : defaults.colors,
             checks: typeof raw.checks === 'boolean' ? raw.checks : defaults.checks,
-            zoom: Number.isFinite(raw.zoom) ? raw.zoom : defaults.zoom
+            zoom: Number.isFinite(raw.zoom) ? raw.zoom : defaults.zoom,
+            fit: typeof raw.fit === 'boolean' ? raw.fit : defaults.fit,
+            outline: typeof raw.outline === 'boolean' ? raw.outline : defaults.outline
         };
     } catch (e) {
         return defaults;
@@ -86,8 +88,9 @@ function saveViewer() {
     try { local().setItem(VIEWER_KEY, JSON.stringify(viewer)); } catch (e) { /* kept for this visit only */ }
 }
 
-function say(text, where = 'editStatus') {
-    el(where).textContent = text;
+// One status line under the toolbar, since the menus close after an action.
+function say(text) {
+    el('editStatus').textContent = text;
     el('announcer').textContent = text;
 }
 
@@ -244,11 +247,13 @@ function renderAll(o = {}) {
     if (!o.textOnly && !o.keepOutlineFocus) outliner.render(board, { selectedId, readOnly, focus: o.focus || null });
     else if (o.keepOutlineFocus) outliner.render(board, { selectedId, readOnly });
     renderPanel();
+    el('tabChecks').hidden = !viewer.checks;
     if (viewer.checks) {
-        el('checksSection').hidden = false;
-        renderChecks(el('checksList'), checks.runChecks(board, { heights: lastLayout.heights }), pick);
-    } else {
-        el('checksSection').hidden = true;
+        const found = checks.runChecks(board, { heights: lastLayout.heights });
+        renderChecks(el('checksList'), found, pick);
+        el('checksCount').textContent = found.length ? String(found.length) : '';
+    } else if (tabs.current() === 'tabChecks') {
+        tabs.show('tabCauses');
     }
     renderTable(el('causeTable'), board, tableSort, sortBy, pick);
     renderHistory(el('historyList'), board);
@@ -310,6 +315,7 @@ function pick(id) {
     if (!live(board, id)) return;
     select(id, { from: 'pick' });
     view.revealItem(id);
+    setOutline(true);
     outliner.focusNode(id);
 }
 
@@ -328,6 +334,8 @@ function renderProjectBar() {
     select.replaceChildren(...store.projects.map((p) => new Option(p.name, p.id, false, p.id === store.activeId)));
     if (document.activeElement !== el('projectName')) el('projectName').value = active ? active.name : '';
     const dirty = active ? projects.isDirty(active) : false;
+    el('projectMenuName').textContent = readOnly ? 'Snapshot, not saved' : (active ? active.name : '');
+    el('projectDirty').hidden = readOnly || !dirty;
     const lock = readOnly;
     for (const id of ['projectSelect', 'projectName', 'projectDelete', 'projectExport', 'projectMerge', 'exampleSelect', 'exampleLoad']) el(id).disabled = lock;
     el('projectNew').disabled = lock || projects.isFull(store);
@@ -358,7 +366,7 @@ function boardFromText(text, origin) {
 
 function addProjectWith(name, next) {
     if (projects.isFull(store)) {
-        say(`${projects.MAX_PROJECTS} projects are already stored. Delete one first.`, 'projectStatus');
+        say(`${projects.MAX_PROJECTS} projects are already stored. Delete one first.`);
         return null;
     }
     outliner.commitAll();
@@ -406,7 +414,7 @@ function wireProjects() {
     el('projectNew').addEventListener('click', () => {
         const blank = ops.emptyBoard({ now: Date.now() });
         addProjectWith(projects.nextName(store), blank);
-        say('New project. Write the problem, then pick a template or add categories.', 'projectStatus');
+        say('New project. Write the problem, then pick a template or add categories.');
     });
     el('projectSave').addEventListener('click', () => {
         outliner.commitAll();
@@ -432,7 +440,7 @@ function wireProjects() {
         outliner.commitAll();
         const active = projects.activeProject(store);
         downloadBlob(new Blob([projects.projectToFile(active)], { type: 'application/json' }), `${fileStem(active.name)}.fishbone.json`);
-        say(`Exported ${active.name}.`, 'projectStatus');
+        say(`Exported ${active.name}.`);
     });
     el('projectImport').addEventListener('click', () => el('projectFile').click());
     el('projectFile').addEventListener('change', async (event) => {
@@ -440,8 +448,8 @@ function wireProjects() {
         event.target.value = '';
         if (!file) return;
         const read = await readProjectFile(file);
-        if (!read.ok) { say(read.message, 'projectStatus'); return; }
-        if (addProjectWith(read.name, read.state)) say(`Imported "${read.name}" as a project of its own.`, 'projectStatus');
+        if (!read.ok) { say(read.message); return; }
+        if (addProjectWith(read.name, read.state)) say(`Imported "${read.name}" as a project of its own.`);
     });
     el('projectMerge').addEventListener('click', () => el('mergeFile').click());
     el('mergeFile').addEventListener('change', async (event) => {
@@ -449,7 +457,7 @@ function wireProjects() {
         event.target.value = '';
         if (!file) return;
         const read = await readProjectFile(file);
-        if (!read.ok) { say(read.message, 'projectStatus'); return; }
+        if (!read.ok) { say(read.message); return; }
         openMerge(read);
     });
 }
@@ -555,7 +563,7 @@ function wireMerge() {
     });
     el('mergeAsNew').addEventListener('click', () => {
         el('mergeDialog').close();
-        if (addProjectWith(pendingMerge.name, pendingMerge.theirs)) say(`Opened "${pendingMerge.name}" as a new project.`, 'projectStatus');
+        if (addProjectWith(pendingMerge.name, pendingMerge.theirs)) say(`Opened "${pendingMerge.name}" as a new project.`);
     });
 }
 
@@ -676,7 +684,7 @@ function wireExport() {
         outliner.commitAll();
         const { svg } = exportSvgElement();
         downloadBlob(new Blob([serializeSvg(svg)], { type: 'image/svg+xml' }), `${stem()}.svg`);
-        say('SVG exported.', 'exportStatus');
+        say('SVG exported.');
     });
     el('exportPng').addEventListener('click', async () => {
         outliner.commitAll();
@@ -686,9 +694,9 @@ function wireExport() {
             const font = await loadFontDataUrl();
             const blob = await svgToPngBlob(embedFont(serializeSvg(svg), font), width, height, scale);
             downloadBlob(blob, `${stem()}.png`);
-            say('PNG exported.', 'exportStatus');
+            say('PNG exported.');
         } catch (e) {
-            say(e.message, 'exportStatus');
+            say(e.message);
         }
     });
     el('printBtn').addEventListener('click', () => {
@@ -700,17 +708,17 @@ function wireExport() {
     el('exportOutline').addEventListener('click', () => {
         outliner.commitAll();
         downloadBlob(new Blob([outline.toOutline(board, { presetLabel: presetLabel() })], { type: 'text/plain' }), `${stem()}.txt`);
-        say('Outline text exported. It keeps structure, statuses, owners, evidence and the problem; not ids, locks, notes or history.', 'exportStatus');
+        say('Outline text exported. It keeps structure, statuses, owners, evidence and the problem; not ids, locks, notes or history.');
     });
     el('exportMermaid').addEventListener('click', () => {
         outliner.commitAll();
         downloadBlob(new Blob([mermaid.toMermaid(board)], { type: 'text/plain' }), `${stem()}.mmd`);
-        say('Mermaid exported. Mermaid has no statuses, so each is written after its cause; evidence is left out.', 'exportStatus');
+        say('Mermaid exported. Mermaid has no statuses, so each is written after its cause; evidence is left out.');
     });
     el('exportCsv').addEventListener('click', () => {
         outliner.commitAll();
         downloadBlob(new Blob([csv.toCsv(board)], { type: 'text/csv' }), `${stem()}.csv`);
-        say('CSV exported.', 'exportStatus');
+        say('CSV exported.');
     });
 }
 
@@ -799,7 +807,7 @@ function wireSnapshot() {
         el('modeDetail').textContent = 'in this browser, no server contacted';
         try { window.history.replaceState(null, '', window.location.pathname + window.location.search); } catch (e) { /* hash stays */ }
         addProjectWith(name, next);
-        say(`Saved as the project "${projects.activeProject(store).name}".`, 'projectStatus');
+        say(`Saved as the project "${projects.activeProject(store).name}".`);
     });
 }
 
@@ -814,7 +822,7 @@ function wireControls() {
         const example = presets.EXAMPLES_BY_ID[el('exampleSelect').value];
         const { board: next } = boardFromText(example.text, `Started from the example "${example.label}"`);
         next.title = example.label.replace(/ \(.*\)$/, '');
-        if (addProjectWith(example.label.replace(/ \(.*\)$/, ''), next)) say(`Opened the example as a project of its own. ${example.teaches}`, 'projectStatus');
+        if (addProjectWith(example.label.replace(/ \(.*\)$/, ''), next)) say(`Opened the example as a project of its own. ${example.teaches}`);
     });
 
     el('presetSelect').append(...presets.PRESETS.map((p) => new Option(p.label, p.id)));
@@ -925,6 +933,125 @@ function wireControls() {
     new MutationObserver(() => renderAll({ keepOutlineFocus: true })).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 }
 
+// ---------- Workspace: menus, outline pane, full screen, tabs ----------
+
+/** Show or hide the outline pane. The choice is kept in this browser. */
+function setOutline(open) {
+    el('outlinePane').hidden = !open;
+    el('split').classList.toggle('is-outline-hidden', !open);
+    el('outlineToggle').setAttribute('aria-expanded', String(open));
+    if (viewer.outline !== open) {
+        viewer.outline = open;
+        saveViewer();
+    }
+}
+
+/**
+ * Place a popover menu under its button, or above it when there is more room
+ * there and it does not fit below. It never runs past the window.
+ */
+function placeMenu(menu, button) {
+    const gap = 4;
+    const edge = 8;
+    const box = button.getBoundingClientRect();
+    const below = window.innerHeight - box.bottom - gap - edge;
+    const above = box.top - gap - edge;
+    menu.style.maxHeight = 'none';
+    const natural = menu.scrollHeight;
+    const up = natural > below && above > below;
+    const room = up ? above : below;
+    const height = Math.min(natural || room, room);
+    menu.style.maxHeight = `${Math.max(0, Math.floor(room))}px`;
+    menu.style.top = `${Math.round(up ? box.top - gap - height : box.bottom + gap)}px`;
+    const left = Math.min(box.left, window.innerWidth - menu.offsetWidth - edge);
+    menu.style.left = `${Math.max(edge, Math.round(left))}px`;
+}
+
+function closeMenu(menu) {
+    try { if (menu.matches(':popover-open')) menu.hidePopover(); } catch (e) { /* a dialog already closed it */ }
+}
+
+function wireMenus() {
+    const pairs = [...document.querySelectorAll('[popovertarget]')].map((button) => [el(button.getAttribute('popovertarget')), button]);
+    for (const [menu, button] of pairs) {
+        button.setAttribute('aria-expanded', 'false');
+        // Before it shows, so it never flashes at its place in the page; after, to fit its width.
+        menu.addEventListener('beforetoggle', (event) => { if (event.newState === 'open') placeMenu(menu, button); });
+        menu.addEventListener('toggle', (event) => {
+            const open = event.newState === 'open';
+            button.setAttribute('aria-expanded', String(open));
+            if (!open) return;
+            outliner.commitAll();
+            placeMenu(menu, button);
+            const first = menu.querySelector('.fb-menu-item:not(:disabled), select:not(:disabled), input:not([type="file"]):not(:disabled), button:not(:disabled)');
+            if (first) first.focus();
+        });
+        // An action closes its menu; the result shows in the status line.
+        menu.addEventListener('click', (event) => {
+            if (event.target.closest('[data-closes]')) closeMenu(menu);
+        });
+    }
+    const reposition = () => {
+        for (const [menu, button] of pairs) if (menu.matches(':popover-open')) placeMenu(menu, button);
+    };
+    window.addEventListener('resize', reposition);
+    window.addEventListener('scroll', reposition, { passive: true });
+    // Opening an example or another project closes the menu too.
+    el('projectSelect').addEventListener('change', () => closeMenu(el('projectMenu')));
+}
+
+/** A tab list whose panels are named by aria-controls. Arrow keys move between visible tabs. */
+function createTabs(buttons) {
+    let currentId = buttons[0].id;
+    const show = (id, focus = false) => {
+        currentId = id;
+        for (const button of buttons) {
+            const on = button.id === id;
+            button.setAttribute('aria-selected', String(on));
+            button.tabIndex = on ? 0 : -1;
+            el(button.getAttribute('aria-controls')).hidden = !on;
+            if (on && focus) button.focus();
+        }
+    };
+    for (const button of buttons) {
+        button.addEventListener('click', () => show(button.id));
+        button.addEventListener('keydown', (event) => {
+            const visible = buttons.filter((b) => !b.hidden);
+            const at = visible.indexOf(button);
+            let next = null;
+            if (event.key === 'ArrowRight') next = visible[(at + 1) % visible.length];
+            else if (event.key === 'ArrowLeft') next = visible[(at - 1 + visible.length) % visible.length];
+            else if (event.key === 'Home') next = visible[0];
+            else if (event.key === 'End') next = visible[visible.length - 1];
+            if (!next) return;
+            event.preventDefault();
+            show(next.id, true);
+        });
+    }
+    show(currentId);
+    return { show, current: () => currentId };
+}
+
+function wireWorkspace() {
+    wireMenus();
+    setOutline(viewer.outline);
+    el('outlineToggle').addEventListener('click', () => setOutline(el('outlinePane').hidden));
+
+    const workspace = el('workspace');
+    const full = el('fullscreenBtn');
+    full.hidden = !document.fullscreenEnabled;
+    full.addEventListener('click', () => {
+        if (document.fullscreenElement) document.exitFullscreen();
+        else workspace.requestFullscreen().catch(() => say('The browser would not go full screen.'));
+    });
+    document.addEventListener('fullscreenchange', () => {
+        const on = document.fullscreenElement === workspace;
+        full.setAttribute('aria-pressed', String(on));
+        full.textContent = on ? 'Exit full screen' : 'Full screen';
+    });
+}
+
+
 // ---------- Start ----------
 
 const outliner = createOutliner({
@@ -944,16 +1071,20 @@ const view = createView({
     host: el('diagramHost'),
     getBoard: () => board,
     select: (id, how) => select(id, how),
-    edit: (id) => outliner.focusNode(id),
+    edit: (id) => { setOutline(true); outliner.focusNode(id); },
     apply,
     message: (text) => say(text),
     readOnly: () => readOnly,
-    onZoom: (zoom) => {
+    onZoom: (zoom, fitting) => {
         el('zoomLabel').textContent = `${Math.round(zoom * 100)}%`;
+        el('zoomFit').setAttribute('aria-pressed', String(fitting));
         viewer.zoom = zoom;
+        viewer.fit = fitting;
         saveViewer();
     }
 });
+
+const tabs = createTabs([el('tabChecks'), el('tabCauses'), el('tabHistory')]);
 
 async function start() {
     initProjects();
@@ -966,8 +1097,16 @@ async function start() {
     wireControls();
     const packed = link.linkFromHash(window.location.hash);
     if (packed !== null) await openSnapshot(packed);
-    initGuide({ dialog: el('guideDialog'), opener: el('howToUse'), storage: local(), arrivedByLink: packed !== null });
-    view.setZoom(viewer.zoom);
+    initGuide({
+        dialog: el('guideDialog'),
+        opener: el('howToUse'),
+        hint: { box: el('guideHint'), open: el('guideHintOpen'), dismiss: el('guideHintDismiss') },
+        storage: local(),
+        arrivedByLink: packed !== null
+    });
+    wireWorkspace();
+    if (viewer.fit) view.fit();
+    else view.setZoom(viewer.zoom);
     renderProjectBar();
     renderAll({});
     // Boxes are sized from measured text, and the web font may arrive after the first draw.

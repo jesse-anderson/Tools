@@ -198,50 +198,28 @@ Last Updated: November 2026
             </div>
             <div class="fb-banner fb-banner-error" id="linkError" role="alert" hidden></div>
 
-            <section class="fb-panel fb-modebar" aria-label="Mode">
-                <span class="fb-mode"><span class="fb-mode-dot" aria-hidden="true"></span><strong id="modeName">Solo</strong> <span id="modeDetail">in this browser, no server contacted</span></span>
-                <button type="button" class="fb-btn" id="goOnline" disabled aria-describedby="goOnlineNote">Go online</button>
-                <span class="fb-hint" id="goOnlineNote">Online boards are coming. They are not built yet.</span>
-            </section>
+            <p class="fb-guide-hint" id="guideHint" hidden>
+                <span>New here? The guide walks through a first diagram in five minutes.</span>
+                <button type="button" class="fb-btn small primary" id="guideHintOpen">How to use</button>
+                <button type="button" class="fb-btn small" id="guideHintDismiss" aria-label="Dismiss the guide hint">Dismiss</button>
+            </p>
 
-            <section class="fb-panel fb-controls" id="controls" aria-label="Project and template">
-                <div class="fb-control-group" aria-label="Projects" role="group">
-                    <label class="fb-label" for="projectSelect">Project</label>
-                    <div class="fb-row">
-                        <select id="projectSelect"></select>
-                        <input type="text" id="projectName" aria-label="Project name" maxlength="60">
-                        <button type="button" class="fb-btn" id="projectNew">New</button>
-                        <button type="button" class="fb-btn" id="projectSave">Save</button>
-                        <button type="button" class="fb-btn" id="projectRevert">Revert</button>
-                        <button type="button" class="fb-btn" id="projectDelete">Delete</button>
+            <section class="fb-panel fb-work" id="workspace" aria-label="Diagram">
+                <div class="fb-problem" role="group" aria-label="Problem statement">
+                    <div class="fb-problem-title">
+                        <label class="fb-label" for="titleInput">Title</label>
+                        <input type="text" id="titleInput" maxlength="120" placeholder="Short name for this diagram">
                     </div>
-                    <div class="fb-row">
-                        <button type="button" class="fb-btn" id="projectExport">Export project file</button>
-                        <button type="button" class="fb-btn" id="projectImport">Import project file</button>
-                        <button type="button" class="fb-btn" id="projectMerge">Merge a file into this one</button>
-                        <input type="file" id="projectFile" accept=".json,application/json" hidden>
-                        <input type="file" id="mergeFile" accept=".json,application/json" hidden>
+                    <div class="fb-problem-effect">
+                        <label class="fb-label" for="effectInput">Problem (the head)</label>
+                        <div class="fb-problem-input">
+                            <input type="text" id="effectInput" maxlength="200" placeholder="What, where, when, how much: e.g. Short shots on cavity 3 since October, 4% of parts">
+                            <button type="button" class="fb-btn fb-menu-btn" id="effectHelperBtn" popovertarget="effectHelper" aria-haspopup="true">Helper</button>
+                        </div>
                     </div>
-                    <p class="fb-hint" id="projectStatus" role="status"></p>
-                </div>
-
-                <div class="fb-control-group" role="group" aria-label="Examples">
-                    <label class="fb-label" for="exampleSelect">Example</label>
-                    <div class="fb-row">
-                        <select id="exampleSelect"></select>
-                        <button type="button" class="fb-btn" id="exampleLoad">Open example</button>
-                    </div>
-                    <p class="fb-hint" id="exampleTeaches"></p>
-                </div>
-
-                <div class="fb-control-group" role="group" aria-label="Problem statement">
-                    <label class="fb-label" for="titleInput">Title</label>
-                    <input type="text" id="titleInput" maxlength="120" placeholder="Short name for this diagram">
-                    <label class="fb-label" for="effectInput">Problem (the head)</label>
-                    <input type="text" id="effectInput" maxlength="200" placeholder="What, where, when, how much: e.g. Short shots on cavity 3 since October, 4% of parts">
-                    <details class="fb-helper" id="effectHelper">
-                        <summary>Problem statement helper</summary>
-                        <div class="fb-helper-grid">
+                    <div class="fb-menu fb-menu-wide" id="effectHelper" popover aria-label="Problem statement helper">
+                        <p class="fb-hint">Fill in the parts and the problem is written from them.</p>
+                        <div class="fb-helper-grid fb-helper-parts">
                             <label class="fb-label" for="partWhat">What</label>
                             <input type="text" id="partWhat" maxlength="120" placeholder="Short shots on molded housings">
                             <label class="fb-label" for="partWhere">Where</label>
@@ -251,45 +229,102 @@ Last Updated: November 2026
                             <label class="fb-label" for="partExtent">How much</label>
                             <input type="text" id="partExtent" maxlength="120" placeholder="4% of parts">
                         </div>
-                        <button type="button" class="fb-btn" id="composeEffect">Write the problem from these</button>
+                        <button type="button" class="fb-btn" id="composeEffect" data-closes>Write the problem from these</button>
                         <p class="fb-hint">State the problem as it is seen, not a solution: "Short shots on cavity 3", not "Need a new nozzle".</p>
-                    </details>
-                </div>
-
-                <div class="fb-control-group" role="group" aria-label="Template">
-                    <label class="fb-label" for="presetSelect">Template</label>
-                    <div class="fb-row">
-                        <select id="presetSelect"></select>
-                        <button type="button" class="fb-btn" id="presetApply">Add its categories</button>
                     </div>
-                    <p class="fb-hint" id="presetHelp"></p>
-                    <label class="fb-label" for="kindSelect">Kind of fishbone</label>
-                    <select id="kindSelect"></select>
-                    <p class="fb-hint" id="kindHelp"></p>
                 </div>
-            </section>
 
-            <section class="fb-panel fb-work" aria-label="Diagram">
                 <div class="fb-toolbar" role="toolbar" aria-label="Diagram tools">
-                    <div class="fb-row">
+                    <div class="fb-tool-group">
+                        <button type="button" class="fb-btn fb-menu-btn fb-project-btn" id="projectMenuBtn" popovertarget="projectMenu" aria-haspopup="true">
+                            <span class="fb-menu-kicker">Project</span>
+                            <span class="fb-project-name" id="projectMenuName"></span>
+                            <span class="fb-dirty" id="projectDirty" title="Changed since the last Save. The draft is kept; Revert returns to the save." hidden>draft</span>
+                        </button>
+                    </div>
+                    <div class="fb-tool-group" role="group" aria-label="History">
                         <button type="button" class="fb-btn" id="undoBtn" aria-keyshortcuts="Control+Z">Undo</button>
                         <button type="button" class="fb-btn" id="redoBtn" aria-keyshortcuts="Control+Shift+Z Control+Y">Redo</button>
-                        <button type="button" class="fb-btn" id="editText">Edit as text</button>
-                        <button type="button" class="fb-btn" id="importText">Paste or import</button>
+                        <button type="button" class="fb-btn fb-menu-btn" id="textMenuBtn" popovertarget="textMenu" aria-haspopup="true">Text</button>
                     </div>
-                    <div class="fb-row" role="group" aria-label="Zoom">
+                    <div class="fb-tool-group" role="group" aria-label="Zoom">
                         <button type="button" class="fb-btn" id="zoomOut" aria-label="Zoom out">&minus;</button>
                         <span id="zoomLabel" class="fb-zoom-label" aria-live="polite">100%</span>
                         <button type="button" class="fb-btn" id="zoomIn" aria-label="Zoom in">+</button>
-                        <button type="button" class="fb-btn" id="zoomFit">Fit</button>
+                        <button type="button" class="fb-btn" id="zoomFit" aria-pressed="true">Fit</button>
+                        <button type="button" class="fb-btn" id="fullscreenBtn" aria-pressed="false">Full screen</button>
                     </div>
-                    <div class="fb-row fb-toggles" role="group" aria-label="View settings for this browser">
-                        <label class="fb-check"><input type="checkbox" id="showEvidence"> Show evidence</label>
-                        <label class="fb-check"><input type="checkbox" id="colorsOn" checked> Colors</label>
-                        <label class="fb-check"><input type="checkbox" id="checksOn" checked> Checks</label>
+                    <div class="fb-tool-group">
+                        <button type="button" class="fb-btn fb-menu-btn" id="viewMenuBtn" popovertarget="viewMenu" aria-haspopup="true">View</button>
+                        <button type="button" class="fb-btn fb-menu-btn" id="setupMenuBtn" popovertarget="setupMenu" aria-haspopup="true">Setup</button>
                     </div>
-                    <details class="fb-settings">
-                        <summary>Board settings</summary>
+                    <div class="fb-tool-group">
+                        <button type="button" class="fb-btn fb-menu-btn" id="exportMenuBtn" popovertarget="exportMenu" aria-haspopup="true">Export</button>
+                        <button type="button" class="fb-btn" id="shareLink">Share as link</button>
+                    </div>
+                    <div class="fb-tool-group fb-tool-end">
+                        <button type="button" class="fb-btn" id="outlineToggle" aria-controls="outlinePane" aria-expanded="true">Outline</button>
+                    </div>
+                </div>
+
+                <div class="fb-menu" id="projectMenu" popover aria-label="Project">
+                    <div class="fb-menu-section" role="group" aria-label="Projects">
+                        <label class="fb-label" for="projectSelect">Open project</label>
+                        <select id="projectSelect"></select>
+                        <label class="fb-label" for="projectName">Name</label>
+                        <input type="text" id="projectName" maxlength="60">
+                        <div class="fb-row">
+                            <button type="button" class="fb-btn" id="projectNew" data-closes>New</button>
+                            <button type="button" class="fb-btn" id="projectSave" data-closes>Save</button>
+                            <button type="button" class="fb-btn" id="projectRevert" data-closes>Revert</button>
+                            <button type="button" class="fb-btn" id="projectDelete" data-closes>Delete</button>
+                        </div>
+                        <p class="fb-hint" id="projectStatus"></p>
+                    </div>
+                    <div class="fb-menu-section" role="group" aria-label="Project files">
+                        <div class="fb-row">
+                            <button type="button" class="fb-btn" id="projectExport" data-closes>Export project file</button>
+                            <button type="button" class="fb-btn" id="projectImport" data-closes>Import project file</button>
+                            <button type="button" class="fb-btn" id="projectMerge" data-closes>Merge a file into this one</button>
+                        </div>
+                    </div>
+                    <div class="fb-menu-section" role="group" aria-label="Examples">
+                        <label class="fb-label" for="exampleSelect">Start from an example</label>
+                        <div class="fb-row">
+                            <select id="exampleSelect"></select>
+                            <button type="button" class="fb-btn" id="exampleLoad" data-closes>Open example</button>
+                        </div>
+                        <p class="fb-hint" id="exampleTeaches"></p>
+                    </div>
+                    <input type="file" id="projectFile" accept=".json,application/json" hidden>
+                    <input type="file" id="mergeFile" accept=".json,application/json" hidden>
+                </div>
+
+                <div class="fb-menu" id="textMenu" popover aria-label="Text">
+                    <button type="button" class="fb-menu-item" id="editText" data-closes>Edit as text</button>
+                    <button type="button" class="fb-menu-item" id="importText" data-closes>Paste or import</button>
+                </div>
+
+                <div class="fb-menu" id="viewMenu" popover aria-label="View settings for this browser">
+                    <p class="fb-hint">These stay in this browser and do not change exports of other people's copies.</p>
+                    <label class="fb-check"><input type="checkbox" id="showEvidence"> Show evidence</label>
+                    <label class="fb-check"><input type="checkbox" id="colorsOn" checked> Colors</label>
+                    <label class="fb-check"><input type="checkbox" id="checksOn" checked> Checks</label>
+                </div>
+
+                <div class="fb-menu fb-menu-wide" id="setupMenu" popover aria-label="Setup">
+                    <div class="fb-menu-section" role="group" aria-label="Template">
+                        <label class="fb-label" for="presetSelect">Template</label>
+                        <div class="fb-row">
+                            <select id="presetSelect"></select>
+                            <button type="button" class="fb-btn" id="presetApply" data-closes>Add its categories</button>
+                        </div>
+                        <p class="fb-hint" id="presetHelp"></p>
+                        <label class="fb-label" for="kindSelect">Kind of fishbone</label>
+                        <select id="kindSelect"></select>
+                        <p class="fb-hint" id="kindHelp"></p>
+                    </div>
+                    <div class="fb-menu-section fb-settings" role="group" aria-label="Board settings">
                         <div class="fb-helper-grid">
                             <label class="fb-label" for="angleInput">Bone angle (45 to 75 degrees)</label>
                             <input type="number" id="angleInput" min="45" max="75" step="1">
@@ -298,12 +333,29 @@ Last Updated: November 2026
                             <label class="fb-check"><input type="checkbox" id="showEmpty"> Show empty categories</label>
                         </div>
                         <p class="fb-hint">These travel with the project, so every export of it looks the same.</p>
-                    </details>
+                    </div>
                 </div>
 
-                <p class="fb-tally" id="tallyLine" aria-live="polite"></p>
+                <div class="fb-menu" id="exportMenu" popover aria-label="Export">
+                    <button type="button" class="fb-menu-item" id="exportSvg" data-closes>SVG</button>
+                    <div class="fb-menu-png">
+                        <button type="button" class="fb-menu-item" id="exportPng" data-closes>PNG</button>
+                        <label class="sr-only" for="pngScale">PNG size</label>
+                        <select id="pngScale"></select>
+                    </div>
+                    <button type="button" class="fb-menu-item" id="printBtn" data-closes>Print</button>
+                    <button type="button" class="fb-menu-item" id="exportOutline" data-closes>Outline text</button>
+                    <button type="button" class="fb-menu-item" id="exportMermaid" data-closes>Mermaid</button>
+                    <button type="button" class="fb-menu-item" id="exportCsv" data-closes>CSV</button>
+                </div>
 
-                <div class="fb-split">
+                <div class="fb-statusbar">
+                    <p class="fb-tally" id="tallyLine" aria-live="polite"></p>
+                    <p class="fb-hint fb-status" id="editStatus" role="status"></p>
+                    <span class="fb-mode" title="Online boards are coming. They are not built yet."><span class="fb-mode-dot" aria-hidden="true"></span><strong id="modeName">Solo</strong> <span id="modeDetail">in this browser, no server contacted</span></span>
+                </div>
+
+                <div class="fb-split" id="split">
                     <div class="fb-diagram-wrap">
                         <div class="fb-frame" id="diagramFrame" tabindex="-1">
                             <div id="diagramHost" role="tree" aria-label="Fishbone diagram"></div>
@@ -311,7 +363,7 @@ Last Updated: November 2026
                         <p class="fb-hint fb-desktop-note">Double-click a cause on the diagram to edit it, or drag it onto another bone. On a phone, edit in the outline.</p>
                     </div>
 
-                    <div class="fb-outliner-wrap">
+                    <aside class="fb-outliner-wrap" id="outlinePane" aria-labelledby="outlinerHeading">
                         <h2 class="fb-h2" id="outlinerHeading">Outline</h2>
                         <p class="fb-hint" id="outlinerHelp">Enter adds a line, Tab indents, Ctrl+Enter asks "why?". Escape leaves the outline.</p>
                         <div id="outliner" class="fb-outliner" aria-labelledby="outlinerHeading" aria-describedby="outlinerHelp"></div>
@@ -319,48 +371,31 @@ Last Updated: November 2026
                             <button type="button" class="fb-btn" id="addCategory">Add category</button>
                             <button type="button" class="fb-btn" id="addUnsorted">Add to Unsorted</button>
                         </div>
-                        <p class="fb-hint" id="editStatus" role="status"></p>
                         <div class="fb-item-panel" id="itemPanel" hidden></div>
-                    </div>
+                    </aside>
                 </div>
 
                 <p class="disclaimer"><strong>Statuses are your team's claims, not the tool's findings.</strong> Online boards will be stored on a hobby server and visible to everyone on them. The diagram draws and counts what was typed; it does not test, rank or determine a root cause. Used at your own risk. See the full disclaimer at the top of the page.</p>
+            </section>
 
-                <div class="fb-export" role="group" aria-label="Export">
-                    <h2 class="fb-h2">Export</h2>
-                    <div class="fb-row">
-                        <button type="button" class="fb-btn" id="exportSvg">SVG</button>
-                        <label class="fb-inline" for="pngScale">PNG</label>
-                        <select id="pngScale"></select>
-                        <button type="button" class="fb-btn" id="exportPng">PNG</button>
-                        <button type="button" class="fb-btn" id="printBtn">Print</button>
-                        <button type="button" class="fb-btn" id="exportOutline">Outline text</button>
-                        <button type="button" class="fb-btn" id="exportMermaid">Mermaid</button>
-                        <button type="button" class="fb-btn" id="exportCsv">CSV</button>
-                        <button type="button" class="fb-btn" id="shareLink">Share as link</button>
+            <section class="fb-panel fb-details" aria-label="Checks, causes and history">
+                <div class="fb-tabs" role="tablist" aria-label="Details">
+                    <button type="button" class="fb-tab" role="tab" id="tabChecks" aria-controls="checksSection" aria-selected="true">Check these <span class="fb-count" id="checksCount"></span></button>
+                    <button type="button" class="fb-tab" role="tab" id="tabCauses" aria-controls="causesSection" aria-selected="false" tabindex="-1">Causes</button>
+                    <button type="button" class="fb-tab" role="tab" id="tabHistory" aria-controls="historySection" aria-selected="false" tabindex="-1">History</button>
+                </div>
+                <div class="fb-tabpanel" role="tabpanel" id="checksSection" aria-labelledby="tabChecks" tabindex="0">
+                    <ul class="fb-checks" id="checksList"></ul>
+                </div>
+                <div class="fb-tabpanel" role="tabpanel" id="causesSection" aria-labelledby="tabCauses" tabindex="0" hidden>
+                    <p class="fb-hint">Everything the diagram shows, as a table. Select a column heading to sort.</p>
+                    <div class="table-scroll">
+                        <table class="fb-table" id="causeTable"></table>
                     </div>
-                    <p class="fb-hint" id="exportStatus" role="status"></p>
                 </div>
-            </section>
-
-            <section class="fb-panel" id="checksSection" aria-labelledby="checksHeading">
-                <h2 class="fb-h2" id="checksHeading">Check these</h2>
-                <ul class="fb-checks" id="checksList"></ul>
-            </section>
-
-            <section class="fb-panel" aria-labelledby="tableHeading">
-                <h2 class="fb-h2" id="tableHeading">Causes</h2>
-                <p class="fb-hint">Everything the diagram shows, as a table. Select a column heading to sort.</p>
-                <div class="table-scroll">
-                    <table class="fb-table" id="causeTable"></table>
-                </div>
-            </section>
-
-            <section class="fb-panel" aria-labelledby="historyHeading">
-                <details class="fb-history">
-                    <summary><h2 class="fb-h2" id="historyHeading">History</h2></summary>
+                <div class="fb-tabpanel" role="tabpanel" id="historySection" aria-labelledby="tabHistory" tabindex="0" hidden>
                     <ol class="fb-history-list" id="historyList" reversed></ol>
-                </details>
+                </div>
             </section>
 
             <p class="sr-only" id="announcer" role="status" aria-live="polite"></p>
@@ -393,11 +428,11 @@ Last Updated: November 2026
                     <section id="guide-first" data-guide-part>
                         <h3>2. Your first diagram in five minutes</h3>
                         <ol>
-                            <li>Write the problem in <strong>Problem (the head)</strong>.</li>
-                            <li>Pick a <strong>Template</strong> and press <strong>Add its categories</strong>, or add your own with <strong>Add category</strong>.</li>
+                            <li>Write the problem in <strong>Problem (the head)</strong>, above the diagram.</li>
+                            <li>Open <strong>Setup</strong>, pick a <strong>Template</strong> and press <strong>Add its categories</strong>, or add your own with <strong>Add category</strong> under the outline.</li>
                             <li>In the <strong>Outline</strong>, type a cause under a category. Enter adds the next line, Tab indents it, and Ctrl+Enter adds a "why?" under it.</li>
-                            <li>Mark what you have checked with the status menu on each line, and write the evidence in the panel that opens below the outline.</li>
-                            <li>Export an SVG or PNG, print, or save a project file.</li>
+                            <li>Mark what you have checked with the status menu on each line, and write the evidence in the panel that opens below the outline. <strong>Outline</strong> in the toolbar hides or shows it.</li>
+                            <li>Use <strong>Export</strong> for an SVG, a PNG or a print, and the <strong>Project</strong> menu to save a project file.</li>
                         </ol>
                     </section>
                     <section id="guide-problem" data-guide-part>
@@ -423,7 +458,7 @@ Last Updated: November 2026
                     </section>
                     <section id="guide-offline" data-guide-part>
                         <h3>6. Working with others without going online</h3>
-                        <p><strong>Export project file</strong>, send it, and have the other person import it, edit, and send it back. Then use <strong>Merge a file into this one</strong>: anything only in their copy is added, and for each item you both changed you pick a side. Two files with nothing in common are offered as a new project instead. A lock in a file is only a label; the merge lists any that were removed.</p>
+                        <p>In the <strong>Project</strong> menu, <strong>Export project file</strong>, send it, and have the other person import it, edit, and send it back. Then use <strong>Merge a file into this one</strong>: anything only in their copy is added, and for each item you both changed you pick a side. Two files with nothing in common are offered as a new project instead. A lock in a file is only a label; the merge lists any that were removed.</p>
                         <p><strong>Share as link</strong> packs a snapshot into the link for a quick look. Anyone who gets it can read the whole diagram, it cannot be taken back, and it never updates.</p>
                     </section>
                     <section id="guide-online" data-guide-part>

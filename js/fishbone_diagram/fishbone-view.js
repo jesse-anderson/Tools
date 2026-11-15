@@ -8,15 +8,18 @@ import { renderBoard } from './fishbone-render.js';
 import { outlineOrder } from './fishbone-outliner.js';
 
 export const ZOOM = Object.freeze({ min: 0.25, max: 3, step: 1.2 });
+// Fit never shrinks text below half size; past that the frame scrolls instead.
+export const FIT_MIN = 0.5;
 const DRAG_PX = 6;
 
 /**
  * opts: { frame, host, getBoard, select(id, how), edit(id), apply(op), message(text),
- * readOnly(), onZoom(zoom) }.
+ * readOnly(), onZoom(zoom, fitting) }. Fitting holds until the reader zooms by hand.
  */
 export function createView(opts) {
     const { frame, host } = opts;
     let zoom = 1;
+    let fitting = true;
     let layout = null;
     let focusId = null;
     let svg = null;
@@ -28,7 +31,8 @@ export function createView(opts) {
         if (focusId === BIN_ID) focusId = order.find((id) => id !== BIN_ID) || null;
         const hadFocus = svg && svg.contains(document.activeElement);
         svg = renderBoard(document, board, lay, { palette, interactive: true, focusId, selectedId, title: board.title || board.effect || 'Fishbone diagram' });
-        applyZoom();
+        if (fitting) fit();
+        else applyZoom();
         host.replaceChildren(svg);
         if (hadFocus) focusItem(focusId);
     }
@@ -39,17 +43,26 @@ export function createView(opts) {
         svg.setAttribute('height', Math.round(Number(svg.getAttribute('viewBox').split(' ')[3]) * zoom));
     }
 
-    function setZoom(value) {
+    function setZoom(value, keepFit = false) {
+        fitting = keepFit;
         zoom = Math.min(ZOOM.max, Math.max(ZOOM.min, value));
         applyZoom();
-        opts.onZoom(zoom);
+        opts.onZoom(zoom, fitting);
     }
 
+    /** Fit the whole drawing in the frame, never above full size, and keep fitting as it changes. */
     function fit() {
-        if (!layout) return;
+        fitting = true;
+        if (!layout || !svg) { opts.onZoom(zoom, true); return; }
         const width = frame.clientWidth - 4;
-        setZoom(Math.min(1, width / layout.width));
+        const cap = parseFloat(getComputedStyle(frame).maxHeight);
+        const height = (Number.isFinite(cap) ? cap : frame.clientHeight) - 4;
+        const tall = Number(svg.getAttribute('viewBox').split(' ')[3]);
+        if (width <= 0 || height <= 0) return;
+        setZoom(Math.max(FIT_MIN, Math.min(1, width / layout.width, height / tall)), true);
     }
+
+    if (typeof ResizeObserver === 'function') new ResizeObserver(() => { if (fitting) fit(); }).observe(frame);
 
     const itemEl = (id) => (svg ? svg.querySelector(`[data-node-id="${id}"][tabindex]`) : null);
 

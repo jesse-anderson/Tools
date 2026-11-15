@@ -20,6 +20,8 @@ export function outlineOrder(board) {
 }
 
 const STATUS_KEYS = { Digit1: 'suspected', Digit2: 'verified', Digit3: 'ruledOut', Digit0: '' };
+// The mark beside each status in the menu, matching the one drawn on the diagram.
+const STATUS_MARKS = { '': '–', suspected: '?', verified: '✓', ruledOut: '✗' };
 
 /**
  * The outline. opts: { host, getBoard, apply(op) -> result, newId, select(id),
@@ -255,7 +257,7 @@ export function createOutliner(opts) {
         if (node.kind === 'cause') {
             const status = document.createElement('select');
             status.setAttribute('aria-label', `Status of ${node.text || 'this cause'}`);
-            for (const [value, label] of Object.entries(STATUS_LABELS)) status.append(new Option(label, value, false, node.status === value));
+            for (const [value, label] of Object.entries(STATUS_LABELS)) status.append(new Option(`${STATUS_MARKS[value]} ${label}`, value, false, node.status === value));
             status.disabled = readOnly;
             row.append(status);
         }

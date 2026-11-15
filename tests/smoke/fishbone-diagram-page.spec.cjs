@@ -17,8 +17,27 @@ async function openTool(page, { guideSeen = true, hash = '' } = {}) {
 
 const outlineText = (page) => page.evaluate(() => window.FishboneDiagram.outline.toOutline(window.FishboneDiagram.getBoard()));
 
+// Controls live in toolbar menus: open the menu, then use the control.
+const MENU_OF = {
+  '#editText': 'text', '#importText': 'text',
+  '#exportSvg': 'export', '#exportPng': 'export', '#printBtn': 'export', '#exportOutline': 'export', '#exportMermaid': 'export', '#exportCsv': 'export',
+  '#projectExport': 'project', '#exampleSelect': 'project', '#exampleLoad': 'project', '#projectSelect': 'project',
+  '#angleInput': 'setup', '#showEvidence': 'view', '#colorsOn': 'view', '#checksOn': 'view'
+};
+
+async function openMenu(page, name) {
+  const menu = page.locator(`#${name}Menu`);
+  if (!(await menu.evaluate((m) => m.matches(':popover-open')))) await page.click(`#${name}MenuBtn`);
+  await expect(menu).toBeVisible();
+}
+
+async function menuClick(page, selector) {
+  await openMenu(page, MENU_OF[selector]);
+  await page.click(selector);
+}
+
 async function loadOutline(page, text) {
-  await page.click('#importText');
+  await menuClick(page, '#importText');
   await page.fill('#textArea', text);
   await page.click('#textNewProject');
   await expect(page.locator('#textDialog')).not.toBeVisible();
@@ -30,7 +49,9 @@ test('loads cleanly, starts from the 6M example, and keeps its disclaimer closed
   await expect(page.locator('#tallyLine')).toHaveText('11 causes in 6 categories: 1 verified, 2 ruled out, 2 suspected, 6 not examined. Deepest chain 3 whys.');
   await expect(page.locator('#scopeDisclaimer')).not.toHaveAttribute('open', '');
   await expect(page.locator('p.disclaimer')).toContainText("Statuses are your team's claims");
-  await expect(page.locator('#goOnline')).toBeDisabled();
+  // No dead Go online button until online boards exist; the mode is a label.
+  await expect(page.locator('#goOnline')).toHaveCount(0);
+  await expect(page.locator('#modeName')).toHaveText('Solo');
   await expectPageToLoadCleanly(page, baseURL, '/tools/fishbone-diagram-privacy.html');
   await expect(page.locator('h2')).toHaveCount(11);
 });
@@ -47,12 +68,16 @@ test('each example opens as a project and renders its tally line', async ({ page
   };
   for (const [id, text] of Object.entries(tallies)) {
     if (id === 'short-shots') { await expect(page.locator('#tallyLine')).toContainText(text); continue; }
+    await openMenu(page, 'project');
     await page.selectOption('#exampleSelect', id);
     await page.click('#exampleLoad');
+    await expect(page.locator('#projectMenu')).toBeHidden();
     await expect(page.locator('#tallyLine')).toContainText(text);
+    await expect(page.locator('#projectMenuName')).toHaveText(await page.locator('#projectSelect option:checked').textContent());
   }
   await expect(page.locator('#projectSelect option')).toHaveCount(6);
   await expect(page.locator('#checksList [data-code]')).toHaveCount(0);
+  await openMenu(page, 'project');
   await page.selectOption('#projectSelect', { label: 'Patient wait at check-in' });
   await expect(page.locator('#checksList [data-code="HUMAN_ERROR"]')).toHaveCount(1);
 });
@@ -132,10 +157,15 @@ test('undo and redo across adds, moves, deletes and status changes', async ({ pa
   await expect(page.locator('#redoBtn')).toBeDisabled();
 });
 
-test('the guide opens by itself on a first plain visit only, has all eleven parts, and closes on Escape', async ({ page, context }) => {
+test('a first plain visit shows a hint, not the guide over the page; the guide has all eleven parts and closes on Escape', async ({ page, context }) => {
   await openTool(page, { guideSeen: false });
   const guide = page.locator('#guideDialog');
+  const hint = page.locator('#guideHint');
+  await expect(hint).toBeVisible();
+  await expect(guide).not.toBeVisible();
+  await page.click('#guideHintOpen');
   await expect(guide).toBeVisible();
+  await expect(hint).toBeHidden();
   await expect(guide.locator('[data-guide-part]')).toHaveCount(11);
   await expect(guide.locator('#guide-online')).toContainText('not a password');
   await page.keyboard.press('Escape');
@@ -144,13 +174,25 @@ test('the guide opens by itself on a first plain visit only, has all eleven part
   await page.reload();
   await expect.poll(() => page.evaluate(() => Boolean(window.FishboneDiagram))).toBe(true);
   await expect(guide).not.toBeVisible();
+  await expect(hint).toBeHidden();
   await page.click('#howToUse');
   await expect(guide).toBeVisible();
   // While open, the rest of the page is inert.
   await page.keyboard.press('Tab');
   expect(await page.evaluate(() => document.getElementById('guideDialog').contains(document.activeElement))).toBe(true);
 
-  // A first visit through a snapshot link does not open it.
+  // Dismissing the hint also counts as having seen it.
+  const other = await context.browser().newPage();
+  await other.goto(page.url());
+  await expect(other.locator('#guideHint')).toBeVisible();
+  await other.click('#guideHintDismiss');
+  await expect(other.locator('#guideHint')).toBeHidden();
+  await other.reload();
+  await expect.poll(() => other.evaluate(() => Boolean(window.FishboneDiagram))).toBe(true);
+  await expect(other.locator('#guideHint')).toBeHidden();
+  await other.close();
+
+  // A first visit through a snapshot link shows neither.
   const link = await page.evaluate(async () => {
     const F = window.FishboneDiagram;
     return (await F.link.packLink(F.getBoard(), { baseUrl: location.href, now: 1 })).url;
@@ -160,6 +202,8 @@ test('the guide opens by itself on a first plain visit only, has all eleven part
   await expect.poll(() => fresh.evaluate(() => Boolean(window.FishboneDiagram))).toBe(true);
   await expect(fresh.locator('#snapshotBanner')).toBeVisible();
   await expect(fresh.locator('#guideDialog')).not.toBeVisible();
+  await expect(fresh.locator('#guideHint')).toBeHidden();
+  await expect(fresh.locator('#projectMenuName')).toHaveText('Snapshot, not saved');
   await fresh.close();
 });
 
@@ -212,7 +256,7 @@ test('a damaged link opens nothing from it and says so', async ({ page }) => {
 test('the exported SVG is the screen without its live layers, light, with title, tally and date', async ({ page }) => {
   await openTool(page);
   await page.click('[data-theme-toggle="dark"]');
-  const [download] = await Promise.all([page.waitForEvent('download'), page.click('#exportSvg')]);
+  const [download] = await Promise.all([page.waitForEvent('download'), menuClick(page, '#exportSvg')]);
   expect(download.suggestedFilename()).toBe('short-shots-on-a-molded-part.svg');
   const text = await readDownloadText(download);
   const r = await page.evaluate((svgText) => {
@@ -243,11 +287,11 @@ test('the exported SVG is the screen without its live layers, light, with title,
     ['#exportCsv', '.csv', (t) => t.startsWith('Category,Level,Cause,Path,Status,Owner,Evidence,Votes')],
     ['#projectExport', '.fishbone.json', (t) => JSON.parse(t).format === 'fishbone-diagram-project']
   ]) {
-    const [d] = await Promise.all([page.waitForEvent('download'), page.click(button)]);
+    const [d] = await Promise.all([page.waitForEvent('download'), menuClick(page, button)]);
     expect(d.suggestedFilename().endsWith(name)).toBe(true);
     expect(check(await readDownloadText(d))).toBe(true);
   }
-  const [png] = await Promise.all([page.waitForEvent('download'), page.click('#exportPng')]);
+  const [png] = await Promise.all([page.waitForEvent('download'), menuClick(page, '#exportPng')]);
   expect(png.suggestedFilename()).toBe('short-shots-on-a-molded-part.png');
 });
 
@@ -263,14 +307,14 @@ test('solo mode makes no request beyond this site and its fonts, through the gui
   });
   await openTool(page, { guideSeen: false });
   await page.keyboard.press('Escape');
-  await Promise.all([page.waitForEvent('download'), page.click('#exportSvg')]);
-  await Promise.all([page.waitForEvent('download'), page.click('#exportPng')]);
+  await Promise.all([page.waitForEvent('download'), menuClick(page, '#exportSvg')]);
+  await Promise.all([page.waitForEvent('download'), menuClick(page, '#exportPng')]);
   await page.click('#shareLink');
   await page.check('#shareUnderstand');
   await expect(page.locator('#shareCopy')).toBeEnabled();
   await page.click('#shareCopy');
   await page.keyboard.press('Escape');
-  await page.click('#printBtn').catch(() => {});
+  await menuClick(page, '#printBtn').catch(() => {});
   expect(outside).toEqual([]);
   expect(await page.evaluate(() => [...document.scripts].map((s) => s.src).filter((s) => /turnstile|cloudflare|fishbone\.jesse/.test(s)))).toEqual([]);
 });
@@ -313,7 +357,7 @@ test('clicking a cause on the diagram selects it in the outline and the panel, a
 test('Edit as text applies with undo, and pasting adds without changing what is there', async ({ page }) => {
   await openTool(page);
   const before = await outlineText(page);
-  await page.click('#editText');
+  await menuClick(page, '#editText');
   await expect(page.locator('#textArea')).toHaveValue(/^effect: Molded housings/);
   const edited = (await page.inputValue('#textArea')).replace('  Barrel heater zone 2 drifting\n', '').replace('People\n', 'People\n  Agency staff on nights\n');
   await page.fill('#textArea', `${edited}  oops bad indent\n`);
@@ -323,7 +367,7 @@ test('Edit as text applies with undo, and pasting adds without changing what is 
   await page.click('#undoBtn');
   await expect.poll(() => outlineText(page)).toBe(before);
 
-  await page.click('#importText');
+  await menuClick(page, '#importText');
   await page.fill('#textArea', '- Machines\n  - Pasted cause [?]\n- Brand new\n  - Its cause\n');
   await expect(page.locator('#textFindings li')).toHaveCount(0);
   await page.click('#textApply');
@@ -359,9 +403,11 @@ test('merging a file: differences and added items, and an unrelated file offered
 
 test('projects persist across a reload; board settings travel in the file, viewer settings stay in this browser', async ({ page }) => {
   await openTool(page);
-  await page.locator('.fb-settings summary').click();
+  await openMenu(page, 'setup');
   await page.fill('#angleInput', '50');
   await page.locator('#angleInput').press('Tab');
+  await openMenu(page, 'view');
+  await expect(page.locator('#setupMenu')).toBeHidden();
   await page.check('#showEvidence');
   await page.uncheck('#colorsOn');
   await expect.poll(() => page.evaluate(() => window.FishboneDiagram.getBoard().settings.angle)).toBe(50);
@@ -378,6 +424,133 @@ test('projects persist across a reload; board settings travel in the file, viewe
   await expect(page.locator('#diagramHost .fb-evidence').first()).toBeVisible();
   // Colors off: no accent purple anywhere in the drawing.
   expect(await page.evaluate(() => document.querySelector('#diagramHost svg').outerHTML.includes('#c4b5fd'))).toBe(false);
+});
+
+test('the diagram is visible on load at 1440x900, fitted so the head shows, and widens when the outline is hidden', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await openTool(page);
+  const frame = page.locator('#diagramFrame');
+  const box = await frame.boundingBox();
+  expect(box.y + 150).toBeLessThan(900);
+  const inside = () => page.evaluate(() => {
+    const f = document.getElementById('diagramFrame').getBoundingClientRect();
+    const h = document.querySelector('#diagramHost .fb-head').getBoundingClientRect();
+    return h.left >= f.left && h.right <= f.right && h.top >= f.top && h.bottom <= f.bottom;
+  });
+  await expect.poll(inside).toBe(true);
+  await expect(page.locator('#zoomFit')).toHaveAttribute('aria-pressed', 'true');
+  await page.click('#zoomIn');
+  await expect(page.locator('#zoomFit')).toHaveAttribute('aria-pressed', 'false');
+  await page.click('#zoomFit');
+  await expect(page.locator('#zoomFit')).toHaveAttribute('aria-pressed', 'true');
+
+  const zoom = async () => parseInt(await page.locator('#zoomLabel').textContent(), 10);
+  const before = { width: box.width, zoom: await zoom() };
+  await page.click('#outlineToggle');
+  await expect(page.locator('#outlinePane')).toBeHidden();
+  await expect(page.locator('#outlineToggle')).toHaveAttribute('aria-expanded', 'false');
+  await expect.poll(async () => (await frame.boundingBox()).width).toBeGreaterThan(before.width + 300);
+  await expect.poll(zoom).toBeGreaterThan(before.zoom);
+  await expect.poll(inside).toBe(true);
+  await page.reload();
+  await expect.poll(() => page.evaluate(() => Boolean(window.FishboneDiagram))).toBe(true);
+  await expect(page.locator('#outlinePane')).toBeHidden();
+
+  // Editing from the diagram brings the outline back.
+  await page.locator('#diagramHost [data-node-id][tabindex="0"]').focus();
+  await page.keyboard.press('ArrowDown');
+  await page.keyboard.press('Enter');
+  await expect(page.locator('#outlinePane')).toBeVisible();
+  await expect(page.locator('#outliner .ol-row.is-selected input[type="text"]')).toBeFocused();
+
+  if (await page.evaluate(() => document.fullscreenEnabled)) {
+    await page.click('#fullscreenBtn');
+    await expect.poll(() => page.evaluate(() => document.fullscreenElement && document.fullscreenElement.id)).toBe('workspace');
+    await expect(page.locator('#fullscreenBtn')).toHaveAttribute('aria-pressed', 'true');
+    await page.click('#fullscreenBtn');
+    await expect.poll(() => page.evaluate(() => document.fullscreenElement)).toBe(null);
+  }
+});
+
+test('toolbar menus: one open at a time, Escape closes and returns focus, an action closes its menu and reports', async ({ page }) => {
+  await page.setViewportSize({ width: 1024, height: 800 });
+  await openTool(page);
+  await page.click('#exportMenuBtn');
+  await expect(page.locator('#exportMenu')).toBeVisible();
+  await expect(page.locator('#exportMenuBtn')).toHaveAttribute('aria-expanded', 'true');
+  await page.click('#viewMenuBtn');
+  await expect(page.locator('#exportMenu')).toBeHidden();
+  await expect(page.locator('#viewMenu')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#viewMenu')).toBeHidden();
+  await expect(page.locator('#viewMenuBtn')).toBeFocused();
+  await expect(page.locator('#viewMenuBtn')).toHaveAttribute('aria-expanded', 'false');
+
+  // Every menu opens beside its button, above or below, and inside the window,
+  // on a tall window and on a short one where the toolbar sits low.
+  for (const height of [800, 560]) {
+    await page.setViewportSize({ width: 1024, height });
+    for (const name of ['project', 'text', 'view', 'setup', 'export']) {
+      await openMenu(page, name);
+      const [menu, button] = await Promise.all([page.locator(`#${name}Menu`).boundingBox(), page.locator(`#${name}MenuBtn`).boundingBox()]);
+      const under = menu.y >= button.y + button.height;
+      const over = menu.y + menu.height <= button.y;
+      expect(under || over).toBe(true);
+      expect(menu.y).toBeGreaterThanOrEqual(0);
+      expect(menu.y + menu.height).toBeLessThanOrEqual(height);
+      expect(menu.x).toBeGreaterThanOrEqual(0);
+      expect(menu.x + menu.width).toBeLessThanOrEqual(1024);
+      await page.keyboard.press('Escape');
+    }
+  }
+  // With the toolbar at the bottom of a short window, a menu opens upward whole rather than squashed below.
+  for (const name of ['project', 'export']) {
+    await page.locator(`#${name}MenuBtn`).evaluate((b) => b.scrollIntoView({ block: 'end' }));
+    await openMenu(page, name);
+    const shown = await page.locator(`#${name}Menu`).evaluate((m) => ({ whole: m.scrollHeight <= m.clientHeight + 1, top: m.getBoundingClientRect().bottom }));
+    const button = await page.locator(`#${name}MenuBtn`).boundingBox();
+    expect(shown.whole).toBe(true);
+    expect(shown.top).toBeLessThanOrEqual(button.y);
+    await page.keyboard.press('Escape');
+  }
+  await page.setViewportSize({ width: 1024, height: 800 });
+
+  const [download] = await Promise.all([page.waitForEvent('download'), menuClick(page, '#exportCsv')]);
+  expect(download.suggestedFilename().endsWith('.csv')).toBe(true);
+  await expect(page.locator('#exportMenu')).toBeHidden();
+  await expect(page.locator('#editStatus')).toHaveText('CSV exported.');
+});
+
+test('checks, causes and history share one tabbed panel with a count on Checks', async ({ page }) => {
+  await openTool(page);
+  await openMenu(page, 'project');
+  await page.selectOption('#exampleSelect', 'check-in-wait');
+  await page.click('#exampleLoad');
+  const flagged = await page.locator('#checksList [data-code]').count();
+  expect(flagged).toBeGreaterThan(0);
+  await expect(page.locator('#checksCount')).toHaveText(String(flagged));
+  await expect(page.locator('#tabChecks')).toHaveAttribute('aria-selected', 'true');
+  await expect(page.locator('#checksSection')).toBeVisible();
+  await expect(page.locator('#causesSection')).toBeHidden();
+
+  await page.locator('#tabChecks').focus();
+  await page.keyboard.press('ArrowRight');
+  await expect(page.locator('#tabCauses')).toBeFocused();
+  await expect(page.locator('#causesSection')).toBeVisible();
+  await expect(page.locator('#checksSection')).toBeHidden();
+  await page.keyboard.press('End');
+  await expect(page.locator('#historySection')).toBeVisible();
+  await expect(page.locator('#historyList li').first()).toBeVisible();
+
+  // Checks off: its tab goes, and an open Checks tab gives way to Causes.
+  await page.click('#tabChecks');
+  await openMenu(page, 'view');
+  await page.uncheck('#checksOn');
+  await expect(page.locator('#tabChecks')).toBeHidden();
+  await expect(page.locator('#tabCauses')).toHaveAttribute('aria-selected', 'true');
+  await expect(page.locator('#causesSection')).toBeVisible();
+  await page.check('#checksOn');
+  await expect(page.locator('#tabChecks')).toBeVisible();
 });
 
 test('the diagram follows the theme', async ({ page }) => {
