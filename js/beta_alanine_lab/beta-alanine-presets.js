@@ -98,5 +98,7 @@ export const BASELINE_PRESETS = Object.freeze([
     { id: 'women', label: 'Women', value: 17.5, claimId: 'women_vl',
         note: 'Vastus lateralis, Mannion 1992 as cited by Harris 2006. Everaert 2011 found men higher by 28 to 82% in calf muscles.' },
     { id: 'vegetarian', label: 'Vegetarian', value: Math.round(22.9 * (1 - 0.26) * 10) / 10, claimId: 'vegetarian',
-        note: 'The study average lowered by 26%, the gastrocnemius difference Everaert 2011 measured, applied here to the thigh figure.' }
+        note: 'The study average lowered by 26%, the gastrocnemius difference Everaert 2011 measured, applied here to the thigh figure.' },
+    { id: 'older', label: 'Adult over 30', value: Math.round(22.9 * (1 - 0.15) * 10) / 10, claimId: 'age_drop',
+        note: 'The study average lowered by 15%, the drop in men from age 21 to 30 to age 31 to 50 that Baguet 2012 measured in the calf, applied here to the thigh figure. Women dropped 16 to 26%. People aged 60 to 83 were no lower than those aged 31 to 50.' }
 ]);

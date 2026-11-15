@@ -388,6 +388,7 @@
 .chart-tip a,
 .legend a,
 .audit a,
+.fate a,
 .preset-report a,
 .flag a,
 .card a,
@@ -570,6 +571,8 @@
 
 .band-tag.likely,
 .band-tag.strong,
+.band-tag.sr-mild,
+.band-tag.sr-likely,
 .band-tag.untested {
     border-color: var(--accent-warning);
 }
@@ -626,6 +629,18 @@
 
 .audit h3:first-child {
     margin-top: 0;
+}
+
+.fate h3 {
+    margin: 18px 0 6px;
+    font-size: 1rem;
+}
+
+.fate > p {
+    margin: 0;
+    font-size: 0.875rem;
+    line-height: 1.6;
+    color: var(--text-secondary);
 }
 
 .audit p,

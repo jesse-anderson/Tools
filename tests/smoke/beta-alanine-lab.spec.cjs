@@ -488,13 +488,15 @@ test.describe('checks on a protocol', () => {
       const t = (g, form = 'plain', kg = 70) => B.tinglingBand({ gramsPerServing: g, bodyMassKg: kg, form }).level;
       return {
         just_under_10: t(0.699), at_10: t(0.7), at_20: t(1.4), under_40: t(2.79), at_40: t(2.8),
-        sr_16: t(1.6, 'sustained'), sr_4: t(4, 'sustained'), sr_41: t(4.1, 'sustained'), none: t(0),
+        sr_16: t(1.6, 'sustained'), sr_4: t(4, 'sustained'), sr_41: t(4.1, 'sustained'), sr_5: t(5, 'sustained'),
+        sr_51: t(5.1, 'sustained'), sr_8: t(8, 'sustained'), sr_81: t(8.1, 'sustained'), none: t(0),
         heavy: t(0.8, 'plain', 100)
       };
     });
     expect(bands).toEqual({
       just_under_10: 'below-tested', at_10: 'possible', at_20: 'likely', under_40: 'likely', at_40: 'strong',
-      sr_16: 'sr-placebo', sr_4: 'sr-tested', sr_41: 'untested', none: 'none', heavy: 'below-tested'
+      sr_16: 'sr-placebo', sr_4: 'sr-tested', sr_41: 'sr-mild', sr_5: 'sr-mild', sr_51: 'sr-likely', sr_8: 'sr-likely',
+      sr_81: 'untested', none: 'none', heavy: 'below-tested'
     });
   });
 
@@ -641,6 +643,87 @@ const Y_FROM = `(() => {
   return (py) => a[0] + ((py - a[1]) * (b[0] - a[0])) / (b[1] - a[1]);
 })()`;
 
+test.describe('literature anchors', () => {
+  test.beforeEach(async ({ page }) => { await openTool(page); });
+
+  test('every anchor gives the verdict this model version states', async ({ page }) => {
+    const anchors = await page.evaluate(() => window.BetaAlanine.anchors.map((a) => ({ id: a.id, verdict: a.verdict, expected: a.expected })));
+    expect(anchors.map((a) => a.id)).toEqual(['rezende_4wk', 'saunders_wk4', 'saunders_wk12', 'saunders_wk24', 'delfavero_older', 'stegen_12', 'incorporation']);
+    for (const a of anchors) expect(a.verdict, a.id).toBe(a.expected);
+    // The one known miss: past week 12 the model runs above the only 24-week study.
+    expect(anchors.filter((a) => a.verdict !== 'inside').map((a) => a.id)).toEqual(['saunders_wk24']);
+  });
+
+  test('anchor measurements are the archived figures, not numbers typed into the module', async ({ page }) => {
+    const r = await page.evaluate(() => Object.fromEntries(window.BetaAlanine.anchors.map((a) => [a.id, a.measured])));
+    const obs = csv('loading_observations.csv').filter((o) => o.source_id === 'saunders2017');
+    const rise = (day) => Number(obs.find((o) => Number(o.day) === day).rise_mmol_kg_dm);
+    expect(r.saunders_wk4).toBeCloseTo(rise(28), 6);
+    expect(r.saunders_wk12).toBeCloseTo(rise(84), 6);
+    expect(r.saunders_wk24).toBeCloseTo(rise(168), 6);
+    // Saunders 2017 abstract: +11.37, +16.95 and +20.15 mmol/kg dm.
+    expect([rise(28), rise(84), rise(168)]).toEqual([11.37, 16.95, 20.15]);
+    const claims = Object.fromEntries(csv('claims.csv').map((c) => [c.claim_id, c]));
+    expect(r.delfavero_older).toBeCloseTo(Number(claims.elderly_rise.value) * 100, 6);
+    expect(r.incorporation).toBeCloseTo(Number(claims.incorporation_yamaguchi.value) * 100, 6);
+    expect(claims.response_sd.claim).toContain('14.0 (10.1-18.1)');
+    expect(r.rezende_4wk).toBe(14.0);
+  });
+
+  test('the anchor protocols are run as the papers describe them', async ({ page }) => {
+    const r = await page.evaluate(() => {
+      const B = window.BetaAlanine;
+      const common = { observations: B.data.LOADING_OBSERVATIONS, washouts: B.data.WASHOUT_RATES, washoutDays: 0 };
+      const a = Object.fromEntries(B.anchors.map((x) => [x.id, x.model]));
+      const df = B.runBand({ ...common, phases: [{ doseGPerDay: 3.2, days: 84 }] });
+      const older = B.presets.BASELINE_PRESETS.find((p) => p.id === 'older').value;
+      return { a, ref28: B.lastBand.p50[28], df84: df.p50[84], older, ageDrop: B.data.CLAIMS.age_drop.value };
+    });
+    // 4 weeks at 6.4 g/day is the band golden.
+    expect(r.a.rezende_4wk.p50).toBeCloseTo(14.81, 2);
+    // del Favero: 3.2 g/day for 12 weeks over the older-adult baseline, 22.9 less 15%.
+    expect(r.older).toBe(19.5);
+    expect(r.older).toBeCloseTo(22.9 * (1 - r.ageDrop), 1);
+    expect(r.a.delfavero_older.p50).toBeCloseTo((100 * r.df84) / 19.5, 6);
+    // Incorporation worked out here: rise x dry muscle (40% of 70 kg, wet to dry 4.3) over mmol taken.
+    const share = (14.81 * (70 * 0.4 / WET_TO_DRY)) / ((6.4 * 28 / 89.09) * 1000) * 100;
+    expect(r.a.incorporation.p50).toBeCloseTo(share, 1);
+    expect(r.a.incorporation.p50).toBeGreaterThan(3);
+    expect(r.a.incorporation.p50).toBeLessThan(6);
+  });
+
+  test('the audit trail prints each anchor with its verdict', async ({ page }) => {
+    await page.locator('#auditFold > summary').click();
+    const rows = page.locator('#anchorTable tbody tr');
+    await expect(rows).toHaveCount(7);
+    const verdicts = await rows.evaluateAll((tr) => tr.map((r) => [r.dataset.anchor, r.dataset.verdict]));
+    const want = await page.evaluate(() => window.BetaAlanine.anchors.map((a) => [a.id, a.expected]));
+    expect(verdicts).toEqual(want);
+    await expect(page.locator('#anchorTable tr[data-anchor="saunders_wk24"]')).toContainText('Model above');
+    await expect(page.locator('#anchorTable tr[data-anchor="saunders_wk24"]')).toContainText('+20.15 mmol/kg dm');
+    await expect(page.locator('#anchorTable tr[data-anchor="delfavero_older"]')).toContainText('+85.4% (gastrocnemius)');
+  });
+
+  test('new claims carry the figures in the papers', async () => {
+    const c = Object.fromEntries(csv('claims.csv').map((x) => [x.claim_id, x]));
+    const v = (id) => Number(c[id].value);
+    expect([v('urine_cc'), v('urine_tt'), v('plasma_half_life'), v('fate_incorporation')]).toEqual([0.018, 0.036, 0.75, 0.06]);
+    expect([v('tingle_sr_5g'), v('tingle_sr_8g'), v('age_drop'), v('elderly_rise')]).toEqual([5, 8, 0.15, 0.854]);
+    expect([v('taurine_24wk'), v('taurine_meta'), v('taurine_rodent'), v('side_effects_meta')]).toEqual([35.42, 0.156, 38, 8.9]);
+    expect(c.urine_cc.claim).toContain('25 +/- 10 mg');
+    expect(c.urine_tt.claim).toContain('50 +/- 19 mg');
+    expect(c.taurine_24wk.claim).toContain('33.67, 35.93 and 35.42');
+    expect(c.fate_transaminases.claim).toContain('GABA-T and AGXT2');
+    expect(c.breakfast_profile.claim).toContain('7 of 60');
+    // Every claim's source is archived, with its PDF hash in the manifest.
+    const manifest = Object.fromEntries(csv('download_manifest.csv').map((m) => [m.source_id, m]));
+    for (const id of ['urine_cc', 'fate_transaminases', 'plasma_half_life', 'plasma_half_life_sr8', 'tau_t_down', 'taurine_24wk', 'taurine_meta',
+      'breakfast_profile', 'tingle_sr_5g', 'tingle_sr_8g', 'age_drop', 'elderly_rise']) {
+      expect(manifest[c[id].source_id], id).toBeTruthy();
+    }
+  });
+});
+
 test.describe('page', () => {
   test('loads cleanly with the first-visit default', async ({ page, baseURL }) => {
     await expectPageToLoadCleanly(page, baseURL, PAGE);
@@ -783,7 +866,7 @@ test.describe('page', () => {
     await expect(page.locator('#cards a').first()).toBeAttached();
     await expectContrastAA(page, [
       '.panel a', '.card h3', '.card .value', '.card .range', '.card .sub', '.flag', '.field-note',
-      '.legend-item', '.legend-title', '.legend label', '.preset-report', '.data-table th', '.data-table td'
+      '.legend-item', '.legend-title', '.legend label', '.preset-report', '.data-table th', '.data-table td', '.fate h3', '.fate > p'
     ].join(', '));
     // SVG text paints with fill, which the shared helper does not read.
     for (const theme of ['dark', 'light']) {
@@ -1143,6 +1226,65 @@ test.describe('page', () => {
     await page.reload();
     await expect.poll(() => page.evaluate(() => Boolean(window.BetaAlanine && window.BetaAlanine.ready))).toBe(true);
     await expect(page.locator('#goalRise')).toHaveValue('12');
+  });
+
+  test('where it goes: stored, urine and broken down add to 100% and follow the protocol', async ({ page }) => {
+    await openTool(page);
+    const fate = page.locator('#fate');
+    const want = await page.evaluate(() => {
+      const B = window.BetaAlanine;
+      const b = B.lastBand;
+      return { rise: b.summary.riseAtStop.p50 };
+    });
+    const stored = page.locator('#fate .card', { hasText: 'Stored as muscle carnosine' });
+    const kg = Number((await page.locator('#cards .card', { hasText: 'Carnosine in muscle' }).innerText()).match(/in ([\d.]+) kg of skeletal muscle/)[1]);
+    const inc = (want.rise * (kg / WET_TO_DRY)) / ((179.2 / 89.09) * 1000) * 100;
+    await expect(stored).toContainText(`${inc.toFixed(1)}%`);
+    await expect(stored).toContainText(`about ${(179.2 * inc / 100).toFixed(1)} g of the 179.2 g taken`);
+    await expect(page.locator('#fate .card', { hasText: 'Lost in urine' })).toContainText('1.8 to 3.6%');
+    // 1.8% and 3.6% of 179.2 g.
+    await expect(page.locator('#fate .card', { hasText: 'Lost in urine' })).toContainText('about 3.2 to 6.5 g');
+    await expect(page.locator('#fate .card', { hasText: 'Broken down' })).toContainText(`about ${(100 - inc - 3.6).toFixed(0)} to ${(100 - inc - 1.8).toFixed(0)}%`);
+    await expect(fate).toContainText('GABA-T and AGXT2');
+    await expect(fate).toContainText('either enzyme can cover for the other');
+    await expect(fate.locator('a', { hasText: 'Blancquaert' }).first()).toHaveAttribute('href', /10\.1113\/JP272050/);
+    // The slowdown paragraph prints the week 24 anchor, not a typed number.
+    const s24 = await page.evaluate(() => window.BetaAlanine.anchors.find((a) => a.id === 'saunders_wk24').model.p50);
+    await expect(fate).toContainText(`its middle line is +${s24.toFixed(1)} against the +20.15 measured`);
+    await expect(fate).toContainText('not a proven ceiling');
+    await expect(fate).toContainText('33.7 at the start, 35.4 at week 24');
+    await page.fill('#phase0Dose', '0');
+    await expect(page.locator('#fate .card')).toHaveCount(1);
+    await expect(fate).toContainText('No beta-alanine taken');
+  });
+
+  test('the food note, safety sentence and sustained-release bands cite the new studies', async ({ page }) => {
+    await openTool(page);
+    const food = page.locator('#foodNote');
+    await expect(food).toContainText('10 minutes after a small breakfast');
+    await expect(food).toContainText('7 of 60 doses');
+    await expect(food).toContainText('Sipping it in water through the day has not been studied');
+    await expect(food.locator('a', { hasText: 'Stautemas' })).toHaveAttribute('href', /10\.3390\/nu11122869/);
+    await expect(page.locator('#safetySentence')).toContainText('8.9 times the odds of placebo');
+    await expect(page.locator('#safetySentence a', { hasText: 'Dolan' })).toHaveCount(1);
+    await page.selectOption('#phase0Form', 'sustained');
+    await page.fill('#phase0Dose', '15');
+    await page.fill('#phase0Servings', '3');
+    await expect(page.locator('#servingTable')).toContainText('Likely, usually mild');
+    await expect(page.locator('#servingTable a', { hasText: 'Maestre' })).toHaveCount(1);
+    await page.fill('#phase0Servings', '2');
+    await expect(page.locator('#servingTable')).toContainText('Likely');
+    await expect(page.locator('#servingTable a', { hasText: 'de Salazar' })).toHaveCount(1);
+    await page.fill('#phase0Servings', '1');
+    await expect(page.locator('#servingTable')).toContainText('Above any sustained-release serving tested');
+  });
+
+  test('the older-adult baseline is the study average less Baguet\'s 15%', async ({ page }) => {
+    await openTool(page);
+    await page.selectOption('#baselinePreset', 'older');
+    await expect(page.locator('#baselineValue')).toHaveValue('19.5');
+    await expect(page.locator('#baselineNote')).toContainText('lowered by 15%');
+    await expect(page.locator('#baselineNote a', { hasText: 'Baguet' })).toHaveAttribute('href', /10\.1007\/s00726-011-1197-3/);
   });
 
   test('the audit trail and sources link every source', async ({ page }) => {

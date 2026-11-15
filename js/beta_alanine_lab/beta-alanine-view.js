@@ -144,11 +144,17 @@ export function renderCards(node, { summary, baseline, totalGrams, target, washo
     if (summary.gramsGainAtStop && muscle) {
         const g = summary.gramsGainAtStop;
         const base = (baseline * (muscle.centerKg / WET_TO_DRY) * 226.23) / 1000;
-        const incorporated = totalGrams > 0 ? ((r.p50 * (muscle.centerKg / WET_TO_DRY)) / ((totalGrams / BETA_ALANINE_G_PER_MOL) * 1000)) * 100 : NaN;
+        const incorporated = incorporatedPercent(r.p50, muscle.centerKg, totalGrams);
         node.appendChild(card('Carnosine in muscle, estimated', `+${fmt(g.p50, 1)} g`,
             `10th to 90th: ${fmt(g.p10, 1)} to ${fmt(g.p90, 1)} g, on about ${fmt(base, 0)} g at baseline in ${fmt(muscle.centerKg, 1)} kg of skeletal muscle`,
             [`About ${fmt(incorporated, 1)}% of the beta-alanine taken ends up in carnosine on the middle line; studies report about 3% (`, sourceLink('stegen2013'), ') and 4.4% (', sourceLink('yamaguchi2021'), ').']));
     }
+}
+
+/** Percent of the beta-alanine taken that a rise holds as carnosine, one beta-alanine per carnosine. */
+export function incorporatedPercent(rise, muscleKg, totalGrams) {
+    if (!(totalGrams > 0)) return NaN;
+    return ((rise * (muscleKg / WET_TO_DRY)) / ((totalGrams / BETA_ALANINE_G_PER_MOL) * 1000)) * 100;
 }
 
 /** The dose-for-a-goal card: a figure only when its middle is inside the fitted doses. */
@@ -247,7 +253,76 @@ export function renderSafety(node) {
     clear(node);
     const c = CLAIMS.issn_safety;
     node.append('The ISSN position stand: supplementation "currently appears to be safe in healthy populations at recommended doses"; the only reported side effect is paresthesia (tingling). It also suggests servings of 1.6 g or less, or sustained release, to reduce it (',
-        sourceLink(c.sourceId), '). This tool makes no other safety claim.');
+        sourceLink(c.sourceId), '). A 2019 meta-analysis of 101 human studies agrees: tingling was the only reported side effect, at 8.9 times the odds of placebo, and a small rise in the liver enzyme ALT stayed well inside the normal range (',
+        sourceLink(CLAIMS.side_effects_meta.sourceId), '). This tool makes no other safety claim.');
+}
+
+export function renderFoodNote(node) {
+    clear(node);
+    node.append('With food: plain beta-alanine taken 10 minutes after a small breakfast (bread, hazelnut spread and milk) gave a blood curve like sustained release, and tingling on only 7 of 60 doses of 1.6 g, 20 mg/kg, or 0.8 g plus 10 mg/kg (',
+        sourceLink('stautemas2019'), '). Most studies fitted here dosed with meals, and one found a larger rise with meals than between them (',
+        sourceLink('stegen2013'), '). Sipping it in water through the day has not been studied. It would spread the dose the way sustained release does, and over weeks sustained release and plain beta-alanine raised carnosine equally (',
+        sourceLink('stegen2013'), ').');
+}
+
+/** Where the beta-alanine taken goes, with the slowdown and taurine findings. */
+export function renderFate(node, { summary, muscle, totalGrams, anchors }) {
+    clear(node);
+    const cards = h('div', { class: 'cards' });
+    const urineLo = CLAIMS.urine_cc.value * 100;
+    const urineHi = CLAIMS.urine_tt.value * 100;
+    const rise = summary && summary.riseAtStop ? summary.riseAtStop.p50 : 0;
+    const inc = incorporatedPercent(rise, muscle.centerKg, totalGrams);
+    if (totalGrams > 0 && Number.isFinite(inc)) {
+        const grams = (pct) => fmt((totalGrams * pct) / 100, 1);
+        cards.appendChild(card('Stored as muscle carnosine', `${fmt(inc, 1)}%`, `about ${grams(inc)} g of the ${fmt(totalGrams, 1)} g taken, at the end of dosing`,
+            ['On the middle line at your muscle mass. Studies report 3 to 6% (', sourceLink('blancquaert2016'), '), about 3% (', sourceLink('stegen2013'), ') and 4.4% (', sourceLink('yamaguchi2021'), ').']));
+        cards.appendChild(card('Lost in urine', `${fmt(urineLo, 1)} to ${fmt(urineHi, 1)}%`, `about ${grams(urineLo)} to ${grams(urineHi)} g`,
+            ['Within 4 hours of 1.4 g: 1.8% with the common AGXT2 gene variant, 3.6% with the low-activity one (', sourceLink('stautemas2020'), ').']));
+        cards.appendChild(card('Broken down', `about ${fmt(100 - inc - urineHi, 0)} to ${fmt(100 - inc - urineLo, 0)}%`, 'neither stored nor excreted',
+            ['Turned into malonate semialdehyde, mainly in the liver and kidney, by the enzymes GABA-T and AGXT2, and burned for energy (', sourceLink('blancquaert2016'), ' and ', sourceLink('stautemas2020'), ').']));
+    } else {
+        cards.appendChild(card('Where it goes', 'No beta-alanine taken', null, null));
+    }
+    node.appendChild(cards);
+
+    node.appendChild(h('h3', { text: 'Breakdown is the bottleneck' }));
+    node.appendChild(h('p', {}, ['In mice, blocking both enzymes tripled blood beta-alanine and raised carnosine in muscle and heart; blocking GABA-T alone did not (',
+        sourceLink('blancquaert2016'), '). People whose AGXT2 gene variant makes a less active enzyme lost twice as much in urine but had the same muscle carnosine (',
+        sourceLink('stautemas2020'), '), so either enzyme can cover for the other. In blood, beta-alanine has a half-life of about 45 to 70 minutes (',
+        ...linkList(['stautemas2019', 'stautemas2020', 'desalazar2021']), '), which is why it is taken several times a day.']));
+
+    const s24 = anchors && anchors.find((a) => a.id === 'saunders_wk24');
+    node.appendChild(h('h3', { text: 'Uptake slows over months' }));
+    node.appendChild(h('p', {}, ['In the only 24-week study the average rise was +11.37 mmol/kg dm at week 4 and +20.15 at week 24, and it grew most in the first 4 weeks. TauT, the transporter that carries beta-alanine into muscle, was turned down over the 24 weeks, which the authors suggest plays a part in how much builds up (',
+        sourceLink('saunders2017'), '). That is a slowdown, not a proven ceiling: 5 of 15 people were at their highest at week 24, four of them still rising. This model has no slowdown',
+        s24 ? `: at week 24 of 6.4 g/day its middle line is +${fmt(s24.model.p50, 1)} against the +${fmt(s24.measured, 2)} measured` : '',
+        ', so past about week 8 read the middle line as an upper estimate. The literature anchors in the audit trail show the gap.']));
+
+    node.appendChild(h('h3', { text: 'Taurine' }));
+    node.appendChild(h('p', {}, ['Beta-alanine shares TauT with taurine. Rodents lose muscle taurine on 3% beta-alanine in their water, 38 to 56 times the human dose. In people, 24 weeks at 6.4 g/day left muscle taurine unchanged (33.7 at the start, 35.4 at week 24, mmol/kg dm; ',
+        sourceLink('saunders2020'), '), and a meta-analysis of 63 people found no effect (', sourceLink('dolan2019'), ').']));
+}
+
+const VERDICT_TEXT = { inside: 'Inside the band', 'model-above': 'Model above', 'model-below': 'Model below' };
+
+function anchorTable(anchors) {
+    const t = h('table', { class: 'data-table', id: 'anchorTable' });
+    t.appendChild(h('thead', {}, h('tr', {}, ['Study', 'Protocol', 'Measured', 'Model, 10th / middle / 90th', 'Verdict']
+        .map((x) => h('th', { scope: 'col', text: x })))));
+    const body = h('tbody');
+    for (const a of anchors) {
+        const m = a.model;
+        body.appendChild(h('tr', { 'data-anchor': a.id, 'data-verdict': a.verdict }, [
+            h('th', { scope: 'row' }, linkList(a.sourceIds)),
+            h('td', { text: a.title }),
+            h('td', { text: a.measuredText }),
+            h('td', { class: 'num', text: `${fmt(m.p10, 1)} / ${fmt(m.p50, 1)} / ${fmt(m.p90, 1)} ${a.unit}` }),
+            h('td', {}, [h('p', { text: VERDICT_TEXT[a.verdict] }), a.note ? h('p', { text: a.note }) : null])
+        ]));
+    }
+    t.appendChild(body);
+    return t;
 }
 
 export function renderCosts(node, { tiers, own, phases, totalGrams, riseAtStop }) {
@@ -305,7 +380,7 @@ export function computeChecks() {
     return { linear, linearTarget: [1.83 * WET_TO_DRY, 2.01 * WET_TO_DRY, 2.19 * WET_TO_DRY], emax, observations, fits };
 }
 
-export function renderAudit(node) {
+export function renderAudit(node, anchors = []) {
     clear(node);
     const checks = computeChecks();
     const claim = (id) => CLAIMS[id];
@@ -369,10 +444,18 @@ export function renderAudit(node) {
         h('p', {}, ['Saunders also reported the maximum: ', claim('saunders_max').claim, ...cite('saunders_max'), '.'])
     ]);
 
+    section('Literature anchors', [
+        h('p', { text: 'Published results the model is held against, each run on the study\'s own protocol. "Inside the band" means the measured value falls between the 10th and 90th percentiles. The spec fails if any verdict here changes, so a model change that moves one has to say so.' }),
+        h('div', { class: 'table-scroll' }, anchorTable(anchors))
+    ]);
+
     const claimIds = ['baseline_default', 'baseline_no_effect', 'women_vl', 'women_calf', 'vegetarian', 'age', 'placebo_variation', 'response_sd',
         'form_equivalent', 'meal_effect', 'incorporation', 'incorporation_yamaguchi', 'retention', 'tingle_40', 'tingle_20', 'tingle_10', 'tingle_800mg',
         'tingle_broth', 'plasma_peak', 'tingle_sr', 'tingle_800_common', 'tingle_12g_sr', 'issn_dose', 'issn_split', 'issn_safety', 'maintenance',
-        'sex_absolute', 'kf_high_dose_sublinear', 'washout_baguet_split'];
+        'sex_absolute', 'kf_high_dose_sublinear', 'washout_baguet_split', 'age_drop', 'elderly_rise', 'fate_transaminases', 'fate_incorporation',
+        'fate_breakdown_product', 'urine_cc', 'urine_tt', 'agxt2_no_carnosine', 'plasma_half_life', 'plasma_half_life_14', 'plasma_half_life_sr8',
+        'tau_t_down', 'saunders_still_rising', 'saunders_slowdown', 'taurine_24wk', 'taurine_meta', 'taurine_rodent', 'side_effects_meta',
+        'breakfast_profile', 'body_mass_plasma', 'tingle_sr_5g', 'tingle_sr_8g'];
     const cl = h('ul');
     for (const id of claimIds) {
         const c = claim(id);
@@ -380,7 +463,7 @@ export function renderAudit(node) {
     }
     section('Every other figure on the page', [cl,
         h('p', { text: 'Meals: one MRS study in one muscle found a larger rise with meals, and most fitted studies dosed with meals, so meals are a sentence rather than a setting. Form: chronic sustained release and plain were equally effective, so form changes only the tingling check.' }),
-        h('p', { text: 'No older-adults baseline: Everaert 2011 reports a negative correlation with age but no figure for healthy adults. Use the baseline field for a value of your own.' })
+        h('p', { text: 'Older adults: Baguet 2012 measured the calf by MRS, so the older-adult preset applies its percent drop to the thigh figure rather than using its values. Sipping through the day has no study, so it is a sentence with no figure.' })
     ]);
 }
 

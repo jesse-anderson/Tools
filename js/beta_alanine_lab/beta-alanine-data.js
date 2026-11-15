@@ -920,6 +920,182 @@ export const CLAIMS = Object.freeze({
     "sourceId": "stegen2014",
     "location": "Table 1",
     "use": "spec (Stegen check baseline)"
+  },
+  "fate_transaminases": {
+    "topic": "fate",
+    "claim": "Recombinant mouse and human GABA-T and AGXT2 transaminate beta-alanine efficiently; both are highly expressed in mouse liver and kidney. Blocking both (AOA) in mice on beta-alanine tripled circulating beta-alanine and raised muscle and heart carnosine; blocking GABA-T alone (vigabatrin) did not",
+    "value": 3.0,
+    "sourceId": "blancquaert2016",
+    "location": "Abstract",
+    "use": "where it goes panel"
+  },
+  "fate_incorporation": {
+    "topic": "fate",
+    "claim": "Only a small fraction (3-6%) of ingested beta-alanine is used for carnosine synthesis",
+    "value": 0.06,
+    "sourceId": "blancquaert2016",
+    "location": "Abstract",
+    "use": "where it goes panel; anchor"
+  },
+  "fate_breakdown_product": {
+    "topic": "fate",
+    "claim": "GABA-T and AGXT2 convert beta-alanine into malonate semialdehyde, which is further metabolized in the Krebs cycle via acetyl-CoA",
+    "value": null,
+    "sourceId": "stautemas2020",
+    "location": "Introduction",
+    "use": "where it goes panel"
+  },
+  "urine_cc": {
+    "topic": "fate",
+    "claim": "After 1400 mg, urinary beta-alanine over 4 h was 25 +/- 10 mg (1.8%) with the rs37369 CC genotype (normal AGXT2 activity)",
+    "value": 0.018,
+    "sourceId": "stautemas2020",
+    "location": "Results; Fig. 2b",
+    "use": "where it goes panel"
+  },
+  "urine_tt": {
+    "topic": "fate",
+    "claim": "After 1400 mg, urinary beta-alanine over 4 h was 50 +/- 19 mg (3.6%) with the TT genotype (lower AGXT2 activity), 103% more than CC",
+    "value": 0.036,
+    "sourceId": "stautemas2020",
+    "location": "Results; Fig. 2b",
+    "use": "where it goes panel"
+  },
+  "agxt2_no_carnosine": {
+    "topic": "fate",
+    "claim": "rs37369 genotype was not associated with muscle carnosine or plasma kinetics, and AGXT2 knockout mice had unchanged carnosine",
+    "value": null,
+    "sourceId": "stautemas2020",
+    "location": "Abstract",
+    "use": "where it goes panel"
+  },
+  "plasma_half_life": {
+    "topic": "fate",
+    "claim": "Plasma elimination half-life 0.75 +/- 0.21, 0.71 +/- 0.12 and 0.76 +/- 0.22 h after 1600 mg, 20 mg/kg and 800 mg + 10 mg/kg plain beta-alanine with a small breakfast",
+    "value": 0.75,
+    "sourceId": "stautemas2019",
+    "location": "Table 2",
+    "use": "where it goes panel"
+  },
+  "plasma_half_life_14": {
+    "topic": "fate",
+    "claim": "Plasma half-life 50.9 to 53.9 min after 1400 mg, by rs37369 genotype",
+    "value": 50.9,
+    "sourceId": "stautemas2020",
+    "location": "Table 3",
+    "use": "where it goes panel"
+  },
+  "plasma_half_life_sr8": {
+    "topic": "fate",
+    "claim": "Plasma half-life 63.5 +/- 8.7 min (controlled-release powder) and 68.9 +/- 9.8 min (sustained-release tablets) after a single 8 g dose",
+    "value": 68.9,
+    "sourceId": "desalazar2021",
+    "location": "Abstract",
+    "use": "where it goes panel"
+  },
+  "tau_t_down": {
+    "topic": "ceiling",
+    "claim": "Over 24 weeks at 6.4 g/day, TauT (the transporter that carries beta-alanine into muscle) was downregulated (main effect of supplement, P = 0.002); CARNS, ABAT, CNDP2, PAT1, PEPT2 and PHT1 were not changed",
+    "value": null,
+    "sourceId": "saunders2017",
+    "location": "Abstract; Fig. 3",
+    "use": "where it goes panel (ceiling)"
+  },
+  "saunders_still_rising": {
+    "topic": "ceiling",
+    "claim": "Time to maximum ranged from 4 to 24 weeks: 1 person peaked at week 4, 4 at week 12, 1 at week 16, 4 at week 20 and 5 at week 24, four of whom were still rising by more than 6 mmol/kg dm",
+    "value": 5.0,
+    "sourceId": "saunders2017",
+    "location": "Results; Discussion",
+    "use": "where it goes panel (ceiling)"
+  },
+  "saunders_slowdown": {
+    "topic": "ceiling",
+    "claim": "Mean carnosine increased most in the first 4 weeks; a difference from the previous time point was found only at week 4",
+    "value": 4.0,
+    "sourceId": "saunders2017",
+    "location": "Discussion",
+    "use": "where it goes panel (ceiling)"
+  },
+  "taurine_24wk": {
+    "topic": "taurine",
+    "claim": "After 24 weeks at 6.4 g/day sustained release, vastus lateralis taurine was 33.67, 35.93 and 35.42 mmol/kg dm at weeks 0, 12 and 24 (n = 12) against 27.75, 27.67 and 31.99 on placebo (n = 6); no effect of time or interaction",
+    "value": 35.42,
+    "sourceId": "saunders2020",
+    "location": "Abstract",
+    "use": "where it goes panel (taurine)"
+  },
+  "taurine_meta": {
+    "topic": "taurine",
+    "claim": "Meta-analysis of 5 human studies (63 people): no main effect on skeletal muscle taurine, ES 0.156 (95% CrI -0.38 to 0.72)",
+    "value": 0.156,
+    "sourceId": "dolan2019",
+    "location": "Abstract; Results",
+    "use": "where it goes panel (taurine)"
+  },
+  "taurine_rodent": {
+    "topic": "taurine",
+    "claim": "Rodent taurine fell only at 3% beta-alanine in drinking water, about 3,000 to 4,500 mg/kg/day, 38 to 56 times the typical human dose",
+    "value": 38.0,
+    "sourceId": "dolan2019",
+    "location": "Abstract; Discussion",
+    "use": "where it goes panel (taurine)"
+  },
+  "side_effects_meta": {
+    "topic": "safety",
+    "claim": "Across 101 human studies paresthesia was the only reported side effect, OR 8.9 (95% CrI 2.2 to 32.6) against placebo; ALT rose slightly (ES 0.274, about 3.2 U/L) with means well within clinical reference ranges",
+    "value": 8.9,
+    "sourceId": "dolan2019",
+    "location": "Abstract; Results",
+    "use": "safety sentence"
+  },
+  "breakfast_profile": {
+    "topic": "tingling",
+    "claim": "Plain beta-alanine taken 10 min after a small breakfast (20% of resting energy) gave a concentration-time curve and lack of severe paresthesia suggesting a profile similar to slow release; paresthesia on 7 of 60 test days, in 6 of 20 people",
+    "value": 7.0,
+    "sourceId": "stautemas2019",
+    "location": "Methods; Results; Discussion",
+    "use": "food note"
+  },
+  "body_mass_plasma": {
+    "topic": "tingling",
+    "claim": "Body weight explained 47% of the variation in plasma response after a fixed 1600 mg dose, 28% after 20 mg/kg and 3% after 800 mg + 10 mg/kg",
+    "value": 0.47,
+    "sourceId": "stautemas2019",
+    "location": "Results",
+    "use": "tingling bands per kg"
+  },
+  "tingle_sr_5g": {
+    "topic": "tingling",
+    "claim": "5 g sustained-release servings three times a day for 30 days: 9 of 10 reported paresthesia (8 new), mostly tickling, all but one under 3/10 (one 5.9/10); 1 of 9 on placebo",
+    "value": 5.0,
+    "sourceId": "maestrehernandez2023",
+    "location": "Results 3.6; Table 1",
+    "use": "tingling band for sustained release"
+  },
+  "tingle_sr_8g": {
+    "topic": "tingling",
+    "claim": "Single 8 g dose: most of 12 people reported paresthesia; peak VAS 4.95 +/- 2.32 (controlled-release powder) and 2.94 +/- 2.90 (sustained-release tablets) out of 10",
+    "value": 8.0,
+    "sourceId": "desalazar2021",
+    "location": "Results 3.2; Discussion",
+    "use": "tingling band for sustained release"
+  },
+  "age_drop": {
+    "topic": "baseline",
+    "claim": "From young (21-30) to middle adults (31-50) carnosine fell 15.2% (gastrocnemius) and 14.8% (soleus) in men and 16.3% and 26.2% in women (1H-MRS); elderly (60-83) were not different from middle adults",
+    "value": 0.15,
+    "sourceId": "baguet2012",
+    "location": "Results",
+    "use": "older-adult preset"
+  },
+  "elderly_rise": {
+    "topic": "baseline",
+    "claim": "3.2 g/day sustained release for 12 weeks in adults aged 60-80 (n = 12): gastrocnemius carnosine +85.4% against +7.2% on placebo (1H-MRS)",
+    "value": 0.854,
+    "sourceId": "delfavero2012",
+    "location": "Abstract",
+    "use": "anchor"
   }
 });
 

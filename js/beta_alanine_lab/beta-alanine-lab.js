@@ -5,9 +5,11 @@ import { runBand, attributeEdge, paperMedian, loadingPapers, doseForGoal, DEFAUL
 import { SOURCES, CLAIMS, LOADING_OBSERVATIONS, WASHOUT_RATES, PRICE_TIERS, WET_TO_DRY } from './beta-alanine-data.js';
 import { PROTOCOL_PRESETS, BASELINE_PRESETS } from './beta-alanine-presets.js';
 import { drawChart } from './beta-alanine-chart.js';
+import { literatureAnchors } from './beta-alanine-anchors.js';
 import {
     h, clear, fmt, sourceLink, linkList, renderTip, renderFlags, renderCards, renderEdgeTable,
-    renderServings, renderSafety, renderCosts, renderAudit, renderSources, renderGoal, computeChecks
+    renderServings, renderSafety, renderCosts, renderAudit, renderSources, renderGoal, computeChecks,
+    renderFoodNote, renderFate
 } from './beta-alanine-view.js';
 import { estimateSkeletalMuscleMass } from '../supplement_common/body-composition.js';
 import { createProjectStore, cleanTextState } from '../diagram_common/projects.js';
@@ -360,6 +362,7 @@ function render() {
     });
     renderEdgeTable($('edgeTable'), edgeRows(view), view.unit);
     renderServings($('servingTable'), phases, bodyMassKg());
+    renderFate($('fate'), { summary: band.summary, muscle: muscle(), totalGrams: Engine.totalGrams(phases), anchors });
     renderCostCards();
     renderGoal($('goalResult'), { ...goal, observations: LOADING_OBSERVATIONS });
     $('useGoalDose').disabled = !Engine.goalDoseUsable(goal.result);
@@ -636,6 +639,8 @@ function wireSaved() {
 
 // ---- Start ------------------------------------------------------------------
 
+let anchors = [];
+
 window.BetaAlanine = {
     ...Engine, runBand, attributeEdge, paperMedian, loadingPapers, doseForGoal, computeChecks,
     data: { SOURCES, CLAIMS, LOADING_OBSERVATIONS, WASHOUT_RATES, PRICE_TIERS, WET_TO_DRY },
@@ -652,8 +657,11 @@ function init() {
     wireChart();
     wireSaved();
     renderSaved();
+    anchors = literatureAnchors({ observations: LOADING_OBSERVATIONS, washouts: WASHOUT_RATES, claims: CLAIMS });
+    window.BetaAlanine.anchors = anchors;
     renderSafety($('safetySentence'));
-    renderAudit($('audit'));
+    renderFoodNote($('foodNote'));
+    renderAudit($('audit'), anchors);
     renderSources($('sourceList'));
     compute();
     render();

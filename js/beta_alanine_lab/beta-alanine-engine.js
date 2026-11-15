@@ -153,10 +153,17 @@ export function triangular(rng, min, mode, max) {
     return max - Math.sqrt((1 - u) * (max - min) * (max - mode));
 }
 
+// Largest sustained-release servings tested: 5 g three times a day
+// (Maestre-Hernandez 2023) and a single 8 g dose (de Salazar 2021).
+export const SR_MILD_GRAMS = 5;
+export const SR_LARGEST_GRAMS = 8;
+
 /**
  * Tingling band for one serving. Plain bands are per kg (Harris 2006);
- * sustained release by grams per serving (Decombaz 2012, Church 2017).
+ * sustained release by grams per serving (Decombaz 2012, Church 2017,
+ * Maestre-Hernandez 2023, de Salazar 2021).
  */
+
 export function tinglingBand({ gramsPerServing, bodyMassKg, form }) {
     const grams = Math.max(0, Number(gramsPerServing) || 0);
     const mgPerKg = bodyMassKg > 0 ? (grams * 1000) / bodyMassKg : NaN;
@@ -170,8 +177,16 @@ export function tinglingBand({ gramsPerServing, bodyMassKg, form }) {
             return { level: 'sr-tested', label: 'No difference between groups at up to 4 g', mgPerKg,
                 reason: 'Three 4 g sustained-release servings a day for 14 days showed no difference in paresthesia between groups.', sourceIds: ['church2017'] };
         }
+        if (grams <= SR_MILD_GRAMS) {
+            return { level: 'sr-mild', label: 'Likely, usually mild', mgPerKg,
+                reason: 'Three 5 g sustained-release servings a day for 30 days: 9 of 10 people tingled, all but one under 3 out of 10.', sourceIds: ['maestrehernandez2023'] };
+        }
+        if (grams <= SR_LARGEST_GRAMS) {
+            return { level: 'sr-likely', label: 'Likely', mgPerKg,
+                reason: 'A single 8 g sustained-release dose: most of 12 people tingled, averaging 3 to 5 out of 10 at the peak depending on the product.', sourceIds: ['desalazar2021'] };
+        }
         return { level: 'untested', label: 'Above any sustained-release serving tested', mgPerKg,
-            reason: 'The largest sustained-release serving studied was 4 g.', sourceIds: ['church2017'] };
+            reason: `The largest sustained-release serving studied was ${SR_LARGEST_GRAMS} g.`, sourceIds: ['desalazar2021'] };
     }
     if (mgPerKg < 10) {
         return { level: 'below-tested', label: 'Below the smallest dose tested', mgPerKg,
