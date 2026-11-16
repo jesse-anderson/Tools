@@ -1,0 +1,465 @@
+{
+  "about": "Reading record for the Beta-Alanine Lab: one entry per paper read, wanted or known only secondhand, plus a log of searches and what they found, so the literature review is not repeated. Numbers the page uses live in claims.csv, loading_observations.csv, washout_rates.csv and solubility.csv; this file says what each paper is, what was read, what it feeds and what it leaves open. The spec checks it against the manifest and those CSVs.",
+  "updated": "2026-11-15",
+  "verified": "Every DOI, volume and first page checked against Crossref on 2026-11-15; six were wrong when written from memory and are corrected.",
+  "statusValues": {
+    "archived": "PDF in sources/ with a manifest row marked ok",
+    "notArchived": "manifest row exists, file could not be obtained; figures come through papers that quote it",
+    "wanted": "not yet in hand; whyNeeded says what it would settle",
+    "citedOnly": "known only through another paper; not requested"
+  },
+  "papers": [
+    {
+      "id": "trexler2015", "status": "archived", "doi": "10.1186/s12970-015-0090-y", "access": "open",
+      "citation": "Trexler ET et al. 2015, J Int Soc Sports Nutr 12:30. ISSN position stand: beta-alanine",
+      "design": "Position stand and review",
+      "role": "Dosing, splitting and safety statements in the audit trail",
+      "feeds": ["claims"],
+      "extraFindings": [],
+      "caveats": ["A position stand, not data; used only for the conventional dosing advice"]
+    },
+    {
+      "id": "rezende2020", "status": "archived", "doi": "10.3389/fphys.2020.00913", "access": "open",
+      "citation": "Rezende NS et al. 2020, Front Physiol 11:913. Bayesian Emax model and meta-analysis of the muscle carnosine response",
+      "design": "Systematic review, individual and aggregate data, Emax model",
+      "role": "Default baseline 22.9, response SD 6.6, placebo variation 4.1; the 4-week anchor",
+      "feeds": ["claims", "loading_observations"],
+      "extraFindings": [
+        {"text": "ED50 about 377 g cumulative intake; Emax about 3.0 SMD", "location": "Abstract; Results"}
+      ],
+      "caveats": ["Supplementary Table 1 mixes HPLC units between studies; no value from it is used without checking the original paper"]
+    },
+    {
+      "id": "rezende2020_table1", "status": "archived", "doi": "10.3389/fphys.2020.00913", "access": "open",
+      "citation": "Rezende 2020 supplementary Table 1 (docx)",
+      "design": "Study table, 26 studies",
+      "role": "Finding loading studies to fit; no value read directly",
+      "feeds": [],
+      "extraFindings": [],
+      "caveats": ["Values near 25, 8 and 1 all labeled HPLC: units differ by study"]
+    },
+    {
+      "id": "yamaguchi2021", "status": "archived", "doi": "10.1249/MSS.0000000000002559", "access": "open (USP repository copy)",
+      "citation": "Yamaguchi GC et al. 2021, Med Sci Sports Exerc 53:1079. Kinetics of muscle carnosine decay, a 16-week washout",
+      "design": "6.4 g/day sustained release 8 weeks, then 16-week washout, VL biopsy HPLC",
+      "role": "Washout half-life 4.6 wk (95% CI 3.2 to 7.0); storage share 4.4%",
+      "feeds": ["claims", "loading_observations", "washout_rates"],
+      "extraFindings": [
+        {"text": "A linear washout fit was slightly better than exponential (LOOIC 395.27 vs 398.22)", "location": "Results"}
+      ],
+      "caveats": ["Online November 2020, print 2021"]
+    },
+    {
+      "id": "saunders2017", "status": "archived", "doi": "10.1249/MSS.0000000000001173", "access": "paywalled (supplied by the user)",
+      "citation": "Saunders B et al. 2017, Med Sci Sports Exerc 49:896. 24 weeks of beta-alanine",
+      "design": "6.4 g/day sustained release 24 weeks, VL biopsy HPLC every 4 weeks, gene expression",
+      "role": "Six loading points; the long-course anchors (week 24 is a known model miss); TauT downregulation",
+      "feeds": ["claims", "loading_observations"],
+      "extraFindings": [],
+      "caveats": ["Shows a slowdown, not a proven ceiling: 5 of 15 peaked at week 24, 4 still rising"]
+    },
+    {
+      "id": "stellingwerff2012", "status": "archived", "doi": "10.1007/s00726-011-1054-4", "access": "paywalled (supplied by the user)",
+      "citation": "Stellingwerff T et al. 2012, Amino Acids 42:2461. Two dosing protocols and washout",
+      "design": "1.6 vs 3.2 g/day sustained release, 1H-MRS gastrocnemius and tibialis anterior",
+      "role": "Low-dose loading points (MRS x4.3 to dry); washout half-life bounds",
+      "feeds": ["loading_observations", "washout_rates"],
+      "extraFindings": [
+        {"text": "Doubling the dose (3.2 vs 1.6 g/day) about doubled the rise", "location": "Results"}
+      ],
+      "caveats": ["MRS wet weight; converted with wet to dry 4.3"]
+    },
+    {
+      "id": "baguet2009", "status": "archived", "doi": "10.1152/japplphysiol.91357.2008", "access": "open, but 403 to scripts (supplied by the user)",
+      "citation": "Baguet A et al. 2009, J Appl Physiol 106:837. Carnosine loading and washout",
+      "design": "4.8 g/day 5 to 6 weeks then washout, 1H-MRS",
+      "role": "Washout half-life (Spelnikov's exponential reading); excess-loss anchor; dietary intake",
+      "feeds": ["claims", "washout_rates"],
+      "extraFindings": [],
+      "caveats": ["Baguet fitted washout as linear 2 to 4%/wk; the half-life is Spelnikov's reading"]
+    },
+    {
+      "id": "spelnikov2019", "status": "archived", "doi": "10.1007/s00726-018-2646-z", "access": "paywalled (supplied by the user)",
+      "citation": "Spelnikov D, Harris RC 2019, Amino Acids 51:115. A kinetic model of carnosine synthesis",
+      "design": "Model paper",
+      "role": "The model form dR/dt = slope x D - kd x R; wet to dry 4.3; endogenous supply estimate 1.85 g/day",
+      "feeds": ["claims"],
+      "extraFindings": [
+        {"text": "Calls saturation of muscle carnosine 'currently speculative'", "location": "Discussion (as quoted by Perim 2019)"}
+      ],
+      "caveats": ["The endogenous 1.85 g/day is a model estimate, never a measurement"]
+    },
+    {
+      "id": "harris2006", "status": "archived", "doi": "10.1007/s00726-006-0299-9", "access": "paywalled (supplied by the user)",
+      "citation": "Harris RC et al. 2006, Amino Acids 30:279. Absorption of beta-alanine and muscle carnosine",
+      "design": "Single doses 10, 20, 40 mg/kg plain and chicken broth; 4-week loading, VL biopsy HPLC",
+      "role": "Tingling bands per kg; plasma peak timing; two loading points",
+      "feeds": ["claims", "loading_observations"],
+      "extraFindings": [
+        {"text": "Plasma peaks 47, 374 and 833 uM after 10, 20 and 40 mg/kg; peak and AUC rose out of proportion to dose; baseline regained at 2 h", "location": "Abstract; Results"},
+        {"text": "Muscle uptake is Na+ and Cl- dependent with Michaelis-Menten Km about 40 uM (citing Bakardjiev and Bauer 1994, chick muscle cultures)", "location": "Discussion"},
+        {"text": "Carnosine synthase Km for beta-alanine 1.0 to 2.3 mM; histidine is high relative to its Km", "location": "Introduction; Discussion"},
+        {"text": "Split dosing kept plasma at 125 to 250% of the assumed transporter Km", "location": "Discussion"}
+      ],
+      "caveats": ["Extracted text prints the Km as '40 mM' because the micro sign is lost; it is 40 uM (see bakardjiev1994)"]
+    },
+    {
+      "id": "hill2007", "status": "archived", "doi": "10.1007/s00726-006-0364-4", "access": "paywalled (supplied by the user)",
+      "citation": "Hill CA et al. 2007, Amino Acids 32:225. Beta-alanine, carnosine and cycling capacity",
+      "design": "Ramp 4.0 to 6.4 g/day plain, 10 weeks, VL biopsy HPLC",
+      "role": "Two loading points",
+      "feeds": ["loading_observations"],
+      "extraFindings": [],
+      "caveats": []
+    },
+    {
+      "id": "everaert2011", "status": "archived", "doi": "10.1007/s00726-010-0749-2", "access": "paywalled (supplied by the user)",
+      "citation": "Everaert I et al. 2011, Amino Acids 40:1221. Carnosine by sex, diet and age",
+      "design": "1H-MRS, cross-sectional",
+      "role": "Women and vegetarian baseline presets; age direction",
+      "feeds": ["claims"],
+      "extraFindings": [],
+      "caveats": ["No percent per year for healthy adults; the older preset uses Baguet 2012"]
+    },
+    {
+      "id": "stegen2014", "status": "archived", "doi": "10.1249/MSS.0000000000000248", "access": "paywalled (supplied by the user)",
+      "citation": "Stegen S et al. 2014, Med Sci Sports Exerc 46:1426. The maintenance dose",
+      "design": "3.2 g/day 46 d, then 0.4, 0.8 or 1.2 g/day 6 weeks, 1H-MRS",
+      "role": "Measured maintenance figures; stegen_12 anchor; low-dose gap (model keeps 85% vs 103% measured)",
+      "feeds": ["claims"],
+      "extraFindings": [],
+      "caveats": ["Low doses beat the linear model; see gap notes in the SOW Phase 7"]
+    },
+    {
+      "id": "church2017", "status": "archived", "doi": "10.1080/07315724.2017.1335250", "access": "paywalled (supplied by the user)",
+      "citation": "Church DD et al. 2017, J Am Coll Nutr 36:608. 6 vs 12 g/day",
+      "design": "6 g/day 28 d vs 12 g/day 14 d sustained release, VL biopsy HPLC",
+      "role": "Loading points (12 g/day as a check); sustained-release tingling to 4 g",
+      "feeds": ["claims", "loading_observations"],
+      "extraFindings": [
+        {"text": "Doubling the dose halved the time to the same rise", "location": "Discussion (as summarized by Perim 2019)"}
+      ],
+      "caveats": []
+    },
+    {
+      "id": "decombaz2012", "status": "archived", "doi": "10.1007/s00726-011-1169-7", "access": "paywalled (supplied by the user)",
+      "citation": "Decombaz J et al. 2012, Amino Acids 43:67. Sustained release and paresthesia",
+      "design": "Single 1.6 g plain vs sustained release, plasma and urine",
+      "role": "Sustained-release tingling band; retention; uracil route statement",
+      "feeds": ["claims"],
+      "extraFindings": [
+        {"text": "Plasma peak 248 uM plain vs 82 uM sustained release, 1.6 g", "location": "Abstract"}
+      ],
+      "caveats": ["Read with the 2013 erratum, which corrects Table 1 units"]
+    },
+    {
+      "id": "decombaz2013_erratum", "status": "archived", "doi": "10.1007/s00726-013-1557-2", "access": "paywalled (supplied by the user)",
+      "citation": "Decombaz 2013 erratum to Table 1",
+      "design": "Erratum", "role": "Unit correction for decombaz2012", "feeds": [], "extraFindings": [], "caveats": []
+    },
+    {
+      "id": "stegen2013", "status": "archived", "doi": "10.1249/MSS.0b013e31828ab073", "access": "paywalled (supplied by the user)",
+      "citation": "Stegen S et al. 2013, Med Sci Sports Exerc 45:1478. Meal co-ingestion",
+      "design": "Plain vs sustained release, with or between meals, 1H-MRS",
+      "role": "Meal effect; form equivalence; about 3% incorporation",
+      "feeds": ["claims"],
+      "extraFindings": [],
+      "caveats": ["Attributed the meal effect to insulin; goncalves2020 found insulin does not raise uptake in human muscle"]
+    },
+    {
+      "id": "harris2009", "status": "notArchived", "doi": null, "access": "conference abstract",
+      "citation": "Harris RC et al. 2009, FASEB J abstract. Controlled-release washout",
+      "design": "6.4 g/day sustained release, VL biopsy",
+      "role": "Washout half-life about 60 d and one loading point, both as quoted by Spelnikov 2019 and Yamaguchi 2021",
+      "feeds": ["loading_observations", "washout_rates"],
+      "extraFindings": [],
+      "caveats": ["Never read directly; optional"],
+      "whyNeeded": "Optional: would confirm the 60 d half-life and 15.4 rise that two archived papers quote"
+    },
+    {
+      "id": "baguet2012", "status": "archived", "doi": "10.1007/s00726-011-1197-3", "access": "paywalled (supplied by the user)",
+      "citation": "Baguet A et al. 2012, Amino Acids 43:13. Carnosine by sex and age, heritability",
+      "design": "1H-MRS in 263 people aged 9 to 83",
+      "role": "Older-adult baseline preset (-15%)",
+      "feeds": ["claims"], "extraFindings": [], "caveats": []
+    },
+    {
+      "id": "delfavero2012", "status": "archived", "doi": "10.1007/s00726-011-1190-x", "access": "paywalled (supplied by the user)",
+      "citation": "del Favero S et al. 2012, Amino Acids 43:49. Beta-alanine in the elderly",
+      "design": "3.2 g/day sustained release 12 weeks, ages 60 to 80",
+      "role": "delfavero_older anchor (+85.4%)",
+      "feeds": ["claims"], "extraFindings": [],
+      "caveats": ["Carnosine expressed relative to water; compared as a percent"]
+    },
+    {
+      "id": "saunders2020", "status": "archived", "doi": "10.1007/s00394-018-1881-0", "access": "paywalled (supplied by the user)",
+      "citation": "Saunders B et al. 2020, Eur J Nutr 59:57. Beta-alanine and muscle taurine",
+      "design": "6.4 g/day 24 weeks, VL biopsy",
+      "role": "Taurine unchanged over 24 weeks",
+      "feeds": ["claims"], "extraFindings": [], "caveats": []
+    },
+    {
+      "id": "blancquaert2016", "status": "archived", "doi": "10.1113/JP272050", "access": "open",
+      "citation": "Blancquaert L et al. 2016, J Physiol 594:4849. Transamination controls muscle carnosine",
+      "design": "Mice: 0, 0.1, 0.6, 1.2% beta-alanine in water; GABA-T and AGXT2 inhibitors",
+      "role": "Where it goes: transaminases; 3 to 6% incorporation",
+      "feeds": ["claims"],
+      "extraFindings": [
+        {"text": "0.1% raised no carnosine; 0.6% and 1.2% raised it 40 to 50% (gastrocnemius): a transaminase threshold in mice", "location": "Results, dose-response"},
+        {"text": "AOA (blocks both transaminases) at 0.1% raised serum beta-alanine 218% and urine 250%, and raised carnosine; vigabatrin (GABA-T only) did not", "location": "Results"}
+      ],
+      "caveats": ["Mice; predicts small doses do worse, which the human low-dose studies do not show"]
+    },
+    {
+      "id": "stautemas2019", "status": "archived", "doi": "10.3390/nu11122869", "access": "open",
+      "citation": "Stautemas J et al. 2019, Nutrients 11:2869. Fragmented dosing",
+      "design": "1.6 g, 20 mg/kg, and 0.8 g + 10 mg/kg with a small breakfast; plasma kinetics",
+      "role": "Breakfast tip; plasma half-life 0.75 h; body mass and plasma",
+      "feeds": ["claims"], "extraFindings": [], "caveats": []
+    },
+    {
+      "id": "stautemas2020", "status": "archived", "doi": "10.1007/s00421-020-04501-7", "access": "paywalled (supplied by the user)",
+      "citation": "Stautemas J et al. 2020, Eur J Appl Physiol 120:2749. AGXT2 genotype and beta-alanine",
+      "design": "1.4 g by rs37369 genotype; AGXT2 knockout mice",
+      "role": "Urine loss 1.8 to 3.6%; breakdown product; AGXT2 not needed for carnosine",
+      "feeds": ["claims"], "extraFindings": [], "caveats": []
+    },
+    {
+      "id": "maestrehernandez2023", "status": "archived", "doi": "10.3389/fnut.2023.1213105", "access": "open",
+      "citation": "Maestre-Hernandez et al. 2023, Front Nutr 10:1213105. Sustained release in 5 g servings",
+      "design": "Sustained release 5 g servings; paresthesia and laboratory values",
+      "role": "Sustained-release tingling band to 5 g",
+      "feeds": ["claims"], "extraFindings": [], "caveats": []
+    },
+    {
+      "id": "desalazar2021", "status": "archived", "doi": "10.3390/pharmaceutics13091517", "access": "open",
+      "citation": "de Salazar L et al. 2021, Pharmaceutics 13:1517. Controlled-release powder",
+      "design": "Single 8 g controlled-release powder vs sustained-release tablets",
+      "role": "Sustained-release tingling band to 8 g; plasma half-life",
+      "feeds": ["claims"], "extraFindings": [], "caveats": []
+    },
+    {
+      "id": "dolan2019", "status": "archived", "doi": "10.1093/advances/nmy115", "access": "paywalled (supplied by the user)",
+      "citation": "Dolan E et al. 2019, Adv Nutr 10:452. Risk assessment of beta-alanine",
+      "design": "Meta-analysis of 101 human studies; taurine 5 studies",
+      "role": "Safety sentence; taurine",
+      "feeds": ["claims"], "extraFindings": [], "caveats": []
+    },
+    {
+      "id": "bex2015", "status": "archived", "doi": "10.3389/fnut.2015.00013", "access": "open",
+      "citation": "Bex T et al. 2015, Front Nutr 2:13. Training and loading efficiency",
+      "design": "6.4 g/day sustained release 23 d, inactive vs high volume vs high intensity training",
+      "role": "bex_inactive and bex_trained anchors",
+      "feeds": ["claims"], "extraFindings": [], "caveats": []
+    },
+    {
+      "id": "bex2014", "status": "archived", "doi": "10.1152/japplphysiol.01033.2013", "access": "paywalled (accepted manuscript)",
+      "citation": "Bex T et al. 2014, J Appl Physiol 116:204. Trained vs untrained muscles",
+      "design": "Swimmers, kayakers, cyclists, nonathletes; 1H-MRS arbitrary units",
+      "role": "Trained muscles load 1.6 to 1.8 times more",
+      "feeds": ["claims"], "extraFindings": [], "caveats": ["Arbitrary units; ratios only"]
+    },
+    {
+      "id": "blancquaert2018", "status": "archived", "doi": "10.1017/S000711451800017X", "access": "open",
+      "citation": "Blancquaert L et al. 2018, Br J Nutr 119:759. Vegetarian diet, creatine and carnosine",
+      "design": "6 months vegetarian diet; then 0.8 g/day sustained release 3 months and 0.4 g/day 3 months in vegetarian women",
+      "role": "Turnover 0.5 g/day; low-dose anchor (known model miss); diet removal leaves carnosine unchanged",
+      "feeds": ["claims"],
+      "extraFindings": [
+        {"text": "Fasted plasma beta-alanine +27.2% after 12 weeks of 0.8 g/day (as cited by De Brandt 2022)", "location": "Results (not yet checked in the archived PDF)"}
+      ],
+      "caveats": ["The authors' compensation statement is their reading, not a measured synthesis rate"]
+    },
+    {
+      "id": "everaert2013", "status": "archived", "doi": "10.1007/s00421-012-2540-4", "access": "paywalled (supplied by the user)",
+      "citation": "Everaert I et al. 2013, Eur J Appl Physiol 113:1169. Carnosine gene expression",
+      "design": "Mice on beta-alanine in water 8 weeks; human muscle gene expression",
+      "role": "Mouse regulation sentence; taurine -18% in mice",
+      "feeds": ["claims"], "extraFindings": [],
+      "caveats": ["Dose 1.8% in Methods, 1.2% in Results", "File was named everaert2012; it is the 2013 issue"]
+    },
+    {
+      "id": "solis2015", "status": "archived", "doi": "10.1371/journal.pone.0123857", "access": "open",
+      "citation": "Solis MY et al. 2015, PLoS One 10:e0123857. Brain carnosine",
+      "design": "6.4 g/day; MRS brain signal in vegetarians and omnivores; cognition in cyclists",
+      "role": "Brain unchanged; omnivore diet 0.49 g/day",
+      "feeds": ["claims"], "extraFindings": [], "caveats": []
+    },
+    {
+      "id": "mahootchi2020", "status": "archived", "doi": "10.1126/sciadv.abb3713", "access": "open",
+      "citation": "Mahootchi E et al. 2020, Sci Adv 6:eabb3713. GADL1 makes beta-alanine",
+      "design": "Gadl1 knockout mice; purified human GADL1; human genetic associations",
+      "role": "Second endogenous route (aspartate); Upb1 doubled in knockout",
+      "feeds": ["claims"],
+      "extraFindings": [
+        {"text": "Purified human GADL1 makes beta-alanine from aspartate at very low rates in vitro", "location": "Results"},
+        {"text": "GADL1 locus associates with plasma carnosine, N-acetylcarnosine and muscle strength in human GWAS", "location": "Introduction; Discussion"}
+      ],
+      "caveats": ["No share of human synthesis by route is given"]
+    },
+    {
+      "id": "tiedje2010", "status": "archived", "doi": "10.1016/j.neuint.2010.06.001", "access": "paywalled (supplied by the user)",
+      "citation": "Tiedje KE et al. 2010, Neurochem Int 57:177. Beta-alanine as a small-molecule neurotransmitter",
+      "design": "Review", "role": "Five CNS receptor sites", "feeds": ["claims"], "extraFindings": [], "caveats": ["Animal and in vitro"]
+    },
+    {
+      "id": "shinohara2004", "status": "archived", "doi": "10.1074/jbc.M314240200", "access": "open",
+      "citation": "Shinohara T et al. 2004, J Biol Chem 279:23559. MrgD responds to beta-alanine",
+      "design": "Receptor assays", "role": "Tingling receptor", "feeds": ["claims"], "extraFindings": [], "caveats": []
+    },
+    {
+      "id": "liu2012", "status": "archived", "doi": "10.1523/JNEUROSCI.3509-12.2012", "access": "open",
+      "citation": "Liu Q et al. 2012, J Neurosci 32:14532. MrgprD and beta-alanine itch",
+      "design": "Mice; intradermal injection in volunteers", "role": "Itch without wheal or flare", "feeds": ["claims"], "extraFindings": [], "caveats": []
+    },
+    {
+      "id": "romero2013", "status": "archived", "doi": "10.1007/s10953-013-0031-9", "access": "paywalled (supplied by the user)",
+      "citation": "Romero CM, Oviedo CD 2013, J Solution Chem 42:1355. Amino acid solubility against temperature",
+      "design": "Gravimetric solubility in water, 293.15 to 323.15 K",
+      "role": "Mixing note; solubility.csv",
+      "feeds": ["claims", "solubility"],
+      "extraFindings": [],
+      "caveats": ["Table labeled 'mass fraction' but values are g per 100 g water (glycine van't Hoff check)", "Stated beta-alanine enthalpy 6.3 kJ/mol; the table gives about 9.1", "Table extracted with pdftotext -table; -layout scrambles it"]
+    },
+    {
+      "id": "hayashi1986", "status": "archived", "doi": "10.1271/bbb1961.50.1965", "access": "open",
+      "citation": "Hayashi T, Namiki M 1986, Agric Biol Chem 50:1965. Sugar fragmentation in early browning",
+      "design": "2 M glucose with 2 M beta-alanine in boiling water, by pH",
+      "role": "Browning sentence in the mixing note",
+      "feeds": ["claims"], "extraFindings": [], "caveats": ["Boiling and 2 M only; no room-temperature rate"]
+    },
+    {
+      "id": "santos2021", "status": "archived", "doi": "10.1007/s00726-021-03090-9", "access": "open (CC BY), fetched from the Aston repository",
+      "citation": "Santos L et al. 2021, Amino Acids 53:1763. Insulin stimulates beta-alanine uptake in skeletal muscle cells in vitro",
+      "design": "C2C12 mouse myotubes, 350 or 700 uM beta-alanine, insulin 100 uU/mL; hypotaurine to block TauT",
+      "role": "Not yet used; breakfast-tip caveat and saturable uptake",
+      "feeds": [],
+      "extraFindings": [
+        {"text": "Insulin raised uptake at 350 uM but not at 700 uM; read as transporter saturation blunting insulin", "location": "Abstract"},
+        {"text": "Cites Goncalves 2020: hyperinsulinemia did not raise beta-alanine uptake into human muscle", "location": "Introduction"}
+      ],
+      "caveats": ["Mouse cell line; manifest row not yet added"]
+    },
+    {
+      "id": "sakamoto2001", "status": "wanted", "doi": "10.3177/jnsv.47.132", "access": "J-STAGE, likely free",
+      "file": "jnsv_2001_sakamoto_human_beta_ureidopropionase.pdf", "priority": 1,
+      "citation": "Sakamoto T et al. 2001, J Nutr Sci Vitaminol 47:132. Human liver beta-ureidopropionase",
+      "readVia": "J-STAGE abstract",
+      "extraFindings": [
+        {"text": "Recombinant human enzyme inhibited by 1 mM propionate but not by 10 mM beta-alanine, unlike the rat enzyme; the authors say the rat feedback may not exist in humans", "location": "Abstract"}
+      ],
+      "whyNeeded": "The only test of whether the human enzyme that makes beta-alanine from uracil is shut off by beta-alanine: the direct answer to 'is endogenous synthesis downregulated while supplementing'. Need the assay conditions before the page cites it."
+    },
+    {
+      "id": "debrandt2022", "status": "wanted", "doi": "10.1002/jcsm.13048", "access": "open",
+      "file": "jcsm_2022_debrandt_beta_alanine_copd.pdf", "priority": 2,
+      "citation": "De Brandt J et al. 2022, J Cachexia Sarcopenia Muscle 13:2361. 12 weeks of beta-alanine in COPD",
+      "readVia": "PMC full text (PMC9530565)",
+      "extraFindings": [
+        {"text": "3.2 g/day sustained release 12 weeks: fasted plasma beta-alanine +133% (placebo +3%), sampled more than 8 h after the last dose", "location": "Results"},
+        {"text": "Muscle carnosine +54% (4.25 to 6.59 mmol/kg wet, VL)", "location": "Results"},
+        {"text": "Change in plasma did not correlate with change in muscle carnosine (r = 0.373, P = 0.127)", "location": "Results"},
+        {"text": "Plasma back to baseline 5 h after an acute dose, half-life about 80 min", "location": "Discussion"}
+      ],
+      "whyNeeded": "Fasting plasma rises rather than falls during supplementation, the best human evidence against endogenous output dropping. Also a 12-week VL loading point in an older clinical group that could become an anchor. Need Figure 2D values."
+    },
+    {
+      "id": "blancquaert2017", "status": "wanted", "doi": "10.1249/MSS.0000000000001213", "access": "paywalled",
+      "file": "msse_2017_blancquaert_histidine_beta_alanine.pdf", "priority": 3,
+      "citation": "Blancquaert L et al. 2017, Med Sci Sports Exerc 49:602. Histidine and beta-alanine supplementation",
+      "readVia": "PubMed abstract; De Brandt's citation",
+      "extraFindings": [
+        {"text": "6 g/day plain beta-alanine lowered muscle histidine 31.6% and plasma histidine 30.6%; co-supplementing histidine prevented it", "location": "Abstract"},
+        {"text": "Fasted plasma beta-alanine +123% (day 12) and +169% (day 23)", "location": "Results, as cited by De Brandt 2022"}
+      ],
+      "whyNeeded": "Histidine depletion is a second candidate cause of the long-course slowdown (Saunders week 24 gap) that nobody has tested; and a second fasting-plasma data set for the endogenous question."
+    },
+    {
+      "id": "goncalves2020", "status": "wanted", "doi": "10.1152/ajpcell.00550.2019", "access": "paywalled",
+      "file": "ajpcell_2020_goncalves_insulin_beta_alanine_transport.pdf", "priority": 4,
+      "citation": "Goncalves LS et al. 2020, Am J Physiol Cell Physiol 318:C777. Insulin does not stimulate beta-alanine transport into human muscle",
+      "readVia": "Abstract via search results",
+      "extraFindings": [
+        {"text": "IV beta-alanine with or without insulin (12 men), and 10 mg/kg oral with or without insulin (6 men): no difference in muscle beta-alanine", "location": "Abstract"}
+      ],
+      "whyNeeded": "Caveat on the breakfast tip: the meal effect (Stegen 2013) is not explained by insulin in people. Needed before the food note says so."
+    },
+    {
+      "id": "bakardjiev1994", "status": "wanted", "doi": "10.1111/j.1432-1033.1994.00617.x", "access": "paywalled (old Eur J Biochem, may be free on Wiley)",
+      "file": "ejb_1994_bakardjiev_beta_alanine_transport_muscle_cells.pdf", "priority": 5,
+      "citation": "Bakardjiev A, Bauer K 1994, Eur J Biochem 225:617. Transport of beta-alanine and carnosine synthesis by muscle cells in culture",
+      "readVia": "Quoted by Harris 2006, Perim 2019, Santos 2021",
+      "extraFindings": [
+        {"text": "Uptake Na+ and Cl- dependent, Km about 40 uM", "location": "as quoted"}
+      ],
+      "whyNeeded": "Origin of the transporter Km behind the saturable-uptake explanation of the low-dose gap. Confirms unit, species (embryonic chick) and conditions before any model proposal uses it. Not to be confused with Bauer and Schulz 1994, Eur J Biochem 219:43."
+    },
+    {
+      "id": "matthews1987", "status": "wanted", "doi": "10.1016/S0021-9258(18)48228-2", "access": "open (JBC)",
+      "file": "jbc_1987_matthews_beta_ureidopropionase_regulation.pdf", "priority": 6,
+      "citation": "Matthews MM, Traut TW 1987, J Biol Chem 262:7232. Regulation of N-carbamoyl-beta-alanine amidohydrolase by ligand-induced polymerization",
+      "readVia": "Title and secondary descriptions",
+      "extraFindings": [
+        {"text": "Rat liver enzyme associates with substrate and propionate and dissociates to an inactive form with its product beta-alanine", "location": "as described by OMIM and later papers"}
+      ],
+      "whyNeeded": "The rat feedback Sakamoto found missing in the human enzyme; needed to state the contrast correctly."
+    },
+    {
+      "id": "perim2019", "status": "wanted", "doi": "10.3389/fnut.2019.00135", "access": "open",
+      "file": "frontnutr_2019_perim_optimizing_carnosine_response.pdf", "priority": 7,
+      "citation": "Perim P et al. 2019, Front Nutr 6:135. Can the muscle carnosine response be optimized?",
+      "readVia": "PMC full text (PMC6718727), first 100k characters",
+      "extraFindings": [
+        {"text": "'Endogenous production of BA is low and occurs primarily inside the liver through the degradation of uracil' (citing Fritzson 1957)", "location": "Beta-alanine metabolism"},
+        {"text": "'There are no known reports of muscle carnosine saturation in humans'", "location": "Duration"},
+        {"text": "TauT Km 40 uM against under 0.5 uM beta-alanine in blood at rest", "location": "Transport"}
+      ],
+      "whyNeeded": "Review used for context and quotes; archive so they can be rechecked. The last 7k characters were not read."
+    },
+    {
+      "id": "fritzson1957", "status": "citedOnly", "doi": null,
+      "citation": "Fritzson P 1957. Uracil degradation in rat liver",
+      "readVia": "Cited by Perim 2019",
+      "extraFindings": [], "whyNeeded": null
+    },
+    {
+      "id": "painelli2018", "status": "citedOnly", "doi": null,
+      "citation": "Painelli VS et al. 2018. HIIT in vegetarians and muscle carnosine",
+      "readVia": "Cited by Perim 2019",
+      "extraFindings": [{"text": "Authors guessed endogenous production rose with training; not measured", "location": "as quoted"}],
+      "whyNeeded": null
+    }
+  ],
+  "searches": [
+    {
+      "date": "2026-11-15",
+      "question": "Has anyone measured or estimated endogenous beta-alanine synthesis during supplementation?",
+      "tried": ["endogenous synthesis supplementation downregulation uracil", "plasma beta-aminoisobutyric acid, uracil, dihydropyrimidine in supplementation trials", "deuterium or 13C beta-alanine tracer carnosine synthesis", "metabolomics urine or plasma during supplementation", "beta-ureidopropionase feedback by beta-alanine", "DPD inhibition by beta-alanine", "feedback hypothesis in Harris, Derave, Saunders papers"],
+      "found": "No human measurement. Rat UPB1 is feedback-inhibited by beta-alanine (matthews1987) but human UPB1 is not at 10 mM (sakamoto2001). No DPD inhibition reported. Fasting plasma rises during supplementation (debrandt2022, blancquaert2017, blancquaert2018). Only estimate is Spelnikov's model figure. Chicken metabolomics (PLoS One 2022) found 3-aminoisobutyrate up; animal only. NCT07404540 lists plasma metabolites, no results posted."
+    },
+    {
+      "date": "2026-11-15",
+      "question": "Why do low doses beat the linear model (Stegen 2014, Blancquaert 2018)?",
+      "tried": ["saturable TauT PAT1 Km dose efficiency", "Perim 2019 low dose transamination"],
+      "found": "Transporter Km about 40 uM (bakardjiev1994 via harris2006) against plasma peaks of 47 to 833 uM: large plain servings saturate uptake. Mouse transaminase threshold (blancquaert2016) points the other way. No human Km; no head-to-head efficiency study by dose."
+    },
+    {
+      "date": "2026-11-15",
+      "question": "Why does loading slow after week 12 (Saunders 2017)?",
+      "tried": ["TauT downregulation carnosine synthase supplementation", "saturation ceiling reviews"],
+      "found": "TauT mRNA down in humans (saunders2017), up in mice (everaert2013). Muscle histidine falls 31.6% on 6 g/day (blancquaert2017), untested as a cause. Perim 2019: no known reports of saturation in humans."
+    },
+    {
+      "date": "2026-11-15",
+      "question": "Does insulin explain the meal effect?",
+      "tried": ["insulin beta-alanine uptake human muscle"],
+      "found": "No in human muscle (goncalves2020); yes at 350 uM but not 700 uM in mouse cells (santos2021)."
+    },
+    {
+      "date": "2026-11-15",
+      "question": "Is there a human GADL1 share of beta-alanine synthesis?",
+      "tried": ["GADL1 human beta-alanine aspartate contribution"],
+      "found": "Only genetic association and low in vitro activity (mahootchi2020); no share by route."
+    }
+  ]
+}

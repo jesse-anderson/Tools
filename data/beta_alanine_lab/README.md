@@ -18,6 +18,13 @@ If this folder conflicts with the cited source, the source controls.
   `open_docx`, `paywalled`, `abstract_only`), `download_status` (`ok`,
   `manual_needed`, `blocked`), `sha256`, `bytes`, `retrieved`, `notes`. The
   manifest is the record of what was attempted and what landed.
+- `literature.json` - the reading record: one entry per paper read, wanted
+  or known only secondhand, with its DOI, design, what it feeds, findings
+  not yet in the claims, caveats, and for a wanted paper what it would
+  settle. A `searches` list records each question asked of the literature
+  and what was or was not found, so a search is not repeated. Numbers the
+  page uses stay in the CSVs. The spec checks this file against the
+  manifest and the CSVs.
 - `sources/` - PDFs and saved pages. Gitignored.
 - `sources/*_abstract.html` - publisher landing pages kept where the full
   text is paywalled. Abstract level only; no model constant is read from one.

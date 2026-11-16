@@ -188,6 +188,11 @@ export const SOURCES = Object.freeze({
     "label": "Hayashi and Namiki 1986, Agric Biol Chem 50:1965, sugar fragmentation in early browning",
     "url": "https://doi.org/10.1271/bbb1961.50.1965",
     "archived": true
+  },
+  "santos2021": {
+    "label": "Santos et al. 2021, insulin and beta-alanine uptake in muscle cells",
+    "url": "https://doi.org/10.1007/s00726-021-03090-9",
+    "archived": true
   }
 });
 

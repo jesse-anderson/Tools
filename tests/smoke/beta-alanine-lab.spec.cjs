@@ -54,6 +54,66 @@ function eulerRise(schedule, slope, kd, lastDay, dt = 0.001) {
   return out;
 }
 
+// literature.json is the reading record; these keep it in step with the
+// manifest and the CSVs so it cannot drift into a second, stale list.
+test.describe('reading record', () => {
+  const lit = JSON.parse(fs.readFileSync(path.join(DATA, 'literature.json'), 'utf8'));
+  const byId = new Map(lit.papers.map((p) => [p.id, p]));
+  const manifest = csv('download_manifest.csv');
+
+  test('ids are unique and every status is a known one', () => {
+    expect(byId.size).toBe(lit.papers.length);
+    for (const p of lit.papers) expect(Object.keys(lit.statusValues), p.id).toContain(p.status);
+  });
+
+  test('every manifest row has an entry, archived exactly when the file landed', () => {
+    for (const m of manifest) {
+      const p = byId.get(m.source_id);
+      expect(p, m.source_id).toBeTruthy();
+      expect(p.status, m.source_id).toBe(m.download_status === 'ok' ? 'archived' : 'notArchived');
+    }
+    const inManifest = new Set(manifest.map((m) => m.source_id));
+    for (const p of lit.papers.filter((q) => q.status === 'archived' || q.status === 'notArchived')) {
+      expect(inManifest.has(p.id), p.id).toBe(true);
+    }
+  });
+
+  test('feeds names exactly the data files that cite each paper', () => {
+    const files = { claims: 'claims.csv', loading_observations: 'loading_observations.csv', washout_rates: 'washout_rates.csv', solubility: 'solubility.csv' };
+    for (const [key, file] of Object.entries(files)) {
+      const cited = new Set(csv(file).map((r) => r.source_id));
+      for (const p of lit.papers.filter((q) => q.feeds)) {
+        expect(p.feeds.includes(key), `${p.id} ${key}`).toBe(cited.has(p.id));
+      }
+      for (const id of cited) expect(byId.get(id)?.feeds, `${id} cited in ${file}`).toContain(key);
+    }
+  });
+
+  test('a wanted paper says what it settles and is not already archived', () => {
+    const files = new Set(manifest.map((m) => m.expected_filename));
+    const wanted = lit.papers.filter((p) => p.status === 'wanted');
+    expect(wanted.length).toBeGreaterThan(0);
+    for (const p of wanted) {
+      expect(p.doi, p.id).toMatch(/^10\.\d{4,}\//);
+      expect(p.file, p.id).toMatch(/^[a-z]+_\d{4}_[a-z]+_[a-z0-9_]+\.pdf$/);
+      expect(files.has(p.file), p.id).toBe(false);
+      expect(p.whyNeeded.length, p.id).toBeGreaterThan(40);
+      expect(Number.isInteger(p.priority), p.id).toBe(true);
+    }
+    expect(new Set(wanted.map((p) => p.priority)).size).toBe(wanted.length);
+  });
+
+  test('every search records what it asked, tried and found', () => {
+    expect(lit.searches.length).toBeGreaterThan(0);
+    for (const s of lit.searches) {
+      expect(s.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      expect(s.question.endsWith('?'), s.question).toBe(true);
+      expect(s.tried.length, s.question).toBeGreaterThan(0);
+      expect(s.found.length, s.question).toBeGreaterThan(20);
+    }
+  });
+});
+
 test.describe('data and fits', () => {
   test.beforeEach(async ({ page }) => { await openTool(page); });
 
