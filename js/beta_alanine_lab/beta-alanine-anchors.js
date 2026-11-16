@@ -138,6 +138,17 @@ export function literatureAnchors({ observations, washouts, claims }) {
         note: 'Both are model figures. Beta-alanine made in the liver is not broken down on the way in as a swallowed dose is, so this compares the arithmetic, not a measurement.'
     });
 
+    // Blancquaert 2017: gain in days 12 to 23 over gain in days 0 to 12 at a steady dose.
+    // The slope cancels, so each washout half-life gives one ratio.
+    const ratio = (kd) => (Math.exp(-12 * kd) - Math.exp(-23 * kd)) / (1 - Math.exp(-12 * kd));
+    anchors.push({
+        id: 'blancquaert17_slowdown', sourceIds: ['blancquaert2017'], claimIds: ['early_slowdown'],
+        title: '6 g/day for 23 days: gain in days 12 to 23 as a share of days 0 to 12',
+        measured: claims.early_slowdown.value, measuredText: '0.81 against 1.42 mM (0.57)',
+        model: spread(kds.map(ratio)), unit: 'ratio; lowest, middle and highest of the four washout half-lives', expected: 'model-above', digits: 2,
+        note: 'Known gap: the model slows only through washout, so it keeps more of its early pace than measured, here within weeks as at Saunders week 24.'
+    });
+
     for (const a of anchors) {
         a.verdict = verdict(a.measured, a.model);
         a.medianGap = a.model.p50 / a.measured - 1;

@@ -1351,6 +1351,86 @@ export const CLAIMS = Object.freeze({
     "sourceId": "hayashi1986",
     "location": "Abstract; Methods",
     "use": "mixing note"
+  },
+  "early_slowdown": {
+    "topic": "ceiling",
+    "claim": "On 6 g/day plain beta-alanine, carnosine accretion was 0.81 mM in days 12 to 23 against 1.42 mM in days 0 to 12 (mean of soleus and gastrocnemius, 1H-MRS), 43% smaller, not significant",
+    "value": 0.57,
+    "sourceId": "blancquaert2017",
+    "location": "Results; Fig. 2",
+    "use": "anchor (early slowdown)"
+  },
+  "histidine_drop": {
+    "topic": "ceiling",
+    "claim": "On 6 g/day, muscle histidine fell 31.6% (0.20 to 0.14 mmol/kg wet) and plasma histidine 30.6%; adding histidine prevented the fall but did not raise final carnosine",
+    "value": 0.316,
+    "sourceId": "blancquaert2017",
+    "location": "Abstract; Results; Table 2",
+    "use": "where it goes panel"
+  },
+  "histidine_not_limiting": {
+    "topic": "ceiling",
+    "claim": "Other studies and a meta-analysis found no histidine fall with beta-alanine; histidine depletion is not a limiting factor to muscle carnosine synthesis",
+    "value": null,
+    "sourceId": "perim2019",
+    "location": "Co-supplementation of histidine",
+    "use": "where it goes panel"
+  },
+  "fasting_plasma_6g": {
+    "topic": "endogenous",
+    "claim": "Fasted plasma beta-alanine 2.6 uM at baseline, 5.8 at day 12 and 7.0 at day 23 on 6 g/day (+172.1%), with no further rise after day 12",
+    "value": 7.0,
+    "sourceId": "blancquaert2017",
+    "location": "Results; Table 2",
+    "use": "where it goes panel"
+  },
+  "fasting_plasma_32": {
+    "topic": "endogenous",
+    "claim": "Fasted plasma beta-alanine, sampled more than 8 h after the last dose, +133% of baseline after 12 weeks of 3.2 g/day sustained release (placebo +3%)",
+    "value": 1.33,
+    "sourceId": "debrandt2022",
+    "location": "Results; Discussion",
+    "use": "where it goes panel"
+  },
+  "bup_human": {
+    "topic": "endogenous",
+    "claim": "Recombinant human liver beta-ureidopropionase was inhibited by 1 mM propionate but not by 10 mM beta-alanine; the rat feedback may not exist in humans",
+    "value": 10.0,
+    "sourceId": "sakamoto2001",
+    "location": "Abstract; Table 1; Discussion",
+    "use": "where it goes panel"
+  },
+  "bup_rat": {
+    "topic": "endogenous",
+    "claim": "Rat liver beta-alanine synthase dissociates to an inactive form with its product beta-alanine, half-maximal at about 390 uM",
+    "value": 0.39,
+    "sourceId": "matthews1987",
+    "location": "Abstract; Fig. 3",
+    "use": "where it goes panel"
+  },
+  "insulin_no_uptake": {
+    "topic": "food",
+    "claim": "High insulin did not change plasma or muscle beta-alanine, muscle carnosine or urinary beta-alanine (IV infusion, 12 men), nor muscle beta-alanine after 10 mg/kg oral (6 men)",
+    "value": null,
+    "sourceId": "goncalves2020",
+    "location": "Abstract; Conclusion",
+    "use": "food note"
+  },
+  "plasma_peak_40": {
+    "topic": "uptake",
+    "claim": "Plasma beta-alanine peaked at 47, 374 and 833 uM after 10, 20 and 40 mg/kg plain; peak and AUC rose out of proportion to dose",
+    "value": 833.0,
+    "sourceId": "harris2006",
+    "location": "Abstract; Results",
+    "use": "food note"
+  },
+  "uptake_km": {
+    "topic": "uptake",
+    "claim": "Beta-alanine uptake into muscle cells is Na+ and Cl- dependent and follows Michaelis-Menten kinetics with Km about 40 uM (embryonic chick pectoral muscle cultures)",
+    "value": 40.0,
+    "sourceId": "bakardjiev1994",
+    "location": "Abstract",
+    "use": "food note"
   }
 });
 

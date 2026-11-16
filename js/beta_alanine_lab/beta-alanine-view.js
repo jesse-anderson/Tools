@@ -268,7 +268,10 @@ export function renderFoodNote(node) {
     clear(node);
     node.append('With food: plain beta-alanine taken 10 minutes after a small breakfast (bread, hazelnut spread and milk) gave a blood curve like sustained release, and tingling on only 7 of 60 doses of 1.6 g, 20 mg/kg, or 0.8 g plus 10 mg/kg (',
         sourceLink('stautemas2019'), '). Most studies fitted here dosed with meals, and one found a larger rise with meals than between them (',
-        sourceLink('stegen2013'), '). Sipping it in water through the day has not been studied. It would spread the dose the way sustained release does, and over weeks sustained release and plain beta-alanine raised carnosine equally (',
+        sourceLink('stegen2013'), '). Insulin is unlikely to be why: raising it did not increase how much beta-alanine muscle took up (',
+        sourceLink('goncalves2020'), '). Uptake into muscle cells reaches half its maximum at about ',
+        `${CLAIMS.uptake_km.value} micromolar in chick muscle cells (`, sourceLink('bakardjiev1994'), `), and plain beta-alanine peaks at ${CLAIMS.plasma_peak_40.value} micromolar after 40 mg/kg (`,
+        sourceLink('harris2006'), '); whether a flatter blood curve stores more per gram is not settled. Sipping it in water through the day has not been studied. It would spread the dose the way sustained release does, and over weeks sustained release and plain beta-alanine raised carnosine equally (',
         sourceLink('stegen2013'), ').');
 }
 
@@ -364,10 +367,16 @@ export function renderFate(node, { summary, muscle, totalGrams, anchors, baselin
     const s24 = anchors && anchors.find((a) => a.id === 'saunders_wk24');
     node.appendChild(h('h3', { text: 'Uptake slows over months' }));
     node.appendChild(h('p', {}, ['In the only 24-week study the average rise was +11.37 mmol/kg dm at week 4 and +20.15 at week 24, and it grew most in the first 4 weeks. TauT, the transporter that carries beta-alanine into muscle, was turned down over the 24 weeks, which the authors suggest plays a part in how much builds up (',
-        sourceLink('saunders2017'), '). That is a slowdown, not a proven ceiling: 5 of 15 people were at their highest at week 24, four of them still rising. This model has no slowdown',
+        sourceLink('saunders2017'), '). That is a slowdown, not a proven ceiling: 5 of 15 people were at their highest at week 24, four of them still rising. It shows within weeks too: on 6 g/day carnosine rose ',
+        `${Math.round((1 - CLAIMS.early_slowdown.value) * 100)}% less in days 12 to 23 than in days 0 to 12, and muscle histidine fell ${fmt(CLAIMS.histidine_drop.value * 100, 1)}% (`,
+        sourceLink('blancquaert2017'), '), but later studies found no histidine fall and adding histidine did not help, so histidine is probably not the cause (',
+        sourceLink('perim2019'), '). This model has no slowdown',
         s24 ? `: at week 24 of 6.4 g/day its middle line is +${fmt(s24.model.p50, 1)} against the +${fmt(s24.measured, 2)} measured` : '',
         ', so past about week 8 read the middle line as an upper estimate. The literature anchors in the audit trail show the gap. In mice on beta-alanine in their water the same transporter went up instead, as did the breakdown enzyme GABA-T and carnosine synthase (',
-        sourceLink('everaert2013'), '). No study has measured whether the body makes less of its own beta-alanine while supplementing.']));
+        sourceLink('everaert2013'), '). No study has measured whether the body makes less of its own beta-alanine while supplementing. The liver enzyme that does the last step from uracil is shut off by beta-alanine in rats (',
+        sourceLink('matthews1987'), `), but the human enzyme was not, even at ${CLAIMS.bup_human.value} mM (`, sourceLink('sakamoto2001'),
+        `). Fasting blood beta-alanine rose rather than fell: from 2.6 to ${fmt(CLAIMS.fasting_plasma_6g.value, 1)} micromolar over 23 days of 6 g/day (`, sourceLink('blancquaert2017'),
+        `) and ${Math.round(CLAIMS.fasting_plasma_32.value * 100)}% over 12 weeks of 3.2 g/day (`, sourceLink('debrandt2022'), ').']));
 
     node.appendChild(h('h3', { text: 'Other places it acts' }));
     node.appendChild(h('p', {}, ['The tingling comes from MrgD, a receptor on nerve endings in the skin that responds to micromolar beta-alanine (', sourceLink('shinohara2004'),
@@ -533,7 +542,8 @@ export function renderAudit(node, anchors = []) {
         'tau_t_down', 'saunders_still_rising', 'saunders_slowdown', 'taurine_24wk', 'taurine_meta', 'taurine_rodent', 'side_effects_meta',
         'breakfast_profile', 'body_mass_plasma', 'tingle_sr_5g', 'tingle_sr_8g', 'turnover_blancquaert', 'washout_rate_baguet', 'endogenous_spelnikov',
         'endogenous_route_uracil', 'endogenous_route_gadl1', 'diet_baguet', 'diet_solis', 'diet_removal', 'low_dose_08', 'low_dose_04', 'genes_mice',
-        'training_inactive', 'training_trained', 'trained_muscle', 'mrgd_receptor', 'itch_human', 'cns_sites', 'brain_carnosine', 'solubility_enthalpy', 'browning_ph'];
+        'training_inactive', 'training_trained', 'trained_muscle', 'mrgd_receptor', 'itch_human', 'cns_sites', 'brain_carnosine', 'solubility_enthalpy', 'browning_ph',
+        'early_slowdown', 'histidine_drop', 'histidine_not_limiting', 'fasting_plasma_6g', 'fasting_plasma_32', 'bup_human', 'bup_rat', 'insulin_no_uptake', 'uptake_km', 'plasma_peak_40'];
     const cl = h('ul');
     for (const id of claimIds) {
         const c = claim(id);

@@ -709,11 +709,12 @@ test.describe('literature anchors', () => {
   test('every anchor gives the verdict this model version states', async ({ page }) => {
     const anchors = await page.evaluate(() => window.BetaAlanine.anchors.map((a) => ({ id: a.id, verdict: a.verdict, expected: a.expected })));
     expect(anchors.map((a) => a.id)).toEqual(['rezende_4wk', 'saunders_wk4', 'saunders_wk12', 'saunders_wk24', 'delfavero_older', 'stegen_12', 'incorporation',
-      'bex_inactive', 'bex_trained', 'blancquaert_08', 'turnover_baseline', 'baguet_excess_loss', 'spelnikov_supply']);
+      'bex_inactive', 'bex_trained', 'blancquaert_08', 'turnover_baseline', 'baguet_excess_loss', 'spelnikov_supply',
+      'blancquaert17_slowdown']);
     for (const a of anchors) expect(a.verdict, a.id).toBe(a.expected);
-    // The two known misses: past week 12 the model runs above the only 24-week study,
-    // and below the fitted doses it runs under the low-dose study.
-    expect(anchors.filter((a) => a.verdict !== 'inside').map((a) => [a.id, a.verdict])).toEqual([['saunders_wk24', 'model-above'], ['blancquaert_08', 'model-below']]);
+    // The known misses: the model slows less than measured (Saunders week 24, and
+    // Blancquaert 2017 within 23 days), and below the fitted doses it runs under the low-dose study.
+    expect(anchors.filter((a) => a.verdict !== 'inside').map((a) => [a.id, a.verdict])).toEqual([['saunders_wk24', 'model-above'], ['blancquaert_08', 'model-below'], ['blancquaert17_slowdown', 'model-above']]);
   });
 
   test('anchor measurements are the archived figures, not numbers typed into the module', async ({ page }) => {
@@ -757,7 +758,8 @@ test.describe('literature anchors', () => {
   test('the audit trail prints each anchor with its verdict', async ({ page }) => {
     await page.locator('#auditFold > summary').click();
     const rows = page.locator('#anchorTable tbody tr');
-    await expect(rows).toHaveCount(13);
+    await expect(rows).toHaveCount(14);
+    await expect(page.locator('#anchorTable tr[data-anchor="blancquaert17_slowdown"]')).toContainText('0.81 against 1.42 mM (0.57)');
     // Small figures print with enough digits to read: 0.03 mM/day, not 0.0.
     await expect(page.locator('#anchorTable tr[data-anchor="baguet_excess_loss"]')).toContainText('0.03 mM/day');
     const verdicts = await rows.evaluateAll((tr) => tr.map((r) => [r.dataset.anchor, r.dataset.verdict]));
@@ -810,6 +812,14 @@ test.describe('literature anchors', () => {
     expect(a.bex_inactive.model.p50).toBeCloseTo((r.bex * dry) / ((6.4 * 23 / 89.09) * 1000) * 100, 6);
     expect(a.bex_inactive.measured).toBeCloseTo(3.49, 9);
     expect(a.bex_trained.measured).toBeCloseTo(5.67, 9);
+    // Blancquaert 2017: gain in days 12 to 23 over days 0 to 12 at a steady dose, slope cancelling.
+    expect(claims.early_slowdown.claim).toContain('0.81 mM in days 12 to 23 against 1.42 mM in days 0 to 12');
+    expect(Number(claims.early_slowdown.value)).toBeCloseTo(0.81 / 1.42, 2);
+    const ratios = kds.map((kd) => (Math.exp(-12 * kd) - Math.exp(-23 * kd)) / (1 - Math.exp(-12 * kd))).sort((x, y) => x - y);
+    expect(a.blancquaert17_slowdown.model.p10).toBeCloseTo(ratios[0], 9);
+    expect(a.blancquaert17_slowdown.model.p90).toBeCloseTo(ratios[3], 9);
+    expect(ratios[0]).toBeGreaterThan(0.7);
+    expect(a.blancquaert17_slowdown.measured).toBe(0.57);
   });
 
   test('solubility is Romero 2013 Table 2, in g per 100 g water, and the engine reads it', async ({ page }) => {
@@ -1396,6 +1406,15 @@ test.describe('page', () => {
     await expect(fate).toContainText(`its middle line is +${s24.toFixed(1)} against the +20.15 measured`);
     await expect(fate).toContainText('not a proven ceiling');
     await expect(fate).toContainText('33.7 at the start, 35.4 at week 24');
+    // Phase 7: the early slowdown, histidine, and the endogenous-synthesis evidence, each linked to its paper.
+    await expect(fate).toContainText('carnosine rose 43% less in days 12 to 23 than in days 0 to 12, and muscle histidine fell 31.6%');
+    await expect(fate).toContainText('histidine is probably not the cause');
+    await expect(fate).toContainText('the human enzyme was not, even at 10 mM');
+    await expect(fate).toContainText('from 2.6 to 7.0 micromolar over 23 days of 6 g/day');
+    await expect(fate).toContainText('133% over 12 weeks of 3.2 g/day');
+    for (const doi of ['MSS.0000000000001213', 'fnut.2019.00135', 'S0021-9258(18)48228-2', 'jnsv.47.132', 'jcsm.13048']) {
+      await expect(fate.locator(`a[href*="${doi}"]`).first(), doi).toBeVisible();
+    }
     await page.fill('#phase0Dose', '0');
     await expect(page.locator('#fate .card')).toHaveCount(2);
     await expect(fate).toContainText('No beta-alanine taken');
@@ -1409,6 +1428,12 @@ test.describe('page', () => {
     await expect(food).toContainText('7 of 60 doses');
     await expect(food).toContainText('Sipping it in water through the day has not been studied');
     await expect(food.locator('a', { hasText: 'Stautemas' })).toHaveAttribute('href', /10\.3390\/nu11122869/);
+    await expect(food).toContainText('Insulin is unlikely to be why');
+    await expect(food.locator('a[href*="ajpcell.00550.2019"]')).toHaveCount(1);
+    await expect(food).toContainText('half its maximum at about 40 micromolar in chick muscle cells');
+    await expect(food.locator('a[href*="j.1432-1033.1994.00617.x"]')).toHaveCount(1);
+    await expect(food).toContainText('peaks at 833 micromolar after 40 mg/kg');
+    await expect(food).toContainText('not settled');
     await expect(page.locator('#safetySentence')).toContainText('8.9 times the odds of placebo');
     await expect(page.locator('#safetySentence a', { hasText: 'Dolan' })).toHaveCount(1);
     await page.selectOption('#phase0Form', 'sustained');

@@ -701,9 +701,11 @@
           "location": "Abstract; Discussion"
         }
       ],
-      "feeds": [],
+      "feeds": [
+        "claims"
+      ],
       "design": "Recombinant human liver BUP expressed in E. coli; inhibitors tested on crude extract with 0.2 mM N-carbamoyl-beta-alanine",
-      "role": "Not yet used; endogenous-synthesis paragraph",
+      "role": "Human enzyme not shut off (endogenous paragraph)",
       "caveats": [
         "In vitro, recombinant enzyme, crude extract; says nothing about whole-body flux or about DPD, the rate-limiting first step"
       ]
@@ -733,9 +735,11 @@
           "location": "Results"
         }
       ],
-      "feeds": [],
+      "feeds": [
+        "claims"
+      ],
       "design": "COPD, 3.2 g/day sustained release (4 x 800 mg) 12 weeks vs placebo; VL biopsy HPLC; fasted blood",
-      "role": "Not yet used; endogenous-synthesis paragraph; possible anchor",
+      "role": "Fasting-plasma sentence",
       "caveats": [
         "Absolute plasma values only in Figure 2D; COPD patients, wet weight"
       ]
@@ -769,9 +773,11 @@
           "location": "Results; Discussion"
         }
       ],
-      "feeds": [],
+      "feeds": [
+        "claims"
+      ],
       "design": "30 adults, 6 g/day plain beta-alanine, 3.5 g/day histidine, or both, 23 days; 1H-MRS soleus and gastrocnemius, VL biopsy, fasted plasma",
-      "role": "Not yet used; fasting plasma and the early slowdown",
+      "role": "Early-slowdown anchor; histidine and fasting-plasma sentences",
       "caveats": [
         "Perim 2019: other studies and a meta-analysis found no histidine fall, so histidine is probably not limiting; De Brandt cites the day-23 rise as +169%, the paper says +172.1%"
       ]
@@ -793,9 +799,11 @@
           "location": "Conclusion"
         }
       ],
-      "feeds": [],
+      "feeds": [
+        "claims"
+      ],
       "design": "Exp 1: 12 men, IV beta-alanine with or without insulin infusion; Exp 2: 6 men, 10 mg/kg oral with or without insulin; muscle biopsies",
-      "role": "Not yet used; caveat on the breakfast tip",
+      "role": "Insulin sentence in the food note",
       "caveats": [
         "Acute; the meal effect in Stegen 2013 was over weeks and in soleus only"
       ]
@@ -821,9 +829,11 @@
           "location": "Results, Table 1"
         }
       ],
-      "feeds": [],
+      "feeds": [
+        "claims"
+      ],
       "design": "Primary cultures of embryonic chick pectoral muscle, myoblasts and myotubes; [3H]beta-alanine uptake",
-      "role": "Origin of the uptake Km quoted everywhere; not yet used",
+      "role": "Uptake Km sentence in the food note",
       "caveats": [
         "Embryonic chick cells, not adult human muscle; extraction prints the unit as pM (micro sign lost). No human Km exists"
       ]
@@ -845,9 +855,11 @@
           "location": "Results, Fig. 3"
         }
       ],
-      "feeds": [],
+      "feeds": [
+        "claims"
+      ],
       "design": "Purified rat liver beta-alanine synthase; polymerization by gel permeation and sedimentation",
-      "role": "Not yet used; the rat contrast to sakamoto2001",
+      "role": "Rat enzyme shut off (endogenous paragraph)",
       "caveats": [
         "Rat"
       ]
@@ -901,9 +913,11 @@
           "location": "Muscle carnosine metabolism"
         }
       ],
-      "feeds": [],
+      "feeds": [
+        "claims"
+      ],
       "design": "Narrative review",
-      "role": "Context; leads to varanoske2019 and painelli2018",
+      "role": "Histidine-not-limiting sentence; leads to varanoske2019 and painelli2018",
       "caveats": [
         "Review; authors disclose support from a beta-alanine maker for unrelated work"
       ]
