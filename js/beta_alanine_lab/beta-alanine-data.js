@@ -193,6 +193,41 @@ export const SOURCES = Object.freeze({
     "label": "Santos et al. 2021, insulin and beta-alanine uptake in muscle cells",
     "url": "https://doi.org/10.1007/s00726-021-03090-9",
     "archived": true
+  },
+  "sakamoto2001": {
+    "label": "Sakamoto et al. 2001, human liver beta-ureidopropionase",
+    "url": "https://doi.org/10.3177/jnsv.47.132",
+    "archived": true
+  },
+  "debrandt2022": {
+    "label": "De Brandt et al. 2022, 12 weeks of beta-alanine in COPD",
+    "url": "https://doi.org/10.1002/jcsm.13048",
+    "archived": true
+  },
+  "blancquaert2017": {
+    "label": "Blancquaert et al. 2017, histidine and beta-alanine supplementation",
+    "url": "https://doi.org/10.1249/MSS.0000000000001213",
+    "archived": true
+  },
+  "goncalves2020": {
+    "label": "Goncalves et al. 2020, insulin and beta-alanine transport into human muscle",
+    "url": "https://doi.org/10.1152/ajpcell.00550.2019",
+    "archived": true
+  },
+  "bakardjiev1994": {
+    "label": "Bakardjiev and Bauer 1994, beta-alanine transport in muscle cell culture",
+    "url": "https://doi.org/10.1111/j.1432-1033.1994.00617.x",
+    "archived": true
+  },
+  "matthews1987": {
+    "label": "Matthews and Traut 1987, regulation of rat beta-ureidopropionase",
+    "url": "https://doi.org/10.1016/S0021-9258(18)48228-2",
+    "archived": true
+  },
+  "perim2019": {
+    "label": "Perim et al. 2019, optimizing the muscle carnosine response",
+    "url": "https://doi.org/10.3389/fnut.2019.00135",
+    "archived": true
   }
 });
 
