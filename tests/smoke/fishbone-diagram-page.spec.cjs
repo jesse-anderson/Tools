@@ -555,9 +555,16 @@ test('toolbar menus: one open at a time, Escape closes and returns focus, an act
     }
   }
   // With the toolbar at the bottom of a short window, a menu opens upward whole rather than squashed below.
+  // The spacer lets the button scroll that far: on Linux the text above it is shorter and it could not.
   await page.setViewportSize({ width: 1024, height: 700 });
+  await page.evaluate(() => {
+    const spacer = document.createElement('div');
+    spacer.style.height = '700px';
+    document.getElementById('workspace').before(spacer);
+  });
   for (const name of ['project', 'export']) {
     await page.locator(`#${name}MenuBtn`).evaluate((b) => b.scrollIntoView({ block: 'end' }));
+    expect((await page.locator(`#${name}MenuBtn`).boundingBox()).y).toBeGreaterThan(600);
     await openMenu(page, name);
     const shown = await page.locator(`#${name}Menu`).evaluate((m) => ({ whole: m.scrollHeight <= m.clientHeight + 1, top: m.getBoundingClientRect().bottom }));
     const button = await page.locator(`#${name}MenuBtn`).boundingBox();
