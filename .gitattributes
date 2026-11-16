@@ -1,2 +1,4 @@
 # Test fixtures whose bytes are the test: never convert line endings.
 data/dataset_diff/*.csv -text
+# Shell scripts run in Git Bash and Linux; a carriage return breaks them.
+*.sh text eol=lf
