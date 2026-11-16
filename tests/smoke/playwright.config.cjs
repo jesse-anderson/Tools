@@ -85,6 +85,8 @@ module.exports = defineConfig({
     'disclaimer-contrast.spec.cjs'
   ],
   timeout: 60_000,
+  // A test.only left in a spec would make CI run that test alone and pass.
+  forbidOnly: !!process.env.CI,
   // The specs are independent (each navigates its own page or drives a pure
   // window.* engine), so run every test in parallel across workers. The static
   // file server is owned once by `webServer` below instead of per-spec, so

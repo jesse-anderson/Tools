@@ -12,7 +12,8 @@ jobs:
   smoke:
     # Playwright 1.54 refuses ubuntu-latest once it became 26.04 (November 2026).
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    # A full run takes about 14 minutes.
+    timeout-minutes: 30
     defaults:
       run:
         working-directory: tests/smoke
@@ -30,7 +31,7 @@ jobs:
           node-version: 20
 
       - name: Install test dependencies
-        run: npm install
+        run: npm ci
 
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
