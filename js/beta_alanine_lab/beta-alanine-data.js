@@ -86,8 +86,8 @@ export const SOURCES = Object.freeze({
   },
   "harris2009": {
     "label": "Harris et al. 2009, FASEB J 23(1) abstract, controlled-release washout",
-    "url": null,
-    "archived": false
+    "url": "https://doi.org/10.1096/fasebj.23.1_supplement.599.4",
+    "archived": true
   },
   "baguet2012": {
     "label": "Baguet et al. 2012, Amino Acids 43:13-20, sex, age and heritability",
@@ -237,6 +237,21 @@ export const SOURCES = Object.freeze({
   "painelli2018": {
     "label": "de Salles Painelli et al. 2018, HIIT and muscle carnosine in vegetarians",
     "url": "https://doi.org/10.1249/MSS.0000000000001697",
+    "archived": true
+  },
+  "nemezio2021": {
+    "label": "Nemezio et al. 2021, carnosine in paralyzed and active muscle",
+    "url": "https://doi.org/10.1152/ajpregu.00360.2020",
+    "archived": true
+  },
+  "varanoske2017": {
+    "label": "Varanoske et al. 2017, beta-alanine in men and women",
+    "url": "https://doi.org/10.1016/j.nutres.2017.10.002",
+    "archived": true
+  },
+  "harris2008": {
+    "label": "Harris et al. 2008, plasma profile of controlled-release beta-alanine",
+    "url": "https://doi.org/10.1096/fasebj.22.1_supplement.701.9",
     "archived": true
   }
 });

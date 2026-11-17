@@ -316,9 +316,9 @@
     },
     {
       "id": "harris2009",
-      "status": "notArchived",
+      "status": "archived",
       "doi": "10.1096/fasebj.23.1_supplement.599.4",
-      "access": "conference abstract",
+      "access": "abstract text pasted by the user from Wiley",
       "citation": "Harris RC et al. 2009, FASEB J 23(S1):599.4. Muscle carnosine with 4 weeks of controlled-release beta-alanine and 6 weeks after",
       "design": "6.4 g/day sustained release, VL biopsy",
       "role": "Washout half-life about 60 d and one loading point, both as quoted by Spelnikov 2019 and Yamaguchi 2021",
@@ -326,12 +326,17 @@
         "loading_observations",
         "washout_rates"
       ],
-      "extraFindings": [],
-      "caveats": [
-        "Never read directly; optional"
+      "extraFindings": [
+        {
+          "text": "7 men, 2 x 800 mg controlled release 4 times daily for 4 weeks: VL carnosine 25.9, 41.3 (4 wk), 38.3 (3 wk after) and 35.4 (6 wk after) mmol/kg dm; first-order decline, t1/2 8.6 wk",
+          "location": "Abstract"
+        }
       ],
-      "whyNeeded": "Optional: the 60 d washout half-life and +15.4 rise that two archived papers quote; DOI found 2026-11-16, so the abstract may be reachable through Wiley",
-      "file": "faseb_2009_harris_controlled_release_washout_abstract.pdf"
+      "caveats": [
+        "Conference abstract, not peer reviewed in full; small n and (2009) no control group; tablets from the manufacturer and an author from the manufacturer. The user flags both FASEB abstracts as questionable: acknowledged, no new claims taken from them.",
+        "Already in the fit as one of four washout studies (60 d) and one loading point (+15.4); the abstract confirms both values. Whether to keep it in the fit is a model decision for the user."
+      ],
+      "file": "faseb_2009_harris_controlled_release_washout_abstract.txt"
     },
     {
       "id": "baguet2012",
@@ -1010,49 +1015,112 @@
     },
     {
       "id": "nemezio2021",
-      "status": "wanted",
+      "status": "archived",
       "doi": "10.1152/ajpregu.00360.2020",
-      "access": "paywalled; postprint on the MMU repository (403 to scripts)",
+      "access": "paywalled (supplied by the user)",
       "file": "ajpregu_2021_nemezio_spinal_cord_injury_carnosine.pdf",
-      "priority": 1,
       "citation": "Nemezio K et al. 2021, Am J Physiol Regul Integr Comp Physiol 320:R824. Chronic muscle (in)activity and carnosine: athletes with spinal cord injury",
-      "readVia": "Search snippets and the MSSE 2020 conference abstract (10.1249/01.mss.0000682364.21696.0e)",
       "extraFindings": [
         {
-          "text": "16 paraplegic male athletes, 6.4 g/day or placebo for 28 days (2:1); carnosine rose similarly in the inactive vastus lateralis and the active deltoid; baseline higher in the paralyzed muscle, attributed to a fibre-type shift",
-          "location": "Abstract, as summarized"
+          "text": "Carnosine rose similarly in the inactive VL (+68.9 +/- 55.1%) and the active deltoid (+90.5 +/- 51.4%); no change on placebo",
+          "location": "Abstract"
+        },
+        {
+          "text": "Baseline higher in the inactive VL than the trained deltoid (32.0 vs 20.5 mmol/kg dm) and than active VL of people without paraplegia (21.2), most likely from a type I to type II fibre shift",
+          "location": "Abstract"
+        },
+        {
+          "text": "Agrees with Kendrick 2009 (similar loading in trained and untrained muscle); disagrees with Bex 2014 and 2015",
+          "location": "Discussion"
+        },
+        {
+          "text": "Cites Hoetker 2018: low-intensity training raised carnosine and high-intensity training lowered it",
+          "location": "Introduction"
         }
       ],
-      "whyNeeded": "Contradicts Bex 2014 (trained muscles load more) and bears on Bex 2015: if inactivity does not change loading, the training note on the page needs a counterweight. VL biopsy at 6.4 g/day for 28 days is also a loading point in a new population."
+      "feeds": [],
+      "role": "Not yet used; counterweight to the Bex training note",
+      "design": "16 male athletes with paraplegia, 6.4 g/day as four 1.6 g doses of 0.8 g sustained-release tablets (n = 11) or placebo (n = 5), 28 days; biopsies of the active deltoid and inactive VL; whole muscle and single fibres, HPLC",
+      "caveats": [
+        "Percent rises are means of individual percent changes; absolute changes only in figures, so no anchor"
+      ]
     },
     {
       "id": "varanoske2017",
-      "status": "wanted",
+      "status": "archived",
       "doi": "10.1016/j.nutres.2017.10.002",
-      "access": "paywalled",
+      "access": "paywalled (supplied by the user; published version and accepted manuscript)",
       "file": "nutres_2017_varanoske_men_women_carnosine_histidine.pdf",
-      "priority": 2,
       "citation": "Varanoske AN et al. 2017, Nutr Res 48:16. Beta-alanine raises carnosine in men and women similarly but does not change muscle histidine",
-      "readVia": "Search snippet",
       "extraFindings": [
         {
-          "text": "6 g/day for 28 days; carnosine changes likely (men) and very likely (women) greater than placebo, unclear between sexes; muscle histidine unchanged",
-          "location": "Abstract, as summarized"
+          "text": "Baseline carnosine 9.07 (men) vs 6.83 (women) mmol/kg wet, P = 0.069",
+          "location": "Table 1"
+        },
+        {
+          "text": "Carnosine rise likely (men) and very likely (women) greater than placebo; difference between sexes unclear, 2.50 +/- 4.30 mmol/kg wet",
+          "location": "Abstract"
+        },
+        {
+          "text": "Muscle histidine change unclear in both sexes; baseline carnosine not correlated with the change (rho = -0.188)",
+          "location": "Abstract; Results"
         }
       ],
-      "whyNeeded": "A biopsy loading point at 6 g/day for 28 days split by sex, against the page women preset, and a second study with no histidine fall (with Dolan 2019)."
+      "feeds": [],
+      "role": "Not yet used; sex and histidine",
+      "design": "6 g/day as 2 g sustained-release tablets 3 times daily, 28 days; 6 men and 6 women on beta-alanine, 4 and 4 on placebo analyzed; VL biopsy HPLC",
+      "caveats": [
+        "Magnitude-based inference statistics; small groups; per-group absolute changes only in a figure, so no anchor"
+      ]
     },
     {
       "id": "harris2008",
-      "status": "wanted",
+      "status": "archived",
       "doi": "10.1096/fasebj.22.1_supplement.701.9",
-      "access": "conference abstract",
-      "file": "faseb_2008_harris_controlled_release_plasma_profile.pdf",
-      "priority": 3,
+      "access": "abstract text pasted by the user from Wiley",
+      "file": "faseb_2008_harris_controlled_release_plasma_profile.txt",
       "citation": "Harris RC et al. 2008, FASEB J 22(S1):701.9. Plasma concentration-time profile of controlled-release beta-alanine",
-      "readVia": "Crossref title only",
-      "extraFindings": [],
-      "whyNeeded": "Low priority: sustained-release plasma curve from the formulation most loading studies used; would sit beside Decombaz 2012 for the flatter-curve question."
+      "extraFindings": [
+        {
+          "text": "Peak 219 uM in water (back to about 10 uM at 3 h), 126 uM with 2 tablets and 177 uM with 4, both above 50 uM at 3 h; AUC 286, 309 and 518 uM.h; 2 tablets bioequivalent to the solution without paresthesia",
+          "location": "Abstract"
+        }
+      ],
+      "design": "3 men and 3 women: 1600 mg in water vs 2 or 4 x 800 mg controlled-release tablets; capillary plasma over 6 h, HPLC",
+      "role": "Acknowledged only; not used",
+      "feeds": [],
+      "caveats": [
+        "Conference abstract, not peer reviewed in full; small n and (2009) no control group; tablets from the manufacturer and an author from the manufacturer. The user flags both FASEB abstracts as questionable: acknowledged, no new claims taken from them.",
+        "Consistent with Decombaz 2012 (248 vs 82 uM after 1.6 g plain vs slow release)"
+      ]
+    },
+    {
+      "id": "kendrick2009",
+      "status": "citedOnly",
+      "doi": null,
+      "citation": "Kendrick IP et al. 2009. Beta-alanine and isokinetic training, carnosine in type I and II fibres",
+      "readVia": "Cited by Nemezio 2021",
+      "extraFindings": [
+        {
+          "text": "Similar carnosine accretion in trained and untrained muscle groups (HPLC)",
+          "location": "as cited by Nemezio 2021"
+        }
+      ],
+      "whyNeeded": null
+    },
+    {
+      "id": "hoetker2018",
+      "status": "citedOnly",
+      "doi": null,
+      "citation": "Hoetker D et al. 2018. Exercise intensity and muscle carnosine",
+      "readVia": "Cited by Nemezio 2021",
+      "extraFindings": [
+        {
+          "text": "Low-intensity training increased muscle carnosine and high-intensity training decreased it",
+          "location": "as cited by Nemezio 2021"
+        }
+      ],
+      "whyNeeded": null
     }
   ],
   "searches": [
@@ -1134,6 +1202,15 @@
         "women, older adults, obesity trials"
       ],
       "found": "New: nemezio2021 (inactive muscle loads as well as active), varanoske2017 (men and women), harris2009 DOI, harris2008. Matthews 2025 obesity trial did not measure carnosine. No PK model, no steady-state 24 h urine study, no uracil flux figure, no TauT knockout carnosine data. One search summary misattributed carnosine synthase Km (1.0-2.3 mM) as a muscle uptake Km; discarded."
+    },
+    {
+      "date": "2026-11-16",
+      "question": "What do Nemezio 2021, Varanoske 2017 and the two Harris FASEB abstracts show?",
+      "tried": [
+        "full text of nemezio2021 and varanoske2017",
+        "abstract text of harris2008 and harris2009 pasted by the user"
+      ],
+      "found": "Nemezio: inactive and active muscle loaded similarly, against Bex. Varanoske 2017: no clear sex difference in loading, histidine unchanged. Harris 2009 confirms the values already in the fit (+15.4, t1/2 8.6 wk); Harris 2008 plasma peaks fit Decombaz. The FASEB abstracts are acknowledged with caveats and give no new claims."
     }
   ],
   "openQuestions": [
