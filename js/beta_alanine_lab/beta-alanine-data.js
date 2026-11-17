@@ -228,6 +228,16 @@ export const SOURCES = Object.freeze({
     "label": "Perim et al. 2019, optimizing the muscle carnosine response",
     "url": "https://doi.org/10.3389/fnut.2019.00135",
     "archived": true
+  },
+  "varanoske2019": {
+    "label": "Varanoske et al. 2019, sustained-release vs rapid-release beta-alanine",
+    "url": "https://doi.org/10.1007/s00726-018-2609-4",
+    "archived": true
+  },
+  "painelli2018": {
+    "label": "de Salles Painelli et al. 2018, HIIT and muscle carnosine in vegetarians",
+    "url": "https://doi.org/10.1249/MSS.0000000000001697",
+    "archived": true
   }
 });
 

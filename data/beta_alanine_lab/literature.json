@@ -464,7 +464,12 @@
       "feeds": [
         "claims"
       ],
-      "extraFindings": [],
+      "extraFindings": [
+        {
+          "text": "Meta-analysis of human data: no main effect of beta-alanine on muscle histidine, ES -0.15 (95% CrI -0.64 to 0.33); this is the meta-analysis Perim 2019 cites for histidine not being limiting",
+          "location": "Abstract"
+        }
+      ],
       "caveats": []
     },
     {
@@ -933,37 +938,66 @@
     },
     {
       "id": "varanoske2019",
-      "status": "wanted",
+      "status": "archived",
       "doi": "10.1007/s00726-018-2609-4",
-      "access": "paywalled",
+      "access": "paywalled (supplied by the user)",
       "file": "aminoacids_2019_varanoske_sustained_vs_rapid_release.pdf",
-      "priority": 1,
       "citation": "Varanoske AN et al. 2019, Amino Acids 51:49. Sustained-release vs rapid-release beta-alanine",
-      "readVia": "Perim 2019",
       "extraFindings": [
         {
-          "text": "6 g/day 28 d: sustained release raised carnosine significantly, rapid release about 38% not significant",
-          "location": "as summarized by Perim 2019"
+          "text": "Carnosine +50.1% (+3.87 mmol/kg wet) sustained release, significant against placebo (p = 0.010); +37.9% (+2.62 mmol/kg wet) rapid release, not significant (p = 0.077); 16.4% apart",
+          "location": "Abstract; Results"
+        },
+        {
+          "text": "Adjusted baseline 7.63 mmol/kg wet; muscle histidine 0.34 mmol/kg wet at baseline and not different between groups after",
+          "location": "Results"
+        },
+        {
+          "text": "Paresthesia more frequent with rapid release; sustained release did not differ from placebo",
+          "location": "Abstract"
+        },
+        {
+          "text": "Final n: sustained 12, rapid 9, placebo 8; protein intake about 287 g/day",
+          "location": "Results"
         }
       ],
-      "whyNeeded": "Same daily dose, different plasma profile: the cleanest human test of whether a flatter plasma curve stores more per gram, which is the saturable-uptake explanation of the low-dose gap. Both low-dose studies the model misses used sustained release. VL biopsy HPLC, so it may also be a loading point."
+      "feeds": [],
+      "design": "39 recreationally active adults, 6 g/day as 2 g sustained-release or rapid-release tablets three times daily with meals, 28 days, vs placebo; VL biopsy HPLC (wet weight)",
+      "role": "Not yet used; formulation evidence for the low-dose gap; candidate anchors",
+      "caveats": [
+        "At wet to dry 4.3: +16.6 and +11.3 mmol/kg dm, both inside the model band at 6 g/day for 28 days (7.8 to 17.9, middle 13.9); the model line sits between the formulations",
+        "Small groups; difference between formulations not significant",
+        "Published online 2018, issue 2019"
+      ]
     },
     {
       "id": "painelli2018",
-      "status": "wanted",
+      "status": "archived",
       "doi": "10.1249/MSS.0000000000001697",
-      "access": "paywalled",
+      "access": "paywalled (published-ahead-of-print version supplied by the user)",
       "file": "msse_2018_painelli_hiit_vegetarian_carnosine.pdf",
-      "priority": 2,
       "citation": "de Salles Painelli V et al. 2018, Med Sci Sports Exerc 50:2242. HIIT augments muscle carnosine without dietary beta-alanine",
-      "readVia": "Perim 2019",
       "extraFindings": [
         {
-          "text": "12 weeks of HIIT raised carnosine in vegetarians eating no beta-alanine; gene expression unchanged at 72 to 96 h after training",
-          "location": "as summarized by Perim 2019"
+          "text": "Carnosine 15.8 to 20.6 mmol/kg dm with HIIT (p = 0.012), 14.3 to 15.0 in controls, with no dietary beta-alanine",
+          "location": "Abstract"
+        },
+        {
+          "text": "Type I fibres 14.4 to 16.8 (p = 0.047); type IIa 18.8 to 20.5 (p = 0.067)",
+          "location": "Abstract"
+        },
+        {
+          "text": "No change in expression of CARNS, CNDP2, ABAT, TauT or PAT1",
+          "location": "Abstract"
         }
       ],
-      "whyNeeded": "The only human evidence that endogenous beta-alanine supply can rise on demand, the other side of the downregulation question; and the size of a training effect without supplementation."
+      "feeds": [],
+      "design": "20 vegetarian men, 12 weeks of HIIT on a cycle ergometer vs control; VL biopsy, whole muscle and single fibres; CARNS, CNDP2, ABAT, TauT, PAT1 expression",
+      "role": "Not yet used; endogenous supply rising on demand",
+      "caveats": [
+        "Endogenous synthesis was not measured; the rise implies more supply or more uptake, not which",
+        "Vegetarian men only"
+      ]
     }
   ],
   "searches": [
@@ -1022,6 +1056,36 @@
         "full text of sakamoto2001, matthews1987, bakardjiev1994, debrandt2022, blancquaert2017, goncalves2020, perim2019"
       ],
       "found": "Secondhand reading held, with corrections: Blancquaert 2017 fasting rise is +172% (De Brandt says +169%); Sakamoto tested 10 mM on crude extract with 0.2 mM substrate; Bakardjiev Km is from embryonic chick cells and taurine nearly abolishes uptake. Perim judges histidine depletion not limiting, which weakens it as the slowdown cause. New leads: varanoske2019 (formulation), painelli2018 (endogenous supply rising with training)."
+    },
+    {
+      "date": "2026-11-15",
+      "question": "What do Varanoske 2019 and Painelli 2018 show?",
+      "tried": [
+        "full text of both"
+      ],
+      "found": "Varanoske: SR +50.1%, RR +37.9% at 6 g/day for 28 days, both inside the model band, model line between them. Painelli: HIIT raised carnosine 15.8 to 20.6 mmol/kg dm in vegetarians with no beta-alanine intake, genes unchanged. Both arrived with the earlier batch and were missed by a check for expected filenames."
+    }
+  ],
+  "openQuestions": [
+    {
+      "question": "Does supplementation lower endogenous beta-alanine synthesis in people?",
+      "status": "No measurement exists (searched 2026-11-15). Indirect: human UPB1 not inhibited (sakamoto2001); fasting plasma rises (blancquaert2017, debrandt2022). Would need a tracer or uracil-catabolite study."
+    },
+    {
+      "question": "Can endogenous supply rise on demand?",
+      "status": "Yes in one study: HIIT raised carnosine by 4.8 mmol/kg dm in vegetarians eating no beta-alanine (painelli2018); synthesis itself not measured."
+    },
+    {
+      "question": "Does a flatter plasma curve store more per gram (the low-dose gap)?",
+      "status": "varanoske2019: sustained release +50.1% vs rapid +37.9% at the same 6 g/day, not significantly different; both inside the model band. Suggestive, not settled. No human uptake Km exists."
+    },
+    {
+      "question": "Why does loading slow (Saunders week 24, Blancquaert 2017 by day 23)?",
+      "status": "TauT down in humans (saunders2017); histidine ruled out by dolan2019 and perim2019. No paper sizes the slowdown."
+    },
+    {
+      "question": "Does beta-alanine regulate DPD, the rate-limiting first step from uracil?",
+      "status": "No report found (searched 2026-11-15)."
     }
   ]
 }

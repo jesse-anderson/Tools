@@ -92,7 +92,9 @@ test.describe('reading record', () => {
   test('a wanted paper says what it settles and is not already archived', () => {
     const files = new Set(manifest.map((m) => m.expected_filename));
     const wanted = lit.papers.filter((p) => p.status === 'wanted');
-    expect(wanted.length).toBeGreaterThan(0);
+    // With nothing wanted, what is still unknown must be written down instead.
+    expect(lit.openQuestions.length).toBeGreaterThan(0);
+    for (const q of lit.openQuestions) expect(q.question.endsWith('?') && q.status.length > 20, q.question).toBe(true);
     for (const p of wanted) {
       expect(p.doi, p.id).toMatch(/^10\.\d{4,}\//);
       expect(p.file, p.id).toMatch(/^[a-z]+_\d{4}_[a-z]+_[a-z0-9_]+\.pdf$/);
