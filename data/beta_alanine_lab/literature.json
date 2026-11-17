@@ -961,9 +961,11 @@
           "location": "Results"
         }
       ],
-      "feeds": [],
+      "feeds": [
+        "claims"
+      ],
       "design": "39 recreationally active adults, 6 g/day as 2 g sustained-release or rapid-release tablets three times daily with meals, 28 days, vs placebo; VL biopsy HPLC (wet weight)",
-      "role": "Not yet used; formulation evidence for the low-dose gap; candidate anchors",
+      "role": "Formulation anchors (both inside) and the food-note formulation sentence",
       "caveats": [
         "At wet to dry 4.3: +16.6 and +11.3 mmol/kg dm, both inside the model band at 6 g/day for 28 days (7.8 to 17.9, middle 13.9); the model line sits between the formulations",
         "Small groups; difference between formulations not significant",
@@ -991,9 +993,11 @@
           "location": "Abstract"
         }
       ],
-      "feeds": [],
+      "feeds": [
+        "claims"
+      ],
       "design": "20 vegetarian men, 12 weeks of HIIT on a cycle ergometer vs control; VL biopsy, whole muscle and single fibres; CARNS, CNDP2, ABAT, TauT, PAT1 expression",
-      "role": "Not yet used; endogenous supply rising on demand",
+      "role": "Training sentence after the endogenous lines",
       "caveats": [
         "Endogenous synthesis was not measured; the rise implies more supply or more uptake, not which",
         "Vegetarian men only"

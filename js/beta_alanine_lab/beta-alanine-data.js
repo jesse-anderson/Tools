@@ -1441,6 +1441,38 @@ export const CLAIMS = Object.freeze({
     "sourceId": "bakardjiev1994",
     "location": "Abstract",
     "use": "food note"
+  },
+  "varanoske_sr": {
+    "topic": "formulation",
+    "claim": "6 g/day as 2 g sustained-release tablets three times daily with meals for 28 days: VL carnosine +50.1% (+3.87 mmol/kg wet, HPLC), significant against placebo (p = 0.010)",
+    "value": 3.87,
+    "sourceId": "varanoske2019",
+    "location": "Abstract; Results",
+    "use": "anchor (formulation)"
+  },
+  "varanoske_rr": {
+    "topic": "formulation",
+    "claim": "The same dose as rapid-release tablets: +37.9% (+2.62 mmol/kg wet), not significant against placebo (p = 0.077); 16.4% apart, not significantly different from sustained release",
+    "value": 2.62,
+    "sourceId": "varanoske2019",
+    "location": "Abstract; Results",
+    "use": "anchor (formulation); food note"
+  },
+  "hiit_vegetarian": {
+    "topic": "endogenous",
+    "claim": "12 weeks of HIIT in vegetarian men eating no beta-alanine: muscle carnosine 15.8 to 20.6 mmol/kg dm (p = 0.012); controls 14.3 to 15.0; CARNS, CNDP2, ABAT, TauT and PAT1 expression unchanged",
+    "value": 4.8,
+    "sourceId": "painelli2018",
+    "location": "Abstract",
+    "use": "where it goes panel"
+  },
+  "histidine_meta": {
+    "topic": "ceiling",
+    "claim": "Meta-analysis of human data: no main effect of beta-alanine supplementation on muscle histidine, ES -0.15 (95% CrI -0.64 to 0.33)",
+    "value": -0.15,
+    "sourceId": "dolan2019",
+    "location": "Abstract",
+    "use": "where it goes panel"
   }
 });
 

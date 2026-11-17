@@ -149,6 +149,18 @@ export function literatureAnchors({ observations, washouts, claims }) {
         note: 'Known gap: the model slows only through washout, so it keeps more of its early pace than measured, here within weeks as at Saunders week 24.'
     });
 
+    // Varanoske 2019: 6 g/day for 28 days as sustained or rapid release, VL HPLC wet weight to dry.
+    const v28 = run([{ doseGPerDay: 6, days: 28 }]);
+    for (const [id, claim, form] of [['varanoske_sr', 'varanoske_sr', 'sustained release'], ['varanoske_rr', 'varanoske_rr', 'rapid release']]) {
+        anchors.push({
+            id, sourceIds: ['varanoske2019'], claimIds: [claim, 'wet_to_dry'],
+            title: `6 g/day for 28 days, ${form} tablets with meals`,
+            measured: claims[claim].value * claims.wet_to_dry.value, measuredText: `+${claims[claim].value.toFixed(2)} mmol/kg wet`,
+            model: at(v28, 28), unit: 'mmol/kg dm', expected: 'inside',
+            note: id === 'varanoske_sr' ? 'The model has no formulation term; its middle line sits between the two forms.' : null
+        });
+    }
+
     for (const a of anchors) {
         a.verdict = verdict(a.measured, a.model);
         a.medianGap = a.model.p50 / a.measured - 1;

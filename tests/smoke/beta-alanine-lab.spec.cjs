@@ -712,7 +712,7 @@ test.describe('literature anchors', () => {
     const anchors = await page.evaluate(() => window.BetaAlanine.anchors.map((a) => ({ id: a.id, verdict: a.verdict, expected: a.expected })));
     expect(anchors.map((a) => a.id)).toEqual(['rezende_4wk', 'saunders_wk4', 'saunders_wk12', 'saunders_wk24', 'delfavero_older', 'stegen_12', 'incorporation',
       'bex_inactive', 'bex_trained', 'blancquaert_08', 'turnover_baseline', 'baguet_excess_loss', 'spelnikov_supply',
-      'blancquaert17_slowdown']);
+      'blancquaert17_slowdown', 'varanoske_sr', 'varanoske_rr']);
     for (const a of anchors) expect(a.verdict, a.id).toBe(a.expected);
     // The known misses: the model slows less than measured (Saunders week 24, and
     // Blancquaert 2017 within 23 days), and below the fitted doses it runs under the low-dose study.
@@ -760,7 +760,8 @@ test.describe('literature anchors', () => {
   test('the audit trail prints each anchor with its verdict', async ({ page }) => {
     await page.locator('#auditFold > summary').click();
     const rows = page.locator('#anchorTable tbody tr');
-    await expect(rows).toHaveCount(14);
+    await expect(rows).toHaveCount(16);
+    await expect(page.locator('#anchorTable tr[data-anchor="varanoske_rr"]')).toContainText('+2.62 mmol/kg wet');
     await expect(page.locator('#anchorTable tr[data-anchor="blancquaert17_slowdown"]')).toContainText('0.81 against 1.42 mM (0.57)');
     // Small figures print with enough digits to read: 0.03 mM/day, not 0.0.
     await expect(page.locator('#anchorTable tr[data-anchor="baguet_excess_loss"]')).toContainText('0.03 mM/day');
@@ -822,6 +823,20 @@ test.describe('literature anchors', () => {
     expect(a.blancquaert17_slowdown.model.p90).toBeCloseTo(ratios[3], 9);
     expect(ratios[0]).toBeGreaterThan(0.7);
     expect(a.blancquaert17_slowdown.measured).toBe(0.57);
+    // Varanoske 2019: wet weight to dry, against the 6 g/day 28-day band.
+    expect(Number(claims.varanoske_sr.value)).toBe(3.87);
+    expect(Number(claims.varanoske_rr.value)).toBe(2.62);
+    expect(a.varanoske_sr.measured).toBeCloseTo(3.87 * WET_TO_DRY, 9);
+    expect(a.varanoske_rr.measured).toBeCloseTo(2.62 * WET_TO_DRY, 9);
+    const v = await page.evaluate(() => {
+      const B = window.BetaAlanine;
+      const b = B.runBand({ phases: [{ doseGPerDay: 6, days: 28 }], washoutDays: 0, observations: B.data.LOADING_OBSERVATIONS, washouts: B.data.WASHOUT_RATES });
+      return { p10: b.p10[28], p50: b.p50[28], p90: b.p90[28] };
+    });
+    expect(a.varanoske_sr.model).toEqual(v);
+    // Sustained release above the middle line, rapid release below it.
+    expect(a.varanoske_sr.measured).toBeGreaterThan(v.p50);
+    expect(a.varanoske_rr.measured).toBeLessThan(v.p50);
   });
 
   test('solubility is Romero 2013 Table 2, in g per 100 g water, and the engine reads it', async ({ page }) => {
@@ -1414,7 +1429,14 @@ test.describe('page', () => {
     await expect(fate).toContainText('the human enzyme was not, even at 10 mM');
     await expect(fate).toContainText('from 2.6 to 7.0 micromolar over 23 days of 6 g/day');
     await expect(fate).toContainText('133% over 12 weeks of 3.2 g/day');
-    for (const doi of ['MSS.0000000000001213', 'fnut.2019.00135', 'S0021-9258(18)48228-2', 'jnsv.47.132', 'jcsm.13048']) {
+    await expect(fate).toContainText('raised it from 15.8 to 20.6 mmol/kg dm in vegetarian men');
+    await expect(fate).toContainText('Where the extra beta-alanine came from was not measured');
+    await expect(fate).toContainText('a meta-analysis found no effect on muscle histidine');
+    // Dolan is also cited for taurine, so check the link inside the slowdown paragraph itself.
+    const slowdown = fate.locator('p', { hasText: 'no effect on muscle histidine' });
+    await expect(slowdown.locator('a[href*="advances/nmy115"]')).toHaveCount(1);
+    await expect(slowdown.locator('a[href*="fnut.2019.00135"]')).toHaveCount(1);
+    for (const doi of ['MSS.0000000000001213', 'fnut.2019.00135', 'S0021-9258(18)48228-2', 'jnsv.47.132', 'jcsm.13048', 'MSS.0000000000001697', 'advances/nmy115']) {
       await expect(fate.locator(`a[href*="${doi}"]`).first(), doi).toBeVisible();
     }
     await page.fill('#phase0Dose', '0');
@@ -1436,6 +1458,8 @@ test.describe('page', () => {
     await expect(food.locator('a[href*="j.1432-1033.1994.00617.x"]')).toHaveCount(1);
     await expect(food).toContainText('peaks at 833 micromolar after 40 mg/kg');
     await expect(food).toContainText('not settled');
+    await expect(food).toContainText('sustained-release tablets raised carnosine 50.1% and rapid-release tablets 37.9%');
+    await expect(food.locator('a[href*="s00726-018-2609-4"]')).toHaveCount(1);
     await expect(page.locator('#safetySentence')).toContainText('8.9 times the odds of placebo');
     await expect(page.locator('#safetySentence a', { hasText: 'Dolan' })).toHaveCount(1);
     await page.selectOption('#phase0Form', 'sustained');
