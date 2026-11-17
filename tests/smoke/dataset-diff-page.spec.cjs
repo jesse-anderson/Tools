@@ -17,9 +17,12 @@ async function loadExample(page, label) {
     await expect(page.locator('#progress')).toContainText('Loaded the example');
 }
 
+// The button is off from the click until the results are written. The progress
+// line alone is not enough: it still reads "Compared" from the previous run.
 async function compare(page) {
     await page.click('#compareBtn');
-    await expect(page.locator('#progress')).toHaveText(/^(Compared|Stopped)/, { timeout: 60_000 });
+    await expect(page.locator('#compareBtn')).toBeEnabled({ timeout: 60_000 });
+    await expect(page.locator('#progress')).toHaveText(/^(Compared|Stopped)/);
 }
 
 const aggregate = (page) => page.locator('#aggregate .dd-agg-line');
