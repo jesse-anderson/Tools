@@ -189,6 +189,10 @@
         {
           "text": "Split dosing kept plasma at 125 to 250% of the assumed transporter Km",
           "location": "Discussion"
+        },
+        {
+          "text": "Urine loss 0.60 +/- 0.09%, 1.50 +/- 0.40% and 3.64 +/- 0.47% of the dose after 10, 20 and 40 mg/kg: the excreted share rises with dose",
+          "location": "Results"
         }
       ],
       "caveats": [
@@ -313,9 +317,9 @@
     {
       "id": "harris2009",
       "status": "notArchived",
-      "doi": null,
+      "doi": "10.1096/fasebj.23.1_supplement.599.4",
       "access": "conference abstract",
-      "citation": "Harris RC et al. 2009, FASEB J abstract. Controlled-release washout",
+      "citation": "Harris RC et al. 2009, FASEB J 23(S1):599.4. Muscle carnosine with 4 weeks of controlled-release beta-alanine and 6 weeks after",
       "design": "6.4 g/day sustained release, VL biopsy",
       "role": "Washout half-life about 60 d and one loading point, both as quoted by Spelnikov 2019 and Yamaguchi 2021",
       "feeds": [
@@ -326,7 +330,8 @@
       "caveats": [
         "Never read directly; optional"
       ],
-      "whyNeeded": "Optional: would confirm the 60 d half-life and 15.4 rise that two archived papers quote"
+      "whyNeeded": "Optional: the 60 d washout half-life and +15.4 rise that two archived papers quote; DOI found 2026-11-16, so the abstract may be reachable through Wiley",
+      "file": "faseb_2009_harris_controlled_release_washout_abstract.pdf"
     },
     {
       "id": "baguet2012",
@@ -1002,6 +1007,52 @@
         "Endogenous synthesis was not measured; the rise implies more supply or more uptake, not which",
         "Vegetarian men only"
       ]
+    },
+    {
+      "id": "nemezio2021",
+      "status": "wanted",
+      "doi": "10.1152/ajpregu.00360.2020",
+      "access": "paywalled; postprint on the MMU repository (403 to scripts)",
+      "file": "ajpregu_2021_nemezio_spinal_cord_injury_carnosine.pdf",
+      "priority": 1,
+      "citation": "Nemezio K et al. 2021, Am J Physiol Regul Integr Comp Physiol 320:R824. Chronic muscle (in)activity and carnosine: athletes with spinal cord injury",
+      "readVia": "Search snippets and the MSSE 2020 conference abstract (10.1249/01.mss.0000682364.21696.0e)",
+      "extraFindings": [
+        {
+          "text": "16 paraplegic male athletes, 6.4 g/day or placebo for 28 days (2:1); carnosine rose similarly in the inactive vastus lateralis and the active deltoid; baseline higher in the paralyzed muscle, attributed to a fibre-type shift",
+          "location": "Abstract, as summarized"
+        }
+      ],
+      "whyNeeded": "Contradicts Bex 2014 (trained muscles load more) and bears on Bex 2015: if inactivity does not change loading, the training note on the page needs a counterweight. VL biopsy at 6.4 g/day for 28 days is also a loading point in a new population."
+    },
+    {
+      "id": "varanoske2017",
+      "status": "wanted",
+      "doi": "10.1016/j.nutres.2017.10.002",
+      "access": "paywalled",
+      "file": "nutres_2017_varanoske_men_women_carnosine_histidine.pdf",
+      "priority": 2,
+      "citation": "Varanoske AN et al. 2017, Nutr Res 48:16. Beta-alanine raises carnosine in men and women similarly but does not change muscle histidine",
+      "readVia": "Search snippet",
+      "extraFindings": [
+        {
+          "text": "6 g/day for 28 days; carnosine changes likely (men) and very likely (women) greater than placebo, unclear between sexes; muscle histidine unchanged",
+          "location": "Abstract, as summarized"
+        }
+      ],
+      "whyNeeded": "A biopsy loading point at 6 g/day for 28 days split by sex, against the page women preset, and a second study with no histidine fall (with Dolan 2019)."
+    },
+    {
+      "id": "harris2008",
+      "status": "wanted",
+      "doi": "10.1096/fasebj.22.1_supplement.701.9",
+      "access": "conference abstract",
+      "file": "faseb_2008_harris_controlled_release_plasma_profile.pdf",
+      "priority": 3,
+      "citation": "Harris RC et al. 2008, FASEB J 22(S1):701.9. Plasma concentration-time profile of controlled-release beta-alanine",
+      "readVia": "Crossref title only",
+      "extraFindings": [],
+      "whyNeeded": "Low priority: sustained-release plasma curve from the formulation most loading studies used; would sit beside Decombaz 2012 for the flatter-curve question."
     }
   ],
   "searches": [
@@ -1068,6 +1119,21 @@
         "full text of both"
       ],
       "found": "Varanoske: SR +50.1%, RR +37.9% at 6 g/day for 28 days, both inside the model band, model line between them. Painelli: HIIT raised carnosine 15.8 to 20.6 mmol/kg dm in vegetarians with no beta-alanine intake, genes unchanged. Both arrived with the earlier batch and were missed by a check for expected filenames."
+    },
+    {
+      "date": "2026-11-16",
+      "question": "Is there newer or overlooked work on loading, washout, uptake kinetics, urine at steady state, uracil flux, or TauT?",
+      "tried": [
+        "2021-2024 loading studies with biopsy",
+        "washout kinetics 2022-2024",
+        "population PK or Michaelis-Menten uptake models",
+        "24 h urine during chronic dosing",
+        "human uracil catabolism flux in g/day",
+        "TauT knockout carnosine",
+        "taurine co-supplementation and loading",
+        "women, older adults, obesity trials"
+      ],
+      "found": "New: nemezio2021 (inactive muscle loads as well as active), varanoske2017 (men and women), harris2009 DOI, harris2008. Matthews 2025 obesity trial did not measure carnosine. No PK model, no steady-state 24 h urine study, no uracil flux figure, no TauT knockout carnosine data. One search summary misattributed carnosine synthase Km (1.0-2.3 mM) as a muscle uptake Km; discarded."
     }
   ],
   "openQuestions": [
@@ -1085,7 +1151,7 @@
     },
     {
       "question": "Why does loading slow (Saunders week 24, Blancquaert 2017 by day 23)?",
-      "status": "TauT down in humans (saunders2017); histidine ruled out by dolan2019 and perim2019. No paper sizes the slowdown."
+      "status": "TauT down in humans (saunders2017); histidine ruled out by dolan2019 and perim2019. No paper sizes the slowdown. No study measured carnosine in TauT knockout muscle (searched 2026-11-16)."
     },
     {
       "question": "Does beta-alanine regulate DPD, the rate-limiting first step from uracil?",
