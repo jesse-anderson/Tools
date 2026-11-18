@@ -278,6 +278,8 @@ test('multi-page compare: diffs on both pages, change navigation, exports', asyn
     () => page.evaluate(() => document.getElementById('summarySection').style.display !== 'none'),
     { timeout: 30000 }
   ).toBe(true);
+  // The summary shows before the pages are redrawn with highlights; wait for the compare to finish.
+  await expect.poll(() => page.evaluate(() => window.pdfDiffState.isProcessing), { timeout: 30000 }).toBe(false);
 
   const state = await page.evaluate(() => {
     const s = window.pdfDiffState;
