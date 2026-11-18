@@ -306,34 +306,71 @@ export function studiedRangeFlags(phases) {
     return flags.filter((f) => (seen.has(f.id) ? false : seen.add(f.id)));
 }
 
+export function comparableDose(a, b) {
+    return a > 0 && b > 0 && a <= b * COMPARABLE_DOSE_FACTOR && a >= b / COMPARABLE_DOSE_FACTOR;
+}
+
 /**
- * How far the protocol is covered by measured data. Loading: the longest
- * observation at a comparable dose. Washout: the longest washout follow-up.
- * Returns days from the start of the protocol.
+ * Schedule segments to runs: back-to-back segments each comparable to the one
+ * before join a run. `before` is the dose of the run directly before, 0 after a
+ * rest or at the start; `dose` is the run's largest.
+ */
+export function doseRuns(schedule) {
+    const runs = [];
+    let lastDose = 0;
+    for (const [a, b, dose] of schedule) {
+        const run = runs[runs.length - 1];
+        if (run && run.end === a && comparableDose(dose, lastDose)) {
+            run.end = b;
+            run.dose = Math.max(run.dose, dose);
+        } else {
+            runs.push({ start: a, end: b, dose, before: run && run.end === a ? run.dose : 0 });
+        }
+        lastDose = dose;
+    }
+    return runs;
+}
+
+/**
+ * How far the protocol is covered by measured data. Each run of comparable
+ * doses is covered from its own start by observations made in a run of
+ * comparable dose that followed the same kind of run (none, or a comparable
+ * dose). Washout: the longest washout follow-up. Days from the protocol start.
  */
 export function evidenceHorizon(phases, observations, washouts) {
-    const { supplementDays } = buildSchedule(phases);
-    const doses = phases.filter((p) => Number(p.doseGPerDay) > 0 && Number(p.days) > 0).map((p) => Number(p.doseGPerDay));
-    const dose = doses.length ? Math.max(...doses) : 0;
-    const comparable = [];
-    for (const o of observations) {
-        const studyDose = Math.max(...o.schedule.map((s) => s[2]));
-        if (dose > 0 && studyDose <= dose * COMPARABLE_DOSE_FACTOR && studyDose >= dose / COMPARABLE_DOSE_FACTOR) {
-            const existing = comparable.find((c) => c.sourceId === o.sourceId);
-            if (existing) existing.days = Math.max(existing.days, o.day);
-            else comparable.push({ sourceId: o.sourceId, days: o.day, dose: studyDose });
+    const { schedule, supplementDays } = buildSchedule(phases);
+    const runs = doseRuns(schedule).map((run) => {
+        const studies = [];
+        for (const o of observations) {
+            const own = doseRuns(o.schedule).find((r) => r.start < o.day && o.day <= r.end);
+            const sameBefore = run.before === 0 ? own?.before === 0 : comparableDose(run.before, own?.before);
+            if (!own || !comparableDose(run.dose, own.dose) || !sameBefore) continue;
+            const days = o.day - own.start;
+            const existing = studies.find((s) => s.sourceId === o.sourceId);
+            if (existing) existing.days = Math.max(existing.days, days);
+            else studies.push({ sourceId: o.sourceId, days, dose: own.dose });
         }
+        studies.sort((a, b) => b.days - a.days);
+        const coveredUntil = Math.min(run.end, run.start + (studies.length ? studies[0].days : 0));
+        return { ...run, studies, coveredUntil };
+    });
+    const uncovered = [];
+    for (const r of runs.filter((x) => x.coveredUntil < x.end)) {
+        const prev = uncovered[uncovered.length - 1];
+        if (prev && prev[1] === r.coveredUntil) prev[1] = r.end;
+        else uncovered.push([r.coveredUntil, r.end]);
     }
-    comparable.sort((a, b) => b.days - a.days);
-    const loadingDays = comparable.length ? comparable[0].days : 0;
     const followups = washouts.filter((w) => w.observedDays > 0).map((w) => ({ sourceId: w.sourceId, days: w.observedDays }));
     followups.sort((a, b) => b.days - a.days);
     const washoutDays = followups.length ? followups[0].days : 0;
     return {
-        dose,
+        dose: runs.length ? Math.max(...runs.map((r) => r.dose)) : 0,
         supplementDays,
-        loadingCoveredUntil: Math.min(loadingDays, supplementDays),
-        loadingStudies: comparable,
+        runs,
+        uncovered,
+        // Day the first unmeasured stretch starts, or the end of dosing.
+        loadingCoveredUntil: uncovered.length ? uncovered[0][0] : supplementDays,
+        loadingStudies: runs.length ? runs[0].studies : [],
         washoutCoveredUntil: supplementDays + washoutDays,
         washoutStudies: followups
     };
@@ -342,10 +379,20 @@ export function evidenceHorizon(phases, observations, washouts) {
 /** Which studies hold up the curve on a given day, for the hover. */
 export function studiesCoveringDay(horizon, day) {
     if (day <= horizon.supplementDays) {
-        const covering = horizon.loadingStudies.filter((s) => s.days >= day).map((s) => s.sourceId);
-        return { phase: 'loading', covered: covering.length > 0, sourceIds: covering.length ? covering : horizon.loadingStudies.slice(0, 1).map((s) => s.sourceId) };
+        const run = horizon.runs.find((r) => r.start <= day && day <= r.end);
+        if (!run) {
+            // A rest inside the protocol: a washout since the last dose, or nothing taken yet.
+            const prior = horizon.runs.filter((r) => r.end < day).pop();
+            if (!prior) return { phase: 'none', covered: true, sourceIds: [] };
+            return washoutCover(horizon, day - prior.end);
+        }
+        const covering = run.studies.filter((s) => run.start + s.days >= day).map((s) => s.sourceId);
+        return { phase: 'loading', covered: covering.length > 0, sourceIds: covering.length ? covering : run.studies.slice(0, 1).map((s) => s.sourceId) };
     }
-    const since = day - horizon.supplementDays;
+    return washoutCover(horizon, day - horizon.supplementDays);
+}
+
+function washoutCover(horizon, since) {
     const covering = horizon.washoutStudies.filter((s) => s.days >= since).map((s) => s.sourceId);
     return { phase: 'washout', covered: covering.length > 0, sourceIds: covering.length ? covering : horizon.washoutStudies.slice(0, 1).map((s) => s.sourceId) };
 }

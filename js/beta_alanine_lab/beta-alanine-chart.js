@@ -78,8 +78,7 @@ export function drawChart(svg, model) {
     el('rect', { class: 'normal-strip', x: M.left, width: plotW, y: y(toView(model.normal)), height: Math.max(0, y(stripLow) - y(toView(model.normal))) }, svg);
 
     // Uncovered stretches: hatched background, lighter band.
-    const uncovered = [];
-    if (horizon.loadingCoveredUntil < horizon.supplementDays) uncovered.push([horizon.loadingCoveredUntil, horizon.supplementDays]);
+    const uncovered = horizon.uncovered.map(([a, b]) => [a, b]);
     if (horizon.washoutCoveredUntil < last) uncovered.push([Math.max(horizon.washoutCoveredUntil, horizon.supplementDays), last]);
     for (const [a, b] of uncovered) {
         el('rect', { class: 'beyond', x: x(a), width: Math.max(0, x(b) - x(a)), y: M.top, height: plotH, fill: 'url(#baHatch)', 'fill-opacity': 0.35 }, svg);

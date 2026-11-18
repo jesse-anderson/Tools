@@ -391,11 +391,22 @@ function horizonFlags() {
     const hz = band.horizon;
     const flags = [];
     if (hz.dose === 0) return [{ text: 'No beta-alanine is taken in this protocol, so there is nothing to show.', sourceIds: [] }];
-    if (hz.supplementDays > 0 && hz.loadingCoveredUntil < hz.supplementDays) {
-        const longest = hz.loadingStudies[0];
-        flags.push({ text: longest
-            ? `Dosing runs past week ${fmt(hz.loadingCoveredUntil / 7, 1)}, the longest study at a comparable dose. The shaded part of the band rests on that one study.`
-            : 'No study used a comparable daily dose, so the whole dosing period is shaded.', sourceIds: longest ? [longest.sourceId] : [] });
+    const several = hz.runs.length > 1;
+    for (const run of hz.runs) {
+        if (run.coveredUntil >= run.end) continue;
+        const longest = run.studies[0];
+        const what = several ? `Dosing at ${fmt(run.dose, 1)} g/day` : 'Dosing';
+        let text;
+        if (longest) {
+            text = `${what} runs past week ${fmt(run.coveredUntil / 7, 1)}, the longest study at a comparable dose. The shaded part of the band rests on that one study.`;
+        } else if (run.before > 0) {
+            text = `No study measured ${fmt(run.dose, 1)} g/day straight after ${fmt(run.before, 1)} g/day, so weeks ${fmt(run.start / 7, 1)} to ${fmt(run.end / 7, 1)} are shaded.`;
+        } else {
+            text = several
+                ? `No study used a daily dose comparable to ${fmt(run.dose, 1)} g/day, so weeks ${fmt(run.start / 7, 1)} to ${fmt(run.end / 7, 1)} are shaded.`
+                : 'No study used a comparable daily dose, so the whole dosing period is shaded.';
+        }
+        flags.push({ text, sourceIds: longest ? [longest.sourceId] : [] });
     }
     return flags;
 }

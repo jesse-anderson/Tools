@@ -79,8 +79,12 @@ export function renderTip(node, { day, value, low, high, evidence, unit, individ
         }
         node.appendChild(h('p', {}, parts));
     }
-    if (evidence.covered) {
+    if (evidence.phase === 'none') {
+        node.appendChild(h('p', {}, [h('strong', { text: 'Nothing taken yet.' })]));
+    } else if (evidence.covered) {
         node.appendChild(h('p', {}, [h('strong', { text: 'Measured this far: ' }), ...linkList(evidence.sourceIds), '.']));
+    } else if (!evidence.sourceIds.length) {
+        node.appendChild(h('p', {}, [h('strong', { text: 'No study measured a comparable dose at this point in a protocol.' })]));
     } else {
         const what = evidence.phase === 'loading' ? 'No study at a comparable dose ran this long' : 'No washout study followed people this long';
         node.appendChild(h('p', {}, [h('strong', { text: `${what}. ` }), 'This stretch rests on ', ...linkList(evidence.sourceIds), ', the longest one.']));
@@ -226,10 +230,16 @@ export function renderEdgeTable(table, rows, unit) {
             h('td', { class: 'num', text: fmt(r.value.p50) }),
             h('td', { class: 'num', text: fmt(r.value.p90) }),
             h('td', {}, [...edgeCell(r.high)]),
-            h('td', {}, r.evidence.covered ? linkList(r.evidence.sourceIds) : ['Beyond the studies; rests on ', ...linkList(r.evidence.sourceIds)])
+            h('td', {}, evidenceCell(r.evidence))
         ]));
     }
     table.appendChild(body);
+}
+
+function evidenceCell(evidence) {
+    if (evidence.phase === 'none') return ['Nothing taken yet'];
+    if (evidence.covered) return linkList(evidence.sourceIds);
+    return evidence.sourceIds.length ? ['Beyond the studies; rests on ', ...linkList(evidence.sourceIds)] : ['No study at a comparable dose'];
 }
 
 function edgeCell(edge) {

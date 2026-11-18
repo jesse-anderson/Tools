@@ -654,6 +654,42 @@ test.describe('checks on a protocol', () => {
     expect(h.low.loadingCoveredUntil).toBe(56);
   });
 
+  test('evidence horizon walks the phases: a step down needs a study that stepped down, a leading rest delays the count', async ({ page }) => {
+    const h = await page.evaluate(() => {
+      const B = window.BetaAlanine;
+      const hz = (phases) => B.evidenceHorizon(phases, B.data.LOADING_OBSERVATIONS, B.data.WASHOUT_RATES);
+      const step = hz([{ doseGPerDay: 6.4, days: 28 }, { doseGPerDay: 1.6, days: 140 }]);
+      const rest = hz([{ doseGPerDay: 0, days: 60 }, { doseGPerDay: 6.4, days: 168 }]);
+      const gap = hz([{ doseGPerDay: 6.4, days: 28 }, { doseGPerDay: 0, days: 14 }, { doseGPerDay: 6.4, days: 28 }]);
+      const ramp = hz([{ doseGPerDay: 4.0, days: 7 }, { doseGPerDay: 4.8, days: 7 }, { doseGPerDay: 5.6, days: 7 }, { doseGPerDay: 6.4, days: 49 }]);
+      const day = (horizon, d) => B.studiesCoveringDay(horizon, d);
+      return {
+        step, rest, gap, ramp,
+        stepDays: [day(step, 20), day(step, 40)],
+        restDays: [day(rest, 30), day(rest, 200), day(rest, 229)],
+        gapDay: day(gap, 35)
+      };
+    });
+    // Saunders covers 6.4 g/day from the start; nothing measured 1.6 g/day straight after a load.
+    expect(h.step.uncovered).toEqual([[28, 168]]);
+    expect(h.step.loadingCoveredUntil).toBe(28);
+    expect(h.step.runs[1]).toMatchObject({ start: 28, end: 168, dose: 1.6, before: 6.4, studies: [] });
+    expect(h.stepDays[0]).toEqual({ phase: 'loading', covered: true, sourceIds: ['saunders2017', 'hill2007', 'yamaguchi2021', 'harris2006', 'church2017', 'harris2009', 'rezende2020'] });
+    expect(h.stepDays[1]).toEqual({ phase: 'loading', covered: false, sourceIds: [] });
+    // 60 days of nothing, then Saunders' 24 weeks counted from day 60: all covered.
+    expect(h.rest.uncovered).toEqual([]);
+    expect(h.rest.loadingCoveredUntil).toBe(228);
+    expect(h.restDays[0]).toEqual({ phase: 'none', covered: true, sourceIds: [] });
+    expect(h.restDays[1]).toEqual({ phase: 'loading', covered: true, sourceIds: ['saunders2017'] });
+    expect(h.restDays[2].phase).toBe('washout');
+    // A rest between doses reads as washout since the last dose.
+    expect(h.gapDay).toEqual({ phase: 'washout', covered: true, sourceIds: ['yamaguchi2021', 'baguet2009', 'stellingwerff2012'] });
+    expect(h.gap.runs.map((r) => [r.start, r.end, r.before])).toEqual([[0, 28, 0], [42, 70, 0]]);
+    // A weekly ramp of comparable steps is one run.
+    expect(h.ramp.runs).toHaveLength(1);
+    expect(h.ramp.uncovered).toEqual([]);
+  });
+
   test('price tiers and protocol cost from prices.csv', async ({ page }) => {
     const r = await page.evaluate(() => {
       const B = window.BetaAlanine;
@@ -983,6 +1019,18 @@ test.describe('page', () => {
     await expect(page.locator('#flags')).toContainText('longer than the longest study');
     await expect(page.locator('#chart polygon.band-shaded')).toHaveCount(1);
     await expect(page.locator('#chart polyline.median-shaded')).toHaveCount(1);
+  });
+
+  test('a step-down protocol is shaded and flagged phase by phase', async ({ page }) => {
+    await openTool(page);
+    await page.selectOption('#protocolPreset', 'stegen2014');
+    const flags = page.locator('#flags');
+    await expect(flags).toContainText('Dosing at 3.2 g/day runs past week 4.0, the longest study at a comparable dose.');
+    await expect(flags).toContainText('No study measured 1.2 g/day straight after 3.2 g/day, so weeks 6.6 to 12.6 are shaded.');
+    // Weeks 4 to 12.6 are one unbroken shaded stretch.
+    await expect(page.locator('#chart rect.beyond')).toHaveCount(1);
+    const rects = await page.locator('#chart rect.beyond').evaluateAll((els) => els.map((e) => Number(e.getAttribute('width'))));
+    expect(rects.every((w) => w > 0)).toBe(true);
   });
 
   test('the edge table covers each phase end and the washout end', async ({ page }) => {
