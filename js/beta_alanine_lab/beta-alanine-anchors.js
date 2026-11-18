@@ -116,12 +116,20 @@ export function literatureAnchors({ observations, washouts, claims }) {
         unit: 'g carnosine/day; lowest, middle and highest of the four washout half-lives', expected: 'inside', digits: 2
     });
 
-    // The same loss rate on Baguet 2009's own loaded excess, about 2 mM (wet, MRS).
+    // Baguet 2009, about 2 mM loaded (wet, MRS): share gone at 3 weeks, then the
+    // linear rate over the 9-week washout against the model's mean loss over 63 days.
     anchors.push({
-        id: 'baguet_excess_loss', sourceIds: ['baguet2009'], claimIds: ['washout_rate_baguet'],
-        title: 'Loss of the loaded excess after stopping, about 2 mM above baseline',
-        measured: claims.washout_rate_baguet.value, measuredText: `${claims.washout_rate_baguet.value} mM/day`,
-        model: spread(kds.map((kd) => kd * 2)), unit: 'mM/day; the four washout half-lives', expected: 'inside', digits: 3
+        id: 'baguet_3wk_share', sourceIds: ['baguet2009'], claimIds: ['washout_3wk_baguet'],
+        title: 'Share of the loaded excess gone 3 weeks after stopping',
+        measured: claims.washout_3wk_baguet.value * 100, measuredText: `${(claims.washout_3wk_baguet.value * 100).toFixed(1)}%`,
+        model: spread(kds.map((kd) => (1 - Math.exp(-21 * kd)) * 100)), unit: '%; the four washout half-lives', expected: 'inside', digits: 1
+    });
+    anchors.push({
+        id: 'baguet_excess_loss', sourceIds: ['baguet2009'], claimIds: ['washout_rate_baguet', 'washout_firstorder_baguet'],
+        title: 'Mean loss of a 2 mM loaded excess over the 9-week washout',
+        measured: claims.washout_rate_baguet.value, measuredText: `${claims.washout_rate_baguet.value} mM/day, linear`,
+        model: spread(kds.map((kd) => (2 * (1 - Math.exp(-63 * kd))) / 63)), unit: 'mM/day averaged over 63 days; the four washout half-lives', expected: 'model-below', digits: 3,
+        note: `Known gap: Baguet's loss was linear and the excess was gone by week 9. The first-order model still holds a quarter to a half of it then; Baguet notes first-order kinetics would leave ${(claims.washout_firstorder_baguet.value * 100).toFixed(1)}%.`
     });
 
     // Supply that holds a whole vegetarian baseline of 14 mmol/kg dm, D = kd x 14 / slope

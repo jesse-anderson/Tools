@@ -1227,11 +1227,27 @@ export const CLAIMS = Object.freeze({
   },
   "washout_rate_baguet": {
     "topic": "turnover",
-    "claim": "After loading, carnosine was eliminated at about 0.03 mM/day (0.21 mM/wk, MRS wet weight), with a loading gain of about 2 mM (23-39%)",
+    "claim": "After loading, carnosine was eliminated at about 0.03 mM/day (0.21 mM/wk, MRS wet weight), with a loading gain of about 2 mM (23-39%); the rate is linear over the 9-week washout, 0.57 mM gone at 3 wk and back to baseline by 9 wk",
     "value": 0.03,
     "sourceId": "baguet2009",
     "location": "Discussion",
-    "use": "anchor (loss of the loaded excess)"
+    "use": "anchor (loss of the loaded excess over 9 weeks)"
+  },
+  "washout_3wk_baguet": {
+    "topic": "turnover",
+    "claim": "For the three muscles together only 31.8% of the average increase in carnosine content had disappeared after a washout period of 3 wk",
+    "value": 0.318,
+    "sourceId": "baguet2009",
+    "location": "Results",
+    "use": "anchor (share of the loaded excess lost in 3 weeks)"
+  },
+  "washout_firstorder_baguet": {
+    "topic": "turnover",
+    "claim": "If muscle carnosine elimination follows a first-order kinetics it would be expected that 34.3% of the initial increase is then still present at 9 wk, which is clearly not the case",
+    "value": 0.343,
+    "sourceId": "baguet2009",
+    "location": "Discussion",
+    "use": "anchor note (linear against first-order washout)"
   },
   "endogenous_spelnikov": {
     "topic": "endogenous",

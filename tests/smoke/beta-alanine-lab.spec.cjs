@@ -774,12 +774,13 @@ test.describe('literature anchors', () => {
   test('every anchor gives the verdict this model version states', async ({ page }) => {
     const anchors = await page.evaluate(() => window.BetaAlanine.anchors.map((a) => ({ id: a.id, verdict: a.verdict, expected: a.expected })));
     expect(anchors.map((a) => a.id)).toEqual(['rezende_4wk', 'saunders_wk4', 'saunders_wk12', 'saunders_wk24', 'delfavero_older', 'stegen_12', 'incorporation',
-      'bex_inactive', 'bex_trained', 'blancquaert_08', 'turnover_baseline', 'baguet_excess_loss', 'spelnikov_supply',
+      'bex_inactive', 'bex_trained', 'blancquaert_08', 'turnover_baseline', 'baguet_3wk_share', 'baguet_excess_loss', 'spelnikov_supply',
       'blancquaert17_slowdown', 'varanoske_sr', 'varanoske_rr']);
     for (const a of anchors) expect(a.verdict, a.id).toBe(a.expected);
     // The known misses: the model slows less than measured (Saunders week 24, and
-    // Blancquaert 2017 within 23 days), and below the fitted doses it runs under the low-dose study.
-    expect(anchors.filter((a) => a.verdict !== 'inside').map((a) => [a.id, a.verdict])).toEqual([['saunders_wk24', 'model-above'], ['blancquaert_08', 'model-below'], ['blancquaert17_slowdown', 'model-above']]);
+    // Blancquaert 2017 within 23 days), below the fitted doses it runs under the low-dose study,
+    // and its first-order washout keeps more of Baguet's excess at 9 weeks than the linear loss measured.
+    expect(anchors.filter((a) => a.verdict !== 'inside').map((a) => [a.id, a.verdict])).toEqual([['saunders_wk24', 'model-above'], ['blancquaert_08', 'model-below'], ['baguet_excess_loss', 'model-below'], ['blancquaert17_slowdown', 'model-above']]);
   });
 
   test('anchor measurements are the archived figures, not numbers typed into the module', async ({ page }) => {
@@ -823,7 +824,7 @@ test.describe('literature anchors', () => {
   test('the audit trail prints each anchor with its verdict', async ({ page }) => {
     await page.locator('#auditFold > summary').click();
     const rows = page.locator('#anchorTable tbody tr');
-    await expect(rows).toHaveCount(16);
+    await expect(rows).toHaveCount(17);
     await expect(page.locator('#anchorTable tr[data-anchor="varanoske_rr"]')).toContainText('+2.62 mmol/kg wet');
     await expect(page.locator('#anchorTable tr[data-anchor="blancquaert17_slowdown"]')).toContainText('0.81 against 1.42 mM (0.57)');
     // Small figures print with enough digits to read: 0.03 mM/day, not 0.0.
@@ -849,9 +850,16 @@ test.describe('literature anchors', () => {
     expect(a.turnover_baseline.model.p90).toBeCloseTo(turnover[3], 6);
     expect(a.turnover_baseline.measured).toBe(0.5);
     expect(claims.turnover_blancquaert.claim).toContain('about 0.5 g/d');
-    // Baguet 2009's loss of a 2 mM loaded excess: kd x 2.
+    // Baguet 2009: the linear rate spans the 9-week washout, so the model's side is the mean
+    // loss of a 2 mM excess over 63 days; the 3-week share gone is 1 - e^(-21 kd).
     expect(claims.washout_rate_baguet.claim).toContain('about 2 mM');
-    const loss = kds.map((kd) => kd * 2).sort((x, y) => x - y);
+    expect(claims.washout_rate_baguet.claim).toContain('back to baseline by 9 wk');
+    expect(Number(claims.washout_3wk_baguet.value)).toBe(0.318);
+    expect(a.baguet_3wk_share.measured).toBeCloseTo(31.8, 9);
+    const gone = kds.map((kd) => (1 - Math.exp(-21 * kd)) * 100).sort((x, y) => x - y);
+    expect(a.baguet_3wk_share.model.p10).toBeCloseTo(gone[0], 6);
+    expect(a.baguet_3wk_share.model.p90).toBeCloseTo(gone[3], 6);
+    const loss = kds.map((kd) => (2 * (1 - Math.exp(-63 * kd))) / 63).sort((x, y) => x - y);
     expect(a.baguet_excess_loss.model.p10).toBeCloseTo(loss[0], 6);
     expect(a.baguet_excess_loss.model.p90).toBeCloseTo(loss[3], 6);
     // Supply that holds 14 mmol/kg dm, kd x 14 / slope over all 24 pairings, from fits.json.

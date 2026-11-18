@@ -568,7 +568,7 @@ export function renderAudit(node, anchors = []) {
         'sex_absolute', 'kf_high_dose_sublinear', 'washout_baguet_split', 'age_drop', 'elderly_rise', 'fate_transaminases', 'fate_incorporation',
         'fate_breakdown_product', 'urine_cc', 'urine_tt', 'agxt2_no_carnosine', 'plasma_half_life', 'plasma_half_life_14', 'plasma_half_life_sr8',
         'tau_t_down', 'saunders_still_rising', 'saunders_slowdown', 'taurine_24wk', 'taurine_meta', 'taurine_rodent', 'side_effects_meta',
-        'breakfast_profile', 'body_mass_plasma', 'tingle_sr_5g', 'tingle_sr_8g', 'turnover_blancquaert', 'washout_rate_baguet', 'endogenous_spelnikov',
+        'breakfast_profile', 'body_mass_plasma', 'tingle_sr_5g', 'tingle_sr_8g', 'turnover_blancquaert', 'washout_rate_baguet', 'washout_3wk_baguet', 'washout_firstorder_baguet', 'endogenous_spelnikov',
         'endogenous_route_uracil', 'endogenous_route_gadl1', 'diet_baguet', 'diet_solis', 'diet_removal', 'low_dose_08', 'low_dose_04', 'genes_mice',
         'training_inactive', 'training_trained', 'trained_muscle', 'mrgd_receptor', 'itch_human', 'cns_sites', 'brain_carnosine', 'solubility_enthalpy', 'browning_ph',
         'early_slowdown', 'histidine_drop', 'histidine_not_limiting', 'fasting_plasma_6g', 'fasting_plasma_32', 'bup_human', 'bup_rat', 'insulin_no_uptake', 'uptake_km', 'plasma_peak_40', 'varanoske_sr', 'varanoske_rr', 'hiit_vegetarian', 'histidine_meta'];
