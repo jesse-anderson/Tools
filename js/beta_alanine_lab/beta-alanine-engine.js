@@ -135,9 +135,17 @@ export function responseFactor(cv, rng) {
     return Math.exp(-s2 / 2 + Math.sqrt(s2) * normalDraw(rng));
 }
 
-/** Rezende 2020 response SD 6.6 around a mean 4-week rise of 14.0 mmol/kg dm. */
-export function responseCv(sd = 6.6, mean = 14.0) {
-    return sd / mean;
+// Rezende 2020: response SD 6.6 mmol/kg dm around a mean 4-week rise of 14.0 (claim response_sd).
+export const RESPONSE_SD = 6.6;
+
+/**
+ * CV of a mean-1 factor F that brings the spread of F x paper draws up to the
+ * total SD. Var(F X) = sd^2 + cv^2 (sd^2 + mean^2) for independent F and X, so
+ * the paper spread is not counted twice. 0 when the papers already reach it.
+ */
+export function responseCv(paperMean, paperSd, totalSd = RESPONSE_SD) {
+    const extra = totalSd * totalSd - paperSd * paperSd;
+    return extra > 0 ? Math.sqrt(extra / (paperSd * paperSd + paperMean * paperMean)) : 0;
 }
 
 /** Grams of carnosine in a muscle mass (wet kg) at a dry-muscle concentration. */

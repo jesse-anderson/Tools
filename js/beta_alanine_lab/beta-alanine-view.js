@@ -493,7 +493,19 @@ export function computeChecks() {
     return { linear, linearTarget: [1.83 * WET_TO_DRY, 2.01 * WET_TO_DRY, 2.19 * WET_TO_DRY], emax, observations, fits };
 }
 
-export function renderAudit(node, anchors = []) {
+/**
+ * The person-to-person paragraph, from figures computed on Rezende's protocol:
+ * { cv, mean, sd } of the paper-only draws, and the 4-week band off and on.
+ */
+function personParagraph({ cv, mean, sd, off, on }) {
+    const total = CLAIMS.response_sd.value;
+    const median = 1 / Math.sqrt(1 + cv * cv);
+    const band = (b) => `${fmt(b.p50, 1)} (${fmt(b.p10, 1)} to ${fmt(b.p90, 1)})`;
+    return h('p', {}, [`Person-to-person variation, when switched on, multiplies each draw by a lognormal factor with mean 1 and a coefficient of variation of ${fmt(cv, 2)}. The papers alone already spread the 4-week rise at 6.4 g/day (SD ${fmt(sd, 1)} around ${fmt(mean, 1)}), so the factor adds only what brings the total to the response SD of ${fmt(total, 1)} around a mean rise of 14.0 mmol/kg dm (`, sourceLink('rezende2020'),
+        `), counting the spread between studies once. The lognormal shape is an engineering assumption. It stretches a 4-week spread over the whole timeline, which is why it is off by default. At 4 weeks it moves the middle and 10th to 90th from ${band(off)} to ${band(on)}. The middle falls by more than the factor's own median of ${fmt(median, 2)}: the paper draws sit in two clusters (Saunders and Hill low, the rest high), and the factor fills the gap between them.`]);
+}
+
+export function renderAudit(node, anchors = [], person = null) {
     clear(node);
     const checks = computeChecks();
     const claim = (id) => CLAIMS[id];
@@ -552,7 +564,7 @@ export function renderAudit(node, anchors = []) {
 
     section('The band', [
         h('p', { text: `About ${DEFAULT_DRAWS} seeded draws (xorshift32, the generator shared with the Creatine Lab), spread evenly over the ${WASHOUT_RATES.length * loadingPapers(LOADING_OBSERVATIONS).length} pairings of a washout study with a loading study, so every pairing has equal weight, not weight by participants. Each draw samples that washout study's half-life and refits the loading study's slope at it. The chart shows the median and the 10th to 90th percentile of the draws on each day. An edge is the draws within ${EDGE_WINDOW * 100}% of all draws either side of its percentile; a paper under ${NAME_SHARE_MIN * 100}% of an edge is not named.` }),
-        h('p', {}, ['Person-to-person variation, when switched on, multiplies each draw by a factor with mean 1 and a coefficient of variation of 0.47, from the response SD of 6.6 around a 4-week mean rise of 14.0 mmol/kg dm (', sourceLink('rezende2020'), '). The lognormal shape is an engineering assumption. It stretches a 4-week spread over the whole timeline and may count some cohort differences twice, which is why it is off by default. Because the factor\'s mean is 1, its median is about 0.9, so the middle line drops slightly when it is on.']),
+        ...(person ? [personParagraph(person)] : []),
         h('p', { text: 'Leave-one-paper-out test, from Phase 0: with each loading study held out in turn, 10 of its 17 points fell inside the band built from the rest, against about 14 expected. Nearly every miss was Saunders 2017: without it, the shorter studies predict a long-run rise about 50% above what Saunders measured. Long courses level off faster than the washout half-lives imply, and Saunders is the only study past 10 weeks. That is why the band is shaded past the longest comparable study rather than given another fitted parameter.' }),
         h('p', {}, ['Saunders also reported the maximum: ', claim('saunders_max').claim, ...cite('saunders_max'), '.'])
     ]);

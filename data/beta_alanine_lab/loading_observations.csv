@@ -8,7 +8,7 @@ saunders2017,6.4 g/d 24 wk,VL,HPLC biopsy,sustained release,0-168:6.4,168,20.15,
 hill2007,ramp to 6.4 g/d,VL,HPLC biopsy,plain,0-7:4.0;7-14:4.8;14-21:5.6;21-70:6.4,28,10.2,,fit,"Results; Table 2 dosing","19.9 to 30.1. Table 2 read as weeks 1, 2, 3 at 4.0, 4.8, 5.6 g/d and 6.4 g/d from week 4; Rezende Table 1 lists one more week at 6.4"
 hill2007,ramp to 6.4 g/d,VL,HPLC biopsy,plain,0-7:4.0;7-14:4.8;14-21:5.6;21-70:6.4,70,14.8,3.7,fit,"Results","19.9 to 34.7; 8 divided doses per day"
 harris2006,3.2 g/d,VL,HPLC biopsy,plain,0-28:3.2,28,7.80,,fit,"Rezende Table 1 (19.58 to 27.38); also cited by Stellingwerff 2012","800 mg 4x/day at about 9, 12, 15 and 18 h"
-harris2006,ramp avg 5.2 g/d,VL,HPLC biopsy,plain,0-28:5.2,28,11.14,,fit,"Rezende Table 1 (24.23 to 35.37); also cited by Stellingwerff 2012","145.6 g in 28 d as a 4.0 to 6.4 g/d weekly ramp of 400 and 800 mg doses; modeled at its 5.2 g/d average"
+harris2006,ramp 4.0 to 6.4 g/d,VL,HPLC biopsy,plain,0-7:4.0;7-14:4.8;14-21:5.6;21-28:6.4,28,11.14,,fit,"Rezende Table 1 (24.23 to 35.37); also cited by Stellingwerff 2012; schedule from Harris 2006 Methods","145.6 g in 28 d: 4.0 g/d in week 1, then two 400 mg doses raised to 800 mg each week to 6.4 g/d in week 4"
 stellingwerff2012,low-low 1.6 g/d,GA+TA mean,1H-MRS x4.3,sustained release,0-56:1.6,14,2.67,,fit,"Spelnikov 2019 Table 1 (wet x 4.3, Bergstrom 1962)","2 x 800 mg tablets twice daily with meals for 3.2 g/d; one tablet twice daily for 1.6 g/d"
 stellingwerff2012,low-low 1.6 g/d,GA+TA mean,1H-MRS x4.3,sustained release,0-56:1.6,28,4.28,,fit,"Spelnikov 2019 Table 1",
 stellingwerff2012,low-low 1.6 g/d,GA+TA mean,1H-MRS x4.3,sustained release,0-56:1.6,56,7.525,,fit,"Spelnikov 2019 Table 1",

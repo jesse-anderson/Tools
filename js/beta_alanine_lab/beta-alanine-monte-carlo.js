@@ -28,9 +28,34 @@ export function loadingPapers(observations) {
     return [...byPaper.entries()].map(([sourceId, points]) => ({ sourceId, points }));
 }
 
+// Rezende 2020's protocol, where the 6.6 response SD was measured.
+export const RESPONSE_PROTOCOL = Object.freeze({ doseGPerDay: 6.4, days: 28 });
+const cvCache = new WeakMap();
+
+/**
+ * The paper-only band's mean and SD on Rezende's protocol at day 28, and the
+ * person factor CV that tops that spread up to Rezende's 6.6. Cached per data set.
+ */
+export function personCv(loading, washouts, key = loading) {
+    let byWashouts = cvCache.get(key);
+    if (!byWashouts) cvCache.set(key, (byWashouts = new WeakMap()));
+    if (byWashouts.has(washouts)) return byWashouts.get(washouts);
+    const day = RESPONSE_PROTOCOL.days;
+    const b = runBand({ phases: [RESPONSE_PROTOCOL], washoutDays: 0, loadingPapers: loading, washouts, seed: DEFAULT_SEED });
+    let sum = 0;
+    for (let i = 0; i < b.draws; i++) sum += drawValue(b, i, day);
+    const mean = sum / b.draws;
+    let ss = 0;
+    for (let i = 0; i < b.draws; i++) ss += (drawValue(b, i, day) - mean) ** 2;
+    const sd = Math.sqrt(ss / (b.draws - 1));
+    const result = { mean, sd, cv: responseCv(mean, sd) };
+    byWashouts.set(washouts, result);
+    return result;
+}
+
 /**
  * Run the band. options: phases, washoutDays, observations, washouts,
- * draws, seed, individual (bool), muscle { centerKg, uncertainty }, wetToDry,
+ * draws, seed, individual (bool), responseCv (overrides the computed one), muscle { centerKg, uncertainty }, wetToDry,
  * target (mmol/kg dm rise for days-to-target), normalVariation (mmol/kg dm).
  */
 export function runBand(options) {
@@ -47,7 +72,7 @@ export function runBand(options) {
     const rngMuscle = createSeededRandom((seed ^ 0x85ebca6b) >>> 0);
     const { schedule, supplementDays } = buildSchedule(options.phases);
     const lastDay = Math.max(1, Math.round(supplementDays + Math.max(0, options.washoutDays || 0)));
-    const cv = options.individual ? responseCv() : 0;
+    const cv = options.individual ? (options.responseCv ?? personCv(loading, washouts, options.loadingPapers || options.observations).cv) : 0;
     const values = new Float64Array(draws * (lastDay + 1));
     const tags = [];
     const stopDay = Math.round(supplementDays);
@@ -80,7 +105,7 @@ export function runBand(options) {
         p90[d] = percentileSorted(sorted, 0.9);
     }
 
-    const band = { draws, lastDay, stopDay, supplementDays, values, tags, p10, p50, p90, individual: Boolean(options.individual) };
+    const band = { draws, lastDay, stopDay, supplementDays, values, tags, p10, p50, p90, individual: Boolean(options.individual), responseCv: cv };
     band.summary = summarize(band, options);
     return band;
 }

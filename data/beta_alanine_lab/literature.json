@@ -1,6 +1,6 @@
 {
   "about": "Reading record for the Beta-Alanine Lab: one entry per paper read, wanted or known only secondhand, plus a log of searches and what they found, so the literature review is not repeated. Numbers the page uses live in claims.csv, loading_observations.csv, washout_rates.csv and solubility.csv; this file says what each paper is, what was read, what it feeds and what it leaves open. The spec checks it against the manifest and those CSVs.",
-  "updated": "2026-11-15",
+  "updated": "2026-11-17",
   "verified": "Every DOI, volume and first page checked against Crossref on 2026-11-15; six were wrong when written from memory and are corrected.",
   "statusValues": {
     "archived": "PDF in sources/ with a manifest row marked ok",
@@ -1121,6 +1121,36 @@
         }
       ],
       "whyNeeded": null
+    },
+    {
+      "id": "ozdemir2007",
+      "status": "wanted",
+      "doi": "10.1088/0031-9155/52/23/001",
+      "file": "physmedbiol_2007_ozdemir_carnosine_mrs_quantification.pdf",
+      "access": "IOP, likely paywalled",
+      "citation": "Ozdemir MS et al. 2007, Phys Med Biol 52:6781. Absolute quantification of carnosine in human calf muscle by proton magnetic resonance spectroscopy",
+      "design": "Method paper for the Ghent 1H-MRS carnosine figures (water signal as internal reference)",
+      "role": "Unit basis of every Ghent MRS mM figure",
+      "priority": 1,
+      "whyNeeded": "Audit 2.3: says whether Ghent MRS 'mM' is per kg wet muscle or per liter of muscle water. At per liter of water the factor to dry muscle is about 3.3, not 4.3, and blancquaert_08 moves from model-below to inside.",
+      "feeds": [],
+      "extraFindings": [],
+      "caveats": []
+    },
+    {
+      "id": "baguet2010",
+      "status": "wanted",
+      "doi": "10.1152/japplphysiol.00141.2010",
+      "file": "japplphysiol_2010_baguet_carnosine_rowing.pdf",
+      "access": "open, but 403 to scripts",
+      "citation": "Baguet A et al. 2010, J Appl Physiol 109:1096. Important role of muscle carnosine in rowing performance",
+      "design": "1H-MRS carnosine in rowers; the 'as described before by Baguet et al.' that Stegen 2013, 2014, Baguet 2012 and Blancquaert 2017 cite for the mM calculation",
+      "role": "Unit basis of every Ghent MRS mM figure",
+      "priority": 2,
+      "whyNeeded": "Audit 2.3: the later Ghent papers compute 'absolute carnosine content (mM)' as described in this paper, so its formula (water concentration assumed, wet weight or water basis) settles the wet-to-dry factor for the MRS anchors.",
+      "feeds": [],
+      "extraFindings": [],
+      "caveats": []
     }
   ],
   "searches": [
@@ -1211,6 +1241,16 @@
         "abstract text of harris2008 and harris2009 pasted by the user"
       ],
       "found": "Nemezio: inactive and active muscle loaded similarly, against Bex. Varanoske 2017: no clear sex difference in loading, histidine unchanged. Harris 2009 confirms the values already in the fit (+15.4, t1/2 8.6 wk); Harris 2008 plasma peaks fit Decombaz. The FASEB abstracts are acknowledged with caveats and give no new claims."
+    },
+    {
+      "date": "2026-11-17",
+      "question": "Is Ghent MRS carnosine in mM per kg wet muscle or per liter of muscle water, and over what window is Baguet 2009's 0.21 mM/wk?",
+      "tried": [
+        "full text of baguet2009, stegen2013, stegen2014, blancquaert2017, blancquaert2018, baguet2012",
+        "Crossref for Ozdemir 2007 and Baguet 2010",
+        "journals.physiology.org (403 to scripts, as before)"
+      ],
+      "found": "Baguet 2009: 0.21 mM/wk is linear over the 9-week washout (0.57 mM at 3 wk, 31.8% of the gain; baseline by 9 wk; first order would leave 34.3%). Unit basis: every Ghent paper quantifies against the water signal and defers to Baguet 2010 or Ozdemir 2007 for the mM calculation; neither is archived, so the basis is not settled."
     }
   ],
   "openQuestions": [

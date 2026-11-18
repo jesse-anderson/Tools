@@ -1,7 +1,7 @@
 // Beta-Alanine Lab controller: state, inputs, storage and wiring.
 
 import * as Engine from './beta-alanine-engine.js';
-import { runBand, attributeEdge, paperMedian, loadingPapers, doseForGoal, DEFAULT_SEED } from './beta-alanine-monte-carlo.js';
+import { runBand, attributeEdge, paperMedian, loadingPapers, doseForGoal, personCv, RESPONSE_PROTOCOL, DEFAULT_SEED } from './beta-alanine-monte-carlo.js';
 import { SOURCES, CLAIMS, LOADING_OBSERVATIONS, WASHOUT_RATES, PRICE_TIERS, WET_TO_DRY, SOLUBILITY } from './beta-alanine-data.js';
 import { PROTOCOL_PRESETS, BASELINE_PRESETS } from './beta-alanine-presets.js';
 import { drawChart } from './beta-alanine-chart.js';
@@ -655,12 +655,23 @@ function wireSaved() {
 let anchors = [];
 
 window.BetaAlanine = {
-    ...Engine, runBand, attributeEdge, paperMedian, loadingPapers, doseForGoal, computeChecks, turnoverFigures,
+    ...Engine, runBand, attributeEdge, paperMedian, loadingPapers, doseForGoal, personCv, computeChecks, turnoverFigures,
     data: { SOURCES, CLAIMS, LOADING_OBSERVATIONS, WASHOUT_RATES, PRICE_TIERS, WET_TO_DRY, SOLUBILITY },
     presets: { PROTOCOL_PRESETS, BASELINE_PRESETS },
     getState: () => JSON.parse(JSON.stringify(state)),
     lastBand: null
 };
+
+// The person factor's CV and the 4-week band with it off and on, for the audit trail.
+function personFigures() {
+    const { mean, sd, cv } = personCv(loadingPapers(LOADING_OBSERVATIONS), WASHOUT_RATES, LOADING_OBSERVATIONS);
+    const at = (individual) => {
+        const b = runBand({ phases: [RESPONSE_PROTOCOL], washoutDays: 0, observations: LOADING_OBSERVATIONS, washouts: WASHOUT_RATES, individual });
+        const d = RESPONSE_PROTOCOL.days;
+        return { p10: b.p10[d], p50: b.p50[d], p90: b.p90[d] };
+    };
+    return { mean, sd, cv, off: at(false), on: at(true) };
+}
 
 function init() {
     buildPresetSelect();
@@ -674,7 +685,7 @@ function init() {
     window.BetaAlanine.anchors = anchors;
     renderSafety($('safetySentence'));
     renderFoodNote($('foodNote'));
-    renderAudit($('audit'), anchors);
+    renderAudit($('audit'), anchors, personFigures());
     renderSources($('sourceList'));
     compute();
     render();

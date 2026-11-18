@@ -296,8 +296,9 @@ test.describe('band', () => {
     expect(r.draws).toBe(2016);
     expect(Math.abs(r.p50 - 14.0)).toBeLessThan(1.0);
     // Goldens from this build. With equal draws per pairing the median holds at
-    // 14.81 across seeds; Phase 0's Python run gave 8.3 and 19.1 for the edges.
-    expect(r.p50).toBeCloseTo(14.81, 2);
+    // 14.73 across seeds (14.81 before Harris 2006's ramp was fitted week by week, phase 9);
+    // Phase 0's Python run gave 8.3 and 19.1 for the edges.
+    expect(r.p50).toBeCloseTo(14.73, 2);
     expect(Math.abs(r.p10 - 8.3)).toBeLessThan(0.2);
     expect(r.p90).toBeCloseTo(19.09, 2);
     expect(r.factors.every((f) => f === 1)).toBe(true);
@@ -354,22 +355,37 @@ test.describe('band', () => {
     expect(r).toEqual({ muscle: true, halfLives: true });
   });
 
-  test('person-to-person variation widens the band and has mean 1, CV 0.47', async ({ page }) => {
+  test('person-to-person variation tops the paper spread up to Rezende\'s 6.6, counting it once', async ({ page }) => {
     const off = await page.evaluate(runDefault(false));
     const on = await page.evaluate(runDefault(true));
     expect(on.p90 - on.p10).toBeGreaterThan(off.p90 - off.p10);
-    const stats = await page.evaluate(() => {
+    const r = await page.evaluate(() => {
       const B = window.BetaAlanine;
+      const base = { phases: [{ doseGPerDay: 6.4, days: 28 }], washoutDays: 0, observations: B.data.LOADING_OBSERVATIONS, washouts: B.data.WASHOUT_RATES };
+      const day28 = (b) => Array.from({ length: b.draws }, (_, i) => b.values[i * (b.lastDay + 1) + 28]);
+      const person = B.personCv(B.loadingPapers(B.data.LOADING_OBSERVATIONS), B.data.WASHOUT_RATES, B.data.LOADING_OBSERVATIONS);
+      const onBand = B.runBand({ ...base, individual: true });
       let s = 0xC0FFEE;
       const rng = () => { s ^= s << 13; s >>>= 0; s ^= s >>> 17; s ^= s << 5; s >>>= 0; return s / 4294967296; };
-      const xs = Array.from({ length: 200000 }, () => B.responseFactor(B.responseCv(), rng));
-      const mean = xs.reduce((a, b) => a + b, 0) / xs.length;
-      const sd = Math.sqrt(xs.reduce((a, b) => a + (b - mean) ** 2, 0) / xs.length);
-      return { mean, cv: sd / mean, target: B.responseCv() };
+      const xs = Array.from({ length: 200000 }, () => B.responseFactor(person.cv, rng));
+      return { papers: day28(B.runBand(base)), withFactor: day28(onBand), bandCv: onBand.responseCv, person, xs, sdClaim: B.data.CLAIMS.response_sd.value };
     });
-    expect(stats.target).toBeCloseTo(6.6 / 14.0, 9);
-    expect(Math.abs(stats.mean - 1)).toBeLessThan(0.01);
-    expect(Math.abs(stats.cv - stats.target)).toBeLessThan(0.02);
+    const moments = (v) => { const m = v.reduce((a, b) => a + b, 0) / v.length; return { m, sd: Math.sqrt(v.reduce((a, b) => a + (b - m) ** 2, 0) / (v.length - 1)) }; };
+    const p = moments(r.papers);
+    expect(r.sdClaim).toBe(6.6);
+    expect(r.person.mean).toBeCloseTo(p.m, 9);
+    expect(r.person.sd).toBeCloseTo(p.sd, 9);
+    // Var(F X) = sd^2 + cv^2 (sd^2 + mean^2) for a mean-1 factor F independent of X.
+    const cv = Math.sqrt((6.6 ** 2 - p.sd ** 2) / (p.sd ** 2 + p.m ** 2));
+    expect(r.person.cv).toBeCloseTo(cv, 9);
+    expect(r.bandCv).toBeCloseTo(cv, 9);
+    expect(cv).toBeGreaterThan(0.3);
+    expect(cv).toBeLessThan(0.47);
+    // The drawn total lands near 6.6, not the 7.7 the old CV of 6.6 / 14.0 gave.
+    expect(Math.abs(moments(r.withFactor).sd - 6.6)).toBeLessThan(0.3);
+    const f = moments(r.xs);
+    expect(Math.abs(f.m - 1)).toBeLessThan(0.01);
+    expect(Math.abs(f.sd / f.m - cv)).toBeLessThan(0.02);
   });
 
   test('the seeded band is reproducible and the RNG is the Creatine Lab\'s', async ({ page }) => {
@@ -510,7 +526,7 @@ test.describe('band', () => {
     expect(r.low).toBeCloseTo(10, 1);
     expect(r.g.p10).toBeLessThan(r.g.p50);
     expect(r.g.p50).toBeLessThan(r.g.p90);
-    expect(r.g.p50).toBeCloseTo(6.4 * 10 / 14.81, 1);
+    expect(r.g.p50).toBeCloseTo(6.4 * 10 / 14.73, 1);
     expect(r.none).toBeNull();
   });
 
@@ -809,13 +825,13 @@ test.describe('literature anchors', () => {
       return { a, ref28: B.lastBand.p50[28], df84: df.p50[84], older, ageDrop: B.data.CLAIMS.age_drop.value };
     });
     // 4 weeks at 6.4 g/day is the band golden.
-    expect(r.a.rezende_4wk.p50).toBeCloseTo(14.81, 2);
+    expect(r.a.rezende_4wk.p50).toBeCloseTo(14.73, 2);
     // del Favero: 3.2 g/day for 12 weeks over the older-adult baseline, 22.9 less 15%.
     expect(r.older).toBe(19.5);
     expect(r.older).toBeCloseTo(22.9 * (1 - r.ageDrop), 1);
     expect(r.a.delfavero_older.p50).toBeCloseTo((100 * r.df84) / 19.5, 6);
     // Incorporation worked out here: rise x dry muscle (40% of 70 kg, wet to dry 4.3) over mmol taken.
-    const share = (14.81 * (70 * 0.4 / WET_TO_DRY)) / ((6.4 * 28 / 89.09) * 1000) * 100;
+    const share = (14.73 * (70 * 0.4 / WET_TO_DRY)) / ((6.4 * 28 / 89.09) * 1000) * 100;
     expect(r.a.incorporation.p50).toBeCloseTo(share, 1);
     expect(r.a.incorporation.p50).toBeGreaterThan(3);
     expect(r.a.incorporation.p50).toBeLessThan(6);
@@ -971,7 +987,7 @@ test.describe('page', () => {
     await expect.poll(() => page.evaluate(() => Boolean(window.BetaAlanine && window.BetaAlanine.ready))).toBe(true);
     await expect(page.locator('#protocolPreset')).toHaveValue('reference');
     await expect(page.locator('#cards')).toContainText('179.2 g');
-    await expect(page.locator('#cards')).toContainText('14.8 mmol/kg dm');
+    await expect(page.locator('#cards')).toContainText('14.7 mmol/kg dm');
     await expect(page.locator('#chart polygon.band').first()).toBeAttached();
     await expect(page.locator('details.disclaimer-card')).toHaveCount(1);
     await expect(page.locator('p.disclaimer')).toHaveCount(1);
@@ -1055,6 +1071,18 @@ test.describe('page', () => {
     await openTool(page);
     await page.locator('#individualSwitch').check();
     await expect(page.locator('#chartCaption')).toContainText('person-to-person');
+    // The audit trail prints the computed CV and both 4-week bands, not typed figures.
+    const want = await page.evaluate(() => {
+      const B = window.BetaAlanine;
+      const opts = (individual) => ({ phases: [{ doseGPerDay: 6.4, days: 28 }], washoutDays: 0, observations: B.data.LOADING_OBSERVATIONS, washouts: B.data.WASHOUT_RATES, individual });
+      const f = (b) => `${b.p50[28].toFixed(1)} (${b.p10[28].toFixed(1)} to ${b.p90[28].toFixed(1)})`;
+      const on = B.runBand(opts(true));
+      return { cv: on.responseCv.toFixed(2), bands: `from ${f(B.runBand(opts(false)))} to ${f(on)}` };
+    });
+    const audit = page.locator('#audit');
+    await expect(audit).toContainText(`a coefficient of variation of ${want.cv}.`);
+    await expect(audit).toContainText(`At 4 weeks it moves the middle and 10th to 90th ${want.bands}.`);
+    await expect(audit).not.toContainText('coefficient of variation of 0.47');
     await page.selectOption('#massUnit', 'lb');
     await expect(page.locator('#bodyMass')).toHaveValue('154.3');
     await page.selectOption('#baselinePreset', 'women');
@@ -1305,7 +1333,7 @@ test.describe('page', () => {
     await page.fill('#ownGrams', '500');
     const own = page.locator('#costCards .card').first();
     await expect(own).toContainText('Your price');
-    // $0.06 a gram: 179.2 g is $10.75, 6.4 g/day is $2.69 a week, and over a 14.81 rise $0.73.
+    // $0.06 a gram: 179.2 g is $10.75, 6.4 g/day is $2.69 a week, and over a 14.73 rise $0.73.
     await expect(own).toContainText('$0.060 per gram');
     await expect(own).toContainText('phase 1 $2.69 a week');
     await expect(own).toContainText('$11 total');
@@ -1366,7 +1394,9 @@ test.describe('page', () => {
     await expect(target).toContainText('10th: 21 days; middle and 90th: not reached while dosing; 50% of draws reach it while dosing');
     const normal = page.locator('#cards .card', { hasText: 'Back within normal variation' });
     await expect(normal).toContainText('Not within the 8 weeks shown');
-    await expect(normal).toContainText('middle and 90th: not within the 8 weeks shown; 33% of draws get there within the 8 weeks shown');
+    const back = await page.evaluate(() => Math.round(window.BetaAlanine.lastBand.summary.normalReachedShare * 100));
+    expect(back).toBeLessThan(50);
+    await expect(normal).toContainText(`middle and 90th: not within the 8 weeks shown; ${back}% of draws get there within the 8 weeks shown`);
   });
 
   test('the tooltip prints the day\'s band and edge shares, and arrows step a day or a week', async ({ page }) => {
@@ -1454,7 +1484,8 @@ test.describe('page', () => {
     const card = page.locator('#goalResult .card');
     const button = page.locator('#useGoalDose');
     await expect(card).toContainText('Daily dose for a rise of 10.0 by week 4');
-    await expect(card).toContainText('4.3 g/day');
+    // 6.4 x 10 / 14.73, the 4-week middle line.
+    await expect(card).toContainText('4.4 g/day');
     await expect(button).toBeEnabled();
     await page.fill('#goalRise', '40');
     await expect(card).toContainText('No estimate');
@@ -1474,15 +1505,16 @@ test.describe('page', () => {
     await button.click();
     await expect(page.locator('#protocolPreset')).toHaveValue('custom');
     await expect(page.locator('#phaseList fieldset')).toHaveCount(1);
-    await expect(page.locator('#phase0Dose')).toHaveValue('4.3');
+    await expect(page.locator('#phase0Dose')).toHaveValue('4.4');
     await expect(page.locator('#phase0Servings')).toHaveValue('4');
     await expect(page.locator('#phase0Length')).toHaveValue('4');
-    // Servings follow body mass: 4.3 g at 100 kg is under 20 mg/kg in 3 servings.
+    // Servings follow body mass: 4.4 g at 100 kg is under 20 mg/kg in 3 servings.
     await page.fill('#bodyMass', '100');
     await button.click();
     await expect(page.locator('#phase0Servings')).toHaveValue('3');
     await page.fill('#bodyMass', '70');
-    await expect(page.locator('#cards .card').first()).toContainText('10.0 mmol/kg dm');
+    // The dose is rounded to 4.4 g/day, so the rise is 4.4 x 14.73 / 6.4, about 10.1.
+    await expect(page.locator('#cards .card').first()).toContainText('10.1 mmol/kg dm');
     // The goal survives a reload.
     await page.fill('#goalRise', '12');
     await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('toolsHub.betaAlanine.last') || '{}').goalRise)).toBe('12');

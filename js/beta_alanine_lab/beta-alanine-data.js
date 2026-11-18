@@ -469,23 +469,38 @@ export const LOADING_OBSERVATIONS = Object.freeze([
   },
   {
     "sourceId": "harris2006",
-    "arm": "ramp avg 5.2 g/d",
+    "arm": "ramp 4.0 to 6.4 g/d",
     "muscle": "VL",
     "method": "HPLC biopsy",
     "form": "plain",
     "schedule": [
       [
         0.0,
+        7.0,
+        4.0
+      ],
+      [
+        7.0,
+        14.0,
+        4.8
+      ],
+      [
+        14.0,
+        21.0,
+        5.6
+      ],
+      [
+        21.0,
         28.0,
-        5.2
+        6.4
       ]
     ],
     "day": 28.0,
     "rise": 11.14,
     "sd": null,
     "role": "fit",
-    "location": "Rezende Table 1 (24.23 to 35.37); also cited by Stellingwerff 2012",
-    "note": "145.6 g in 28 d as a 4.0 to 6.4 g/d weekly ramp of 400 and 800 mg doses; modeled at its 5.2 g/d average"
+    "location": "Rezende Table 1 (24.23 to 35.37); also cited by Stellingwerff 2012; schedule from Harris 2006 Methods",
+    "note": "145.6 g in 28 d: 4.0 g/d in week 1, then two 400 mg doses raised to 800 mg each week to 6.4 g/d in week 4"
   },
   {
     "sourceId": "stellingwerff2012",

@@ -171,80 +171,80 @@
         "low": {
           "half_life_days": 22.4,
           "kd_per_day": 0.030944,
-          "slope": 0.11871,
-          "rms_mmol_kg_dm": 0.569
+          "slope": 0.11512,
+          "rms_mmol_kg_dm": 0.74
         },
         "central": {
           "half_life_days": 32.2,
           "kd_per_day": 0.021526,
-          "slope": 0.10573,
-          "rms_mmol_kg_dm": 0.569
+          "slope": 0.10347,
+          "rms_mmol_kg_dm": 0.69
         },
         "high": {
           "half_life_days": 49.0,
           "kd_per_day": 0.014146,
-          "slope": 0.09617,
-          "rms_mmol_kg_dm": 0.569
+          "slope": 0.09481,
+          "rms_mmol_kg_dm": 0.649
         }
       },
       "baguet2009": {
         "low": {
           "half_life_days": 35.0,
           "kd_per_day": 0.019804,
-          "slope": 0.10345,
-          "rms_mmol_kg_dm": 0.569
+          "slope": 0.10141,
+          "rms_mmol_kg_dm": 0.68
         },
         "central": {
           "half_life_days": 40.5,
           "kd_per_day": 0.017115,
-          "slope": 0.09995,
-          "rms_mmol_kg_dm": 0.569
+          "slope": 0.09824,
+          "rms_mmol_kg_dm": 0.666
         },
         "high": {
           "half_life_days": 46.0,
           "kd_per_day": 0.015068,
-          "slope": 0.09733,
-          "rms_mmol_kg_dm": 0.569
+          "slope": 0.09587,
+          "rms_mmol_kg_dm": 0.654
         }
       },
       "stellingwerff2012": {
         "low": {
           "half_life_days": 42.0,
           "kd_per_day": 0.016504,
-          "slope": 0.09916,
-          "rms_mmol_kg_dm": 0.569
+          "slope": 0.09753,
+          "rms_mmol_kg_dm": 0.662
         },
         "central": {
           "half_life_days": 46.0,
           "kd_per_day": 0.015068,
-          "slope": 0.09733,
-          "rms_mmol_kg_dm": 0.569
+          "slope": 0.09587,
+          "rms_mmol_kg_dm": 0.654
         },
         "high": {
           "half_life_days": 50.0,
           "kd_per_day": 0.013863,
-          "slope": 0.09581,
-          "rms_mmol_kg_dm": 0.569
+          "slope": 0.09448,
+          "rms_mmol_kg_dm": 0.648
         }
       },
       "harris2009": {
         "low": {
           "half_life_days": 60.0,
           "kd_per_day": 0.011552,
-          "slope": 0.09294,
-          "rms_mmol_kg_dm": 0.569
+          "slope": 0.09186,
+          "rms_mmol_kg_dm": 0.635
         },
         "central": {
           "half_life_days": 60.0,
           "kd_per_day": 0.011552,
-          "slope": 0.09294,
-          "rms_mmol_kg_dm": 0.569
+          "slope": 0.09186,
+          "rms_mmol_kg_dm": 0.635
         },
         "high": {
           "half_life_days": 60.0,
           "kd_per_day": 0.011552,
-          "slope": 0.09294,
-          "rms_mmol_kg_dm": 0.569
+          "slope": 0.09186,
+          "rms_mmol_kg_dm": 0.635
         }
       }
     },
@@ -596,7 +596,7 @@
       {
         "loading": "harris2006",
         "washout": "yamaguchi2021",
-        "rise_per_100g": 7.384,
+        "rise_per_100g": 7.227,
         "target_low_central_high": [
           7.869,
           8.643,
@@ -608,7 +608,7 @@
       {
         "loading": "harris2006",
         "washout": "baguet2009",
-        "rise_per_100g": 7.466,
+        "rise_per_100g": 7.339,
         "target_low_central_high": [
           7.869,
           8.643,
@@ -620,7 +620,7 @@
       {
         "loading": "harris2006",
         "washout": "stellingwerff2012",
-        "rise_per_100g": 7.509,
+        "rise_per_100g": 7.396,
         "target_low_central_high": [
           7.869,
           8.643,
@@ -632,7 +632,7 @@
       {
         "loading": "harris2006",
         "washout": "harris2009",
-        "rise_per_100g": 7.591,
+        "rise_per_100g": 7.502,
         "target_low_central_high": [
           7.869,
           8.643,
