@@ -253,6 +253,16 @@ export const SOURCES = Object.freeze({
     "label": "Harris et al. 2008, plasma profile of controlled-release beta-alanine",
     "url": "https://doi.org/10.1096/fasebj.22.1_supplement.701.9",
     "archived": true
+  },
+  "ozdemir2007": {
+    "label": "Ozdemir et al. 2007, Phys Med Biol 52(23):6781-94, absolute carnosine quantification by 1H-MRS",
+    "url": "https://doi.org/10.1088/0031-9155/52/23/001",
+    "archived": true
+  },
+  "baguet2010": {
+    "label": "Baguet et al. 2010, J Appl Physiol 109(4):1096-101, muscle carnosine and rowing",
+    "url": "https://doi.org/10.1152/japplphysiol.00141.2010",
+    "archived": true
   }
 });
 
@@ -1559,6 +1569,22 @@ export const CLAIMS = Object.freeze({
     "sourceId": "stellingwerff2012",
     "location": "Results (Week 8)",
     "use": "anchor (step down against steady low dose)"
+  },
+  "mrs_external_reference": {
+    "topic": "units",
+    "claim": "A 500-ml spherical container filled with an aqueous solution of 20 mM carnosine was used as an external reference for absolute quantification; [Cm] = [Cr] x (Sm x Vr x CT1r x CT2r x Tm) / (Sr x Vm x CT1m x CT2m x Tr), corrected for voxel volumes, relaxation, temperature and coil loading",
+    "value": 20.0,
+    "sourceId": "baguet2010",
+    "location": "Methods (1H-MRS)",
+    "use": "audit trail (Ghent MRS mM is per liter of tissue)"
+  },
+  "mrs_wet_equivalence": {
+    "topic": "units",
+    "claim": "Carnosine is present in relatively high concentrations in human skeletal muscles (5 mM in wet weight or 20 mmol/kg in dry weight)",
+    "value": 5.0,
+    "sourceId": "baguet2010",
+    "location": "Introduction",
+    "use": "audit trail (the Ghent group reads its mM as wet weight)"
   }
 });
 

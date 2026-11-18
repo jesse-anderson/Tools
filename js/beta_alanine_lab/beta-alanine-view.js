@@ -515,7 +515,8 @@ export function renderAudit(node, anchors = [], person = null) {
     section('Model', [
         h('p', {}, [claim('model_form').claim, ...cite('model_form'), '. The tool solves it exactly between dose changes, on the rise above baseline.']),
         h('p', {}, ['The authors fitted one decay rate by assumption (half-life 52 days); this tool replaces it with four washout studies. ', claim('kf_reference').claim, ...cite('kf_reference'), '.']),
-        h('p', {}, ['Biopsy studies (HPLC) are fitted in mmol/kg dry muscle as reported. Stellingwerff 2012 measured by MRS in wet weight, converted at x4.3 (Bergstrom 1962, as used by ', sourceLink('spelnikov2019'), '). The same factor turns dry into wet muscle for the grams estimate.'])
+        h('p', {}, ['Biopsy studies (HPLC) are fitted in mmol/kg dry muscle as reported. Stellingwerff 2012 measured by MRS in wet weight, converted at x4.3 (Bergstrom 1962, as used by ', sourceLink('spelnikov2019'), '). The same factor turns dry into wet muscle for the grams estimate.']),
+        h('p', {}, ['The Ghent MRS studies (Baguet, Stegen, Blancquaert) give mM against an external carnosine phantom, so per liter of muscle, not per liter of muscle water: ', claim('mrs_external_reference').claim, ...cite('mrs_external_reference'), '; the method is ', sourceLink('ozdemir2007'), '. The group reads it as wet weight: ', claim('mrs_wet_equivalence').claim, ...cite('mrs_wet_equivalence'), '. The anchors on those studies use x4.3 the same way.'])
     ]);
 
     const fitTable = h('table', { class: 'data-table' });
@@ -586,7 +587,7 @@ export function renderAudit(node, anchors = [], person = null) {
         'endogenous_route_uracil', 'endogenous_route_gadl1', 'diet_baguet', 'diet_solis', 'diet_removal', 'low_dose_08', 'low_dose_04', 'genes_mice',
         'training_inactive', 'training_trained', 'trained_muscle', 'mrgd_receptor', 'itch_human', 'cns_sites', 'brain_carnosine', 'solubility_enthalpy', 'browning_ph',
         'early_slowdown', 'histidine_drop', 'histidine_not_limiting', 'fasting_plasma_6g', 'fasting_plasma_32', 'bup_human', 'bup_rat', 'insulin_no_uptake', 'uptake_km', 'plasma_peak_40', 'varanoske_sr', 'varanoske_rr', 'hiit_vegetarian', 'histidine_meta',
-        'stell_wk8_hl_ta', 'stell_wk8_hl_ga', 'stell_wk8_ll_ta', 'stell_wk8_ll_ga'];
+        'stell_wk8_hl_ta', 'stell_wk8_hl_ga', 'stell_wk8_ll_ta', 'stell_wk8_ll_ga', 'mrs_external_reference', 'mrs_wet_equivalence'];
     const cl = h('ul');
     for (const id of claimIds) {
         const c = claim(id);

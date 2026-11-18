@@ -1125,33 +1125,40 @@
     },
     {
       "id": "ozdemir2007",
-      "status": "wanted",
+      "status": "archived",
       "doi": "10.1088/0031-9155/52/23/001",
-      "file": "physmedbiol_2007_ozdemir_carnosine_mrs_quantification.pdf",
-      "access": "IOP, likely paywalled",
+      "access": "paywalled (supplied by the user)",
       "citation": "Ozdemir MS et al. 2007, Phys Med Biol 52:6781. Absolute quantification of carnosine in human calf muscle by proton magnetic resonance spectroscopy",
       "design": "Method paper for the Ghent 1H-MRS carnosine figures (water signal as internal reference)",
       "role": "Unit basis of every Ghent MRS mM figure",
-      "priority": 1,
       "whyNeeded": "Audit 2.3: says whether Ghent MRS 'mM' is per kg wet muscle or per liter of muscle water. At per liter of water the factor to dry muscle is about 3.3, not 4.3, and blancquaert_08 moves from model-below to inside.",
       "feeds": [],
-      "extraFindings": [],
-      "caveats": []
+      "extraFindings": [
+        {
+          "text": "Ci = Cr Si FiT1 FiT2 / (Sr FrT1 FrT2 pT pC) in mM against an external 50 mM carnosine phantom; untrained soleus 2.58 and gastrocnemius 3.3 mM, called in agreement with biopsy values (Hill 2007)",
+          "location": "2.3 Quantification; Abstract; Results"
+        }
+      ],
+      "caveats": [
+        "Concentration is per liter of voxel (tissue), not per liter of muscle water; converting to per kg wet would need muscle density, which no archived paper gives"
+      ]
     },
     {
       "id": "baguet2010",
-      "status": "wanted",
+      "status": "archived",
       "doi": "10.1152/japplphysiol.00141.2010",
-      "file": "japplphysiol_2010_baguet_carnosine_rowing.pdf",
-      "access": "open, but 403 to scripts",
+      "access": "open, but 403 to scripts (supplied by the user)",
       "citation": "Baguet A et al. 2010, J Appl Physiol 109:1096. Important role of muscle carnosine in rowing performance",
       "design": "1H-MRS carnosine in rowers; the 'as described before by Baguet et al.' that Stegen 2013, 2014, Baguet 2012 and Blancquaert 2017 cite for the mM calculation",
       "role": "Unit basis of every Ghent MRS mM figure",
-      "priority": 2,
       "whyNeeded": "Audit 2.3: the later Ghent papers compute 'absolute carnosine content (mM)' as described in this paper, so its formula (water concentration assumed, wet weight or water basis) settles the wet-to-dry factor for the MRS anchors.",
-      "feeds": [],
+      "feeds": [
+        "claims"
+      ],
       "extraFindings": [],
-      "caveats": []
+      "caveats": [
+        "Baguet 2009 describes the water signal as an internal reference but cites Ozdemir 2007 for quantification; the later papers cite this paper's external-phantom equation"
+      ]
     }
   ],
   "searches": [
@@ -1261,6 +1268,14 @@
         "Spelnikov 2019 Table 1"
       ],
       "found": "No. Spelnikov's table stops the high-low arm at day 28; Stellingwerff gives week 8 only as percent rises (high-low TA 30.3%, GA 44.5%; low-low 21.9%, 35.5%) and in Fig. 3. Percents times the pooled baselines overshoot the low-low arm's absolute value (9.45 against 7.53 dm), so no mmol point was added; the ratio of the two arms is an anchor instead."
+    },
+    {
+      "date": "2026-11-17",
+      "question": "What unit basis do Ozdemir 2007 and Baguet 2010 give for the Ghent MRS mM?",
+      "tried": [
+        "full text of ozdemir2007 and baguet2010"
+      ],
+      "found": "Both quantify against an external carnosine phantom corrected for voxel volume, relaxation, temperature and coil loading, so mM is mmol per liter of tissue, not per liter of muscle water. Baguet 2010 equates 5 mM wet weight with 20 mmol/kg dry. The 3.3 water-basis factor is ruled out; x4.3 stands, blancquaert_08 stays model-below. Muscle density (per liter to per kg wet, about 6%) is not in any archived paper and is left out."
     }
   ],
   "openQuestions": [
@@ -1283,6 +1298,10 @@
     {
       "question": "Does beta-alanine regulate DPD, the rate-limiting first step from uracil?",
       "status": "No report found (searched 2026-11-15)."
+    },
+    {
+      "question": "Does muscle density change the Ghent MRS conversion to dry weight enough to matter?",
+      "status": "MRS mM is per liter of tissue (ozdemir2007, baguet2010); per kg wet would divide by muscle density, about 6% if near 1.06 kg/L, which would put blancquaert_08 at the band edge. No archived source gives the density, so x4.3 stands unchanged."
     }
   ]
 }

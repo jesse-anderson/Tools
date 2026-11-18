@@ -1131,6 +1131,20 @@ test.describe('page', () => {
     expect(await page.evaluate(() => window.BetaAlanine.sampledHalfLifeRange({ sampling: 'uniform', low: 35, central: 40.5, high: 46 }))).toBeNull();
   });
 
+  test('the audit trail states the Ghent MRS unit basis from the method papers', async ({ page }) => {
+    await openTool(page);
+    const c = Object.fromEntries(csv('claims.csv').map((r) => [r.claim_id, r]));
+    // External 20 mM phantom (Baguet 2010), per liter of tissue; 5 mM wet against 20 mmol/kg dry.
+    expect([c.mrs_external_reference.source_id, Number(c.mrs_external_reference.value)]).toEqual(['baguet2010', 20]);
+    expect(c.mrs_external_reference.claim).toContain('external reference for absolute quantification');
+    expect([c.mrs_wet_equivalence.source_id, Number(c.mrs_wet_equivalence.value)]).toEqual(['baguet2010', 5]);
+    expect(c.mrs_wet_equivalence.claim).toContain('5 mM in wet weight or 20 mmol/kg in dry weight');
+    const para = page.locator('#audit p', { hasText: 'external carnosine phantom' });
+    await expect(para).toContainText('not per liter of muscle water');
+    await expect(para.locator('a[href="https://doi.org/10.1088/0031-9155/52/23/001"]')).toHaveCount(1);
+    await expect(para.locator('a[href="https://doi.org/10.1152/japplphysiol.00141.2010"]')).toHaveCount(2);
+  });
+
   test('last state survives a reload; saved protocols open and delete', async ({ page }) => {
     await openTool(page);
     await page.selectOption('#protocolPreset', 'church2017');
