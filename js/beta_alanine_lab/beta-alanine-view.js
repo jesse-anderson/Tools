@@ -139,14 +139,15 @@ export function renderCards(node, { summary, baseline, totalGrams, target, washo
     const m = summary.maintenanceAtStop;
     if (m && r.p50 > 0) node.appendChild(maintenanceCard(m, bodyMassKg));
     if (target > 0) {
-        const t = summary.daysToTarget;
         const share = summary.targetReachedShare;
-        node.appendChild(card(`Days to a rise of ${fmt(target, 1)}`, t ? `${fmt(t.p50, 0)} days` : 'Not reached',
-            t ? `10th to 90th: ${fmt(t.p10, 0)} to ${fmt(t.p90, 0)} days, among the ${fmt(share * 100, 0)}% of draws that reach it while dosing` : 'No draw reaches it while dosing.'));
+        const [value, range] = reachText(summary.daysToTarget, (d) => fmt(d, 0), 'days', 'not reached while dosing',
+            `${fmt(share * 100, 0)}% of draws reach it while dosing`, share);
+        node.appendChild(card(`Days to a rise of ${fmt(target, 1)}`, value, range));
     }
-    const n = summary.daysToNormal;
-    node.appendChild(card('Back within normal variation after stopping', n ? `${fmt(n.p50 / 7, 1)} weeks` : 'Not within the washout shown',
-        n ? `10th to 90th: ${fmt(n.p10 / 7, 1)} to ${fmt(n.p90 / 7, 1)} weeks; ${fmt(summary.normalReachedShare * 100, 0)}% of draws get there within the ${fmt(washoutDays / 7, 0)} weeks shown` : null,
+    const nShare = summary.normalReachedShare;
+    const [nValue, nRange] = reachText(summary.daysToNormal, (d) => fmt(d / 7, 1), 'weeks', `not within the ${fmt(washoutDays / 7, 0)} weeks shown`,
+        `${fmt(nShare * 100, 0)}% of draws get there within the ${fmt(washoutDays / 7, 0)} weeks shown`, nShare);
+    node.appendChild(card('Back within normal variation after stopping', nValue, nRange,
         ['Normal month-to-month variation is 4.1 mmol/kg dm (', sourceLink('rezende2020'), ').']));
     if (summary.gramsGainAtStop && muscle) {
         const g = summary.gramsGainAtStop;
@@ -156,6 +157,20 @@ export function renderCards(node, { summary, baseline, totalGrams, target, washo
             `10th to 90th: ${fmt(g.p10, 1)} to ${fmt(g.p90, 1)} g, on about ${fmt(base, 0)} g at baseline in ${fmt(muscle.centerKg, 1)} kg of skeletal muscle`,
             [`About ${fmt(incorporated, 1)}% of the beta-alanine taken ends up in carnosine on the middle line; studies report about 3% (`, sourceLink('stegen2013'), ') and 4.4% (', sourceLink('yamaguchi2021'), ').']));
     }
+}
+
+/**
+ * Headline and range line for a time-to-reach card. A null percentile fell
+ * among the draws that never get there, so it is named as not reached.
+ */
+export function reachText(r, num, unit, missed, shareText, share) {
+    const miss = missed.charAt(0).toUpperCase() + missed.slice(1);
+    const u = (v) => `${num(v)} ${unit}`;
+    if (!r || r.p10 === null) return [miss, share > 0 ? `Fewer than 1 in 10 draws get there; ${shareText}.` : 'No draw gets there.'];
+    const tail = share < 1 ? `; ${shareText}` : '';
+    if (r.p50 === null) return [miss, `10th: ${u(r.p10)}; middle and 90th: ${missed}${tail}`];
+    if (r.p90 === null) return [u(r.p50), `10th: ${u(r.p10)}; 90th: ${missed}${tail}`];
+    return [u(r.p50), `10th to 90th: ${num(r.p10)} to ${u(r.p90)}${tail}`];
 }
 
 /** Percent of the beta-alanine taken that a rise holds as carnosine, one beta-alanine per carnosine. */

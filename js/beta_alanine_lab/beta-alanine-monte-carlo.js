@@ -109,11 +109,11 @@ function summarize(band, options) {
         if (target !== null) {
             let hit = -1;
             for (let d = 0; d <= stopDay; d++) if (drawValue(band, i, d) >= target) { hit = d; break; }
-            if (hit >= 0) toTarget.push(hit); else neverTarget++;
+            if (hit >= 0) toTarget.push(hit); else { toTarget.push(Infinity); neverTarget++; }
         }
         let back = -1;
         for (let d = stopDay; d <= lastDay; d++) if (drawValue(band, i, d) < normal) { back = d - stopDay; break; }
-        if (back >= 0) toNormal.push(back); else neverNormal++;
+        if (back >= 0) toNormal.push(back); else { toNormal.push(Infinity); neverNormal++; }
         if (options.muscle && options.wetToDry) grams.push(carnosineGrams(stopValue, band.tags[i].muscleKg, options.wetToDry));
     }
     const range = (arr) => {
@@ -121,11 +121,17 @@ function summarize(band, options) {
         const s = Float64Array.from(arr).sort();
         return { p10: percentileSorted(s, 0.1), p50: percentileSorted(s, 0.5), p90: percentileSorted(s, 0.9) };
     };
+    // Every draw ranks, a miss after any day, so a percentile among the misses is null, not an early day.
+    const reachRange = (arr) => {
+        const s = Float64Array.from(arr).sort();
+        const at = (p) => { const v = percentileSorted(s, p); return Number.isFinite(v) ? v : null; };
+        return { p10: at(0.1), p50: at(0.5), p90: at(0.9) };
+    };
     return {
         riseAtStop: range(atStop),
-        daysToTarget: range(toTarget),
+        daysToTarget: target !== null ? reachRange(toTarget) : null,
         targetReachedShare: target !== null ? (draws - neverTarget) / draws : null,
-        daysToNormal: range(toNormal),
+        daysToNormal: reachRange(toNormal),
         normalReachedShare: (draws - neverNormal) / draws,
         gramsGainAtStop: range(grams),
         maintenanceAtStop: range(maintain)

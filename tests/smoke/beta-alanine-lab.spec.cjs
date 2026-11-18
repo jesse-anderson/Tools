@@ -303,6 +303,33 @@ test.describe('band', () => {
     expect(r.factors.every((f) => f === 1)).toBe(true);
   });
 
+  test('days to target and back to normal rank every draw, a miss after any day', async ({ page }) => {
+    // Reference protocol, target 14.5, 8 weeks shown: half the draws reach the target.
+    const r = await page.evaluate(() => {
+      const B = window.BetaAlanine;
+      const b = B.runBand({ phases: [{ doseGPerDay: 6.4, days: 28 }], washoutDays: 56, observations: B.data.LOADING_OBSERVATIONS,
+        washouts: B.data.WASHOUT_RATES, target: 14.5, normalVariation: 4.1 });
+      const rows = [];
+      for (let i = 0; i < b.draws; i++) rows.push(Array.from(b.values.slice(i * (b.lastDay + 1), (i + 1) * (b.lastDay + 1))));
+      return { rows, stopDay: b.stopDay, summary: b.summary };
+    });
+    const pct = (sorted, p) => {
+      const x = (sorted.length - 1) * p, lo = Math.floor(x), hi = Math.ceil(x);
+      const v = lo === hi ? sorted[lo] : sorted[lo] + (sorted[hi] - sorted[lo]) * (x - lo);
+      return Number.isFinite(v) ? v : null;
+    };
+    const first = (row, from, to, ok) => { for (let d = from; d <= to; d++) if (ok(row[d])) return d - from; return Infinity; };
+    const hit = r.rows.map((row) => first(row, 0, r.stopDay, (v) => v >= 14.5)).sort((a, b) => a - b);
+    const back = r.rows.map((row) => first(row, r.stopDay, row.length - 1, (v) => v < 4.1)).sort((a, b) => a - b);
+    for (const [got, days] of [[r.summary.daysToTarget, hit], [r.summary.daysToNormal, back]]) {
+      expect(got).toEqual({ p10: pct(days, 0.1), p50: pct(days, 0.5), p90: pct(days, 0.9) });
+    }
+    expect(r.summary.targetReachedShare).toBeCloseTo(0.5, 2);
+    expect(r.summary.daysToTarget.p10).toBe(21);
+    expect(r.summary.daysToTarget.p50).toBeNull();
+    expect(r.summary.daysToNormal.p50).toBeNull();
+  });
+
   test('equal draws per pairing make the median independent of the seed', async ({ page }) => {
     const medians = await page.evaluate(() => {
       const B = window.BetaAlanine;
@@ -1274,6 +1301,16 @@ test.describe('page', () => {
     const row = page.locator('#edgeTable tbody tr', { hasText: 'End of dosing' });
     const cells = await row.locator('td.num').allInnerTexts();
     expect(cells).toEqual(want.stop);
+
+    // Half the draws reach 14.5 and a third are back within 8 weeks: the middle is not a day.
+    await page.fill('#targetRise', '14.5');
+    await page.fill('#washoutWeeks', '8');
+    const target = page.locator('#cards .card', { hasText: 'Days to a rise of 14.5' });
+    await expect(target).toContainText('Not reached while dosing');
+    await expect(target).toContainText('10th: 21 days; middle and 90th: not reached while dosing; 50% of draws reach it while dosing');
+    const normal = page.locator('#cards .card', { hasText: 'Back within normal variation' });
+    await expect(normal).toContainText('Not within the 8 weeks shown');
+    await expect(normal).toContainText('middle and 90th: not within the 8 weeks shown; 33% of draws get there within the 8 weeks shown');
   });
 
   test('the tooltip prints the day\'s band and edge shares, and arrows step a day or a week', async ({ page }) => {
