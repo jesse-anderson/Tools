@@ -944,6 +944,14 @@ export const CLAIMS = Object.freeze({
     "location": "Results",
     "use": "default baseline"
   },
+  "baseline_sd": {
+    "topic": "baseline",
+    "claim": "Baseline 22.9 +/- 8.7 mmol/kg dm (individual data, mostly men, 6.4 g/day studies); the SD between people",
+    "value": 8.7,
+    "sourceId": "rezende2020",
+    "location": "Results",
+    "use": "total and percent view captions (baseline spread not in the band)"
+  },
   "baseline_no_effect": {
     "topic": "baseline",
     "claim": "Baseline carnosine not associated with the change (-0.1, 95% CrI -0.3 to 0.1); no substantive sex effect",
@@ -1519,6 +1527,38 @@ export const CLAIMS = Object.freeze({
     "sourceId": "dolan2019",
     "location": "Abstract",
     "use": "where it goes panel"
+  },
+  "stell_wk8_hl_ta": {
+    "topic": "loading",
+    "claim": "At the end of 8 weeks, high-low (3.2 g/day for 4 weeks then 1.6 g/day for 4) supplementation resulted in a 30.3 +/- 14.8% increase in carnosine in TA",
+    "value": 0.303,
+    "sourceId": "stellingwerff2012",
+    "location": "Results (Week 8)",
+    "use": "anchor (step down against steady low dose)"
+  },
+  "stell_wk8_hl_ga": {
+    "topic": "loading",
+    "claim": "At the end of 8 weeks, high-low supplementation resulted in a 44.5 +/- 12.5% increase in carnosine in GA",
+    "value": 0.445,
+    "sourceId": "stellingwerff2012",
+    "location": "Results (Week 8)",
+    "use": "anchor (step down against steady low dose)"
+  },
+  "stell_wk8_ll_ta": {
+    "topic": "loading",
+    "claim": "At the end of 8 weeks, low-low (1.6 g/day for 8 weeks) resulted in a 21.9 +/- 14.4% increase in carnosine in TA",
+    "value": 0.219,
+    "sourceId": "stellingwerff2012",
+    "location": "Results (Week 8)",
+    "use": "anchor (step down against steady low dose)"
+  },
+  "stell_wk8_ll_ga": {
+    "topic": "loading",
+    "claim": "At the end of 8 weeks, low-low resulted in a 35.5 +/- 13.3% increase in carnosine in GA; differences between high-low and low-low at 8 weeks were no longer statistically significant (GA p = 0.261, TA p = 0.269)",
+    "value": 0.355,
+    "sourceId": "stellingwerff2012",
+    "location": "Results (Week 8)",
+    "use": "anchor (step down against steady low dose)"
   }
 });
 

@@ -110,6 +110,7 @@
       "design": "1.6 vs 3.2 g/day sustained release, 1H-MRS gastrocnemius and tibialis anterior",
       "role": "Low-dose loading points (MRS x4.3 to dry); washout half-life bounds",
       "feeds": [
+        "claims",
         "loading_observations",
         "washout_rates"
       ],
@@ -1251,6 +1252,15 @@
         "journals.physiology.org (403 to scripts, as before)"
       ],
       "found": "Baguet 2009: 0.21 mM/wk is linear over the 9-week washout (0.57 mM at 3 wk, 31.8% of the gain; baseline by 9 wk; first order would leave 34.3%). Unit basis: every Ghent paper quantifies against the water signal and defers to Baguet 2010 or Ozdemir 2007 for the mM calculation; neither is archived, so the basis is not settled."
+    },
+    {
+      "date": "2026-11-17",
+      "question": "Does Stellingwerff 2012 or Spelnikov 2019 give the high-low arm's week 8 carnosine in absolute units?",
+      "tried": [
+        "full text of stellingwerff2012 (Results, Week 8; Fig. 3)",
+        "Spelnikov 2019 Table 1"
+      ],
+      "found": "No. Spelnikov's table stops the high-low arm at day 28; Stellingwerff gives week 8 only as percent rises (high-low TA 30.3%, GA 44.5%; low-low 21.9%, 35.5%) and in Fig. 3. Percents times the pooled baselines overshoot the low-low arm's absolute value (9.45 against 7.53 dm), so no mmol point was added; the ratio of the two arms is an anchor instead."
     }
   ],
   "openQuestions": [

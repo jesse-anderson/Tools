@@ -116,17 +116,32 @@ export function normalDraw(rng) {
     return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * rng());
 }
 
+// Log-scale SD that makes low to high a 95% interval.
+function halfLifeSigma(washout) {
+    return (Math.log(washout.high) - Math.log(washout.low)) / (2 * 1.959964);
+}
+
 /**
  * One half-life draw from a washout paper. lognormal treats low and high as a
  * 95% interval; uniform spans them; fixed returns the central value.
  */
 export function sampleHalfLife(washout, rng) {
     if (washout.sampling === 'lognormal') {
-        const sigma = (Math.log(washout.high) - Math.log(washout.low)) / (2 * 1.959964);
-        return Math.exp(Math.log(washout.central) + sigma * normalDraw(rng));
+        return Math.exp(Math.log(washout.central) + halfLifeSigma(washout) * normalDraw(rng));
     }
     if (washout.sampling === 'uniform') return washout.low + (washout.high - washout.low) * rng();
     return washout.central;
+}
+
+/**
+ * The 95% range a lognormal half-life is actually drawn from: centered on the
+ * paper's point estimate, so it differs from the stated interval when that is
+ * not symmetric in log terms. Null for other sampling.
+ */
+export function sampledHalfLifeRange(washout) {
+    if (washout.sampling !== 'lognormal') return null;
+    const sigma = halfLifeSigma(washout);
+    return { low: washout.central * Math.exp(-1.959964 * sigma), high: washout.central * Math.exp(1.959964 * sigma) };
 }
 
 /** Lognormal factor with mean 1 and the given coefficient of variation. */

@@ -157,6 +157,21 @@ export function literatureAnchors({ observations, washouts, claims }) {
         note: 'Known gap: the model slows only through washout, so it keeps more of its early pace than measured, here within weeks as at Saunders week 24.'
     });
 
+    // Stellingwerff 2012 week 8: 3.2 then 1.6 g/day against 1.6 g/day throughout, as a ratio of
+    // the two arms' percent rises (TA and GA summed). The slope cancels: with a = e^(-28 kd)
+    // the model ratio is (1 + 2a) / (1 + a), one value per washout half-life.
+    const pct = (id) => claims[id].value * 100;
+    const stepRatio = (pct('stell_wk8_hl_ta') + pct('stell_wk8_hl_ga')) / (pct('stell_wk8_ll_ta') + pct('stell_wk8_ll_ga'));
+    anchors.push({
+        id: 'stellingwerff_stepdown', sourceIds: ['stellingwerff2012'], claimIds: ['stell_wk8_hl_ta', 'stell_wk8_hl_ga', 'stell_wk8_ll_ta', 'stell_wk8_ll_ga'],
+        title: 'Week 8: 3.2 g/day for 4 weeks then 1.6, over 1.6 g/day for 8 weeks',
+        measured: stepRatio,
+        measuredText: `${stepRatio.toFixed(2)} (TA ${pct('stell_wk8_hl_ta').toFixed(1)} over ${pct('stell_wk8_ll_ta').toFixed(1)}%, GA ${pct('stell_wk8_hl_ga').toFixed(1)} over ${pct('stell_wk8_ll_ga').toFixed(1)}%)`,
+        model: spread(kds.map((kd) => { const a = Math.exp(-28 * kd); return (1 + 2 * a) / (1 + a); })),
+        unit: 'ratio of the rises; lowest, middle and highest of the four washout half-lives', expected: 'model-above', digits: 2,
+        note: 'Weak: the two arms were no longer significantly different at week 8, and a mean of percents is not a ratio of means. Tibialis alone falls inside. The model keeps more of the early high dose after the step down than measured.'
+    });
+
     // Varanoske 2019: 6 g/day for 28 days as sustained or rapid release, VL HPLC wet weight to dry.
     const v28 = run([{ doseGPerDay: 6, days: 28 }]);
     for (const [id, claim, form] of [['varanoske_sr', 'varanoske_sr', 'sustained release'], ['varanoske_rr', 'varanoske_rr', 'rapid release']]) {

@@ -791,12 +791,13 @@ test.describe('literature anchors', () => {
     const anchors = await page.evaluate(() => window.BetaAlanine.anchors.map((a) => ({ id: a.id, verdict: a.verdict, expected: a.expected })));
     expect(anchors.map((a) => a.id)).toEqual(['rezende_4wk', 'saunders_wk4', 'saunders_wk12', 'saunders_wk24', 'delfavero_older', 'stegen_12', 'incorporation',
       'bex_inactive', 'bex_trained', 'blancquaert_08', 'turnover_baseline', 'baguet_3wk_share', 'baguet_excess_loss', 'spelnikov_supply',
-      'blancquaert17_slowdown', 'varanoske_sr', 'varanoske_rr']);
+      'blancquaert17_slowdown', 'stellingwerff_stepdown', 'varanoske_sr', 'varanoske_rr']);
     for (const a of anchors) expect(a.verdict, a.id).toBe(a.expected);
     // The known misses: the model slows less than measured (Saunders week 24, and
     // Blancquaert 2017 within 23 days), below the fitted doses it runs under the low-dose study,
-    // and its first-order washout keeps more of Baguet's excess at 9 weeks than the linear loss measured.
-    expect(anchors.filter((a) => a.verdict !== 'inside').map((a) => [a.id, a.verdict])).toEqual([['saunders_wk24', 'model-above'], ['blancquaert_08', 'model-below'], ['baguet_excess_loss', 'model-below'], ['blancquaert17_slowdown', 'model-above']]);
+    // its first-order washout keeps more of Baguet's excess at 9 weeks than the linear loss measured,
+    // and after Stellingwerff's step down it keeps more of the early high dose than measured.
+    expect(anchors.filter((a) => a.verdict !== 'inside').map((a) => [a.id, a.verdict])).toEqual([['saunders_wk24', 'model-above'], ['blancquaert_08', 'model-below'], ['baguet_excess_loss', 'model-below'], ['blancquaert17_slowdown', 'model-above'], ['stellingwerff_stepdown', 'model-above']]);
   });
 
   test('anchor measurements are the archived figures, not numbers typed into the module', async ({ page }) => {
@@ -840,7 +841,7 @@ test.describe('literature anchors', () => {
   test('the audit trail prints each anchor with its verdict', async ({ page }) => {
     await page.locator('#auditFold > summary').click();
     const rows = page.locator('#anchorTable tbody tr');
-    await expect(rows).toHaveCount(17);
+    await expect(rows).toHaveCount(18);
     await expect(page.locator('#anchorTable tr[data-anchor="varanoske_rr"]')).toContainText('+2.62 mmol/kg wet');
     await expect(page.locator('#anchorTable tr[data-anchor="blancquaert17_slowdown"]')).toContainText('0.81 against 1.42 mM (0.57)');
     // Small figures print with enough digits to read: 0.03 mM/day, not 0.0.
@@ -878,6 +879,15 @@ test.describe('literature anchors', () => {
     const loss = kds.map((kd) => (2 * (1 - Math.exp(-63 * kd))) / 63).sort((x, y) => x - y);
     expect(a.baguet_excess_loss.model.p10).toBeCloseTo(loss[0], 6);
     expect(a.baguet_excess_loss.model.p90).toBeCloseTo(loss[3], 6);
+    // Stellingwerff week 8, high-low over low-low: TA and GA percents summed against the steady
+    // solution with the slope cancelled, each run through the engine's own schedule solver.
+    const pc = (id) => Number(claims[id].value) * 100;
+    expect([pc('stell_wk8_hl_ta'), pc('stell_wk8_hl_ga'), pc('stell_wk8_ll_ta'), pc('stell_wk8_ll_ga')].map((v) => v.toFixed(1))).toEqual(['30.3', '44.5', '21.9', '35.5']);
+    expect(a.stellingwerff_stepdown.measured).toBeCloseTo((30.3 + 44.5) / (21.9 + 35.5), 9);
+    const solved = await page.evaluate((ks) => ks.map((kd) => window.BetaAlanine.unitRise([[0, 28, 3.2], [28, 56, 1.6]], 56, kd) / window.BetaAlanine.unitRise([[0, 56, 1.6]], 56, kd)), kds);
+    solved.sort((x, y) => x - y);
+    expect(a.stellingwerff_stepdown.model.p10).toBeCloseTo(solved[0], 9);
+    expect(a.stellingwerff_stepdown.model.p90).toBeCloseTo(solved[3], 9);
     // Supply that holds 14 mmol/kg dm, kd x 14 / slope over all 24 pairings, from fits.json.
     const supply = [];
     for (const paper of Object.values(fits)) for (const w of Object.values(paper)) supply.push((w.central.kd_per_day * 14) / w.central.slope);
@@ -1089,8 +1099,29 @@ test.describe('page', () => {
     await expect(page.locator('#baselineValue')).toHaveValue('17.5');
     await page.selectOption('#chartView', 'percent');
     await expect(page.locator('#chartCaption')).toContainText('percent of the baseline');
+    // The band is the rise only; the caption names Rezende's baseline spread in this view and in total, not in rise.
+    await expect(page.locator('#chartCaption')).toContainText('baseline itself differs between people by SD 8.7 mmol/kg dm');
+    await page.selectOption('#chartView', 'total');
+    await expect(page.locator('#chartCaption')).toContainText('by SD 8.7 mmol/kg dm');
+    await page.selectOption('#chartView', 'rise');
+    await expect(page.locator('#chartCaption')).not.toContainText('SD 8.7');
+    await page.selectOption('#chartView', 'percent');
     // Tingling uses kg however mass is entered: 1.28 g at 154.3 lb is 18.3 mg/kg.
     await expect(page.locator('#servingTable')).toContainText('18.3');
+  });
+
+  test('the audit trail states the half-life range a lognormal washout is actually drawn from', async ({ page }) => {
+    await openTool(page);
+    // Yamaguchi: centered on 32.2 with a width from 22.4 to 49.0, whose log midpoint is about 33.1.
+    const y = csv('washout_rates.csv').find((w) => w.source_id === 'yamaguchi2021');
+    const [low, mid, high] = [y.half_life_days_low, y.half_life_days_central, y.half_life_days_high].map(Number);
+    const sigma = (Math.log(high) - Math.log(low)) / (2 * 1.959964);
+    const range = [mid * Math.exp(-1.959964 * sigma), mid * Math.exp(1.959964 * sigma)].map((v) => v.toFixed(1));
+    expect(range).toEqual(['21.8', '47.6']);
+    const r = await page.evaluate((w) => window.BetaAlanine.sampledHalfLifeRange(w), { sampling: 'lognormal', low, central: mid, high });
+    expect([r.low, r.high].map((v) => v.toFixed(1))).toEqual(range);
+    await expect(page.locator('#audit li', { hasText: 'Yamaguchi' }).first()).toContainText(`sampled lognormal around 32.2, which draws 95% between ${range[0]} and ${range[1]}`);
+    expect(await page.evaluate(() => window.BetaAlanine.sampledHalfLifeRange({ sampling: 'uniform', low: 35, central: 40.5, high: 46 }))).toBeNull();
   });
 
   test('last state survives a reload; saved protocols open and delete', async ({ page }) => {

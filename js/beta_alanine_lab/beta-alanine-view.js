@@ -5,7 +5,7 @@ import { SOURCES, CLAIMS, WASHOUT_RATES, LOADING_OBSERVATIONS, WET_TO_DRY, SOLUB
 import {
     fitSlope, kdFromHalfLife, unitRise, tinglingBand, lowerTinglingSplit, BETA_ALANINE_G_PER_MOL,
     FITTED_DOSE_MIN, FITTED_DOSE_MAX, TINGLING_LIKELY_MG_PER_KG, MAX_SERVINGS,
-    CARNOSINE_G_PER_MOL, steadyTurnover, maintenanceDose, waterForGrams, percentileSorted
+    CARNOSINE_G_PER_MOL, steadyTurnover, maintenanceDose, waterForGrams, percentileSorted, sampledHalfLifeRange, carnosineGrams
 } from './beta-alanine-engine.js';
 import { loadingPapers, NAME_SHARE_MIN, EDGE_WINDOW, DEFAULT_DRAWS } from './beta-alanine-monte-carlo.js';
 
@@ -155,7 +155,7 @@ export function renderCards(node, { summary, baseline, totalGrams, target, washo
         ['Normal month-to-month variation is 4.1 mmol/kg dm (', sourceLink('rezende2020'), ').']));
     if (summary.gramsGainAtStop && muscle) {
         const g = summary.gramsGainAtStop;
-        const base = (baseline * (muscle.centerKg / WET_TO_DRY) * 226.23) / 1000;
+        const base = carnosineGrams(baseline, muscle.centerKg, WET_TO_DRY);
         const incorporated = incorporatedPercent(r.p50, muscle.centerKg, totalGrams);
         node.appendChild(card('Carnosine in muscle, estimated', `+${fmt(g.p50, 1)} g`,
             `10th to 90th: ${fmt(g.p10, 1)} to ${fmt(g.p90, 1)} g, on about ${fmt(base, 0)} g at baseline in ${fmt(muscle.centerKg, 1)} kg of skeletal muscle`,
@@ -534,7 +534,9 @@ export function renderAudit(node, anchors = [], person = null) {
 
     const wl = h('ul');
     for (const w of WASHOUT_RATES) {
-        wl.appendChild(h('li', {}, [sourceLink(w.sourceId), `: half-life ${fmt(w.central, 1)} days (${fmt(w.low, 1)} to ${fmt(w.high, 1)}, sampled ${w.sampling}). ${w.basis}.`,
+        const drawn = sampledHalfLifeRange(w);
+        const sampled = drawn ? `, sampled lognormal around ${fmt(w.central, 1)}, which draws 95% between ${fmt(drawn.low, 1)} and ${fmt(drawn.high, 1)}` : `, sampled ${w.sampling}`;
+        wl.appendChild(h('li', {}, [sourceLink(w.sourceId), `: half-life ${fmt(w.central, 1)} days (${fmt(w.low, 1)} to ${fmt(w.high, 1)}${sampled}). ${w.basis}.`,
             w.observedDays ? ` Followed for ${fmt(w.observedDays / 7, 0)} weeks.` : ' Follow-up length not available.', w.note ? ` ${w.note}.` : '']));
     }
     section('Washout', [wl]);
@@ -574,7 +576,7 @@ export function renderAudit(node, anchors = [], person = null) {
         h('div', { class: 'table-scroll' }, anchorTable(anchors))
     ]);
 
-    const claimIds = ['baseline_default', 'baseline_no_effect', 'women_vl', 'women_calf', 'vegetarian', 'age', 'placebo_variation', 'response_sd',
+    const claimIds = ['baseline_default', 'baseline_no_effect', 'women_vl', 'women_calf', 'vegetarian', 'age', 'placebo_variation', 'response_sd', 'baseline_sd',
         'form_equivalent', 'meal_effect', 'incorporation', 'incorporation_yamaguchi', 'retention', 'tingle_40', 'tingle_20', 'tingle_10', 'tingle_800mg',
         'tingle_broth', 'plasma_peak', 'tingle_sr', 'tingle_800_common', 'tingle_12g_sr', 'issn_dose', 'issn_split', 'issn_safety', 'maintenance',
         'sex_absolute', 'kf_high_dose_sublinear', 'washout_baguet_split', 'age_drop', 'elderly_rise', 'fate_transaminases', 'fate_incorporation',
@@ -583,7 +585,8 @@ export function renderAudit(node, anchors = [], person = null) {
         'breakfast_profile', 'body_mass_plasma', 'tingle_sr_5g', 'tingle_sr_8g', 'turnover_blancquaert', 'washout_rate_baguet', 'washout_3wk_baguet', 'washout_firstorder_baguet', 'endogenous_spelnikov',
         'endogenous_route_uracil', 'endogenous_route_gadl1', 'diet_baguet', 'diet_solis', 'diet_removal', 'low_dose_08', 'low_dose_04', 'genes_mice',
         'training_inactive', 'training_trained', 'trained_muscle', 'mrgd_receptor', 'itch_human', 'cns_sites', 'brain_carnosine', 'solubility_enthalpy', 'browning_ph',
-        'early_slowdown', 'histidine_drop', 'histidine_not_limiting', 'fasting_plasma_6g', 'fasting_plasma_32', 'bup_human', 'bup_rat', 'insulin_no_uptake', 'uptake_km', 'plasma_peak_40', 'varanoske_sr', 'varanoske_rr', 'hiit_vegetarian', 'histidine_meta'];
+        'early_slowdown', 'histidine_drop', 'histidine_not_limiting', 'fasting_plasma_6g', 'fasting_plasma_32', 'bup_human', 'bup_rat', 'insulin_no_uptake', 'uptake_km', 'plasma_peak_40', 'varanoske_sr', 'varanoske_rr', 'hiit_vegetarian', 'histidine_meta',
+        'stell_wk8_hl_ta', 'stell_wk8_hl_ga', 'stell_wk8_ll_ta', 'stell_wk8_ll_ga'];
     const cl = h('ul');
     for (const id of claimIds) {
         const c = claim(id);

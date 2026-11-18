@@ -341,7 +341,8 @@ function render() {
     const base = baseline();
     const view = VIEWS[state.view] || VIEWS.rise;
     const phases = band.phases;
-    $('chartCaption').textContent = `${view.caption} Band: 10th to 90th percentile of ${band.draws} draws, ${band.individual ? 'papers and person-to-person variation' : 'disagreement between papers only'}.`;
+    const baseNote = view === VIEWS.rise ? '' : ` The band is the rise only: baseline itself differs between people by SD ${CLAIMS.baseline_sd.value} mmol/kg dm (Rezende 2020), which this view does not show.`;
+    $('chartCaption').textContent = `${view.caption} Band: 10th to 90th percentile of ${band.draws} draws, ${band.individual ? 'papers and person-to-person variation' : 'disagreement between papers only'}.${baseNote}`;
     const markers = [];
     let t = 0;
     phases.forEach((p, i) => {
