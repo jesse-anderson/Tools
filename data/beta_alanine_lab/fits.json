@@ -500,7 +500,7 @@
       {
         "loading": "saunders2017",
         "washout": "yamaguchi2021",
-        "rise_per_100g": 4.892,
+        "rise_per_100g": 4.893,
         "target_low_central_high": [
           7.869,
           8.643,
@@ -584,7 +584,7 @@
       {
         "loading": "hill2007",
         "washout": "harris2009",
-        "rise_per_100g": 4.544,
+        "rise_per_100g": 4.545,
         "target_low_central_high": [
           7.869,
           8.643,
@@ -632,7 +632,7 @@
       {
         "loading": "harris2006",
         "washout": "harris2009",
-        "rise_per_100g": 7.502,
+        "rise_per_100g": 7.503,
         "target_low_central_high": [
           7.869,
           8.643,
@@ -656,7 +656,7 @@
       {
         "loading": "stellingwerff2012",
         "washout": "baguet2009",
-        "rise_per_100g": 8.957,
+        "rise_per_100g": 8.956,
         "target_low_central_high": [
           7.869,
           8.643,
@@ -680,7 +680,7 @@
       {
         "loading": "stellingwerff2012",
         "washout": "harris2009",
-        "rise_per_100g": 9.0,
+        "rise_per_100g": 9.001,
         "target_low_central_high": [
           7.869,
           8.643,

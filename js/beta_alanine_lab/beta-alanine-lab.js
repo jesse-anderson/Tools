@@ -89,11 +89,15 @@ function enginePhases() {
     return state.phases.map((p, i) => {
         const name = `Phase ${i + 1}`;
         const unit = p.unit === 'weeks' ? 'weeks' : 'days';
+        const exact = bounded(`length${i}`, p.value, 0, LIMITS.length, `${name} length`, unit) * (unit === 'weeks' ? 7 : 1);
+        const days = Math.round(exact);
+        // The model runs whole days; say so when the length was not one.
+        if (Math.abs(exact - days) > 1e-9) rangeNotes.set(`days${i}`, `${name} length is ${trim(exact)} days; the model runs whole days, so ${days} days are used.`);
         return {
             doseGPerDay: bounded(`dose${i}`, p.doseGPerDay, 0, LIMITS.dose, `${name} dose`, 'g/day'),
             servings: Math.round(bounded(`servings${i}`, p.servings, 1, LIMITS.servings, `${name} servings`, 'a day')),
             form: p.form === 'sustained' ? 'sustained' : 'plain',
-            days: Math.round(bounded(`length${i}`, p.value, 0, LIMITS.length, `${name} length`, unit) * (unit === 'weeks' ? 7 : 1))
+            days
         };
     });
 }

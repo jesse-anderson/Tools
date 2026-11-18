@@ -595,14 +595,19 @@ test.describe('checks on a protocol', () => {
         just_under_10: t(0.699), at_10: t(0.7), at_20: t(1.4), under_40: t(2.79), at_40: t(2.8),
         sr_16: t(1.6, 'sustained'), sr_4: t(4, 'sustained'), sr_41: t(4.1, 'sustained'), sr_5: t(5, 'sustained'),
         sr_51: t(5.1, 'sustained'), sr_8: t(8, 'sustained'), sr_81: t(8.1, 'sustained'), none: t(0),
-        heavy: t(0.8, 'plain', 100)
+        heavy: t(0.8, 'plain', 100), heavyUnder: t(0.79, 'plain', 100), noMass: t(1.28, 'plain', 0), noMassSr: t(1.6, 'sustained', NaN)
       };
     });
     expect(bands).toEqual({
       just_under_10: 'below-tested', at_10: 'possible', at_20: 'likely', under_40: 'likely', at_40: 'strong',
       sr_16: 'sr-placebo', sr_4: 'sr-tested', sr_41: 'sr-mild', sr_5: 'sr-mild', sr_51: 'sr-likely', sr_8: 'sr-likely',
-      sr_81: 'untested', none: 'none', heavy: 'below-tested'
+      // 0.8 g at 100 kg is 8 mg/kg, but a fixed 800 mg was tested (about 1 in 4 mild); 0.79 g was not.
+      sr_81: 'untested', none: 'none', heavy: 'possible', heavyUnder: 'below-tested',
+      // Plain bands need a body mass; sustained release is by grams.
+      noMass: 'unknown', noMassSr: 'sr-placebo'
     });
+    const fixed = csv('claims.csv').find((c) => c.claim_id === 'tingle_800mg');
+    expect(await page.evaluate(() => window.BetaAlanine.FIXED_TESTED_GRAMS)).toBe(Number(fixed.value));
   });
 
   test('a plain phase in the likely band gets a split that brings each serving under 20 mg/kg', async ({ page }) => {
@@ -636,10 +641,12 @@ test.describe('checks on a protocol', () => {
         high: ids([{ doseGPerDay: 8, days: 28 }]),
         above: ids([{ doseGPerDay: 12.8, days: 14 }]),
         low: ids([{ doseGPerDay: 1.2, days: 42 }]),
-        long: ids([{ doseGPerDay: 6.4, days: 120 }, { doseGPerDay: 3.2, days: 60 }])
+        long: ids([{ doseGPerDay: 6.4, days: 120 }, { doseGPerDay: 3.2, days: 60 }]),
+        // 12 weeks on, 20 off, 13 on: 25 weeks in all, but no unbroken run past Saunders' 24.
+        broken: ids([{ doseGPerDay: 6.4, days: 84 }, { doseGPerDay: 0, days: 140 }, { doseGPerDay: 6.4, days: 91 }])
       };
     });
-    expect(flags).toEqual({ normal: [], high: ['dose-above-fit'], above: ['dose-above-any'], low: ['dose-below-fit'], long: ['duration'] });
+    expect(flags).toEqual({ normal: [], high: ['dose-above-fit'], above: ['dose-above-any'], low: ['dose-below-fit'], long: ['duration'], broken: [] });
   });
 
   test('evidence horizon: longest study at a comparable dose, then the longest washout', async ({ page }) => {
@@ -1215,6 +1222,12 @@ test.describe('page', () => {
     await page.fill('#baselineValue', '0');
     await expect(page.locator('#flags')).toContainText('so 1 mmol/kg dm is used');
     await page.fill('#baselineValue', '22.9');
+
+    // Half a week is 3.5 days; the model steps whole days and says which it used.
+    await page.fill('#phase0Length', '0.5');
+    await expect(page.locator('#flags')).toContainText('Phase 1 length is 3.5 days; the model runs whole days, so 4 days are used.');
+    await page.fill('#phase0Length', '4');
+    await expect(page.locator('#flags')).not.toContainText('whole days');
 
     await page.fill('#phase0Dose', '100');
     await expect(page.locator('#flags')).toContainText('Phase 1 dose of 100 g/day is outside the 0 to 40 g/day');

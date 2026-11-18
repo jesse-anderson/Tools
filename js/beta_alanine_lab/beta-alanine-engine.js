@@ -176,6 +176,9 @@ export function triangular(rng, min, mode, max) {
     return max - Math.sqrt((1 - u) * (max - min) * (max - mode));
 }
 
+// Fixed plain serving tested in over 50 people (Harris 2006, claim tingle_800mg).
+export const FIXED_TESTED_GRAMS = 0.8;
+
 // Largest sustained-release servings tested: 5 g three times a day
 // (Maestre-Hernandez 2023) and a single 8 g dose (de Salazar 2021).
 export const SR_MILD_GRAMS = 5;
@@ -211,9 +214,18 @@ export function tinglingBand({ gramsPerServing, bodyMassKg, form }) {
         return { level: 'untested', label: 'Above any sustained-release serving tested', mgPerKg,
             reason: `The largest sustained-release serving studied was ${SR_LARGEST_GRAMS} g.`, sourceIds: ['desalazar2021'] };
     }
+    // Plain bands are per kg, so without a body mass there is no band to give.
+    if (!Number.isFinite(mgPerKg)) {
+        return { level: 'unknown', label: 'Needs body mass', mgPerKg,
+            reason: 'Plain-serving bands are set per kg of body mass.', sourceIds: ['harris2006'] };
+    }
+    if (mgPerKg < 10 && grams >= FIXED_TESTED_GRAMS) {
+        return { level: 'possible', label: 'Possible, usually mild', mgPerKg,
+            reason: 'Under the 10 mg/kg tested per kg, but at a fixed 800 mg about 1 in 4 of over 50 people had mild symptoms.', sourceIds: ['harris2006'] };
+    }
     if (mgPerKg < 10) {
         return { level: 'below-tested', label: 'Below the smallest dose tested', mgPerKg,
-            reason: 'The smallest dose tested was 10 mg/kg, so this is untested rather than shown to be free of tingling.', sourceIds: ['harris2006'] };
+            reason: 'The smallest doses tested were 10 mg/kg and a fixed 800 mg, so this is untested rather than shown to be free of tingling.', sourceIds: ['harris2006'] };
     }
     if (mgPerKg < 20) {
         return { level: 'possible', label: 'Possible, usually mild', mgPerKg,
@@ -310,10 +322,15 @@ export function goalDoseUsable(result) {
 /** Flags for a protocol that leaves what the fitted studies covered. */
 export function studiedRangeFlags(phases) {
     const flags = [];
-    let supplementDays = 0;
+    // Longest unbroken run of dosing; a rest phase starts a new one.
+    let run = 0;
+    let longestRun = 0;
     for (const p of phases) {
         const dose = Number(p.doseGPerDay) || 0;
-        if (dose > 0) supplementDays += Number(p.days) || 0;
+        const days = Number(p.days) || 0;
+        if (dose > 0) run += days;
+        else if (days > 0) run = 0;
+        longestRun = Math.max(longestRun, run);
         if (dose > HIGHEST_STUDIED_DOSE) {
             flags.push({ id: 'dose-above-any', text: `${fmt(dose)} g/day is above any dose studied (12 g/day, Church 2017).`, sourceIds: ['church2017'] });
         } else if (dose > FITTED_DOSE_MAX) {
@@ -322,8 +339,8 @@ export function studiedRangeFlags(phases) {
             flags.push({ id: 'dose-below-fit', text: `${fmt(dose)} g/day is below the 1.6 g/day lowest fitted dose. Stegen 2014 tested 0.4 to 1.2 g/day as maintenance, by a method the fits do not use.`, sourceIds: ['stellingwerff2012', 'stegen2014'] });
         }
     }
-    if (supplementDays > LONGEST_STUDY_DAYS) {
-        flags.push({ id: 'duration', text: `${Math.round(supplementDays / 7)} weeks of dosing is longer than the longest study (24 weeks, Saunders 2017).`, sourceIds: ['saunders2017'] });
+    if (longestRun > LONGEST_STUDY_DAYS) {
+        flags.push({ id: 'duration', text: `${Math.round(longestRun / 7)} weeks of dosing without a break is longer than the longest study (24 weeks, Saunders 2017).`, sourceIds: ['saunders2017'] });
     }
     const seen = new Set();
     return flags.filter((f) => (seen.has(f.id) ? false : seen.add(f.id)));

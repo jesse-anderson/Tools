@@ -22,12 +22,15 @@ WET_TO_DRY = 4.3  # Bergstrom 1962, as used by Spelnikov and Harris 2019
 
 
 def parse_schedule(text):
-    """'0-7:4.0;7-70:6.4' -> [(0, 7, 4.0), (7, 70, 6.4)]"""
+    """'0-7:4.0;7-70:6.4' -> [(0, 7, 4.0), (7, 70, 6.4)]. Segments must be in order and not overlap."""
     out = []
     for part in text.split(";"):
         span, dose = part.split(":")
         a, b = span.split("-")
-        out.append((float(a), float(b), float(dose)))
+        seg = (float(a), float(b), float(dose))
+        if seg[1] <= seg[0] or (out and seg[0] < out[-1][1]):
+            raise SystemExit(f"schedule {text!r}: segments must run forward, in order, without overlap")
+        out.append(seg)
     return out
 
 
@@ -43,7 +46,7 @@ def unit_rise(schedule, day, kd):
             return r
         end = min(b, day)
         eq = dose / kd
-        r = eq + (r - eq) * math.exp(-kd * (end - a))
+        r = eq + (r - eq) * math.exp(-kd * (end - max(a, t)))
         t = end
         if t >= day:
             return r
@@ -57,7 +60,7 @@ def kd_from_half_life(days):
 def fit_slope(points, kd):
     num = sum(y * unit_rise(sch, d, kd) for sch, d, y in points)
     den = sum(unit_rise(sch, d, kd) ** 2 for sch, d, y in points)
-    return num / den
+    return num / den if den > 0 else 0.0
 
 
 def main():
@@ -72,6 +75,7 @@ def main():
             (parse_schedule(row["schedule"]), float(row["day"]), float(row["rise_mmol_kg_dm"])))
 
     fits = {}
+    raw = {}  # unrounded (kd, slope) at each central half-life, for the checks
     for w in wash:
         for key in ("low", "central", "high"):
             hl = float(w[f"half_life_days_{key}"])
@@ -83,6 +87,8 @@ def main():
                 fits.setdefault(paper, {}).setdefault(w["source_id"], {})[key] = {
                     "half_life_days": hl, "kd_per_day": round(kd, 6),
                     "slope": round(s, 5), "rms_mmol_kg_dm": round(rms, 3)}
+                if key == "central":
+                    raw.setdefault(paper, {})[w["source_id"]] = (kd, s)
 
     # Checks behind the curve. Each uses the central half-life of every washout paper.
     checks = {"linear_stellingwerff": [], "emax_half_dose_6_4": [], "observations": []}
@@ -91,10 +97,8 @@ def main():
     lin_points = [([(0, 56, 1.6)], 14), ([(0, 56, 1.6)], 28), ([(0, 56, 1.6)], 56),
                   ([(0, 28, 3.2)], 14), ([(0, 28, 3.2)], 28)]
     lin_target = [round(v * WET_TO_DRY, 3) for v in (1.83, 2.01, 2.19)]
-    for paper, per_wash in fits.items():
-        for wid, f in per_wash.items():
-            c = f["central"]
-            kd, s = c["kd_per_day"], c["slope"]
+    for paper, per_wash in raw.items():
+        for wid, (kd, s) in per_wash.items():
             xs = [sch[0][2] * d for sch, d in lin_points]
             ys = [s * unit_rise(sch, d, kd) for sch, d in lin_points]
             per100 = sum(x * y for x, y in zip(xs, ys)) / sum(x * x for x in xs) * 100
@@ -111,8 +115,7 @@ def main():
         if row["role"] != "check":
             continue
         sch, d, y = parse_schedule(row["schedule"]), float(row["day"]), float(row["rise_mmol_kg_dm"])
-        preds = [fits[p][w]["central"]["slope"] * unit_rise(sch, d, fits[p][w]["central"]["kd_per_day"])
-                 for p in fits for w in fits[p]]
+        preds = [s * unit_rise(sch, d, kd) for per_wash in raw.values() for kd, s in per_wash.values()]
         checks["observations"].append({
             "source_id": row["source_id"], "arm": row["arm"], "observed": y,
             "model_min": round(min(preds), 2), "model_max": round(max(preds), 2)})
