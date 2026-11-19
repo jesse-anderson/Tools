@@ -26,11 +26,33 @@ export function literatureAnchors({ observations, washouts, claims }) {
     const saunders = (day) => observations.find((o) => o.sourceId === 'saunders2017' && o.day === day);
     const anchors = [];
 
+    const rez = claims.rezende_mean_4wk.value;
     anchors.push({
-        id: 'rezende_4wk', sourceIds: ['rezende2020'], claimIds: ['response_sd'],
+        id: 'rezende_4wk', sourceIds: ['rezende2020'], claimIds: ['rezende_mean_4wk'],
         title: '6.4 g/day for 4 weeks, pooled individual data',
-        measured: 14.0, measuredText: '+14.0 mmol/kg dm (95% CrI 10.1 to 18.1)',
+        measured: rez, measuredText: `+${rez.toFixed(1)} mmol/kg dm (95% CrI 10.1 to 18.1)`,
         model: at(ref, 28), unit: 'mmol/kg dm', expected: 'inside'
+    });
+
+    // Rezende's individual data, 4 to 24 weeks: gain per week after week 4. Each
+    // draw's least-squares slope of rise on week over weekly points 4 to 24.
+    const weeks = Array.from({ length: 21 }, (_, i) => i + 4);
+    const wMean = weeks.reduce((s, w) => s + w, 0) / weeks.length;
+    const wSs = weeks.reduce((s, w) => s + (w - wMean) ** 2, 0);
+    const perWeek = new Float64Array(ref.draws);
+    for (let i = 0; i < ref.draws; i++) {
+        let sxy = 0;
+        for (const w of weeks) sxy += (w - wMean) * ref.values[i * (ref.lastDay + 1) + w * 7];
+        perWeek[i] = sxy / wSs;
+    }
+    perWeek.sort();
+    anchors.push({
+        id: 'rezende_weekly_gain', sourceIds: ['rezende2020'], claimIds: ['rezende_weekly_gain'],
+        title: '6.4 g/day, 4 to 24 weeks: gain per week after week 4, individual data',
+        measured: claims.rezende_weekly_gain.value, measuredText: `+${claims.rezende_weekly_gain.value} mmol/kg dm a week (95% CrI 0.2 to 0.7)`,
+        model: { p10: percentileSorted(perWeek, 0.1), p50: percentileSorted(perWeek, 0.5), p90: percentileSorted(perWeek, 0.9) },
+        unit: 'mmol/kg dm a week, least-squares slope over weeks 4 to 24', expected: 'model-above', digits: 2,
+        note: 'Known gap, the slowdown again. Not independent: Saunders 2017, a fitted study, is among the individual data.'
     });
 
     // Week 12 sits just inside the low edge; the middle line is far above it.

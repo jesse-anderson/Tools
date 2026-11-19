@@ -152,7 +152,7 @@ export function renderCards(node, { summary, baseline, totalGrams, target, washo
     const [nValue, nRange] = reachText(summary.daysToNormal, (d) => fmt(d / 7, 1), 'weeks', `not within the ${fmt(washoutDays / 7, 0)} weeks shown`,
         `${fmt(nShare * 100, 0)}% of draws get there within the ${fmt(washoutDays / 7, 0)} weeks shown`, nShare);
     node.appendChild(card('Back within normal variation after stopping', nValue, nRange,
-        ['Normal month-to-month variation is 4.1 mmol/kg dm (', sourceLink('rezende2020'), ').']));
+        [`Normal month-to-month variation is ${CLAIMS.placebo_variation.value} mmol/kg dm (`, sourceLink(CLAIMS.placebo_variation.sourceId), ').']));
     if (summary.gramsGainAtStop && muscle) {
         const g = summary.gramsGainAtStop;
         const base = carnosineGrams(baseline, muscle.centerKg, WET_TO_DRY);
@@ -358,7 +358,7 @@ export function renderFate(node, { summary, muscle, totalGrams, anchors, baselin
                 `${fmt(CLAIMS.training_inactive.value * 100, 1)}% in men who stayed inactive against up to ${fmt(CLAIMS.training_trained.value * 100, 1)}% in men who trained (`, sourceLink('bex2015'),
                 '), and trained muscles loaded about 1.6 to 1.8 times as much as untrained ones (', sourceLink('bex2014'), ').']));
         cards.appendChild(card('Lost in urine', `${fmt(urineLo, 1)} to ${fmt(urineHi, 1)}%`, `about ${grams(urineLo)} to ${grams(urineHi)} g`,
-            ['Within 4 hours of 1.4 g: 1.8% with the common AGXT2 gene variant, 3.6% with the low-activity one (', sourceLink('stautemas2020'), ').']));
+            [`Within 4 hours of 1.4 g: ${fmt(urineLo, 1)}% with the common AGXT2 gene variant, ${fmt(urineHi, 1)}% with the low-activity one (`, sourceLink('stautemas2020'), ').']));
         cards.appendChild(card('Broken down', `about ${fmt(100 - inc - urineHi, 0)} to ${fmt(100 - inc - urineLo, 0)}%`, 'neither stored nor excreted',
             ['Turned into malonate semialdehyde, mainly in the liver and kidney, by the enzymes GABA-T and AGXT2, and burned for energy (', sourceLink('blancquaert2016'), ' and ', sourceLink('stautemas2020'), ').']));
     } else {
@@ -490,7 +490,8 @@ export function computeChecks() {
         points: p.points.length,
         slopes: WASHOUT_RATES.map((w) => fitSlope(p.points, kdFromHalfLife(w.central)))
     }));
-    return { linear, linearTarget: [1.83 * WET_TO_DRY, 2.01 * WET_TO_DRY, 2.19 * WET_TO_DRY], emax, observations, fits };
+    // The CI bounds are in the stell_linear claim's text; the spec ties them to it.
+    return { linear, linearTarget: [1.83 * WET_TO_DRY, CLAIMS.stell_linear.value * WET_TO_DRY, 2.19 * WET_TO_DRY], emax, observations, fits };
 }
 
 /**
@@ -498,11 +499,11 @@ export function computeChecks() {
  * { cv, mean, sd } of the paper-only draws, and the 4-week band off and on.
  */
 function personParagraph({ cv, mean, sd, off, on }) {
-    const total = CLAIMS.response_sd.value;
+    const individual = CLAIMS.response_sd.value;
     const median = 1 / Math.sqrt(1 + cv * cv);
     const band = (b) => `${fmt(b.p50, 1)} (${fmt(b.p10, 1)} to ${fmt(b.p90, 1)})`;
-    return h('p', {}, [`Person-to-person variation, when switched on, multiplies each draw by a lognormal factor with mean 1 and a coefficient of variation of ${fmt(cv, 2)}. The papers alone already spread the 4-week rise at 6.4 g/day (SD ${fmt(sd, 1)} around ${fmt(mean, 1)}), so the factor adds only what brings the total to the response SD of ${fmt(total, 1)} around a mean rise of 14.0 mmol/kg dm (`, sourceLink('rezende2020'),
-        `), counting the spread between studies once. The lognormal shape is an engineering assumption. It stretches a 4-week spread over the whole timeline, which is why it is off by default. At 4 weeks it moves the middle and 10th to 90th from ${band(off)} to ${band(on)}. The middle falls by more than the factor's own median of ${fmt(median, 2)}: the paper draws sit in two clusters (Saunders and Hill low, the rest high), and the factor fills the gap between them.`]);
+    return h('p', {}, [`Person-to-person variation, when switched on, multiplies each draw by a lognormal factor with mean 1 and a coefficient of variation of ${fmt(cv, 2)}. Its size is the response SD of ${fmt(individual, 1)} mmol/kg dm around a mean 4-week rise of ${fmt(CLAIMS.rezende_mean_4wk.value, 1)} (`, sourceLink('rezende2020'),
+        `), measured in individual data from one lab: ${CLAIMS.rezende_individual_n.value} people on beta-alanine, all young men at 6.4 g/day, with normal variation taken out. That is a spread between people in the same studies. The papers' disagreement (SD ${fmt(sd, 1)} around ${fmt(mean, 1)} at 4 weeks of 6.4 g/day) is a spread between labs and methods, so the factor adds the ${fmt(individual, 1)} on top of it, for a total SD of ${fmt(Math.sqrt(sd * sd + individual * individual), 1)}. Some of the papers' disagreement is the sampling noise of small groups, which is person-to-person variation seen through a mean, so this counts a little of it twice. The lognormal shape is an engineering assumption. It stretches a 4-week spread over the whole timeline, which is why it is off by default. At 4 weeks it moves the middle and 10th to 90th from ${band(off)} to ${band(on)}. The middle falls by more than the factor's own median of ${fmt(median, 2)}: the paper draws sit in two clusters (Saunders and Hill low, the rest high), and the factor fills the gap between them.`]);
 }
 
 export function renderAudit(node, anchors = [], person = null) {
@@ -556,9 +557,9 @@ export function renderAudit(node, anchors = [], person = null) {
         oItems.appendChild(h('li', {}, [sourceLink(o.sourceId), `, ${o.arm}, day ${o.day}: measured ${fmt(o.rise, 1)}; the per-paper fits give ${fmt(o.min, 1)} to ${fmt(o.max, 1)}. ${o.note}`]));
     }
     section('Checks behind the curve', [
-        h('p', {}, ['Linear in total dose: ', sourceLink('stellingwerff2012'), ` found the rise depended only on total grams within 1.6 to 3.2 g/day, 2.01 mmol/kg wet weight per 100 g (95% CI 1.83 to 2.19), which is ${fmt(mid, 2)} (${fmt(lo, 2)} to ${fmt(hi, 2)}) in dry muscle. Their own fit, regressed over their arms and weeks the same way:`]),
+        h('p', {}, ['Linear in total dose: ', claim('stell_linear').claim, ...cite('stell_linear'), `. That is ${fmt(mid, 2)} (${fmt(lo, 2)} to ${fmt(hi, 2)}) mmol/kg dm per 100 g in dry muscle. Their own fit, regressed over their arms and weeks the same way:`]),
         linItems,
-        h('p', {}, ['Saturating: ', sourceLink('rezende2020'), ' fitted an Emax model whose cumulative dose for half the maximum effect was 377 g (50% interval 210 to 494 g). In this model that dose at 6.4 g/day is 6.4 g times the half-life:']),
+        h('p', {}, ['Saturating: ', claim('rezende_emax_ed50').claim, ...cite('rezende_emax_ed50'), '. In this model the cumulative dose for half the maximum rise at 6.4 g/day is 6.4 g times the half-life:']),
         eItems,
         h('p', { text: 'Yamaguchi\'s central value falls just below 210 g, but its own range spans the interval, so the band overlaps it. Rezende\'s Emax is in standardized units and is never converted to mmol/kg; this is a check of shape only.' }),
         h('p', { text: 'Measured points held out of the fits:' }),
@@ -587,7 +588,8 @@ export function renderAudit(node, anchors = [], person = null) {
         'endogenous_route_uracil', 'endogenous_route_gadl1', 'diet_baguet', 'diet_solis', 'diet_removal', 'low_dose_08', 'low_dose_04', 'genes_mice',
         'training_inactive', 'training_trained', 'trained_muscle', 'mrgd_receptor', 'itch_human', 'cns_sites', 'brain_carnosine', 'solubility_enthalpy', 'browning_ph',
         'early_slowdown', 'histidine_drop', 'histidine_not_limiting', 'fasting_plasma_6g', 'fasting_plasma_32', 'bup_human', 'bup_rat', 'insulin_no_uptake', 'uptake_km', 'plasma_peak_40', 'varanoske_sr', 'varanoske_rr', 'hiit_vegetarian', 'histidine_meta',
-        'stell_wk8_hl_ta', 'stell_wk8_hl_ga', 'stell_wk8_ll_ta', 'stell_wk8_ll_ga', 'mrs_external_reference', 'mrs_wet_equivalence'];
+        'stell_wk8_hl_ta', 'stell_wk8_hl_ga', 'stell_wk8_ll_ta', 'stell_wk8_ll_ga', 'mrs_external_reference', 'mrs_wet_equivalence',
+        'rezende_participants', 'rezende_mean_4wk', 'rezende_individual_n', 'rezende_weekly_gain'];
     const cl = h('ul');
     for (const id of claimIds) {
         const c = claim(id);

@@ -1585,6 +1585,54 @@ export const CLAIMS = Object.freeze({
     "sourceId": "baguet2010",
     "location": "Introduction",
     "use": "audit trail (the Ghent group reads its mM as wet weight)"
+  },
+  "stell_linear": {
+    "topic": "model check",
+    "claim": "Carnosine rose 2.01 mmol/kg ww per 100 g of beta-alanine consumed (95% CI 1.83-2.19 mmol/kg ww), whether taken at 1.6 or 3.2 g/day",
+    "value": 2.01,
+    "sourceId": "stellingwerff2012",
+    "location": "Abstract; Discussion",
+    "use": "linear check in the audit trail"
+  },
+  "rezende_emax_ed50": {
+    "topic": "model check",
+    "claim": "Emax model: cumulative dose for 50% of the maximum effect (ED50) 377 g (50% CrI 210-494)",
+    "value": 377.0,
+    "sourceId": "rezende2020",
+    "location": "Results (Emax model)",
+    "use": "Emax check in the audit trail"
+  },
+  "rezende_participants": {
+    "topic": "baseline",
+    "claim": "575 participants in the meta-analysis, 486 men and 89 women",
+    "value": 486.0,
+    "sourceId": "rezende2020",
+    "location": "Results",
+    "use": "men's baseline preset note"
+  },
+  "rezende_mean_4wk": {
+    "topic": "variation",
+    "claim": "Individual data, 6.4 g/day: mean change at 4 weeks 14.0 mmol/kg dm (95% CrI 10.1-18.1)",
+    "value": 14.0,
+    "sourceId": "rezende2020",
+    "location": "Results, Individual Data",
+    "use": "anchor (4-week rise) and person-to-person paragraph"
+  },
+  "rezende_individual_n": {
+    "topic": "variation",
+    "claim": "Individual data from studies in the authors' lab: 99 participants (67 beta-alanine, 32 placebo), all young men at 6.4 g/day, observations from 4 to 24 weeks; Saunders 2017 among them",
+    "value": 67.0,
+    "sourceId": "rezende2020",
+    "location": "Methods; Results, Individual Data",
+    "use": "person-to-person paragraph (what the 6.6 SD is a spread of)"
+  },
+  "rezende_weekly_gain": {
+    "topic": "ceiling",
+    "claim": "Individual data, 6.4 g/day, duration centered at 4 weeks: a further 0.5 mmol/kg dm (95% CrI 0.2-0.7) per week",
+    "value": 0.5,
+    "sourceId": "rezende2020",
+    "location": "Results, Individual Data",
+    "use": "anchor (gain per week after week 4)"
   }
 });
 

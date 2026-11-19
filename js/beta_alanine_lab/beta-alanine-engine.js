@@ -24,6 +24,8 @@ export function kdFromHalfLife(days) {
 /**
  * Phases [{ doseGPerDay, days }] in order, to a schedule of [start, end, dose]
  * segments in days. Zero-dose phases leave a gap, which the model treats as washout.
+ * supplementDays is the protocol's length; stopDay is the end of the last dose,
+ * earlier when the protocol ends in a rest.
  */
 export function buildSchedule(phases) {
     const schedule = [];
@@ -34,7 +36,7 @@ export function buildSchedule(phases) {
         if (days > 0 && dose > 0) schedule.push([t, t + days, dose]);
         t += days;
     }
-    return { schedule, supplementDays: t };
+    return { schedule, supplementDays: t, stopDay: schedule.length ? schedule[schedule.length - 1][1] : t };
 }
 
 /** Rise at `day` for slope 1. Matches unit_rise in scripts/build-beta-alanine-fits.py. */
@@ -150,17 +152,18 @@ export function responseFactor(cv, rng) {
     return Math.exp(-s2 / 2 + Math.sqrt(s2) * normalDraw(rng));
 }
 
-// Rezende 2020: response SD 6.6 mmol/kg dm around a mean 4-week rise of 14.0 (claim response_sd).
+// Rezende 2020: response SD 6.6 mmol/kg dm between people within one lab's
+// individual data, net of normal variation (claims response_sd, rezende_individual_n).
 export const RESPONSE_SD = 6.6;
 
 /**
- * CV of a mean-1 factor F that brings the spread of F x paper draws up to the
- * total SD. Var(F X) = sd^2 + cv^2 (sd^2 + mean^2) for independent F and X, so
- * the paper spread is not counted twice. 0 when the papers already reach it.
+ * CV of a mean-1 factor F that adds the person-to-person SD on top of the
+ * spread between papers. Var(F X) = sd^2 + cv^2 (sd^2 + mean^2) for independent
+ * F and X, so cv^2 (sd^2 + mean^2) = individualSd^2.
  */
-export function responseCv(paperMean, paperSd, totalSd = RESPONSE_SD) {
-    const extra = totalSd * totalSd - paperSd * paperSd;
-    return extra > 0 ? Math.sqrt(extra / (paperSd * paperSd + paperMean * paperMean)) : 0;
+export function responseCv(paperMean, paperSd, individualSd = RESPONSE_SD) {
+    const scale = Math.sqrt(paperSd * paperSd + paperMean * paperMean);
+    return individualSd > 0 && scale > 0 ? individualSd / scale : 0;
 }
 
 /** Grams of carnosine in a muscle mass (wet kg) at a dry-muscle concentration. */
@@ -219,9 +222,14 @@ export function tinglingBand({ gramsPerServing, bodyMassKg, form }) {
         return { level: 'unknown', label: 'Needs body mass', mgPerKg,
             reason: 'Plain-serving bands are set per kg of body mass.', sourceIds: ['harris2006'] };
     }
-    if (mgPerKg < 10 && grams >= FIXED_TESTED_GRAMS) {
+    // The fixed 800 mg result covers that serving, not larger ones under 10 mg/kg.
+    if (mgPerKg < 10 && Math.abs(grams - FIXED_TESTED_GRAMS) < 1e-9) {
         return { level: 'possible', label: 'Possible, usually mild', mgPerKg,
             reason: 'Under the 10 mg/kg tested per kg, but at a fixed 800 mg about 1 in 4 of over 50 people had mild symptoms.', sourceIds: ['harris2006'] };
+    }
+    if (mgPerKg < 10 && grams > FIXED_TESTED_GRAMS) {
+        return { level: 'untested', label: 'Untested at this serving size', mgPerKg,
+            reason: 'Under the 10 mg/kg tested per kg, but larger than the fixed 800 mg serving tested, where about 1 in 4 of over 50 people had mild symptoms. No study tested this size.', sourceIds: ['harris2006'] };
     }
     if (mgPerKg < 10) {
         return { level: 'below-tested', label: 'Below the smallest dose tested', mgPerKg,
@@ -346,14 +354,16 @@ export function studiedRangeFlags(phases) {
     return flags.filter((f) => (seen.has(f.id) ? false : seen.add(f.id)));
 }
 
+// Exactly the factor counts as comparable, whatever floating point makes of the product.
 export function comparableDose(a, b) {
-    return a > 0 && b > 0 && a <= b * COMPARABLE_DOSE_FACTOR && a >= b / COMPARABLE_DOSE_FACTOR;
+    const f = COMPARABLE_DOSE_FACTOR * (1 + 1e-9);
+    return a > 0 && b > 0 && a <= b * f && b <= a * f;
 }
 
 /**
  * Schedule segments to runs: back-to-back segments each comparable to the one
  * before join a run. `before` is the dose of the run directly before, 0 after a
- * rest or at the start; `dose` is the run's largest.
+ * rest or at the start; `dose` is the run's largest and `low` its smallest.
  */
 export function doseRuns(schedule) {
     const runs = [];
@@ -363,8 +373,9 @@ export function doseRuns(schedule) {
         if (run && run.end === a && comparableDose(dose, lastDose)) {
             run.end = b;
             run.dose = Math.max(run.dose, dose);
+            run.low = Math.min(run.low, dose);
         } else {
-            runs.push({ start: a, end: b, dose, before: run && run.end === a ? run.dose : 0 });
+            runs.push({ start: a, end: b, dose, low: dose, before: run && run.end === a ? run.dose : 0 });
         }
         lastDose = dose;
     }
@@ -373,18 +384,20 @@ export function doseRuns(schedule) {
 
 /**
  * How far the protocol is covered by measured data. Each run of comparable
- * doses is covered from its own start by observations made in a run of
- * comparable dose that followed the same kind of run (none, or a comparable
- * dose). Washout: the longest washout follow-up. Days from the protocol start.
+ * doses is covered from its own start by observations made in a run whose
+ * smallest and largest doses are each comparable to its own, after the same
+ * kind of run (none, or a comparable dose). A rest, inside the protocol or
+ * after it, is covered up to the longest washout follow-up from the last dose.
+ * Days from the protocol start.
  */
 export function evidenceHorizon(phases, observations, washouts) {
-    const { schedule, supplementDays } = buildSchedule(phases);
+    const { schedule, supplementDays, stopDay } = buildSchedule(phases);
     const runs = doseRuns(schedule).map((run) => {
         const studies = [];
         for (const o of observations) {
             const own = doseRuns(o.schedule).find((r) => r.start < o.day && o.day <= r.end);
             const sameBefore = run.before === 0 ? own?.before === 0 : comparableDose(run.before, own?.before);
-            if (!own || !comparableDose(run.dose, own.dose) || !sameBefore) continue;
+            if (!own || !comparableDose(run.dose, own.dose) || !comparableDose(run.low, own.low) || !sameBefore) continue;
             const days = o.day - own.start;
             const existing = studies.find((s) => s.sourceId === o.sourceId);
             if (existing) existing.days = Math.max(existing.days, days);
@@ -394,42 +407,48 @@ export function evidenceHorizon(phases, observations, washouts) {
         const coveredUntil = Math.min(run.end, run.start + (studies.length ? studies[0].days : 0));
         return { ...run, studies, coveredUntil };
     });
-    const uncovered = [];
-    for (const r of runs.filter((x) => x.coveredUntil < x.end)) {
-        const prev = uncovered[uncovered.length - 1];
-        if (prev && prev[1] === r.coveredUntil) prev[1] = r.end;
-        else uncovered.push([r.coveredUntil, r.end]);
-    }
     const followups = washouts.filter((w) => w.observedDays > 0).map((w) => ({ sourceId: w.sourceId, days: w.observedDays }));
     followups.sort((a, b) => b.days - a.days);
     const washoutDays = followups.length ? followups[0].days : 0;
+    const loadingGaps = runs.filter((x) => x.coveredUntil < x.end).map((r) => [r.coveredUntil, r.end]);
+    // A break between runs longer than any washout follow-up.
+    const restGaps = [];
+    for (let i = 1; i < runs.length; i++) {
+        const from = runs[i - 1].end + washoutDays;
+        if (from < runs[i].start) restGaps.push([from, runs[i].start]);
+    }
+    const uncovered = [];
+    for (const [a, b] of [...loadingGaps, ...restGaps].sort((x, y) => x[0] - y[0])) {
+        const prev = uncovered[uncovered.length - 1];
+        if (prev && prev[1] === a) prev[1] = b;
+        else uncovered.push([a, b]);
+    }
     return {
         dose: runs.length ? Math.max(...runs.map((r) => r.dose)) : 0,
         supplementDays,
+        stopDay,
         runs,
         uncovered,
-        // Day the first unmeasured stretch starts, or the end of dosing.
-        loadingCoveredUntil: uncovered.length ? uncovered[0][0] : supplementDays,
+        restGaps,
+        // Day the first unmeasured stretch of dosing starts, or the end of dosing.
+        loadingCoveredUntil: loadingGaps.length ? loadingGaps[0][0] : stopDay,
         loadingStudies: runs.length ? runs[0].studies : [],
-        washoutCoveredUntil: supplementDays + washoutDays,
+        washoutCoveredUntil: stopDay + washoutDays,
         washoutStudies: followups
     };
 }
 
 /** Which studies hold up the curve on a given day, for the hover. */
 export function studiesCoveringDay(horizon, day) {
-    if (day <= horizon.supplementDays) {
-        const run = horizon.runs.find((r) => r.start <= day && day <= r.end);
-        if (!run) {
-            // A rest inside the protocol: a washout since the last dose, or nothing taken yet.
-            const prior = horizon.runs.filter((r) => r.end < day).pop();
-            if (!prior) return { phase: 'none', covered: true, sourceIds: [] };
-            return washoutCover(horizon, day - prior.end);
-        }
+    const run = horizon.runs.find((r) => r.start <= day && day <= r.end);
+    if (run) {
         const covering = run.studies.filter((s) => run.start + s.days >= day).map((s) => s.sourceId);
         return { phase: 'loading', covered: covering.length > 0, sourceIds: covering.length ? covering : run.studies.slice(0, 1).map((s) => s.sourceId) };
     }
-    return washoutCover(horizon, day - horizon.supplementDays);
+    // A rest, inside the protocol or after it: a washout since the last dose, or nothing taken yet.
+    const prior = horizon.runs.filter((r) => r.end < day).pop();
+    if (!prior) return { phase: 'none', covered: true, sourceIds: [] };
+    return washoutCover(horizon, day - prior.end);
 }
 
 function washoutCover(horizon, since) {

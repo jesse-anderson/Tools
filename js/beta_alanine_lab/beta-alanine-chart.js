@@ -79,7 +79,7 @@ export function drawChart(svg, model) {
 
     // Uncovered stretches: hatched background, lighter band.
     const uncovered = horizon.uncovered.map(([a, b]) => [a, b]);
-    if (horizon.washoutCoveredUntil < last) uncovered.push([Math.max(horizon.washoutCoveredUntil, horizon.supplementDays), last]);
+    if (horizon.washoutCoveredUntil < last) uncovered.push([horizon.washoutCoveredUntil, last]);
     for (const [a, b] of uncovered) {
         el('rect', { class: 'beyond', x: x(a), width: Math.max(0, x(b) - x(a)), y: M.top, height: plotH, fill: 'url(#baHatch)', 'fill-opacity': 0.35 }, svg);
     }

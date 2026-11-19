@@ -70,12 +70,13 @@ export function runBand(options) {
     const rngHalfLife = createSeededRandom(seed);
     const rngFactor = createSeededRandom((seed ^ 0x9e3779b9) >>> 0);
     const rngMuscle = createSeededRandom((seed ^ 0x85ebca6b) >>> 0);
-    const { schedule, supplementDays } = buildSchedule(options.phases);
+    const { schedule, supplementDays, stopDay: lastDose } = buildSchedule(options.phases);
     const lastDay = Math.max(1, Math.round(supplementDays + Math.max(0, options.washoutDays || 0)));
     const cv = options.individual ? (options.responseCv ?? personCv(loading, washouts, options.loadingPapers || options.observations).cv) : 0;
     const values = new Float64Array(draws * (lastDay + 1));
     const tags = [];
-    const stopDay = Math.round(supplementDays);
+    // The last dose, so a rest at the end of the protocol counts as washout.
+    const stopDay = Math.round(lastDose);
 
     for (let i = 0; i < draws; i++) {
         const [w, l] = pairs[i % pairs.length];

@@ -221,7 +221,7 @@ test.describe('model', () => {
     const built = await page.evaluate(() => window.BetaAlanine.buildSchedule([
       { doseGPerDay: 6.4, days: 28 }, { doseGPerDay: 0, days: 14 }, { doseGPerDay: 1.6, days: 28 }
     ]));
-    expect(built).toEqual({ schedule: [[0, 28, 6.4], [42, 70, 1.6]], supplementDays: 70 });
+    expect(built).toEqual({ schedule: [[0, 28, 6.4], [42, 70, 1.6]], supplementDays: 70, stopDay: 70 });
   });
 
   test('a fractional-day schedule falls back to the general solution', async ({ page }) => {
@@ -237,6 +237,10 @@ test.describe('model', () => {
   test('linear check: Stellingwerff\'s fit reproduces 2.01 mmol/kg ww per 100 g inside its CI', async ({ page }) => {
     const checks = await page.evaluate(() => window.BetaAlanine.computeChecks());
     const [lo, hi] = [1.83, 2.19].map((v) => v * WET_TO_DRY);
+    // The page's target is the claim's figure and the CI its text states.
+    const claim = csv('claims.csv').find((c) => c.claim_id === 'stell_linear');
+    expect(claim.claim).toContain('1.83-2.19');
+    expect(checks.linearTarget).toEqual([lo, Number(claim.value) * WET_TO_DRY, hi]);
     expect(checks.linear).toHaveLength(4);
     for (const l of checks.linear) {
       expect(l.per100, l.washout).toBeGreaterThanOrEqual(lo);
@@ -355,7 +359,7 @@ test.describe('band', () => {
     expect(r).toEqual({ muscle: true, halfLives: true });
   });
 
-  test('person-to-person variation tops the paper spread up to Rezende\'s 6.6, counting it once', async ({ page }) => {
+  test('person-to-person variation adds Rezende\'s within-lab 6.6 on top of the spread between papers', async ({ page }) => {
     const off = await page.evaluate(runDefault(false));
     const on = await page.evaluate(runDefault(true));
     expect(on.p90 - on.p10).toBeGreaterThan(off.p90 - off.p10);
@@ -375,14 +379,17 @@ test.describe('band', () => {
     expect(r.sdClaim).toBe(6.6);
     expect(r.person.mean).toBeCloseTo(p.m, 9);
     expect(r.person.sd).toBeCloseTo(p.sd, 9);
-    // Var(F X) = sd^2 + cv^2 (sd^2 + mean^2) for a mean-1 factor F independent of X.
-    const cv = Math.sqrt((6.6 ** 2 - p.sd ** 2) / (p.sd ** 2 + p.m ** 2));
+    // Var(F X) = sd^2 + cv^2 (sd^2 + mean^2) for a mean-1 factor F independent of X;
+    // the factor's part is the 6.6 between people, added to the papers' spread.
+    const cv = 6.6 / Math.sqrt(p.sd ** 2 + p.m ** 2);
     expect(r.person.cv).toBeCloseTo(cv, 9);
     expect(r.bandCv).toBeCloseTo(cv, 9);
-    expect(cv).toBeGreaterThan(0.3);
-    expect(cv).toBeLessThan(0.47);
-    // The drawn total lands near 6.6, not the 7.7 the old CV of 6.6 / 14.0 gave.
-    expect(Math.abs(moments(r.withFactor).sd - 6.6)).toBeLessThan(0.3);
+    expect(cv).toBeGreaterThan(0.4);
+    expect(cv).toBeLessThan(0.5);
+    // The drawn total lands near sqrt(sd^2 + 6.6^2), not the 6.6 that would count the papers inside it.
+    const total = Math.sqrt(p.sd ** 2 + 6.6 ** 2);
+    expect(total).toBeGreaterThan(7.3);
+    expect(Math.abs(moments(r.withFactor).sd - total)).toBeLessThan(0.35);
     const f = moments(r.xs);
     expect(Math.abs(f.m - 1)).toBeLessThan(0.01);
     expect(Math.abs(f.sd / f.m - cv)).toBeLessThan(0.02);
@@ -579,8 +586,12 @@ test.describe('band', () => {
     testInfo.annotations.push({ type: 'leave-one-paper-out', description: `${result.inside} of ${result.total} held-out points inside P10-P90; misses: ${result.misses.join(', ')}` });
     console.log(`leave-one-paper-out: ${result.inside} of ${result.total} inside; misses ${result.misses.join(', ')}`);
     expect(result.total).toBe(17);
-    // Phase 0 found 10 of 17, nearly every miss Saunders. A new paper should raise this, never lower it.
-    expect(result.inside).toBeGreaterThanOrEqual(10);
+    // Phase 0 found 10 of 17, nearly every miss Saunders. The audit trail states the
+    // count, so any change, up or down, fails here until that sentence is updated.
+    expect(result.inside).toBe(10);
+    expect(result.misses.filter((m) => m.startsWith('saunders2017'))).toHaveLength(5);
+    await page.locator('#auditFold > summary').click();
+    await expect(page.locator('#audit')).toContainText(`${result.inside} of its ${result.total} points fell inside the band`);
   });
 });
 
@@ -595,14 +606,16 @@ test.describe('checks on a protocol', () => {
         just_under_10: t(0.699), at_10: t(0.7), at_20: t(1.4), under_40: t(2.79), at_40: t(2.8),
         sr_16: t(1.6, 'sustained'), sr_4: t(4, 'sustained'), sr_41: t(4.1, 'sustained'), sr_5: t(5, 'sustained'),
         sr_51: t(5.1, 'sustained'), sr_8: t(8, 'sustained'), sr_81: t(8.1, 'sustained'), none: t(0),
-        heavy: t(0.8, 'plain', 100), heavyUnder: t(0.79, 'plain', 100), noMass: t(1.28, 'plain', 0), noMassSr: t(1.6, 'sustained', NaN)
+        heavy: t(0.8, 'plain', 100), heavyUnder: t(0.79, 'plain', 100), heavyOver: t(0.81, 'plain', 100), heavyBig: t(2.9, 'plain', 300),
+        noMass: t(1.28, 'plain', 0), noMassSr: t(1.6, 'sustained', NaN)
       };
     });
     expect(bands).toEqual({
       just_under_10: 'below-tested', at_10: 'possible', at_20: 'likely', under_40: 'likely', at_40: 'strong',
       sr_16: 'sr-placebo', sr_4: 'sr-tested', sr_41: 'sr-mild', sr_5: 'sr-mild', sr_51: 'sr-likely', sr_8: 'sr-likely',
       // 0.8 g at 100 kg is 8 mg/kg, but a fixed 800 mg was tested (about 1 in 4 mild); 0.79 g was not.
-      sr_81: 'untested', none: 'none', heavy: 'possible', heavyUnder: 'below-tested',
+      // Larger servings under 10 mg/kg (2.9 g at 300 kg is 9.7) are untested, not "usually mild".
+      sr_81: 'untested', none: 'none', heavy: 'possible', heavyUnder: 'below-tested', heavyOver: 'untested', heavyBig: 'untested',
       // Plain bands need a body mass; sustained release is by grams.
       noMass: 'unknown', noMassSr: 'sr-placebo'
     });
@@ -697,7 +710,8 @@ test.describe('checks on a protocol', () => {
     expect(h.step.uncovered).toEqual([[28, 168]]);
     expect(h.step.loadingCoveredUntil).toBe(28);
     expect(h.step.runs[1]).toMatchObject({ start: 28, end: 168, dose: 1.6, before: 6.4, studies: [] });
-    expect(h.stepDays[0]).toEqual({ phase: 'loading', covered: true, sourceIds: ['saunders2017', 'hill2007', 'yamaguchi2021', 'harris2006', 'church2017', 'harris2009', 'rezende2020'] });
+    // Hill 2007 and Harris 2006's ramp began at 4.0 g/day, 1.6 times below 6.4, so they cover a ramp, not a steady 6.4.
+    expect(h.stepDays[0]).toEqual({ phase: 'loading', covered: true, sourceIds: ['saunders2017', 'yamaguchi2021', 'church2017', 'harris2009', 'rezende2020'] });
     expect(h.stepDays[1]).toEqual({ phase: 'loading', covered: false, sourceIds: [] });
     // 60 days of nothing, then Saunders' 24 weeks counted from day 60: all covered.
     expect(h.rest.uncovered).toEqual([]);
@@ -711,6 +725,72 @@ test.describe('checks on a protocol', () => {
     // A weekly ramp of comparable steps is one run.
     expect(h.ramp.runs).toHaveLength(1);
     expect(h.ramp.uncovered).toEqual([]);
+  });
+
+  test('a rest at the end of the protocol is washout: dosing stops at the last dose', async ({ page }) => {
+    const r = await page.evaluate(() => {
+      const B = window.BetaAlanine;
+      const common = { observations: B.data.LOADING_OBSERVATIONS, washouts: B.data.WASHOUT_RATES, normalVariation: B.data.CLAIMS.placebo_variation.value };
+      const rest = [{ doseGPerDay: 6.4, days: 28 }, { doseGPerDay: 0, days: 56 }];
+      const plain = [{ doseGPerDay: 6.4, days: 28 }];
+      const a = B.runBand({ ...common, phases: rest, washoutDays: 112 });
+      const b = B.runBand({ ...common, phases: plain, washoutDays: 168 });
+      const hz = B.evidenceHorizon(rest, B.data.LOADING_OBSERVATIONS, B.data.WASHOUT_RATES);
+      return { sched: B.buildSchedule(rest), stop: [a.stopDay, b.stopDay], last: [a.lastDay, b.lastDay], sa: a.summary, sb: b.summary,
+        hz: { stopDay: hz.stopDay, supplementDays: hz.supplementDays, washout: hz.washoutCoveredUntil },
+        day: [B.studiesCoveringDay(hz, 139), B.studiesCoveringDay(hz, 150)], none: B.buildSchedule([{ doseGPerDay: 0, days: 14 }]) };
+    });
+    expect(r.sched).toEqual({ schedule: [[0, 28, 6.4]], supplementDays: 84, stopDay: 28 });
+    expect(r.none.stopDay).toBe(14);
+    // Same doses, same days on the chart: the summary is the same whether the rest is a phase or washout.
+    expect(r.stop).toEqual([28, 28]);
+    expect(r.last).toEqual([196, 196]);
+    expect(r.sa).toEqual(r.sb);
+    expect(r.sa.riseAtStop.p50).toBeCloseTo(14.73, 2);
+    // Washout is measured to 112 days after the last dose, day 140, not after the rest phase.
+    expect(r.hz).toEqual({ stopDay: 28, supplementDays: 84, washout: 140 });
+    expect(r.day[0]).toMatchObject({ phase: 'washout', covered: true });
+    expect(r.day[1]).toMatchObject({ phase: 'washout', covered: false, sourceIds: ['yamaguchi2021'] });
+  });
+
+  test('a break between doses longer than any washout follow-up is shaded', async ({ page }) => {
+    const r = await page.evaluate(() => {
+      const B = window.BetaAlanine;
+      const hz = (phases) => B.evidenceHorizon(phases, B.data.LOADING_OBSERVATIONS, B.data.WASHOUT_RATES);
+      const long = hz([{ doseGPerDay: 6.4, days: 28 }, { doseGPerDay: 0, days: 210 }, { doseGPerDay: 6.4, days: 28 }]);
+      const short = hz([{ doseGPerDay: 6.4, days: 28 }, { doseGPerDay: 0, days: 112 }, { doseGPerDay: 6.4, days: 28 }]);
+      return { long, short, day200: B.studiesCoveringDay(long, 200) };
+    });
+    // Yamaguchi followed 112 days, so days 140 to 238 of the break are past every washout study.
+    expect(r.long.restGaps).toEqual([[140, 238]]);
+    expect(r.long.uncovered).toEqual([[140, 238]]);
+    expect(r.long.loadingCoveredUntil).toBe(266);
+    expect(r.day200).toMatchObject({ phase: 'washout', covered: false });
+    // A break exactly as long as the follow-up is covered.
+    expect(r.short.restGaps).toEqual([]);
+    expect(r.short.uncovered).toEqual([]);
+  });
+
+  test('comparable doses: a ramp is matched by its whole range, and exactly 1.5 times counts', async ({ page }) => {
+    const r = await page.evaluate(() => {
+      const B = window.BetaAlanine;
+      const hz = (phases) => B.evidenceHorizon(phases, B.data.LOADING_OBSERVATIONS, B.data.WASHOUT_RATES);
+      const weekly = (doses, days = 7) => doses.map((d) => ({ doseGPerDay: d, days }));
+      return {
+        exact: [B.comparableDose(3.6, 2.4), B.comparableDose(2.4, 3.6), B.comparableDose(2.4, 1.6), B.comparableDose(3.61, 2.4)],
+        steps: B.doseRuns(B.buildSchedule(weekly([1.6, 2.4, 3.6, 5.4])).schedule).map((x) => [x.start, x.end, x.low, x.dose]),
+        drift: hz(weekly([1.0, 1.5, 2.25], 14)),
+        steady: hz([{ doseGPerDay: 2.25, days: 42 }])
+      };
+    });
+    // 2.4 x 1.5 is 3.5999... in floating point; it still counts.
+    expect(r.exact).toEqual([true, true, true, false]);
+    expect(r.steps).toEqual([[0, 28, 1.6, 5.4]]);
+    // 1.0 to 2.25 g/day is one run, but its 1.0 g/day start is 1.6 times below every
+    // study near 2.25, so no study covers it; a steady 2.25 g/day is covered.
+    expect(r.drift.runs[0]).toMatchObject({ low: 1, dose: 2.25, studies: [] });
+    expect(r.drift.uncovered).toEqual([[0, 42]]);
+    expect(r.steady.uncovered).toEqual([]);
   });
 
   test('price tiers and protocol cost from prices.csv', async ({ page }) => {
@@ -796,15 +876,16 @@ test.describe('literature anchors', () => {
 
   test('every anchor gives the verdict this model version states', async ({ page }) => {
     const anchors = await page.evaluate(() => window.BetaAlanine.anchors.map((a) => ({ id: a.id, verdict: a.verdict, expected: a.expected })));
-    expect(anchors.map((a) => a.id)).toEqual(['rezende_4wk', 'saunders_wk4', 'saunders_wk12', 'saunders_wk24', 'delfavero_older', 'stegen_12', 'incorporation',
+    expect(anchors.map((a) => a.id)).toEqual(['rezende_4wk', 'rezende_weekly_gain', 'saunders_wk4', 'saunders_wk12', 'saunders_wk24', 'delfavero_older', 'stegen_12', 'incorporation',
       'bex_inactive', 'bex_trained', 'blancquaert_08', 'turnover_baseline', 'baguet_3wk_share', 'baguet_excess_loss', 'spelnikov_supply',
       'blancquaert17_slowdown', 'stellingwerff_stepdown', 'varanoske_sr', 'varanoske_rr']);
     for (const a of anchors) expect(a.verdict, a.id).toBe(a.expected);
     // The known misses: the model slows less than measured (Saunders week 24, and
     // Blancquaert 2017 within 23 days), below the fitted doses it runs under the low-dose study,
     // its first-order washout keeps more of Baguet's excess at 9 weeks than the linear loss measured,
-    // and after Stellingwerff's step down it keeps more of the early high dose than measured.
-    expect(anchors.filter((a) => a.verdict !== 'inside').map((a) => [a.id, a.verdict])).toEqual([['saunders_wk24', 'model-above'], ['blancquaert_08', 'model-below'], ['baguet_excess_loss', 'model-below'], ['blancquaert17_slowdown', 'model-above'], ['stellingwerff_stepdown', 'model-above']]);
+    // after Stellingwerff's step down it keeps more of the early high dose than measured,
+    // and it gains more per week after week 4 than Rezende's individual data.
+    expect(anchors.filter((a) => a.verdict !== 'inside').map((a) => [a.id, a.verdict])).toEqual([['rezende_weekly_gain', 'model-above'], ['saunders_wk24', 'model-above'], ['blancquaert_08', 'model-below'], ['baguet_excess_loss', 'model-below'], ['blancquaert17_slowdown', 'model-above'], ['stellingwerff_stepdown', 'model-above']]);
   });
 
   test('anchor measurements are the archived figures, not numbers typed into the module', async ({ page }) => {
@@ -819,8 +900,30 @@ test.describe('literature anchors', () => {
     const claims = Object.fromEntries(csv('claims.csv').map((c) => [c.claim_id, c]));
     expect(r.delfavero_older).toBeCloseTo(Number(claims.elderly_rise.value) * 100, 6);
     expect(r.incorporation).toBeCloseTo(Number(claims.incorporation_yamaguchi.value) * 100, 6);
-    expect(claims.response_sd.claim).toContain('14.0 (10.1-18.1)');
-    expect(r.rezende_4wk).toBe(14.0);
+    expect(claims.rezende_mean_4wk.claim).toContain('14.0 mmol/kg dm (95% CrI 10.1-18.1)');
+    expect(r.rezende_4wk).toBe(Number(claims.rezende_mean_4wk.value));
+    expect(r.rezende_weekly_gain).toBe(Number(claims.rezende_weekly_gain.value));
+  });
+
+  test('every number an anchor prints as measured is in its claims or its study\'s observations', async ({ page }) => {
+    const anchors = await page.evaluate(() => window.BetaAlanine.anchors.map((a) => ({ id: a.id, text: a.measuredText, claimIds: a.claimIds, sourceIds: a.sourceIds, measured: a.measured })));
+    const claims = Object.fromEntries(csv('claims.csv').map((c) => [c.claim_id, c]));
+    const obs = csv('loading_observations.csv');
+    const nums = (s) => (s.match(/\d+(?:\.\d+)?/g) || []).map(Number);
+    for (const a of anchors) {
+      const known = new Set();
+      for (const id of a.claimIds) {
+        expect(claims[id], `${a.id}: claim ${id}`).toBeTruthy();
+        for (const n of nums(`${claims[id].claim} ${claims[id].value}`)) { known.add(n); known.add(Number((n * 100).toFixed(6))); }
+      }
+      for (const o of obs.filter((x) => a.sourceIds.includes(x.source_id))) known.add(Number(o.rise_mmol_kg_dm));
+      const measured = Number(a.measured.toFixed(6));
+      for (const n of nums(a.text)) {
+        // A figure is a claim's number, a study's measured rise, or the anchor's own measured value as printed.
+        const ok = known.has(n) || [...known].some((k) => Math.abs(k - n) < 0.051) || Math.abs(measured - n) < 0.006;
+        expect(ok, `${a.id}: ${n} in "${a.text}"`).toBe(true);
+      }
+    }
   });
 
   test('the anchor protocols are run as the papers describe them', async ({ page }) => {
@@ -848,7 +951,7 @@ test.describe('literature anchors', () => {
   test('the audit trail prints each anchor with its verdict', async ({ page }) => {
     await page.locator('#auditFold > summary').click();
     const rows = page.locator('#anchorTable tbody tr');
-    await expect(rows).toHaveCount(18);
+    await expect(rows).toHaveCount(19);
     await expect(page.locator('#anchorTable tr[data-anchor="varanoske_rr"]')).toContainText('+2.62 mmol/kg wet');
     await expect(page.locator('#anchorTable tr[data-anchor="blancquaert17_slowdown"]')).toContainText('0.81 against 1.42 mM (0.57)');
     // Small figures print with enough digits to read: 0.03 mM/day, not 0.0.
@@ -989,6 +1092,14 @@ test.describe('literature anchors', () => {
     expect(c.taurine_24wk.claim).toContain('33.67, 35.93 and 35.42');
     expect(c.fate_transaminases.claim).toContain('GABA-T and AGXT2');
     expect(c.breakfast_profile.claim).toContain('7 of 60');
+    // Rezende 2020 and Stellingwerff 2012 figures the audit trail and anchors print.
+    expect([v('stell_linear'), v('rezende_emax_ed50'), v('rezende_participants'), v('rezende_mean_4wk'), v('rezende_individual_n'), v('rezende_weekly_gain')])
+      .toEqual([2.01, 377, 486, 14, 67, 0.5]);
+    expect(c.stell_linear.claim).toContain('(95% CI 1.83-2.19 mmol/kg ww)');
+    expect(c.rezende_emax_ed50.claim).toContain('377 g (50% CrI 210-494)');
+    expect(c.rezende_participants.claim).toContain('575 participants in the meta-analysis, 486 men and 89 women');
+    expect(c.rezende_individual_n.claim).toContain('99 participants (67 beta-alanine, 32 placebo)');
+    expect(c.rezende_weekly_gain.claim).toContain('0.5 mmol/kg dm (95% CrI 0.2-0.7) per week');
     // Every claim's source is archived, with its PDF hash in the manifest.
     const manifest = Object.fromEntries(csv('download_manifest.csv').map((m) => [m.source_id, m]));
     for (const id of ['urine_cc', 'fate_transaminases', 'plasma_half_life', 'plasma_half_life_sr8', 'tau_t_down', 'taurine_24wk', 'taurine_meta',
@@ -1074,6 +1185,38 @@ test.describe('page', () => {
     expect(rects.every((w) => w > 0)).toBe(true);
   });
 
+  test('a rest phase at the end stops dosing at the last dose; a long break is shaded and flagged', async ({ page }) => {
+    await openTool(page);
+    await page.click('#addPhase');
+    await page.fill('#phase1Dose', '0');
+    const cards = page.locator('#cards');
+    await expect(cards).toContainText('Rise at the end of dosing (week 4.0)');
+    await expect(cards).toContainText('14.7 mmol/kg dm');
+    await page.locator('#edgeFold > summary').click();
+    const rows = page.locator('#edgeTable tbody tr');
+    await expect(rows.nth(0)).toContainText('End of dosing (week 4.0)');
+    await expect(rows.nth(1)).toContainText('End of phase 2 (week 8.0)');
+    const stop = await page.evaluate(() => [window.BetaAlanine.lastBand.stopDay, window.BetaAlanine.lastBand.supplementDays]);
+    expect(stop).toEqual([28, 56]);
+    // A 30-week break, then dosing again: past week 20 nothing followed people that long.
+    await page.fill('#phase1Length', '30');
+    await page.click('#addPhase');
+    await page.fill('#phase2Dose', '6.4');
+    await expect(page.locator('#flags')).toContainText('This break runs past week 20.0, longer after the last dose than any washout study followed people, so weeks 20.0 to 34.0 are shaded.');
+    await expect(page.locator('#chart rect.beyond').first()).toBeVisible();
+  });
+
+  test('changing the washout shown keeps a study preset and its measured points', async ({ page }) => {
+    await openTool(page);
+    await page.selectOption('#protocolPreset', 'hill2007');
+    await expect(page.locator('#chart circle.obs-point')).toHaveCount(2);
+    await page.fill('#washoutWeeks', '8');
+    await expect.poll(() => page.evaluate(() => window.BetaAlanine.lastBand.lastDay - window.BetaAlanine.lastBand.stopDay)).toBe(56);
+    await expect(page.locator('#protocolPreset')).toHaveValue('hill2007');
+    await expect(page.locator('#chart circle.obs-point')).toHaveCount(2);
+    await expect(page.locator('#presetReport')).toContainText('As reported by');
+  });
+
   test('the edge table covers each phase end and the washout end', async ({ page }) => {
     await openTool(page);
     await page.selectOption('#protocolPreset', 'stellingwerff-high');
@@ -1099,7 +1242,10 @@ test.describe('page', () => {
     const audit = page.locator('#audit');
     await expect(audit).toContainText(`a coefficient of variation of ${want.cv}.`);
     await expect(audit).toContainText(`At 4 weeks it moves the middle and 10th to 90th ${want.bands}.`);
-    await expect(audit).not.toContainText('coefficient of variation of 0.47');
+    // Rezende's 6.6 is a spread within one lab, added to the papers' spread, not a total that contains it.
+    await expect(audit).toContainText('67 people on beta-alanine, all young men at 6.4 g/day');
+    await expect(audit).toContainText('so the factor adds the 6.6 on top of it, for a total SD of');
+    await expect(audit).not.toContainText('counting the spread between studies once');
     await page.selectOption('#massUnit', 'lb');
     await expect(page.locator('#bodyMass')).toHaveValue('154.3');
     await page.selectOption('#baselinePreset', 'women');

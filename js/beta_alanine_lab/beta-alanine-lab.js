@@ -254,7 +254,8 @@ function wireInputs() {
         schedule();
     });
     const bindValue = (id, key, after) => $(id).addEventListener('input', (e) => { state[key] = e.target.value; if (after) after(); schedule(); });
-    bindValue('washoutWeeks', 'washoutWeeks', markCustom);
+    // The washout shown is not part of a study's dosing, so a preset stays a preset.
+    bindValue('washoutWeeks', 'washoutWeeks');
     bindValue('targetRise', 'targetRise');
     bindValue('bodyFat', 'bodyFat');
     bindValue('muscleMass', 'muscleMass');
@@ -353,7 +354,7 @@ function render() {
         if (i > 0) markers.push({ startDay: t, label: `Phase ${i + 1}` });
         t += p.days;
     });
-    markers.push({ startDay: band.supplementDays, label: 'Stop' });
+    markers.push({ startDay: band.stopDay, label: 'Stop' });
     chartScale = drawChart($('chart'), {
         band, view: state.view, toView: view.to, normal: NORMAL_VARIATION, horizon: band.horizon,
         phases: markers, paperLines: paperLineModels(), yTitle: view.title, points: studyPoints()
@@ -363,7 +364,7 @@ function render() {
         .concat(Engine.studiedRangeFlags(phases), horizonFlags()));
     renderCards($('cards'), {
         summary: band.summary, baseline: base, totalGrams: Engine.totalGrams(phases), target: targetRise(),
-        washoutDays: band.lastDay - band.stopDay, muscle: muscle(), stopWeeks: band.supplementDays / 7, bodyMassKg: bodyMassKg()
+        washoutDays: band.lastDay - band.stopDay, muscle: muscle(), stopWeeks: band.stopDay / 7, bodyMassKg: bodyMassKg()
     });
     renderEdgeTable($('edgeTable'), edgeRows(view), view.unit);
     renderServings($('servingTable'), phases, bodyMassKg());
@@ -413,6 +414,11 @@ function horizonFlags() {
         }
         flags.push({ text, sourceIds: longest ? [longest.sourceId] : [] });
     }
+    const followup = hz.washoutStudies[0];
+    for (const [a, b] of hz.restGaps) {
+        flags.push({ text: `This break runs past week ${fmt(a / 7, 1)}, longer after the last dose than any washout study followed people, so weeks ${fmt(a / 7, 1)} to ${fmt(b / 7, 1)} are shaded.`,
+            sourceIds: followup ? [followup.sourceId] : [] });
+    }
     return flags;
 }
 
@@ -432,15 +438,16 @@ function useGoalDose() {
 }
 
 function edgeRows(view) {
-    const rows = [];
+    // One row per day; the end of dosing names its day even when a phase also ends there.
+    const rows = new Map();
     let t = 0;
     band.phases.forEach((p, i) => {
         t += p.days;
-        if (p.days > 0 && t < band.supplementDays) rows.push({ label: `End of phase ${i + 1}`, day: t });
+        if (p.days > 0 && t < band.lastDay) rows.set(t, `End of phase ${i + 1}`);
     });
-    if (band.supplementDays > 0) rows.push({ label: 'End of dosing', day: band.stopDay });
-    if (band.lastDay > band.stopDay) rows.push({ label: 'End of washout shown', day: band.lastDay });
-    return rows.map((r) => ({ ...r, ...dayDetail(r.day, view) }));
+    if (band.supplementDays > 0) rows.set(band.stopDay, 'End of dosing');
+    if (band.lastDay > band.stopDay) rows.set(band.lastDay, 'End of washout shown');
+    return [...rows.entries()].sort((a, b) => a[0] - b[0]).map(([day, label]) => ({ label, day, ...dayDetail(day, view) }));
 }
 
 function dayDetail(day, view) {
@@ -669,9 +676,10 @@ window.BetaAlanine = {
 
 // The person factor's CV and the 4-week band with it off and on, for the audit trail.
 function personFigures() {
-    const { mean, sd, cv } = personCv(loadingPapers(LOADING_OBSERVATIONS), WASHOUT_RATES, LOADING_OBSERVATIONS);
+    // Keyed on LOADING, as compute() is, so the CV band runs once per page.
+    const { mean, sd, cv } = personCv(LOADING, WASHOUT_RATES);
     const at = (individual) => {
-        const b = runBand({ phases: [RESPONSE_PROTOCOL], washoutDays: 0, observations: LOADING_OBSERVATIONS, washouts: WASHOUT_RATES, individual });
+        const b = runBand({ phases: [RESPONSE_PROTOCOL], washoutDays: 0, loadingPapers: LOADING, washouts: WASHOUT_RATES, individual });
         const d = RESPONSE_PROTOCOL.days;
         return { p10: b.p10[d], p50: b.p50[d], p90: b.p90[d] };
     };
